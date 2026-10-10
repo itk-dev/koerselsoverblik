@@ -1,0 +1,51 @@
+---
+title: Components (milestone 1)
+---
+flowchart TB
+    subgraph web["Web layer"]
+        controllers["Controllers<br/>Overview, Import, DailyCount,<br/>Security, Admin/*"]
+        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, Route, User"]
+        twig["Twig templates and components<br/>Tile, Sparkline, LineChart, Panel"]
+        format["FormatExtension"]
+    end
+
+    subgraph security["Security"]
+        authenticators["Authenticators<br/>Password, NoLogin (OIDC later)"]
+        guards["Role guards<br/>#[IsGranted], access_control"]
+    end
+
+    subgraph import["Import/DrivingData"]
+        mapping["MappingLoader → Mapping<br/>config/import/driving_data/*.yaml"]
+        parser["StopRowParser"]
+        upserter["StopRowUpserter"]
+        builder["RouteBuilder"]
+        aggregator["DailyStatsAggregator"]
+    end
+
+    subgraph report["Report"]
+        filter["PeriodFilter"]
+        periods["PeriodRangeFactory"]
+        kpi["KpiCalculator → Kpis"]
+        delta["Delta / Tone"]
+    end
+
+    commands["Console commands<br/>app:user:*, app:driving-data:*"]
+    repositories[("Doctrine entities<br/>and repositories")]
+
+    controllers --> forms
+    controllers --> twig
+    twig --> format
+    guards --> controllers
+    authenticators --> guards
+
+    controllers -- "upload" --> parser
+    commands --> parser
+    mapping --> parser
+    parser --> upserter --> builder --> aggregator
+    upserter --> repositories
+    builder --> repositories
+    aggregator --> repositories
+
+    controllers -- "overview" --> filter --> periods --> kpi
+    kpi --> repositories
+    kpi --> delta --> twig

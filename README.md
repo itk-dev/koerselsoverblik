@@ -48,16 +48,19 @@ The user interface is in Danish.
 Every figure is calculated from summed counts for the selected period. Ratios are never
 averages of daily percentages.
 
-A **route** is one vehicle run: a chain of pickups and drop-offs, from the first citizen getting
-in until the vehicle is empty again.
+**Terms:**
+
+- **Route:** a vehicle schedule in the planning system, assigned to a supplier.
+- **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
+  until the vehicle is empty again. A route can have several runs a day.
 
 | Figure | Definition | Source |
 |---|---|---|
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
 | Citizens | Distinct citizens in the period, counted on the pseudonymised person id | Driving data |
-| Solo routes | Routes where no more than one citizen was in the vehicle at any time. Shown with the share of all routes | Driving data |
-| Punctuality (%) | Share of completed routes whose last drop-off was within the tolerance of the planned time. Cancelled routes are excluded | Driving data |
+| Solo routes | Route runs where no more than one citizen was in the vehicle at any time. Shown with the share of all route runs | Driving data |
+| Punctuality (%) | Share of completed route runs whose last drop-off was within the tolerance of the planned time. Cancelled runs are excluded | Driving data |
 | Complaints | Complaints received. Shown with complaints per 1,000 trips | Manual entry |
 | Mails | Citizen enquiries received by mail | Manual entry |
 | Phone calls | Phone calls received | Manual entry |

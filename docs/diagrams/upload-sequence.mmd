@@ -1,0 +1,37 @@
+---
+title: Upload driving data
+---
+sequenceDiagram
+    autonumber
+    actor Editor
+    participant C as ImportController
+    participant P as StopRowParser
+    participant M as Mapping
+    participant U as StopRowUpserter
+    participant B as RouteBuilder
+    participant A as DailyStatsAggregator
+    participant DB as MariaDB
+
+    Editor->>C: POST /import (file)
+    C->>C: check ROLE_EDITOR and CSRF
+    C->>DB: create ImportBatch
+    C->>P: parse(file, mapping)
+    P->>M: column, type and value map per field
+    loop each row
+        P->>P: read and convert fields
+        alt valid
+            P->>U: StopRowData (person id pseudonymised)
+        else invalid
+            P->>C: rejected row: row number and reason, no values
+        end
+    end
+    U->>DB: upsert on (mapping_name, row_key)
+    Note over U,DB: same key overwrites, new key inserts, never duplicates
+    U-->>C: added, updated, affected dates
+    C->>B: rebuild(affected dates)
+    B->>DB: replace RouteRun rows for those dates
+    C->>A: rebuild(affected dates)
+    A->>DB: replace DailyStats rows for those dates
+    C->>C: delete uploaded file
+    C->>DB: update ImportBatch counts
+    C-->>Editor: result page

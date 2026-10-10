@@ -212,10 +212,10 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
 - `task docs:diagrams` renders every `.mmd`. CI re-renders them and fails if an SVG is out of date.
 - `docs/architecture.md` embeds the SVGs and links to the sources.
 - Key decisions become ADRs in `docs/adr/`:
-  - `0001-stack.md`
-  - `0002-auth-modes.md`
-  - `0003-driving-data-import-mapping-and-overwrite.md`
-  - `0004-pseudonymised-person-id.md`
+  - `001-stack.md`
+  - `002-auth-modes.md`
+  - `003-driving-data-import-mapping-and-overwrite.md`
+  - `004-personal-data-in-driving-data.md` (draft, see the PII open question)
 
 ## 3. Break the plan into tasks
 
@@ -249,7 +249,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 |---|---|---|---|
 | M1-01 | ITK `symfony-8` template, Symfony skeleton, MariaDB | 4 | – |
 | M1-02 | Test tooling: PHPUnit suites, pcov, coverage gate, Infection, Taskfile tasks, PR and release CI workflows, smoke test | 4 | 01 |
-| M1-03 | Diagram rendering task and CI check | 4 | 01 |
+| M1-03 | CI check for the diagrams (`task docs:diagrams:check`); the render task exists from step 2 | 4 | 01 |
 | M1-04 | Role hierarchy, deny-by-default `access_control`, route-guard test | 5 | 02 |
 | M1-05 | `User` entity and the `app:user:*` commands | 5 | 04 |
 | M1-06 | Password login: CSRF, rate limiting, remember-me, logout | 5 | 05 |
@@ -295,7 +295,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
    - `rregeer/phpunit-coverage-check`
    - doctrine-fixtures, `zenstruck/foundry`, `dama/doctrine-test-bundle`
    - `infection/infection`, and pcov in the phpfpm image
-   - Write the Taskfile from the economics conventions (`setup`, `compose`, `composer`, `phpfpm`, `test*`, `code-analysis`, `prepare-code`, `coding-standards:*`, `db:migrate`, `fixtures:load`, `docs:diagrams`).
+   - Extend the Taskfile (created in step 2 with the diagram tasks) following the economics conventions (`setup`, `compose`, `composer`, `phpfpm`, `test*`, `code-analysis`, `prepare-code`, `coding-standards:*`, `db:migrate`, `fixtures:load`, `docs:diagrams`).
    - **Smoke test first:** a failing functional test that `/` redirects to `/login`.
 6. Docs:
    - Check `README.md` against the actual setup.
