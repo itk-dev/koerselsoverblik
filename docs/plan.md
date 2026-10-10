@@ -488,22 +488,143 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 
 ---
 
+# Milestone 2 (outline)
+
+Milestone 2 will be broken into tasks once milestone 1 is done. The same development approach
+applies: README first, architecture and ADRs updated, then tasks.
+
+**Scope:**
+
+- **Dashboard:** the overview grows into a dashboard
+- **Trends:** whether things are getting better or worse
+- **Nightly integrations:**
+  - the telephony system, if possible
+  - the mailboxes, through the mail API
+  - complaints, from a source not yet chosen
+- **Extra views:**
+  - supplier comparisons
+  - complaints: more than the count
+  - phone enquiries: more than the count, depending on the data
+  - estimated cost of empty running
+- **OIDC login:** everyone who can sign in has access to everything
+
+## M2.1 Dashboard and trends
+
+**Verdict:**
+
+- A generated sentence at the top: better, worse, mixed or unchanged, compared with the comparison period.
+- It is derived from the data, never written by hand, so it changes when the figures change.
+
+**Settings:**
+
+- Which figures count towards the verdict: punctuality, complaints, empty running, solo routes, cancellations.
+- The minimum change before a change counts at all.
+- The defaults are punctuality and complaints, with at least 1 %.
+- The settings live in the URL, like the other filters, so a configured dashboard can be shared as a link.
+
+**Trend views:**
+
+- 12-month trends for each figure, with the direction against the comparison period.
+- A punctuality target line.
+- Monthly charts for complaints per 1,000 trips, and for empty running.
+
+**Code:**
+
+- `Verdict` service in `src/Report`, using `Delta` and the threshold.
+- 100 % covered MSI applies here too, like the rest of `src/Report`.
+
+## M2.2 Nightly integrations
+
+**Running:**
+
+- Each integration is a console command, e.g. `app:integration:telephony:sync`.
+- They run once a night, from cron on the server, configured in the Woodpecker deploy (the economics convention).
+- No queue or worker is needed while each sync is a short batch job. Add Symfony Messenger with a supervisor-run worker only if a sync becomes long-running.
+
+**Design:**
+
+- A `DataProviderInterface` adapter per source.
+- Each sync is idempotent: it fetches a date range, by default yesterday plus a few days back to pick up corrections, and overwrites the data for those dates. Running it twice never duplicates data.
+- Integrations write to the same tables as manual entry, with a `source` column (`manual` or the integration name). An integration never overwrites a day that was entered by hand without saying so in the sync report.
+- Credentials come from env vars or Symfony secrets.
+- Each run is logged with its date range, counts and errors. Sync status ("last successful sync") is shown in the administration.
+
+**Sources:**
+
+| Source | Data | Status |
+|---|---|---|
+| Telephony system | Calls offered, answered, abandoned in queue, average answer time, share answered within target | If possible. Depends on an API or export |
+| Mailboxes via the mail API | Mails received, closed and unhandled per day | Needs a service account and permissions to the mailboxes |
+| Complaints | Received date, supplier, route, category, outcome, closed date | Source not chosen: the case management system, the self-service complaint form, or collected from the shared mailbox through the mail API |
+
+- **Testing:** tests use recorded responses (fixtures). There are no live calls in CI.
+
+## M2.3 Extra views
+
+**Supplier comparison:**
+
+- Every figure per supplier, side by side.
+- Every supplier is always shown, whatever the supplier filter says.
+- Normalised figures (per 1,000 trips, percentages) so suppliers of different size can be compared.
+
+**Complaints beyond the count:**
+
+- **Breakdowns:** category and subcategory, supplier, route.
+- **Case handling:** outcome, processing time in working days, the share within the deadline, repeat complaints.
+- **Depends on the source:** which fields it delivers. Manual entry of complaint cases is the fallback.
+- **Working days:** calculated with a holiday calendar.
+
+**Phone enquiries beyond the count:**
+
+- **Figures:** answered, abandoned in the queue, average answer time, and the share answered within target.
+- **Depends on the source:** these exist only if the telephony data provides them. Otherwise the view shows the count only.
+- **Weighted averages:** answer time and the within-target share are stored weighted by answered calls, so averages over a period are exact.
+
+**Estimated cost of empty running:**
+
+- Empty minutes × a price per minute, or empty km × a price per km, depending on what the data contains.
+- The price and the unit (`minute` or `km`) are configurable (`APP_EMPTY_RUNNING_PRICE`, `APP_EMPTY_RUNNING_PRICE_UNIT`).
+- The view always says it is an estimate, and shows the price it used.
+
+## M2.4 OIDC login
+
+**Authentication:**
+
+- `APP_AUTH_MODE=oidc` with `itk-dev/openid-connect-bundle` against the identity provider.
+- Users are created or updated on first login.
+
+**Access:**
+
+- Everyone who can sign in has access to everything.
+- Signed-in users get the roles in `APP_OIDC_DEFAULT_ROLES`, default `ROLE_ADMIN`.
+- The role guards from milestone 1 stay in place. Restricting access later means changing the role assignment (for example mapping group claims to roles), not the controllers.
+
+**Other modes:** password and `none` modes stay available.
+
+## Open questions for milestone 2
+
+**Data sources:**
+
+- **Telephony:** is there an API or a scheduled export? Which fields does it have?
+- **Mailboxes:** which mailboxes count? Should every mail count, or only mails about transport? Who grants the service account its permissions?
+- **Complaints:** which source should be used? Do all complaints arrive through it, or also by mail and phone? Can the fields be extracted in a structured way?
+
+**Settings and data:**
+
+- **Empty running cost:** what is the price, and is it per minute or per km?
+- **Working days:** which holiday calendar applies?
+- **Staff data:** what is stored about OIDC users (see ADR 004, staff accounts)?
+
+---
+
 # Later milestones (outline)
 
-1. **Theme pages:** activity, punctuality (delay bands, the worst routes), capacity (empty running cost, planned vs actual solo, contract lots).
-2. **Detailed enquiries and complaints:**
-   - telephony details (answered, abandoned, answer time)
-   - complaint cases (category, outcome, deadline in working days)
-   - a generated verdict on the overview
-3. **Management report:** any period, split by area, with a printable one-pager.
-4. **OIDC login:** via the identity provider, with group claims mapped to roles.
+1. **Theme pages:** activity, punctuality (delay bands, the worst routes), capacity (planned vs actual solo, trips that could not share a vehicle because they were in different contract lots).
+2. **Management report:** any period, split by area, with a printable one-pager.
+3. **Role-based access from OIDC claims:** if not everyone should see everything.
+4. **Planning system API:** if the planning system can deliver data automatically, replacing uploads.
 5. **Async processing:** Symfony Messenger with a supervisor-run worker, when upload sizes or integrations need it.
-6. **Integrations** (nightly, via the scheduler):
-   - planning system API
-   - telephony system
-   - mailbox
-   - complaints source
-7. **Demo data:** a generator for presentations, ported from the prototype.
+6. **Demo data:** a generator for presentations, ported from the prototype.
 
 ---
 
