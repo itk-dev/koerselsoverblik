@@ -64,7 +64,7 @@ Not decided. These inputs are needed:
 - Does one file always contain whole days? If not, option 2 would wipe parts of days.
 - The data protection adviser's view on storing a pseudonymised person id.
 
-Until it is decided, the architecture assumes option 1, so the work before task M1-10b can
+Until it is decided, the architecture assumes option 1, so the work before task M1-14 can
 continue. The decision is needed before the extract parser is built.
 
 ## Consequences

@@ -224,7 +224,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 
 **Each task has:**
 
-- **ID and title**, e.g. `M1-11 Upsert stop rows by row id`
+- **ID and title**, e.g. `M1-15 Upsert stop rows by row key`
 - **Step:** the plan step, and the README or architecture section it implements
 - **Depends on:** the tasks that must be merged first
 - **Tests first:** the failing tests that define the task
@@ -243,31 +243,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 2. Security.
 3. Features as a vertical slice, so an editor can upload a file and see one figure on the overview as early as possible.
 
-**Provisional breakdown:**
-
-| ID | Task | Step | Depends on |
-|---|---|---|---|
-| M1-01 | ITK `symfony-8` template, Symfony skeleton, MariaDB | 4 | – |
-| M1-02 | Test tooling: PHPUnit suites, pcov, coverage gate, Infection, Taskfile tasks, PR and release CI workflows, smoke test | 4 | 01 |
-| M1-03 | CI check for the diagrams (`task docs:diagrams:check`); the render task exists from step 2 | 4 | 01 |
-| M1-04 | Role hierarchy, deny-by-default `access_control`, route-guard test | 5 | 02 |
-| M1-05 | `User` entity and the `app:user:*` commands | 5 | 04 |
-| M1-06 | Password login: CSRF, rate limiting, remember-me, logout | 5 | 05 |
-| M1-07 | `APP_AUTH_MODE` wiring and the `none` authenticator with its prod guard | 5 | 06 |
-| M1-08 | Base layout, design system assets, menu by role, `FormatExtension` | 6 | 04 |
-| M1-09 | `Supplier`/`Route` entities and admin forms | 7 | 08 |
-| M1-10a | Import mapping: YAML format, `MappingLoader` with validation, `mapping:validate` command | 7 | 02 |
-| M1-10b | Extract parser driven by the mapping: field types, dates, value maps, person id pseudonymisation | 7 | 10a |
-| M1-11 | `StopRow` upsert by row id and `ImportBatch` | 7 | 10b |
-| M1-12 | `RouteBuilder`: last drop-off, delay, peak passengers, cancellations | 7 | 11 |
-| M1-13 | `DailyStatsAggregator`: rebuild the affected dates | 7 | 12 |
-| M1-14 | Upload form, result page, `app:driving-data:import` | 7 | 13, 08 |
-| M1-15 | `DailyCount` entity and the week grid form | 8 | 08 |
-| M1-16 | `PeriodFilter` and `PeriodRangeFactory` | 9 | 02 |
-| M1-17 | `KpiCalculator`, `Kpis`, `Delta`, `Tone` | 9 | 13, 15, 16 |
-| M1-18 | Twig components: Tile, Sparkline, LineChart, Panel | 9 | 08 |
-| M1-19 | Overview page: filters, 8 tiles, punctuality chart, supplier table | 9 | 17, 18 |
-| M1-20 | Woodpecker staging deploy: pipeline, server compose, migrations, first admin | 10 | 19 |
+**Result:** [`docs/tasks.md`](tasks.md) has 26 tasks in six groups: setup and quality gates, security, layout and administration, data in, overview, and deployment. Each task lists its dependencies, the tests to write first, and its acceptance criteria.
 
 ## 4. Project setup (ITK Dev conventions)
 
@@ -588,7 +564,7 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
     - How late can corrections to an extract arrive? This sets the correction window in option 3.
     - Does one file always contain whole days? If not, option 2 would wipe the rest of a partial day.
   - **Staff accounts** (username, name) are also personal data. Decide what to store when this is settled.
-  - **Decide before task M1-10b.** The parser and the `StopRow` design depend on it.
+  - **Decide before task M1-14.** The parser and the `StopRow` design depend on it.
 
 ## Verification
 

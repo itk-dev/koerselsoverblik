@@ -57,6 +57,6 @@ Option 1:
 
 ### Follow-up Actions
 
-- [ ] Role hierarchy and route-guard test (task M1-04).
-- [ ] Password login and user commands (tasks M1-05, M1-06).
-- [ ] Mode wiring and `none` mode (task M1-07).
+- [ ] Role hierarchy and route-guard test (task M1-05).
+- [ ] Password login and user commands (tasks M1-06, M1-07).
+- [ ] Mode wiring and `none` mode (task M1-08).

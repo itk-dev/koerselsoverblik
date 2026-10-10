@@ -277,7 +277,7 @@ testing and the diagram check on every pull request.
   - This decides whether `StopRow` and the pseudonymised person key are stored, kept for a
     correction window, or replaced by aggregates and distinct-count sketches.
   - The data model above shows the current working assumption (rows with a pseudonymised key).
-  - It must be decided before the extract parser is built (task M1-10b).
+  - It must be decided before the extract parser is built (task M1-14).
 - **Stable row key.** Is there a single stable row id column in the extract? It is configured in
   the mapping either way.
 

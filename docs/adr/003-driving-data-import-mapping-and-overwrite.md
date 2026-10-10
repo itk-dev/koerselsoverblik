@@ -66,5 +66,5 @@ Option 1:
 ### Follow-up Actions
 
 - [ ] Confirm which column(s) form a stable row key.
-- [ ] Mapping format and loader (task M1-10a).
-- [ ] Parser, upsert and rebuild (tasks M1-10b to M1-13).
+- [ ] Mapping format and loader (task M1-13).
+- [ ] Parser, upsert and rebuild (tasks M1-14 to M1-17).
