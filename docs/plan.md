@@ -114,7 +114,8 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 - `task test:mutation`: changed lines only, compared with `develop`
 - `task test:mutation:full`: the whole code base, as the release-branch run does
 - `task code-analysis`: PHPStan at max level
-- `task coding-standards:check` and `task coding-standards:apply`
+- `task coding-standards-check` and `task coding-standards-apply`, which run the
+  `coding-standards-{type}-{check|apply}` tasks for each type
 - `task prepare-code`: everything above, with mutation testing on changed lines
 
 **CI** (GitHub Actions, next to the template workflows):
@@ -125,7 +126,7 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 **Branching** (our usual flow):
 
 - `develop` is the default branch, and all development starts from it.
-- **Feature work:** feature branches (`feature/<ISSUE>-<SHORT_DESCRIPTION>`) are cut from `develop` and merged back through a PR. The PR workflow and changed-lines mutation testing gate the merge.
+- **Feature work:** feature branches (`feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>`) are cut from `develop` and merged back through a PR. The PR workflow and changed-lines mutation testing gate the merge.
 - **Release:**
   1. Cut a release branch (`release/<VERSION>`) from `develop`.
   2. Every push to it deploys to staging (Woodpecker) and runs the full mutation run.
@@ -223,11 +224,21 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
 ## 3. Break the plan into tasks
 
 Once the README and architecture are approved, break steps 4–10 into small, independently
-deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
+deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one branch and one PR.
+
+**Issues, branches and pull requests:**
+
+- Each task has a GitHub issue. Its title is the task ID and title.
+- The branch is `feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>`, as in the ITK Dev
+  conventions.
+- The PR title follows Conventional Commits and ends with the task ID, for example
+  `feat: replace stop rows for the dates in a file (M1-16)`. The description has
+  `Closes #<ISSUE_NUMBER>`.
+- `.github/pull_request_template.md` has the definition of done as a checklist.
 
 **Each task has:**
 
-- **ID and title**, e.g. `M1-11 Replace stop rows for the dates in a file`
+- **ID and title**, e.g. `M1-16 Replace stop rows for the dates in a file`
 - **Step:** the plan step, and the README or architecture section it implements
 - **Depends on:** the tasks that must be merged first
 - **Tests first:** the failing tests that define the task
@@ -246,33 +257,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 2. Security.
 3. Features as a vertical slice, so a user can upload a file and see one figure on the overview as early as possible.
 
-**Provisional breakdown:**
-
-| ID | Task | Step | Depends on |
-|---|---|---|---|
-| M1-01 | ITK `symfony-8` template, Symfony skeleton, MariaDB | 4 | – |
-| M1-02 | Test tooling: PHPUnit suites, pcov, coverage gate, Infection, Taskfile tasks, PR and release CI workflows, smoke test | 4 | 01 |
-| M1-03 | CI check for the diagrams (`task docs:diagrams:check`); the render task exists from step 2 | 4 | 01 |
-| M1-04 | Permission roles and `ROLE_ADMIN`, deny-by-default `access_control`, route-guard test | 5 | 02 |
-| M1-05 | `User` entity and the `app:user:*` commands | 5 | 04 |
-| M1-06 | Password login: CSRF, rate limiting, remember-me, logout | 5 | 05 |
-| M1-06b | HTTP security headers with `nelmio/security-bundle`, and a test that checks them | 5 | 04 |
-| M1-07 | `APP_AUTH_MODE` wiring and the `none` authenticator with its prod guard | 5 | 06 |
-| M1-08 | Base layout, design system assets, menu by role, `FormatExtension` | 6 | 04 |
-| M1-09 | `Supplier`, `Route` and `RouteSupplierAssignment` entities and admin forms, with the overlap check | 7 | 08 |
-| M1-10a | Import mapping: YAML format, `MappingLoader` with validation, `mapping:validate` command | 7 | 02 |
-| M1-10b | Extract parser driven by the mapping: field types, dates, value maps, person id pseudonymisation | 7 | 10a |
-| M1-11 | `StopRow` replacement of whole dates and `ImportBatch` | 7 | 10b |
-| M1-12 | `RouteBuilder`: last drop-off, delay, peak passengers, cancellations | 7 | 11 |
-| M1-13 | `DailyStatsAggregator`: rebuild the import dates | 7 | 12 |
-| M1-14 | Upload form, result page, `app:driving-data:import` | 7 | 13, 08 |
-| M1-14b | Clear driving data for a date range: page, confirmation, `app:driving-data:clear` | 7 | 13, 08 |
-| M1-15 | `DailyCount` entity and the week grid form | 8 | 08 |
-| M1-16 | `PeriodFilter` and `PeriodRangeFactory` | 9 | 02 |
-| M1-17 | `KpiCalculator`, `Kpis`, `Delta`, `Tone` | 9 | 13, 15, 16 |
-| M1-18 | Twig components: Tile, Sparkline, LineChart, Panel | 9 | 08 |
-| M1-19 | Overview page: filters, 8 tiles, punctuality chart, supplier table | 9 | 17, 18 |
-| M1-20 | Woodpecker staging deploy: pipeline, server compose, migrations, first admin | 10 | 19 |
+**Result:** [`docs/tasks.md`](tasks.md) has 28 tasks in six groups: setup and quality gates, security, layout and administration, data in, overview, and deployment. Each task lists its dependencies, the tests to write first, and its acceptance criteria.
 
 ## 4. Project setup (ITK Dev conventions)
 
@@ -291,7 +276,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 3. Packages:
    - `symfony/orm-pack`, with the MariaDB `DATABASE_URL`
    - `twig-bundle`, `asset-mapper`, `form`, `validator`, `security-bundle`, `translation`, `rate-limiter`, `twig/intl-extra`
-   - `phpoffice/phpspreadsheet`, `symfony/ux-twig-component`
+   - `openspout/openspout` (streams `.xlsx` rows with low memory use), `symfony/ux-twig-component`
    - `nelmio/security-bundle`, for the HTTP security headers
 4. Design system:
    - Require `itk-dev/itkaarhus-design-system` from the vcs repository `https://github.com/itk-dev/itkaarhus-design-system`.
@@ -301,7 +286,9 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
    - `rregeer/phpunit-coverage-check`
    - doctrine-fixtures, `zenstruck/foundry`, `dama/doctrine-test-bundle`
    - `infection/infection`, and pcov in the phpfpm image
-   - Write the Taskfile (`setup`, `compose`, `composer`, `phpfpm`, `test*`, `code-analysis`, `prepare-code`, `coding-standards:*`, `db:migrate`, `fixtures:load`, `docs:diagrams`).
+   - `ergebnis/composer-normalize`, allowed in `config.allow-plugins`
+   - Write the Taskfile with the ITK Dev header (`dotenv: [".env.local", ".env"]` and the vars `DOCKER_COMPOSE`, `PHP`, `COMPOSER` and `CONSOLE`) and the tasks `setup`, `compose`, `composer`, `console`, `test*`, `code-analysis`, `prepare-code`, `coding-standards-*`, `db:migrate`, `fixtures:load` and `docs:diagrams`.
+   - The PR workflow also runs `composer audit`, and `.github/dependabot.yml` covers Composer and GitHub Actions.
    - **Smoke test first:** a failing functional test that `/` redirects to `/login`.
 6. Docs:
    - Check `README.md` against the actual setup.
@@ -606,6 +593,8 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
 - **Supplier mapping:** where does route → supplier come from? It is admin-maintained until a source is known.
 - **Solo routes:** do we count actual solo runs (as assumed) or trips planned as solo?
 - **Test data:** we need an anonymised sample extract for the fixtures.
+- **Self-service password change:** not in milestone 1. An administrator or a console command sets passwords (ASVS V2.1).
+- **Multi-factor authentication for administrators:** not in milestone 1. OIDC in a later milestone can give it. Until then, it is a known risk (ASVS V4.3.1).
 - **No PII in the database (not decided yet).** The goal is to store no personal data about citizens.
   - **Problem:** a hashed person id or row id is still personal data under GDPR (pseudonymised, not anonymised), because it can be linked back through the source system.
   - **Hard requirements:** re-imports must replace earlier data, and the same data must never be counted twice. Duplicates would make every figure wrong.
@@ -634,7 +623,7 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
     - Is an approximate Citizens figure (about 1 % error) acceptable? Options 2 and 3 depend on it.
   - **Staff accounts** (username, name) are also personal data. Decide what to store when this is settled.
   - **Who decides:** the product owner in the transport office, with the data protection adviser. See [ADR 004](adr/004-personal-data-in-driving-data.md).
-  - **Decide before task M1-10b.** The parser and the `StopRow` design depend on it.
+  - **Decide before task M1-15.** The parser and the `StopRow` design depend on it.
 
 ## Outside this plan (PM to place)
 

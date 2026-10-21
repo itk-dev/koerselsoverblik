@@ -94,6 +94,6 @@ Option 2:
 ### Follow-up Actions
 
 - [ ] Confirm with the transport office that each extract holds whole days.
-- [ ] Mapping format and loader (task M1-10a).
-- [ ] Parser, replacement and rebuild (tasks M1-10b to M1-13).
-- [ ] Clear driving data for a date range (task M1-14b).
+- [ ] Mapping format and loader (task M1-14).
+- [ ] Parser, replacement and rebuild (tasks M1-15 to M1-18).
+- [ ] Clear driving data for a date range (task M1-20).

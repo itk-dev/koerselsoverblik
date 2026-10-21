@@ -121,7 +121,7 @@ Every page requires a permission role. Anonymous users are sent to the login pag
 4. Create the first user. You are asked for the name and password:
 
    ```shell
-   task phpfpm -- bin/console app:user:create <USERNAME> --role=ROLE_ADMIN
+   task console -- app:user:create <USERNAME> --role=ROLE_ADMIN
    ```
 
 5. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
@@ -172,7 +172,7 @@ dates, or [clear the driving data](#clear-driving-data) for the dates.
 From the command line:
 
 ```shell
-task phpfpm -- bin/console app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]
+task console -- app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]
 ```
 
 ### Clear driving data
@@ -188,7 +188,7 @@ counts of mails, complaints and phone calls do not change. You cannot undo this.
 From the command line:
 
 ```shell
-task phpfpm -- bin/console app:driving-data:clear <FROM_DATE> <TO_DATE>
+task console -- app:driving-data:clear <FROM_DATE> <TO_DATE>
 ```
 
 ### Import mappings
@@ -231,7 +231,7 @@ fields:
 Validate a mapping against a sample file before using it:
 
 ```shell
-task phpfpm -- bin/console app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE>
+task console -- app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE>
 ```
 
 This reports missing columns, values that do not match the mapping, and a preview of the first
@@ -267,9 +267,9 @@ listed at the top. When an assignment changes, the figures are recalculated for 
 Under **Administration → Users** (requires `ROLE_MANAGE_USERS`), or from the command line:
 
 ```shell
-task phpfpm -- bin/console app:user:create <USERNAME> --role=<ROLE>
-task phpfpm -- bin/console app:user:set-password <USERNAME>
-task phpfpm -- bin/console app:user:set-roles <USERNAME> <ROLE> [<ROLE>...]
+task console -- app:user:create <USERNAME> --role=<ROLE>
+task console -- app:user:set-password <USERNAME>
+task console -- app:user:set-roles <USERNAME> <ROLE> [<ROLE>...]
 ```
 
 ## Data and privacy
@@ -325,8 +325,8 @@ task test:mutation:full
 ### Coding standards and code analysis
 
 ```shell
-task coding-standards:check
-task coding-standards:apply
+task coding-standards-check
+task coding-standards-apply
 
 # PHPStan at max level
 task code-analysis
@@ -368,10 +368,12 @@ Development happens on `develop`:
    ```shell
    git switch develop
    git pull
-   git switch -c feature/<ISSUE>-<SHORT_DESCRIPTION>
+   git switch -c feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>
    ```
 
-2. Open a pull request to `develop`. Add an entry to `CHANGELOG.md` under "Unreleased".
+2. Open a pull request to `develop`. Use a Conventional Commits title, and add
+   `Closes #<ISSUE_NUMBER>` to the description. Add an entry to `CHANGELOG.md` under
+   "Unreleased".
 
 To make a release:
 
