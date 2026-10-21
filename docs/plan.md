@@ -69,7 +69,8 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 - **Fixtures:**
   - Foundry factories for every entity.
   - An anonymised one-day extract in `tests/fixtures/`, with its expected totals worked out by hand.
-  - Small hand-made extracts for edge cases: cancelled routes, unmapped routes, re-upload with changed rows, malformed files.
+  - Small hand-made extracts for edge cases: cancelled routes, unmapped routes, re-upload with changed and removed rows, malformed files.
+  - Supplier changes: a route that changes supplier in the middle of a period, and the figures before the change stay the same.
 
 **100 % code coverage:**
 
@@ -196,7 +197,7 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
   - `Import/DrivingData`: mapping (YAML) → parser → replacer → route builder → daily stats aggregator
   - `Report`: `PeriodRangeFactory`, `KpiCalculator`, `Delta`/`Tone`
   - Twig components
-- **Data model:** an ER diagram of `User`, `Supplier`, `Route`, `ImportBatch`, `StopRow`, `RouteRun`, `DailyStats` and `DailyCount`.
+- **Data model:** an ER diagram of `User`, `Supplier`, `Route`, `RouteSupplierAssignment`, `ImportBatch`, `StopRow`, `RouteRun`, `DailyStats` and `DailyCount`.
 - **Sequence: upload.** Form → `ImportBatch` → parse → replace the stop rows for the dates in the file → rebuild `RouteRun`/`DailyStats` for those dates → result page.
 - **Sequence: overview request.** Authenticator by mode → `IsGranted` → `PeriodFilter` → `KpiCalculator` (current period, comparison period, 12 months) → Twig.
 - **Auth modes:** a flowchart of how `APP_AUTH_MODE` selects the authenticator.
@@ -256,7 +257,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 | M1-06 | Password login: CSRF, rate limiting, remember-me, logout | 5 | 05 |
 | M1-07 | `APP_AUTH_MODE` wiring and the `none` authenticator with its prod guard | 5 | 06 |
 | M1-08 | Base layout, design system assets, menu by role, `FormatExtension` | 6 | 04 |
-| M1-09 | `Supplier`/`Route` entities and admin forms | 7 | 08 |
+| M1-09 | `Supplier`, `Route` and `RouteSupplierAssignment` entities and admin forms, with the overlap check | 7 | 08 |
 | M1-10a | Import mapping: YAML format, `MappingLoader` with validation, `mapping:validate` command | 7 | 02 |
 | M1-10b | Extract parser driven by the mapping: field types, dates, value maps, person id pseudonymisation | 7 | 10a |
 | M1-11 | `StopRow` replacement of whole dates and `ImportBatch` | 7 | 10b |
@@ -448,9 +449,14 @@ Menu items are shown with `is_granted()`.
 
 **Master data** (`ROLE_MANAGE_SUPPLIERS`):
 
-- `Supplier` and `Route` (route → supplier), maintained with hand-built forms.
-- The extract has no supplier, so admins maintain the mapping.
-- Unmapped routes count as "Unknown" and are listed at the top of the routes page.
+- `Supplier`, `Route` and `RouteSupplierAssignment`, maintained with hand-built forms.
+- The extract has no supplier, so admins maintain the assignments.
+- **Assignments have dates:** each has `valid_from` and an optional `valid_to`. The assignments of one route must not overlap.
+  - A route can change supplier, and the supplier comparison keeps the past figures of each supplier.
+  - To change supplier, end the current assignment and add a new one from the change date.
+  - `DailyStatsAggregator` finds the supplier for each route and date.
+  - A change to an assignment rebuilds `DailyStats` only for the dates of the old and the new date range.
+- A route with no assignment on a date counts as "Unknown" on that date. Routes with no current assignment are listed at the top of the routes page.
 
 ## 8. Manual entry of daily counts
 
@@ -566,9 +572,10 @@ src/
   Controller/            OverviewController, ImportController, ClearDrivingDataController,
                          DailyCountController,
                          SecurityController, Admin/{User,Supplier,Route}Controller
-  Entity/                User, Supplier, Route, ImportBatch, StopRow, RouteRun,
+  Entity/                User, Supplier, Route, RouteSupplierAssignment, ImportBatch, StopRow, RouteRun,
                          DailyStats, DailyCount
-  Form/                  ImportType, DailyCountWeekType, SupplierType, RouteType, UserType
+  Form/                  ImportType, DailyCountWeekType, SupplierType, RouteType,
+                         RouteSupplierAssignmentType, UserType
   Report/                PeriodFilter, PeriodRangeFactory, KpiCalculator, Kpis, Delta, Tone
   Import/DrivingData/    Mapping, MappingLoader, StopRowParser, StopRowReplacer, RouteBuilder,
                          DailyStatsAggregator, DrivingDataClearer

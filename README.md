@@ -43,7 +43,7 @@ The user interface is in Danish.
   - Columns are read through an [import mapping](#import-mappings), so another source can be
     added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
-- **Administration:** users, suppliers, and the mapping from route to supplier.
+- **Administration:** users, suppliers, and which supplier drives each route from which date.
 - **Login:** username and password. Every page requires a role.
 
 ## Key figures
@@ -53,7 +53,7 @@ averages of daily percentages.
 
 **Terms:**
 
-- **Route:** a vehicle schedule in the planning system, assigned to a supplier.
+- **Route:** a vehicle schedule in the planning system, assigned to a supplier for a date range.
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day.
 
@@ -243,10 +243,18 @@ starts.
 The driving data extract does not say which supplier drives a route. To assign them:
 
 1. Go to **Administration → Routes** (requires `ROLE_MANAGE_SUPPLIERS`).
-2. Assign each route to a supplier.
+2. Assign each route to a supplier from a start date. Leave the end date empty.
 
-Routes that are not mapped yet are listed at the top and counted as "Unknown". The figures are
-recalculated when a mapping changes.
+When a route changes supplier:
+
+1. Set the end date of the current assignment to the last day with the old supplier.
+2. Add a new assignment with the new supplier from the next day.
+
+The assignments of one route cannot overlap. The figures for the old supplier before the change
+stay the same.
+
+On a date with no assignment, a route counts as "Unknown". Routes with no current assignment are
+listed at the top. When an assignment changes, the figures are recalculated for its dates only.
 
 ### Enter daily counts
 

@@ -4,7 +4,8 @@ title: Data model (milestone 1)
 erDiagram
     USER ||--o{ IMPORT_BATCH : "uploads"
     USER ||--o{ DAILY_COUNT : "updates"
-    SUPPLIER |o--o{ ROUTE : "drives"
+    SUPPLIER ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "drives"
+    ROUTE ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "is assigned"
     ROUTE ||--o{ ROUTE_RUN : "runs"
     ROUTE ||--o{ STOP_ROW : "has"
     IMPORT_BATCH ||--o{ STOP_ROW : "inserted"
@@ -23,7 +24,13 @@ erDiagram
     ROUTE {
         int id PK
         string source_key UK "route name in the extract"
-        int supplier_id FK "null = Unknown"
+    }
+    ROUTE_SUPPLIER_ASSIGNMENT {
+        int id PK
+        int route_id FK
+        int supplier_id FK
+        date valid_from
+        date valid_to "null = no end date"
     }
     IMPORT_BATCH {
         int id PK

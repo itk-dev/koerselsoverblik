@@ -47,7 +47,8 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 - **Viewers** read the overview.
 - **Data editors** export extracts from the planning system and upload them, and enter the daily
   counts of mails, complaints and phone calls.
-- **Administrators** manage users, suppliers, and which supplier drives each route.
+- **Administrators** manage users, suppliers, and which supplier drives each route in each
+  period.
 
 These are tasks, not roles. Each task has its own permission role (see
 [Authorization](#security)), so one user can do one task or many.
@@ -101,9 +102,9 @@ are added only when file sizes or integrations need them.
 
 **Terms:**
 
-- **Route:** a vehicle schedule in the planning system, identified by its name in the extract. It
-  is assigned to a supplier by an administrator. If no supplier is assigned, it counts as
-  "Unknown".
+- **Route:** a vehicle schedule in the planning system, identified by its name in the extract. An
+  administrator assigns it to a supplier for a date range. On a date with no assignment, it
+  counts as "Unknown".
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day. Punctuality and solo
   routes are measured per run.
@@ -113,16 +114,26 @@ are added only when file sizes or integrations need them.
 |---|---|
 | `User` | Login account: username, roles, password hash |
 | `Supplier` | A transport supplier |
-| `Route` | A route from the extract and its supplier |
+| `Route` | A route from the extract |
+| `RouteSupplierAssignment` | The supplier that drives a route from `valid_from` to `valid_to` (empty = no end date) |
 | `ImportBatch` | One upload: mapping, file name, who and when, the replaced dates, row counts, rejection reasons |
 | `StopRow` | One stop from the extract, with an optional row key from the mapping. See [open decisions](#open-decisions) |
 | `RouteRun` | Derived: one route run with its last drop-off, delay, peak passengers and distances |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
+**Supplier assignments have dates.** A route can change supplier, for example when a contract
+ends. The supplier comparison must keep the past figures of each supplier, so:
+
+- An assignment has a `valid_from` date and an optional `valid_to` date.
+- The assignments of one route must not overlap. The form validates this.
+- To change supplier, end the current assignment and add a new one from the change date.
+- `DailyStatsAggregator` finds the supplier for each route and date from the assignments.
+
 **Derived tables are always rebuildable.** `RouteRun` and `DailyStats` are rebuilt from `StopRow`
-for the dates an import touched, and for all dates when a route's supplier changes. They hold no
-information that can't be recalculated.
+for the dates an import touched. When an assignment is added, changed or deleted, `DailyStats` is
+rebuilt only for the dates of the old and the new date range. Figures for other dates do not
+change. The derived tables hold no information that can't be recalculated.
 
 ## Importing driving data
 
