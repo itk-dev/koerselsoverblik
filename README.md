@@ -35,12 +35,15 @@ The user interface is in Danish.
   - supplier
   - The filters live in the URL, so a view can be shared as a link.
 - **Upload driving data:** upload a driving data extract (`.xlsx`).
-  - Rows are matched on their row id. A row that already exists is overwritten, and new rows are added.
-  - The figures for the affected dates are recalculated.
+  - Each date in the file replaces all stored driving data for that date. Rows that are not in
+    a corrected file are removed.
+  - The figures for the replaced dates are recalculated.
+- **Clear driving data:** delete the driving data for a date range, for example after a wrong
+  upload.
   - Columns are read through an [import mapping](#import-mappings), so another source can be
     added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
-- **Administration:** users, suppliers, and the mapping from route to supplier.
+- **Administration:** users, suppliers, and which supplier drives each route from which date.
 - **Login:** username and password. Every page requires a role.
 
 ## Key figures
@@ -50,7 +53,7 @@ averages of daily percentages.
 
 **Terms:**
 
-- **Route:** a vehicle schedule in the planning system, assigned to a supplier.
+- **Route:** a vehicle schedule in the planning system, assigned to a supplier for a date range.
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day.
 
@@ -75,13 +78,21 @@ Every figure has a **?** in the interface that explains what is counted and wher
 
 ## Roles
 
+Each part of the application has its own permission role:
+
 | Role | Can |
 |---|---|
-| `ROLE_USER` | View the overview |
-| `ROLE_EDITOR` | Everything above, plus upload driving data and enter daily counts |
-| `ROLE_ADMIN` | Everything above, plus manage users, suppliers and routes |
+| `ROLE_VIEW_OVERVIEW` | View the overview |
+| `ROLE_UPLOAD_DRIVING_DATA` | Upload driving data |
+| `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
+| `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
+| `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
+| `ROLE_MANAGE_USERS` | Manage users |
 
-Every page requires one of these roles. Anonymous users are sent to the login page.
+`ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
+permission roles let us give narrower access later without code changes.
+
+Every page requires a permission role. Anonymous users are sent to the login page.
 
 ## Requirements
 
@@ -128,32 +139,56 @@ Set these in `.env.local`:
 | Variable | Description | Default |
 |---|---|---|
 | `APP_AUTH_MODE` | Login method: `password`, `none` or `oidc` (`oidc` is not yet implemented) | `password` |
-| `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_ADMIN` |
+| `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_VIEW_OVERVIEW` |
 | `APP_ALLOW_NO_LOGIN_IN_PROD` | Set to `1` to allow `APP_AUTH_MODE=none` in `prod`. The app refuses to start otherwise | `0` |
-| `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports | – (required) |
+| `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 
 **WARNING:** `APP_AUTH_MODE=none` gives everyone the roles in `APP_NO_LOGIN_ROLES` without
-logging in. Use it for local development only.
+logging in. Use it for local development only. For full rights in local development, set
+`APP_NO_LOGIN_ROLES=ROLE_ADMIN` explicitly.
 
 ## Usage
 
 ### Upload driving data
 
-1. Go to **Upload driving data** (requires `ROLE_EDITOR`).
+1. Go to **Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
 2. Choose a driving data extract (`.xlsx`) and upload it.
-3. The result page shows how many rows were added, updated and rejected, with a reason for
-   each rejected row.
+3. The result page shows the replaced dates and how many rows were deleted, inserted and
+   rejected, with a reason for each rejected row.
 
-Uploading the same file again changes nothing. Uploading a file with corrected rows overwrites
-only those rows.
+Each date in the file replaces all stored driving data for that date. Uploading the same file
+again changes nothing. Uploading a corrected file gives exactly the rows of that file for its
+dates.
+
+**CAUTION:** upload whole days only. A file that holds only part of a day removes the other rows
+of that day.
+
+An upload cannot be undone. To correct a wrong upload, upload the correct file for the same
+dates, or [clear the driving data](#clear-driving-data) for the dates.
 
 From the command line:
 
 ```shell
 task phpfpm -- bin/console app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]
+```
+
+### Clear driving data
+
+1. Go to **Clear driving data** (requires `ROLE_CLEAR_DRIVING_DATA`).
+2. Select the first and the last date.
+3. Check the number of rows that will be deleted.
+4. Confirm.
+
+This deletes the uploaded driving data and the calculated figures for the dates. The daily
+counts of mails, complaints and phone calls do not change. You cannot undo this.
+
+From the command line:
+
+```shell
+task phpfpm -- bin/console app:driving-data:clear <FROM_DATE> <TO_DATE>
 ```
 
 ### Import mappings
@@ -165,8 +200,8 @@ change in an existing extract, add or edit a mapping. No code changes are needed
 A mapping defines:
 
 - **Sheet and header row:** where the data starts in the workbook.
-- **Row id:** the column, or columns, that identify a row. Rows with the same id are overwritten
-  on re-upload.
+- **Row id (optional):** the column, or columns, that identify a row. If a row id occurs more
+  than once in a file, the second and later rows are rejected.
 - **Fields:** for each application field, the source column and how to read it:
   - type: `string`, `int`, `float`, `bool`, `datetime`
   - date format: for example an Excel serial date or a format string
@@ -178,7 +213,7 @@ A mapping defines:
 # config/import/driving_data/<MAPPING_NAME>.yaml
 sheet: 0
 header_row: 1
-row_id: [<ROW_ID_COLUMN>]
+row_id: [<ROW_ID_COLUMN>]   # optional
 fields:
   route:            { column: <COLUMN_NAME>, type: string, required: true }
   person_id:        { column: <COLUMN_NAME>, type: string, required: true }
@@ -207,21 +242,29 @@ starts.
 
 The driving data extract does not say which supplier drives a route. To assign them:
 
-1. Go to **Administration → Routes** (requires `ROLE_ADMIN`).
-2. Assign each route to a supplier.
+1. Go to **Administration → Routes** (requires `ROLE_MANAGE_SUPPLIERS`).
+2. Assign each route to a supplier from a start date. Leave the end date empty.
 
-Routes that are not mapped yet are listed at the top and counted as "Unknown". The figures are
-recalculated when a mapping changes.
+When a route changes supplier:
+
+1. Set the end date of the current assignment to the last day with the old supplier.
+2. Add a new assignment with the new supplier from the next day.
+
+The assignments of one route cannot overlap. The figures for the old supplier before the change
+stay the same.
+
+On a date with no assignment, a route counts as "Unknown". Routes with no current assignment are
+listed at the top. When an assignment changes, the figures are recalculated for its dates only.
 
 ### Enter daily counts
 
-1. Go to **Daily counts** (requires `ROLE_EDITOR`).
+1. Go to **Daily counts** (requires `ROLE_EDIT_DAILY_COUNTS`).
 2. Pick a week and fill in mails, complaints and phone calls for each day.
 3. Save. Entering a day again overwrites the earlier numbers.
 
 ### Manage users
 
-Under **Administration → Users** (requires `ROLE_ADMIN`), or from the command line:
+Under **Administration → Users** (requires `ROLE_MANAGE_USERS`), or from the command line:
 
 ```shell
 task phpfpm -- bin/console app:user:create <USERNAME> --role=<ROLE>
@@ -236,6 +279,14 @@ task phpfpm -- bin/console app:user:set-roles <USERNAME> <ROLE> [<ROLE>...]
 - Names, addresses and other personal details in the extract are not imported.
 - Nothing is stored or shown at driver level.
 - Uploaded files are deleted once they have been processed.
+
+### The pseudonymisation key
+
+If one attacker gets both the database and `APP_PERSON_ID_SECRET`, the pseudonymisation does
+not protect the data. Keep the key apart from the database:
+
+- Set the key in `.env.local`.
+- Do not include `.env.local` in the backups of the database host.
 
 ## Development
 
@@ -293,7 +344,7 @@ task fixtures:load
 
 This loads:
 
-- a user for each role
+- a user with `ROLE_ADMIN`, and a user for each permission role
 - suppliers and routes
 - an imported sample day
 - daily counts
@@ -359,7 +410,12 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 
 To set up a new server:
 
-1. Set `APP_SECRET`, `APP_PERSON_ID_SECRET` and the database settings in `.env.local`.
+1. Set these in `.env.local` (staging included):
+   - `APP_ENV=prod`. The guard against `none` mode depends on it.
+   - `APP_AUTH_MODE=password`
+   - `APP_SECRET`
+   - `APP_PERSON_ID_SECRET`
+   - the database settings
 2. Deploy.
 3. Create the first admin:
 
