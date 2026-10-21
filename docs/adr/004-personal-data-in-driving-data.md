@@ -4,7 +4,8 @@
 |-------|-------|
 | **Created By** | Troels Ugilt Jensen |
 | **Date** | 2026-10-10 |
-| **Decision Maker** | Not decided |
+| **Decision Maker** | The product owner in the transport office, with the data protection adviser |
+| **Decide By** | Before task M1-10b (the extract parser) starts |
 | **Stakeholders** | ITK Dev developers; the transport office; the data protection adviser |
 | **Status** | Draft |
 
@@ -56,8 +57,12 @@ Not decided. These inputs are needed:
 - Is an approximate Citizens figure (about 1 % error) acceptable? Options 2 and 3 depend on it.
 - The data protection adviser's view on storing a pseudonymised person id.
 
+The product owner in the transport office decides, with the data protection adviser. The
+developers prepare the inputs and a recommendation.
+
 Until it is decided, the architecture assumes option 1, so the work before task M1-10b can
-continue. The decision is needed before the extract parser is built.
+continue. The decision is needed before task M1-10b starts, because the parser decides what is
+read from the person id. Tasks M1-11 to M1-14 also depend on it.
 
 ## Consequences
 

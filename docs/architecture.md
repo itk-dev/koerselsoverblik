@@ -331,6 +331,7 @@ testing and the diagram check on every pull request.
   - This decides whether `StopRow` and the pseudonymised person key are stored, kept for a
     correction window, or replaced by aggregates and distinct-count sketches.
   - The data model above shows the current working assumption (rows with a pseudonymised key).
+  - The product owner in the transport office decides, with the data protection adviser.
   - It must be decided before the extract parser is built (task M1-10b).
 - **Whole days.** Does each extract hold whole days? The replacement of whole dates depends on
   it.

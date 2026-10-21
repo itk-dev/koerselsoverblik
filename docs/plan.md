@@ -616,6 +616,7 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
     - How late can corrections to an extract arrive? This sets the correction window in option 3.
     - Is an approximate Citizens figure (about 1 % error) acceptable? Options 2 and 3 depend on it.
   - **Staff accounts** (username, name) are also personal data. Decide what to store when this is settled.
+  - **Who decides:** the product owner in the transport office, with the data protection adviser. See [ADR 004](adr/004-personal-data-in-driving-data.md).
   - **Decide before task M1-10b.** The parser and the `StopRow` design depend on it.
 
 ## Outside this plan (PM to place)
