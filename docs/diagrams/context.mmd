@@ -2,9 +2,9 @@
 title: System context
 ---
 flowchart LR
-    user["Viewer<br/>(ROLE_USER)"]
-    editor["Editor<br/>(ROLE_EDITOR)"]
-    admin["Administrator<br/>(ROLE_ADMIN)"]
+    user["Viewer<br/>(ROLE_VIEW_OVERVIEW)"]
+    editor["Data editor<br/>(ROLE_UPLOAD_DRIVING_DATA,<br/>ROLE_CLEAR_DRIVING_DATA,<br/>ROLE_EDIT_DAILY_COUNTS)"]
+    admin["Administrator<br/>(ROLE_MANAGE_SUPPLIERS,<br/>ROLE_MANAGE_USERS)"]
 
     app["Passenger Transport Performance<br/>(Symfony web application)"]
 

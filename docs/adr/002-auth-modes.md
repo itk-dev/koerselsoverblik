@@ -36,9 +36,12 @@ Option 1:
 
 - **Authentication:** `APP_AUTH_MODE=none|password|oidc`, default `password`.
 - **Authorization:**
-  - Roles form a hierarchy: `ROLE_ADMIN` > `ROLE_EDITOR` > `ROLE_USER`.
+  - Each part of the application has its own permission role, for example
+    `ROLE_UPLOAD_DRIVING_DATA`. Controllers check only permission roles.
+  - In `role_hierarchy`, `ROLE_ADMIN` gives all permission roles. At first, users get
+    `ROLE_ADMIN` only.
   - Every controller has a class-level `#[IsGranted]`, and `access_control` denies by default.
-  - A test fails if any route has no role.
+  - A test fails if any route has no permission role, or if it checks `ROLE_ADMIN`.
 - **`none` mode:** signs in a local user with `APP_NO_LOGIN_ROLES`. The application refuses to
   start in `prod` unless `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
 
@@ -47,12 +50,15 @@ Option 1:
 ### Positive
 
 - OIDC can be added as one more authenticator. The role checks do not change.
+- Permission roles let an administrator give one user access to one part only, for example
+  daily counts without upload. A new role bundle needs only a change to `role_hierarchy`.
 - Access rules can be tested in `none` mode with different roles, without logging in.
 - Deny by default, plus the route-guard test, makes a forgotten guard a failing test.
 
 ### Negative / Trade-offs
 
 - Three authenticators to maintain and test.
+- More roles to test: every route × every permission role.
 - `none` mode is a risk if misconfigured. It is mitigated by the production guard.
 
 ### Follow-up Actions

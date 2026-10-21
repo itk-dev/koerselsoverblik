@@ -45,9 +45,12 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 **Users:**
 
 - **Viewers** read the overview.
-- **Editors** export extracts from the planning system and upload them, and enter the daily counts
-  of mails, complaints and phone calls.
+- **Data editors** export extracts from the planning system and upload them, and enter the daily
+  counts of mails, complaints and phone calls.
 - **Administrators** manage users, suppliers, and which supplier drives each route.
+
+These are tasks, not roles. Each task has its own permission role (see
+[Authorization](#security)), so one user can do one task or many.
 
 **Later milestones:** the dashed systems feed the application directly, replacing manual entry and
 password login.
@@ -210,10 +213,36 @@ authenticator's `supports()` checks the mode, so only one is ever active.
 
 **Authorization:**
 
-- Roles form a hierarchy: `ROLE_ADMIN` > `ROLE_EDITOR` > `ROLE_USER`.
-- Every controller has a class-level `#[IsGranted]`.
+- Each part of the application has its own permission role. Controllers check only these:
+
+  | Permission role | Grants |
+  |---|---|
+  | `ROLE_VIEW_OVERVIEW` | The overview |
+  | `ROLE_UPLOAD_DRIVING_DATA` | Upload of driving data |
+  | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date range |
+  | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
+  | `ROLE_MANAGE_SUPPLIERS` | Suppliers, routes and route → supplier assignments |
+  | `ROLE_MANAGE_USERS` | Users |
+
+- `ROLE_ADMIN` gives all permission roles. At first, users get `ROLE_ADMIN` only. Narrower
+  access later needs only role assignments, or a new bundle in `role_hierarchy`.
+
+  ```yaml
+  role_hierarchy:
+    ROLE_ADMIN:
+      - ROLE_VIEW_OVERVIEW
+      - ROLE_UPLOAD_DRIVING_DATA
+      - ROLE_CLEAR_DRIVING_DATA
+      - ROLE_EDIT_DAILY_COUNTS
+      - ROLE_MANAGE_SUPPLIERS
+      - ROLE_MANAGE_USERS
+  ```
+
+- Every signed-in user also has `ROLE_USER`. It grants nothing alone.
+- Every controller has a class-level `#[IsGranted]` with a permission role.
 - `access_control` denies everything to anonymous users except `/login` and assets.
-- A test walks the router and fails if any application route has no `IsGranted`.
+- A test walks the router. It fails if an application route has no `IsGranted`, or if it checks
+  `ROLE_ADMIN` or `ROLE_USER`.
 
 **Data protection:**
 

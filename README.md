@@ -75,13 +75,21 @@ Every figure has a **?** in the interface that explains what is counted and wher
 
 ## Roles
 
+Each part of the application has its own permission role:
+
 | Role | Can |
 |---|---|
-| `ROLE_USER` | View the overview |
-| `ROLE_EDITOR` | Everything above, plus upload driving data and enter daily counts |
-| `ROLE_ADMIN` | Everything above, plus manage users, suppliers and routes |
+| `ROLE_VIEW_OVERVIEW` | View the overview |
+| `ROLE_UPLOAD_DRIVING_DATA` | Upload driving data |
+| `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
+| `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
+| `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
+| `ROLE_MANAGE_USERS` | Manage users |
 
-Every page requires one of these roles. Anonymous users are sent to the login page.
+`ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
+permission roles let us give narrower access later without code changes.
+
+Every page requires a permission role. Anonymous users are sent to the login page.
 
 ## Requirements
 
@@ -128,7 +136,7 @@ Set these in `.env.local`:
 | Variable | Description | Default |
 |---|---|---|
 | `APP_AUTH_MODE` | Login method: `password`, `none` or `oidc` (`oidc` is not yet implemented) | `password` |
-| `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_USER` |
+| `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_VIEW_OVERVIEW` |
 | `APP_ALLOW_NO_LOGIN_IN_PROD` | Set to `1` to allow `APP_AUTH_MODE=none` in `prod`. The app refuses to start otherwise | `0` |
 | `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
@@ -143,7 +151,7 @@ logging in. Use it for local development only. For full rights in local developm
 
 ### Upload driving data
 
-1. Go to **Upload driving data** (requires `ROLE_EDITOR`).
+1. Go to **Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
 2. Choose a driving data extract (`.xlsx`) and upload it.
 3. The result page shows how many rows were added, updated and rejected, with a reason for
    each rejected row.
@@ -208,7 +216,7 @@ starts.
 
 The driving data extract does not say which supplier drives a route. To assign them:
 
-1. Go to **Administration → Routes** (requires `ROLE_ADMIN`).
+1. Go to **Administration → Routes** (requires `ROLE_MANAGE_SUPPLIERS`).
 2. Assign each route to a supplier.
 
 Routes that are not mapped yet are listed at the top and counted as "Unknown". The figures are
@@ -216,13 +224,13 @@ recalculated when a mapping changes.
 
 ### Enter daily counts
 
-1. Go to **Daily counts** (requires `ROLE_EDITOR`).
+1. Go to **Daily counts** (requires `ROLE_EDIT_DAILY_COUNTS`).
 2. Pick a week and fill in mails, complaints and phone calls for each day.
 3. Save. Entering a day again overwrites the earlier numbers.
 
 ### Manage users
 
-Under **Administration → Users** (requires `ROLE_ADMIN`), or from the command line:
+Under **Administration → Users** (requires `ROLE_MANAGE_USERS`), or from the command line:
 
 ```shell
 task phpfpm -- bin/console app:user:create <USERNAME> --role=<ROLE>
@@ -302,7 +310,7 @@ task fixtures:load
 
 This loads:
 
-- a user for each role
+- a user with `ROLE_ADMIN`, and a user for each permission role
 - suppliers and routes
 - an imported sample day
 - daily counts

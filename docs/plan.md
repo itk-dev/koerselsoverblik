@@ -60,7 +60,7 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
   - upsert by row id
   - console commands (`CommandTester`)
 - **Functional** (`tests/Functional`, `WebTestCase`):
-  - every route × role (200/403/redirect)
+  - every route × permission role (200/403/redirect)
   - forms: valid submit, validation errors, CSRF
   - login, logout and rate limiting
   - upload end-to-end with the fixture file
@@ -241,7 +241,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 
 1. Setup and the quality gates.
 2. Security.
-3. Features as a vertical slice, so an editor can upload a file and see one figure on the overview as early as possible.
+3. Features as a vertical slice, so a user can upload a file and see one figure on the overview as early as possible.
 
 **Provisional breakdown:**
 
@@ -250,7 +250,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 | M1-01 | ITK `symfony-8` template, Symfony skeleton, MariaDB | 4 | – |
 | M1-02 | Test tooling: PHPUnit suites, pcov, coverage gate, Infection, Taskfile tasks, PR and release CI workflows, smoke test | 4 | 01 |
 | M1-03 | CI check for the diagrams (`task docs:diagrams:check`); the render task exists from step 2 | 4 | 01 |
-| M1-04 | Role hierarchy, deny-by-default `access_control`, route-guard test | 5 | 02 |
+| M1-04 | Permission roles and `ROLE_ADMIN`, deny-by-default `access_control`, route-guard test | 5 | 02 |
 | M1-05 | `User` entity and the `app:user:*` commands | 5 | 04 |
 | M1-06 | Password login: CSRF, rate limiting, remember-me, logout | 5 | 05 |
 | M1-07 | `APP_AUTH_MODE` wiring and the `none` authenticator with its prod guard | 5 | 06 |
@@ -303,17 +303,27 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 
 ## 5. Security: role guards and username/password login
 
-**Roles** (hierarchy `ROLE_ADMIN` > `ROLE_EDITOR` > `ROLE_USER`):
+**Permission roles** (one per part of the application; controllers check only these):
 
-- `ROLE_USER`: view the overview
-- `ROLE_EDITOR`: upload driving data, enter daily counts
-- `ROLE_ADMIN`: users, suppliers and routes
+- `ROLE_VIEW_OVERVIEW`: view the overview
+- `ROLE_UPLOAD_DRIVING_DATA`: upload driving data
+- `ROLE_CLEAR_DRIVING_DATA`: clear the driving data for a date range
+- `ROLE_EDIT_DAILY_COUNTS`: enter daily counts
+- `ROLE_MANAGE_SUPPLIERS`: suppliers, routes and route → supplier assignments
+- `ROLE_MANAGE_USERS`: users
+
+**`ROLE_ADMIN`** (`role_hierarchy`):
+
+- `ROLE_ADMIN` gives all permission roles.
+- At first, users get `ROLE_ADMIN` only. Narrower access later needs only role assignments.
+- Every signed-in user also has `ROLE_USER`. It grants nothing alone.
 
 **Guarding:**
 
-- Every controller has a class-level `#[IsGranted]`, with stricter rules per action where needed.
+- Every controller has a class-level `#[IsGranted]` with a permission role, with stricter rules per action where needed.
 - `access_control` denies by default (`^/` → `ROLE_USER`). Only `/login` and assets are public.
-- A test walks the router and fails if any application route lacks `IsGranted`.
+- A test walks the router. It fails if any application route lacks `IsGranted`, or if it checks `ROLE_ADMIN` or `ROLE_USER`.
+- The user form and `app:user:set-roles` accept `ROLE_ADMIN` and the permission roles.
 
 **Mode wiring** (ready for `none` and `oidc`):
 
@@ -333,7 +343,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 **`none` mode** (development convenience):
 
 - `NoLoginAuthenticator` signs every request in as a local user with the roles in `APP_NO_LOGIN_ROLES`.
-- `APP_NO_LOGIN_ROLES` defaults to `ROLE_USER`. A wrong server configuration then gives no extra rights. Local development sets `ROLE_ADMIN` explicitly.
+- `APP_NO_LOGIN_ROLES` defaults to `ROLE_VIEW_OVERVIEW`. A wrong server configuration then gives read access only. Local development sets `ROLE_ADMIN` explicitly.
 - The app refuses to start in `prod` unless `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
 
 ## 6. Base layout and menu
@@ -349,10 +359,10 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 
 **Menu:**
 
-- Overview
-- Upload driving data (editor)
-- Daily counts (editor)
-- Administration: users, suppliers, routes (admin)
+- Overview (`ROLE_VIEW_OVERVIEW`)
+- Upload driving data (`ROLE_UPLOAD_DRIVING_DATA`)
+- Daily counts (`ROLE_EDIT_DAILY_COUNTS`)
+- Administration: suppliers and routes (`ROLE_MANAGE_SUPPLIERS`), users (`ROLE_MANAGE_USERS`)
 
 Menu items are shown with `is_granted()`.
 
@@ -363,7 +373,7 @@ Menu items are shown with `is_granted()`.
 
 ## 7. Upload of driving data
 
-**Upload flow** (`ROLE_EDITOR`):
+**Upload flow** (`ROLE_UPLOAD_DRIVING_DATA`):
 
 - An upload form creates an `ImportBatch`: file name, uploaded by, row counts (added/updated/rejected), errors.
 - The file is processed **synchronously** in the request, and the result page is shown.
@@ -421,7 +431,7 @@ Menu items are shown with `is_granted()`.
 - **Citizens:** a distinct count of the pseudonymised person id over the period.
 - Dates are converted to local time (Europe/Copenhagen), using the format given in the mapping.
 
-**Master data** (`ROLE_ADMIN`):
+**Master data** (`ROLE_MANAGE_SUPPLIERS`):
 
 - `Supplier` and `Route` (route → supplier), maintained with hand-built forms.
 - The extract has no supplier, so admins maintain the mapping.
@@ -434,7 +444,7 @@ Menu items are shown with `is_granted()`.
 - `mails`, `complaints`, `phoneCalls`
 - `updatedBy`, `updatedAt`
 
-**Form** (`ROLE_EDITOR`):
+**Form** (`ROLE_EDIT_DAILY_COUNTS`):
 
 - A week grid: seven days with three number inputs each.
 - Previous/next week navigation.
@@ -443,7 +453,7 @@ Menu items are shown with `is_granted()`.
 
 ## 9. Overview
 
-**Page:** `/` (`ROLE_USER`), driven by GET filters:
+**Page:** `/` (`ROLE_VIEW_OVERVIEW`), driven by GET filters:
 
 - `p`: period (day/week/month/year)
 - `d`: date

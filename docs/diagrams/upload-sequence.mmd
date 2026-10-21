@@ -13,7 +13,7 @@ sequenceDiagram
     participant DB as MariaDB
 
     Editor->>C: POST /import (file)
-    C->>C: check ROLE_EDITOR and CSRF
+    C->>C: check ROLE_UPLOAD_DRIVING_DATA and CSRF
     C->>DB: create ImportBatch
     C->>P: parse(file, mapping)
     P->>M: column, type and value map per field
