@@ -1,0 +1,20 @@
+---
+title: Containers
+---
+flowchart LR
+    browser["Browser"]
+
+    subgraph server["Docker host (itkdev-docker-compose)"]
+        traefik["Traefik<br/>TLS and routing"]
+        nginx["nginx<br/>static assets, FastCGI"]
+        phpfpm["phpfpm<br/>Symfony 8 / PHP 8.4"]
+        mariadb[("MariaDB<br/>application data")]
+    end
+
+    console["Console<br/>bin/console app:*"]
+
+    browser -- "HTTPS" --> traefik
+    traefik -- "HTTP" --> nginx
+    nginx -- "FastCGI" --> phpfpm
+    phpfpm -- "Doctrine DBAL" --> mariadb
+    console -- "docker compose exec phpfpm" --> phpfpm

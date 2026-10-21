@@ -1,0 +1,28 @@
+---
+title: Overview request
+---
+sequenceDiagram
+    autonumber
+    actor User
+    participant FW as Firewall / authenticator
+    participant C as OverviewController
+    participant F as PeriodFilter
+    participant R as PeriodRangeFactory
+    participant K as KpiCalculator
+    participant DB as MariaDB
+    participant T as Twig
+
+    User->>FW: GET /?p=month&d=2026-09-18&c=previous&s=3
+    FW->>FW: authenticate per APP_AUTH_MODE
+    FW->>C: IsGranted ROLE_VIEW_OVERVIEW
+    C->>F: map query string (invalid values fall back to defaults)
+    C->>R: current, comparison and 12 trailing months
+    R-->>C: date ranges (comparison cut to the same number of days if partial)
+    loop current, comparison, each month
+        C->>K: calculate(range, supplier)
+        K->>DB: SUM over DailyStats and DailyCount, distinct citizens
+        K-->>C: Kpis
+    end
+    C->>C: Delta and Tone per figure
+    C->>T: render tiles, chart and supplier table
+    T-->>User: HTML with inline SVG charts

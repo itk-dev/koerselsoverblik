@@ -1,0 +1,103 @@
+---
+title: Data model (milestone 1)
+---
+erDiagram
+    USER ||--o{ IMPORT_BATCH : "uploads"
+    USER ||--o{ DAILY_COUNT : "updates"
+    SUPPLIER ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "drives"
+    ROUTE ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "is assigned"
+    ROUTE ||--o{ ROUTE_RUN : "runs"
+    ROUTE ||--o{ STOP_ROW : "has"
+    IMPORT_BATCH ||--o{ STOP_ROW : "inserted"
+    SUPPLIER |o--o{ DAILY_STATS : "aggregated per"
+
+    USER {
+        int id PK
+        string username UK
+        json roles
+        string password_hash
+    }
+    SUPPLIER {
+        int id PK
+        string name UK
+    }
+    ROUTE {
+        int id PK
+        string source_key UK "route name in the extract"
+    }
+    ROUTE_SUPPLIER_ASSIGNMENT {
+        int id PK
+        int route_id FK
+        int supplier_id FK
+        date valid_from
+        date valid_to "null = no end date"
+    }
+    IMPORT_BATCH {
+        int id PK
+        string mapping_name
+        string file_name
+        int uploaded_by FK
+        datetime uploaded_at
+        json import_dates "replaced dates"
+        int rows_deleted
+        int rows_inserted
+        int rows_rejected
+        json errors "no field values"
+    }
+    STOP_ROW {
+        int id PK
+        string mapping_name UK "unique with row_key"
+        string row_key UK "optional, from the mapping"
+        int route_id FK
+        date service_date
+        string stop_type "pickup or drop_off"
+        string stop_status
+        bool route_end
+        int passengers_after
+        float next_distance_km
+        float next_duration_min
+        datetime planned_time
+        datetime actual_time
+        bool planned_solo
+        string person_key "pending ADR 004"
+        int import_batch_id FK
+    }
+    ROUTE_RUN {
+        int id PK
+        int route_id FK
+        date service_date
+        int sequence
+        datetime last_drop_planned
+        datetime last_drop_actual
+        int delay_minutes
+        int peak_passengers
+        bool cancelled
+        float driven_km
+        float empty_km
+        float driven_min
+        float empty_min
+    }
+    DAILY_STATS {
+        int id PK
+        date service_date UK "unique with supplier_id"
+        int supplier_id FK "null = Unknown"
+        int trips
+        int trips_completed
+        int trips_cancelled
+        int route_runs
+        int last_drop_offs
+        int on_time
+        int solo_runs
+        float driven_km
+        float empty_km
+        float driven_min
+        float empty_min
+    }
+    DAILY_COUNT {
+        date day PK
+        int mails
+        int complaints
+        int phone_calls
+        int updated_by FK
+        datetime updated_at
+    }
