@@ -114,7 +114,8 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 - `task test:mutation`: changed lines only, compared with `develop`
 - `task test:mutation:full`: the whole code base, as the release-branch run does
 - `task code-analysis`: PHPStan at max level
-- `task coding-standards:check` and `task coding-standards:apply`
+- `task coding-standards-check` and `task coding-standards-apply`, which run the
+  `coding-standards-{type}-{check|apply}` tasks for each type
 - `task prepare-code`: everything above, with mutation testing on changed lines
 
 **CI** (GitHub Actions, next to the template workflows):
@@ -125,7 +126,7 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 **Branching** (our usual flow):
 
 - `develop` is the default branch, and all development starts from it.
-- **Feature work:** feature branches (`feature/<ISSUE>-<SHORT_DESCRIPTION>`) are cut from `develop` and merged back through a PR. The PR workflow and changed-lines mutation testing gate the merge.
+- **Feature work:** feature branches (`feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>`) are cut from `develop` and merged back through a PR. The PR workflow and changed-lines mutation testing gate the merge.
 - **Release:**
   1. Cut a release branch (`release/<VERSION>`) from `develop`.
   2. Every push to it deploys to staging (Woodpecker) and runs the full mutation run.
@@ -223,7 +224,17 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
 ## 3. Break the plan into tasks
 
 Once the README and architecture are approved, break steps 4–10 into small, independently
-deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
+deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one branch and one PR.
+
+**Issues, branches and pull requests:**
+
+- Each task has a GitHub issue. Its title is the task ID and title.
+- The branch is `feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>`, as in the ITK Dev
+  conventions.
+- The PR title follows Conventional Commits and ends with the task ID, for example
+  `feat: replace stop rows for the dates in a file (M1-16)`. The description has
+  `Closes #<ISSUE_NUMBER>`.
+- `.github/pull_request_template.md` has the definition of done as a checklist.
 
 **Each task has:**
 
@@ -275,7 +286,9 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
    - `rregeer/phpunit-coverage-check`
    - doctrine-fixtures, `zenstruck/foundry`, `dama/doctrine-test-bundle`
    - `infection/infection`, and pcov in the phpfpm image
-   - Write the Taskfile (`setup`, `compose`, `composer`, `phpfpm`, `test*`, `code-analysis`, `prepare-code`, `coding-standards:*`, `db:migrate`, `fixtures:load`, `docs:diagrams`).
+   - `ergebnis/composer-normalize`, allowed in `config.allow-plugins`
+   - Write the Taskfile with the ITK Dev header (`dotenv: [".env.local", ".env"]` and the vars `DOCKER_COMPOSE`, `PHP`, `COMPOSER` and `CONSOLE`) and the tasks `setup`, `compose`, `composer`, `console`, `test*`, `code-analysis`, `prepare-code`, `coding-standards-*`, `db:migrate`, `fixtures:load` and `docs:diagrams`.
+   - The PR workflow also runs `composer audit`, and `.github/dependabot.yml` covers Composer and GitHub Actions.
    - **Smoke test first:** a failing functional test that `/` redirects to `/login`.
 6. Docs:
    - Check `README.md` against the actual setup.
@@ -580,6 +593,8 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
 - **Supplier mapping:** where does route → supplier come from? It is admin-maintained until a source is known.
 - **Solo routes:** do we count actual solo runs (as assumed) or trips planned as solo?
 - **Test data:** we need an anonymised sample extract for the fixtures.
+- **Self-service password change:** not in milestone 1. An administrator or a console command sets passwords (ASVS V2.1).
+- **Multi-factor authentication for administrators:** not in milestone 1. OIDC in a later milestone can give it. Until then, it is a known risk (ASVS V4.3.1).
 - **No PII in the database (not decided yet).** The goal is to store no personal data about citizens.
   - **Problem:** a hashed person id or row id is still personal data under GDPR (pseudonymised, not anonymised), because it can be linked back through the source system.
   - **Hard requirements:** re-imports must replace earlier data, and the same data must never be counted twice. Duplicates would make every figure wrong.

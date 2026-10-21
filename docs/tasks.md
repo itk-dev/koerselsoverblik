@@ -18,19 +18,25 @@ pull request to `develop`. The [README](../README.md) is the spec; the
 ## How to work a task
 
 1. **Check dependencies.** Every task under **Depends on** is merged to `develop`.
-2. **Branch.** Create `feature/<TASK_ID>-<SHORT_DESCRIPTION>` from `develop`, for example
-   `feature/M1-16-replace-stop-rows`.
-3. **Tests first.** Write the tests listed under **Tests first** and see them fail.
-4. **Implement.** Write the minimal code to make them pass, then refactor.
-5. **Pull request.** Open a PR to `develop`. Name the task in the title, for example
-   `M1-16: Replace stop rows for the dates in a file`.
+2. **Issue.** Each task has a GitHub issue. Its title is the task ID and title, for example
+   `M1-16 Replace stop rows for the dates in a file`. Its body links to the task in this file.
+3. **Branch.** Create `feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>` from `develop`, for
+   example `feature/issue-42-replace-stop-rows`.
+4. **Tests first.** Write the tests listed under **Tests first** and see them fail.
+5. **Implement.** Write the minimal code to make them pass, then refactor.
+6. **Pull request.** Open a PR to `develop`:
+   - The title follows Conventional Commits and ends with the task ID, for example
+     `feat: replace stop rows for the dates in a file (M1-16)`.
+   - The description has `Closes #<ISSUE_NUMBER>`.
+   - Fill in the checklist from the pull request template (the definition of done).
 
 **Commits:**
 
 - Use Conventional Commits: `feat:`, `fix:`, `test:`, `docs:`, `chore:`, `ci:` and `refactor:`.
 - Commits follow the TDD cycle, so the history shows each test before its code.
 
-**Definition of done** (applies to every task from M1-02 onwards; not repeated below):
+**Definition of done** (applies to every task from M1-02 onwards; not repeated below; it is
+also the checklist in `.github/pull_request_template.md`):
 
 - [ ] All tests pass, with 100 % line coverage.
 - [ ] The mutation thresholds are met on changed lines: 100 % covered MSI in `src/Report` and
@@ -82,8 +88,12 @@ split it and update this file.
 | **F** | **Deployment** | |
 | M1-28 | Woodpecker deployment | 25 |
 
-**Before M1-01:** `develop` is the default branch, and `develop` and `main` are protected, with
-the checks from M1-02 to M1-04 made required as they are added.
+**Before M1-01:**
+
+- `develop` is the default branch.
+- `develop` and `main` are protected. The checks from M1-02 to M1-04 become required as they
+  are added.
+- There is a GitHub issue for each task.
 
 **Before M1-15:** [ADR 004](adr/004-personal-data-in-driving-data.md) (personal data) must be
 decided. Everything else can continue while it is open.
@@ -105,14 +115,27 @@ decided. Everything else can continue while it is open.
   - Create the Symfony 8 skeleton, restore the compose variables in `.env`, and run
     `composer install`.
   - Add `symfony/orm-pack` with the MariaDB `DATABASE_URL`.
-  - Extend `Taskfile.yml` with `setup`, `compose`, `composer`, `phpfpm`, `db:migrate`, and the
-    coding standards and code analysis tasks.
+  - Add `ergebnis/composer-normalize` as a dev dependency, and allow it in
+    `config.allow-plugins` in `composer.json`.
+  - Extend `Taskfile.yml` with the ITK Dev conventions:
+    - `dotenv: [".env.local", ".env"]`
+    - the vars `DOCKER_COMPOSE`, `PHP`, `COMPOSER` and `CONSOLE`, so that each task uses the
+      vars and not a fixed command
+    - the tasks `setup`, `compose`, `composer`, `console`, `db:migrate` and `code-analysis`
+    - the coding standards tasks `coding-standards-{type}-{check|apply}` for each type in the
+      template (for example `php`, `twig`, `markdown` and `yaml`), and
+      `coding-standards-check` and `coding-standards-apply`, which run all types
+  - Add `.github/pull_request_template.md` with the definition of done as a checklist and a
+    `Closes #` line.
   - Add `CHANGELOG.md` (Keep a Changelog).
 - **Tests first:** none. There is no application code yet; the test tooling comes in M1-02.
 - **Acceptance criteria:**
   - On a fresh clone, `task setup` starts the stack. The site answers at the local URL.
-  - `task coding-standards:check` and `task code-analysis` pass.
+  - `task console -- about` runs the Symfony console.
+  - `task coding-standards-check` and `task code-analysis` pass.
+  - `task composer -- normalize --dry-run` passes.
   - The template's GitHub Actions workflows pass.
+  - A new pull request shows the template.
 
 ### M1-02 Test tooling, coverage gate and PR workflow
 
@@ -126,14 +149,22 @@ decided. Everything else can continue while it is open.
     `migrations/`.
   - Tasks: `test`, `test:unit`, `test:file`, `test:coverage`, `test:coverage:check` and
     `prepare-code`.
-  - A PR workflow running coding standards, PHPStan and tests with the coverage gate, with a
-    MariaDB service container.
+  - A PR workflow running coding standards, `composer normalize --dry-run`, PHPStan and tests
+    with the coverage gate, with a MariaDB service container.
+  - Dependency checks (ASVS V14.2.1):
+    - The PR workflow runs `composer audit`. It fails if a dependency has a known
+      vulnerability.
+    - `.github/dependabot.yml` opens update PRs to `develop` for `composer` and
+      `github-actions`, once a week.
 - **Tests first:** a functional smoke test: `GET /` returns 200. It changes to a redirect to
   `/login` in M1-05.
 - **Acceptance criteria:**
   - `task test:coverage:check` passes at 100 % and fails if a line is uncovered. Prove it once
     with a throwaway uncovered method.
   - The PR workflow runs on pull requests to `develop` and `main`.
+  - The `composer audit` step fails on a dependency with a known vulnerability. Prove it once
+    in a scratch branch.
+  - Dependabot shows the configuration as valid on GitHub.
 
 ### M1-03 Mutation testing
 
@@ -202,6 +233,10 @@ decided. Everything else can continue while it is open.
   - `app:user:create <USERNAME> [--role=<ROLE>]`, which prompts for the password.
   - `app:user:set-password <USERNAME>`.
   - `app:user:set-roles <USERNAME> <ROLE>...`.
+  - A password policy (ASVS V2.1), as a constraint on a plain password. All places that set a
+    password use it:
+    - at least 12 characters
+    - `NotCompromisedPassword`, which checks the password against known breaches
   - The display name waits for the staff data decision in ADR 004.
 - **Tests first:**
   - **Unit:** role validation (only `ROLE_ADMIN` and the permission roles), and username
@@ -211,6 +246,9 @@ decided. Everything else can continue while it is open.
     - A duplicate username is rejected.
     - An unknown user gives an error.
     - An unknown role is rejected.
+    - A password with 11 characters is rejected. A password with 12 characters is accepted.
+    - A breached password is rejected. The test replaces the breach check with a stub, so it
+      makes no network call.
     - The password is hashed, never stored in clear text.
 - **Acceptance criteria:** the commands work as documented in the README.
 
@@ -321,12 +359,14 @@ decided. Everything else can continue while it is open.
 - **Work:**
   - `Admin\UserController` with `#[IsGranted('ROLE_MANAGE_USERS')]`: list, create, edit roles,
     set password and delete.
-  - `UserType` form. The roles are `ROLE_ADMIN` and the permission roles.
+  - `UserType` form. The roles are `ROLE_ADMIN` and the permission roles. A password that is
+    set in the form uses the password policy from M1-06.
   - A user cannot remove their own `ROLE_MANAGE_USERS` (directly or through `ROLE_ADMIN`), and
     the last user with `ROLE_MANAGE_USERS` cannot be deleted.
 - **Tests first (functional):**
   - Each action works for a user with `ROLE_MANAGE_USERS` and returns 403 for a user without it.
   - Validation errors are shown.
+  - A password that does not agree with the password policy is rejected.
   - CSRF on delete.
   - The self-demotion and last-user rules.
 - **Acceptance criteria:** users can be managed in the UI, as in the README.
@@ -399,6 +439,13 @@ decided. Everything else can continue while it is open.
   - The output is `StopRowData` value objects, or a `RejectedRow` with the row number and a
     reason. The reason never includes field values.
   - Person id handling follows ADR 004, for example HMAC with `APP_PERSON_ID_SECRET`.
+  - Limits on untrusted files (ASVS V12.1.2, V5.5.2):
+    - A maximum file size, number of rows and number of columns. They are configurable, with
+      defaults well above the size of a normal extract.
+    - The parser checks the sheet dimensions before it reads the rows, and rejects the whole
+      file if a limit is exceeded. It reads cell values only, not formatting.
+    - The reader rejects XML with a `DOCTYPE`, so there are no external entities (XXE).
+      PhpSpreadsheet's `XmlScanner` does this. A test keeps it so after upgrades.
 - **Tests first (unit):**
   - The anonymised one-day fixture and small hand-made workbooks give the expected rows.
   - Every type conversion, including bad values.
@@ -407,7 +454,12 @@ decided. Everything else can continue while it is open.
   - Rejected-row reasons contain no values.
   - The same person id with the same secret gives the same key. A different secret gives a
     different key.
-- **Acceptance criteria:** the fixture parses with exactly the expected rows and rejections.
+  - A file with one row or one column more than the limit is rejected, with no rows read.
+  - A workbook with a `DOCTYPE` and an external entity in a sheet is rejected.
+  - A file that is not a valid `.xlsx` (for example a renamed text file) is rejected.
+- **Acceptance criteria:**
+  - The fixture parses with exactly the expected rows and rejections.
+  - Files above the limits and files with a `DOCTYPE` are rejected with a clear reason.
 
 ### M1-16 Replace stop rows for the dates in a file
 
@@ -486,9 +538,12 @@ decided. Everything else can continue while it is open.
 - **Plan step:** 7. **Implements:** README "Upload driving data".
 - **Depends on:** M1-18
 - **Work:**
-  - `ImportController` (`ROLE_UPLOAD_DRIVING_DATA`) with `ImportType`: `.xlsx` only, with a size
-    limit.
-  - The import runs synchronously.
+  - `ImportController` (`ROLE_UPLOAD_DRIVING_DATA`) with `ImportType`: `.xlsx` only, with the
+    size limit from M1-15. The form checks the MIME type and the extension.
+  - The import runs synchronously in the request. This is accepted in milestone 1, because the
+    limits from M1-15 keep the time and memory low, and only users with
+    `ROLE_UPLOAD_DRIVING_DATA` can upload. If real extracts are too slow, a later task moves
+    the import to Symfony Messenger.
   - The result page shows the replaced dates and the rows deleted, inserted and rejected, with
     the reasons.
   - The uploaded file is deleted after processing.
@@ -498,7 +553,8 @@ decided. Everything else can continue while it is open.
     - A user with `ROLE_UPLOAD_DRIVING_DATA` uploads the fixture and sees the dates and counts.
     - A user without it gets 403.
     - A wrong file type and an oversized file are rejected.
-    - The temporary file is removed.
+    - A file above the row limit is rejected, and no data changes.
+    - The temporary file is removed, also after a rejected file.
   - **Integration:** the command imports, and prints the same dates and counts.
 - **Acceptance criteria:**
   - The upload and the command behave as in the README.

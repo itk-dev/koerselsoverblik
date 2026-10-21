@@ -284,7 +284,18 @@ authenticator's `supports()` checks the mode, so only one is ever active.
 
 - Forms use CSRF tokens.
 - Uploads are limited to `.xlsx` and a maximum size, and are deleted after processing.
+- The parser has configurable limits for the number of rows and columns. It checks them before
+  it reads the rows (ASVS V12.1.2).
+- The parser rejects XML with a `DOCTYPE`, so an extract cannot use external entities (XXE,
+  ASVS V5.5.2).
+- The import runs synchronously in the request. The limits above keep it short.
 - Rejection reasons and logs never contain field values from the extract.
+
+**Passwords** (ASVS V2.1): a password has at least 12 characters, and `NotCompromisedPassword`
+rejects passwords from known breaches. The commands and the user form use the same rules.
+
+**Dependencies** (ASVS V14.2.1): the PR workflow runs `composer audit`, and Dependabot opens
+update pull requests for Composer packages and GitHub Actions.
 
 **HTTP security headers** (ASVS V14.4): `nelmio/security-bundle` adds these headers to every
 response. The configuration is in the repository, and a functional test checks it.
@@ -363,6 +374,11 @@ testing and the diagram check on every pull request.
   - It must be decided before the extract parser is built (task M1-15).
 - **Whole days.** Does each extract hold whole days? The replacement of whole dates depends on
   it.
+- **Self-service password change** (ASVS V2.1). In milestone 1, an administrator or a console
+  command sets passwords. Users cannot change their own password.
+- **Multi-factor authentication for administrators** (ASVS V4.3.1). In milestone 1,
+  administrators sign in with a password only. OIDC in a later milestone can give multi-factor
+  authentication. Until then, this is a known risk.
 
 ## Decision records
 
