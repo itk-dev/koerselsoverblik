@@ -19,11 +19,11 @@ pull request to `develop`. The [README](../README.md) is the spec; the
 
 1. **Check dependencies.** Every task under **Depends on** is merged to `develop`.
 2. **Branch.** Create `feature/<TASK_ID>-<SHORT_DESCRIPTION>` from `develop`, for example
-   `feature/M1-15-upsert-stop-rows`.
+   `feature/M1-16-replace-stop-rows`.
 3. **Tests first.** Write the tests listed under **Tests first** and see them fail.
 4. **Implement.** Write the minimal code to make them pass, then refactor.
 5. **Pull request.** Open a PR to `develop`. Name the task in the title, for example
-   `M1-15: Upsert stop rows by row key`.
+   `M1-16: Replace stop rows for the dates in a file`.
 
 **Commits:**
 
@@ -53,38 +53,43 @@ split it and update this file.
 | M1-03 | Mutation testing | 02 |
 | M1-04 | Diagram check in CI | 02 |
 | **B** | **Security** | |
-| M1-05 | Role hierarchy and deny by default | 02 |
+| M1-05 | Permission roles and deny by default | 02 |
 | M1-06 | User entity and user commands | 05 |
 | M1-07 | Password login | 06 |
 | M1-08 | Authentication modes and no-login mode | 07 |
+| M1-09 | HTTP security headers | 05 |
 | **C** | **Layout and administration** | |
-| M1-09 | Base layout, design system and menu | 05 |
-| M1-10 | Formatting extension | 02 |
-| M1-11 | User administration | 07, 09 |
-| M1-12 | Suppliers and routes | 09 |
+| M1-10 | Base layout, design system and menu | 05 |
+| M1-11 | Formatting extension | 02 |
+| M1-12 | User administration | 07, 10 |
+| M1-13 | Suppliers, routes and dated assignments | 10 |
 | **D** | **Data in** | |
-| M1-13 | Import mapping | 02 |
-| M1-14 | Extract parser | 13, ADR 004 |
-| M1-15 | Upsert stop rows by row key | 12, 14 |
-| M1-16 | Build route runs | 15 |
-| M1-17 | Aggregate daily stats | 16 |
-| M1-18 | Upload page and import command | 17 |
-| M1-19 | Daily counts | 09 |
+| M1-14 | Import mapping | 02 |
+| M1-15 | Extract parser | 14, ADR 004 |
+| M1-16 | Replace stop rows for the dates in a file | 13, 15 |
+| M1-17 | Build route runs | 16 |
+| M1-18 | Aggregate daily stats | 17 |
+| M1-19 | Upload page and import command | 18 |
+| M1-20 | Clear driving data for a date range | 10, 18 |
+| M1-21 | Daily counts | 10 |
 | **E** | **Overview** | |
-| M1-20 | Periods and filters | 02 |
-| M1-21 | Figure calculation | 17, 19, 20 |
-| M1-22 | Tile, sparkline and panel components | 09, 10 |
-| M1-23 | Overview with the eight tiles | 21, 22 |
-| M1-24 | Punctuality chart, supplier table and help texts | 23 |
-| M1-25 | Development fixtures | 18, 19 |
+| M1-22 | Periods and filters | 02 |
+| M1-23 | Figure calculation | 18, 21, 22 |
+| M1-24 | Tile, sparkline and panel components | 10, 11 |
+| M1-25 | Overview with the eight tiles | 23, 24 |
+| M1-26 | Punctuality chart, supplier table and help texts | 25 |
+| M1-27 | Development fixtures | 19, 21 |
 | **F** | **Deployment** | |
-| M1-26 | Woodpecker deployment | 23 |
+| M1-28 | Woodpecker deployment | 25 |
 
 **Before M1-01:** `develop` is the default branch, and `develop` and `main` are protected, with
 the checks from M1-02 to M1-04 made required as they are added.
 
-**Before M1-14:** [ADR 004](adr/004-personal-data-in-driving-data.md) (personal data) must be
+**Before M1-15:** [ADR 004](adr/004-personal-data-in-driving-data.md) (personal data) must be
 decided. Everything else can continue while it is open.
+
+**Before M1-16:** confirm with the transport office that each extract holds whole days (see
+[ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)).
 
 **Parallel work:** after M1-05, groups C, D and E can run in parallel.
 
@@ -162,22 +167,30 @@ decided. Everything else can continue while it is open.
 
 ## B. Security
 
-### M1-05 Role hierarchy and deny by default
+### M1-05 Permission roles and deny by default
 
 - **Plan step:** 5. **Implements:** README "Roles", ADR 002, architecture "Security".
 - **Depends on:** M1-02
 - **Work:**
-  - `security-bundle` with the role hierarchy `ROLE_ADMIN` > `ROLE_EDITOR` > `ROLE_USER`.
+  - `security-bundle` with the permission roles from the architecture: `ROLE_VIEW_OVERVIEW`,
+    `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS`,
+    `ROLE_MANAGE_SUPPLIERS` and `ROLE_MANAGE_USERS`.
+  - `role_hierarchy`: `ROLE_ADMIN` gives all permission roles.
   - `access_control`: `^/login` and assets are public, and everything else requires `ROLE_USER`.
-  - A placeholder `OverviewController` with `#[IsGranted('ROLE_USER')]`.
+  - A placeholder `OverviewController` with `#[IsGranted('ROLE_VIEW_OVERVIEW')]`.
   - A temporary in-memory user for tests until M1-06.
 - **Tests first:**
   - **Route guard (functional):** iterates every route in the router, excluding framework and
-    profiler routes. It fails if a controller class or action has no `IsGranted`.
+    profiler routes. It fails if a controller class or action has no `IsGranted`, or if it
+    checks `ROLE_ADMIN` or `ROLE_USER`.
   - **Anonymous access (functional):** `GET /` redirects to `/login`. This replaces the M1-02
     smoke test.
-  - **Signed-in access (functional):** a signed-in `ROLE_USER` gets 200 on `/`.
-- **Acceptance criteria:** a new route without a role makes the route-guard test fail.
+  - **Signed-in access (functional):**
+    - A user with `ROLE_VIEW_OVERVIEW` gets 200 on `/`.
+    - A user with only `ROLE_USER` gets 403.
+    - A user with `ROLE_ADMIN` gets 200.
+- **Acceptance criteria:** a new route without a permission role makes the route-guard test
+  fail.
 
 ### M1-06 User entity and user commands
 
@@ -191,11 +204,13 @@ decided. Everything else can continue while it is open.
   - `app:user:set-roles <USERNAME> <ROLE>...`.
   - The display name waits for the staff data decision in ADR 004.
 - **Tests first:**
-  - **Unit:** role validation (only known roles), and username normalisation.
+  - **Unit:** role validation (only `ROLE_ADMIN` and the permission roles), and username
+    normalisation.
   - **Integration (`CommandTester`):**
     - Each command succeeds.
     - A duplicate username is rejected.
     - An unknown user gives an error.
+    - An unknown role is rejected.
     - The password is hashed, never stored in clear text.
 - **Acceptance criteria:** the commands work as documented in the README.
 
@@ -224,7 +239,7 @@ decided. Everything else can continue while it is open.
 - **Depends on:** M1-07
 - **Work:**
   - `APP_AUTH_MODE` (`password` by default). Each authenticator's `supports()` checks the mode.
-  - `NoLoginAuthenticator` with `APP_NO_LOGIN_ROLES`.
+  - `NoLoginAuthenticator` with `APP_NO_LOGIN_ROLES` (default `ROLE_VIEW_OVERVIEW`).
   - A kernel or container check that refuses to start in `prod` with `none` unless
     `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
   - Login routes return 404 when the mode is not `password`.
@@ -232,16 +247,34 @@ decided. Everything else can continue while it is open.
 - **Tests first:**
   - **Unit:** `supports()` per mode, and the prod guard for each combination of environment and
     flag.
-  - **Functional, `none` mode:** with `APP_NO_LOGIN_ROLES=ROLE_USER`, an editor page gives 403.
-    With `ROLE_ADMIN`, it gives 200.
+  - **Functional, `none` mode:** with `APP_NO_LOGIN_ROLES=ROLE_VIEW_OVERVIEW`, a page that
+    requires another permission role gives 403. With `ROLE_ADMIN`, it gives 200.
   - **Functional, `/login`:** returns 404 in `none` mode.
 - **Acceptance criteria:**
   - The three modes behave as described in the README.
   - The route-guard test still passes.
 
+### M1-09 HTTP security headers
+
+- **Plan step:** 5. **Implements:** architecture "Security" (HTTP security headers, ASVS V14.4).
+- **Depends on:** M1-05
+- **Work:**
+  - `nelmio/security-bundle`, configured with the headers in the architecture:
+    `Strict-Transport-Security` (in `prod` only), `Content-Security-Policy`,
+    `X-Content-Type-Options` and `Referrer-Policy`.
+  - The configuration is in the repository.
+- **Tests first (functional):**
+  - A response has each header with the value from the architecture.
+  - `Strict-Transport-Security` is not sent outside `prod`.
+  - The headers are also on the login page and on error pages.
+- **Acceptance criteria:**
+  - Every response has the headers.
+  - Templates have no inline scripts, no inline event handlers and no `style` attributes. Later
+    tasks keep to this.
+
 ## C. Layout and administration
 
-### M1-09 Base layout, design system and menu
+### M1-10 Base layout, design system and menu
 
 - **Plan step:** 6. **Implements:** README "Features", architecture "User interface".
 - **Depends on:** M1-05
@@ -253,12 +286,12 @@ decided. Everything else can continue while it is open.
     - an "about the figures" `<dialog>` with placeholder text
   - Port the prototype's stylesheet to `assets/styles/app.css`.
   - Danish translations in `translations/messages+intl-icu.da.yaml`.
-  - The menu shows items by role: overview; upload and daily counts for editors; administration
-    for admins.
+  - The menu shows each item only to users with its permission role: overview, upload, clear
+    driving data, daily counts and administration.
 - **Tests first (functional):**
-  - A `ROLE_USER` sees only the overview in the menu.
-  - An editor also sees "upload" and "daily counts".
-  - An admin also sees "administration".
+  - A user with only `ROLE_VIEW_OVERVIEW` sees only the overview in the menu.
+  - A user with `ROLE_UPLOAD_DRIVING_DATA` also sees "upload".
+  - A user with `ROLE_ADMIN` sees all items.
   - The active menu item is marked.
   - The page has `lang="da"`.
 - **Acceptance criteria:**
@@ -266,7 +299,7 @@ decided. Everything else can continue while it is open.
   - The layout works at phone width.
   - Assets load without a Node build.
 
-### M1-10 Formatting extension
+### M1-11 Formatting extension
 
 - **Plan step:** 6. **Implements:** architecture "User interface".
 - **Depends on:** M1-02
@@ -281,45 +314,54 @@ decided. Everything else can continue while it is open.
   - ISO week 53, and periods across years
 - **Acceptance criteria:** every format matches the prototype's formatting.
 
-### M1-11 User administration
+### M1-12 User administration
 
 - **Plan step:** 5–6. **Implements:** README "Manage users".
-- **Depends on:** M1-07, M1-09
+- **Depends on:** M1-07, M1-10
 - **Work:**
-  - `Admin\UserController` with `#[IsGranted('ROLE_ADMIN')]`: list, create, edit roles, set
-    password and delete.
-  - `UserType` form.
-  - An admin cannot remove their own admin role, and the last admin cannot be deleted.
+  - `Admin\UserController` with `#[IsGranted('ROLE_MANAGE_USERS')]`: list, create, edit roles,
+    set password and delete.
+  - `UserType` form. The roles are `ROLE_ADMIN` and the permission roles.
+  - A user cannot remove their own `ROLE_MANAGE_USERS` (directly or through `ROLE_ADMIN`), and
+    the last user with `ROLE_MANAGE_USERS` cannot be deleted.
 - **Tests first (functional):**
-  - Each action works for an admin and returns 403 for an editor.
+  - Each action works for a user with `ROLE_MANAGE_USERS` and returns 403 for a user without it.
   - Validation errors are shown.
   - CSRF on delete.
-  - The self-demotion and last-admin rules.
+  - The self-demotion and last-user rules.
 - **Acceptance criteria:** users can be managed in the UI, as in the README.
 
-### M1-12 Suppliers and routes
+### M1-13 Suppliers, routes and dated assignments
 
 - **Plan step:** 7. **Implements:** README "Map routes to suppliers", the data model.
-- **Depends on:** M1-09
+- **Depends on:** M1-10
 - **Work:**
-  - `Supplier` and `Route` entities and migrations.
-  - `Admin\SupplierController`: list, create, edit and delete. Deleting a supplier with routes is
-    blocked.
-  - `Admin\RouteController`: list with unmapped routes first, and assigning a supplier.
-  - `RouteType` and `SupplierType` forms.
-  - A `RouteSupplierChanged` event. It is dispatched now; the rebuild listener comes in M1-17.
+  - `Supplier`, `Route` and `RouteSupplierAssignment` entities and migrations. An assignment has
+    a `valid_from` date and an optional `valid_to` date.
+  - All controllers have `#[IsGranted('ROLE_MANAGE_SUPPLIERS')]`.
+  - `Admin\SupplierController`: list, create, edit and delete. Deleting a supplier with
+    assignments is blocked.
+  - `Admin\RouteController`: list with routes that have no current assignment first, and the
+    assignments of each route.
+  - `SupplierType`, `RouteType` and `RouteSupplierAssignmentType` forms. The assignments of one
+    route must not overlap.
+  - A `RouteSupplierChanged` event with the route and the old and new date ranges. It is
+    dispatched now; the rebuild listener comes in M1-18.
 - **Tests first:**
-  - **Integration:** the repository lists unmapped routes first.
+  - **Unit:** the overlap check: touching ranges, an open end, and the same start date.
+  - **Integration:** the repository finds the supplier for a route and a date, and lists routes
+    without a current assignment first.
   - **Functional:**
-    - CRUD per role.
-    - A supplier with routes cannot be deleted.
-    - Assigning a supplier dispatches the event.
-- **Acceptance criteria:** an admin can create suppliers and assign routes. Unmapped routes are
-  shown as "Unknown".
+    - CRUD with and without `ROLE_MANAGE_SUPPLIERS`.
+    - An overlapping assignment is rejected.
+    - A supplier with assignments cannot be deleted.
+    - Adding, changing and deleting an assignment dispatches the event with the correct ranges.
+- **Acceptance criteria:** an administrator can create suppliers and assign routes for a date
+  range. A route on a date with no assignment is shown as "Unknown".
 
 ## D. Data in
 
-### M1-13 Import mapping
+### M1-14 Import mapping
 
 - **Plan step:** 7. **Implements:** README "Import mappings", ADR 003.
 - **Depends on:** M1-02
@@ -328,7 +370,7 @@ decided. Everything else can continue while it is open.
   - `MappingLoader`, which validates with the Symfony Config `TreeBuilder` and builds an
     immutable `Mapping` value object:
     - the sheet and header row
-    - the row key columns
+    - an optional row key (one or more columns)
     - for each field: the column, type, format, value map, true values and whether it is required
   - Validation runs when the container is built.
   - `APP_DRIVING_DATA_MAPPING`.
@@ -337,18 +379,18 @@ decided. Everything else can continue while it is open.
   - A `default.yaml` with placeholder columns until a real extract is available.
 - **Tests first:**
   - **Unit:**
-    - A valid mapping loads into `Mapping`.
+    - A valid mapping loads into `Mapping`, with and without a row key.
     - The loader rejects each kind of invalid mapping: a missing required field, an unknown
-      type, an empty row key, and a value map on a non-string field.
+      type, a row key column that is not a field, and a value map on a non-string field.
   - **Integration:** the validate command, using fixture files in `tests/fixtures/mappings/`.
 - **Acceptance criteria:**
   - An invalid mapping stops the application from starting, with a clear message.
   - The validate command works as in the README.
 
-### M1-14 Extract parser
+### M1-15 Extract parser
 
 - **Plan step:** 7. **Implements:** ADR 003, ADR 004 (as decided).
-- **Depends on:** M1-13, and **ADR 004 decided**
+- **Depends on:** M1-14, and **ADR 004 decided**
 - **Work:**
   - `StopRowParser` reads an `.xlsx` with `phpoffice/phpspreadsheet`, only through `Mapping`.
   - It converts each field by type: string, int, float, bool with true values, and datetime
@@ -367,30 +409,39 @@ decided. Everything else can continue while it is open.
     different key.
 - **Acceptance criteria:** the fixture parses with exactly the expected rows and rejections.
 
-### M1-15 Upsert stop rows by row key
+### M1-16 Replace stop rows for the dates in a file
 
 - **Plan step:** 7. **Implements:** README "Upload driving data", ADR 003.
-- **Depends on:** M1-12, M1-14
+- **Depends on:** M1-13, M1-15
 - **Work:**
-  - `StopRow` and `ImportBatch` entities and migrations, with a unique index on
-    `(mapping_name, row_key)`.
-  - `StopRowUpserter`, using a batched upsert (`INSERT … ON DUPLICATE KEY UPDATE`). It returns
-    the added and updated counts and the affected dates.
-  - Routes not seen before are created without a supplier ("Unknown").
+  - `StopRow` and `ImportBatch` entities and migrations. `StopRow` has an optional row key, with
+    a unique index on `(mapping_name, row_key)`.
+  - `StopRowReplacer`:
+    - The import dates are the dates with at least one valid row in the file.
+    - For each import date, it deletes all `StopRow` rows, from all mappings, and then inserts
+      the rows of the file.
+    - If the mapping has a row key, a key that occurs more than once in the file is rejected
+      after the first occurrence.
+    - It returns the import dates and the deleted, inserted and rejected counts.
+  - `ImportBatch` keeps the mapping, the file name, who and when, the import dates, the counts
+    and the rejection reasons.
+  - Routes not seen before are created without an assignment ("Unknown").
 - **Tests first (integration):**
   - Importing the fixture inserts every row.
-  - Importing it again gives 0 added and only updated rows, with an unchanged row count.
-  - Changing one row and re-importing updates only that row.
-  - Two mappings with the same row key don't collide.
-  - New routes are created as unmapped.
-  - Affected dates are correct.
-- **Acceptance criteria:** duplicates can't be created, even when the same file is imported
-  twice in parallel. The unique index guarantees this.
+  - Importing it again gives the same rows, with the same row count.
+  - A corrected file with one row less removes that row.
+  - Rows on dates that are not in the file do not change.
+  - Rows from another mapping on an import date are deleted.
+  - A duplicate row key in one file is rejected after the first occurrence.
+  - New routes are created without an assignment.
+  - The import dates and the counts are correct.
+- **Acceptance criteria:** after an import, each import date holds exactly the rows of the file.
+  The same data can never be counted twice.
 
-### M1-16 Build route runs
+### M1-17 Build route runs
 
 - **Plan step:** 7. **Implements:** README "Key figures" (definitions), architecture "Pipeline".
-- **Depends on:** M1-15
+- **Depends on:** M1-16
 - **Work:** `RouteBuilder` replaces the `RouteRun` rows for the given dates. For each route and
   date, it orders stops by planned time and splits them into runs at the end-of-route flag. Per
   run it calculates:
@@ -409,54 +460,86 @@ decided. Everything else can continue while it is open.
   - A missing actual time.
 - **Acceptance criteria:** the route runs from the fixture match the totals worked out by hand.
 
-### M1-17 Aggregate daily stats
+### M1-18 Aggregate daily stats
 
 - **Plan step:** 7. **Implements:** architecture "Data model" (derived tables).
-- **Depends on:** M1-16
+- **Depends on:** M1-17
 - **Work:**
   - The `DailyStats` entity and migration, with a unique index on `(service_date, supplier_id)`.
-  - `DailyStatsAggregator` replaces the rows for the given dates. Counters: trips, completed,
-    cancelled, route runs, last drop-offs, on time, solo runs, and driven and empty km and
-    minutes.
-  - A listener on `RouteSupplierChanged` rebuilds every date that route appears on.
-  - The whole import (upsert, runs, stats) runs in one transaction.
+  - `DailyStatsAggregator` replaces the rows for the given dates. It finds the supplier for each
+    route and date from the assignments. Counters: trips, completed, cancelled, route runs,
+    last drop-offs, on time, solo runs, and driven and empty km and minutes.
+  - A listener on `RouteSupplierChanged` rebuilds only the dates in the old and the new range.
+  - The whole import (replacement, runs, stats) runs in one transaction.
 - **Tests first:**
   - **Unit:** the counters from the route runs.
   - **Integration:**
     - Rebuilding the same dates twice gives identical rows.
-    - A supplier change moves the counts.
+    - A route on a date with no assignment counts as "Unknown".
+    - An assignment change moves the counts for the dates in its ranges only. Other dates do
+      not change.
     - A failure part-way leaves the previous data untouched.
 - **Acceptance criteria:** the fixture's daily stats match the totals worked out by hand.
 
-### M1-18 Upload page and import command
+### M1-19 Upload page and import command
 
 - **Plan step:** 7. **Implements:** README "Upload driving data".
-- **Depends on:** M1-17
+- **Depends on:** M1-18
 - **Work:**
-  - `ImportController` (`ROLE_EDITOR`) with `ImportType`: `.xlsx` only, with a size limit.
+  - `ImportController` (`ROLE_UPLOAD_DRIVING_DATA`) with `ImportType`: `.xlsx` only, with a size
+    limit.
   - The import runs synchronously.
-  - The result page shows rows added, updated and rejected, with the reasons.
+  - The result page shows the replaced dates and the rows deleted, inserted and rejected, with
+    the reasons.
   - The uploaded file is deleted after processing.
   - `app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]` uses the same service.
 - **Tests first:**
   - **Functional:**
-    - An editor uploads the fixture and sees the counts.
-    - A user gets 403.
+    - A user with `ROLE_UPLOAD_DRIVING_DATA` uploads the fixture and sees the dates and counts.
+    - A user without it gets 403.
     - A wrong file type and an oversized file are rejected.
     - The temporary file is removed.
-  - **Integration:** the command imports, and prints the same counts.
+  - **Integration:** the command imports, and prints the same dates and counts.
 - **Acceptance criteria:**
   - The upload and the command behave as in the README.
-  - Uploading the same file twice changes nothing.
+  - Uploading the same file twice gives the same data.
 
-### M1-19 Daily counts
+### M1-20 Clear driving data for a date range
+
+- **Plan step:** 7. **Implements:** README "Clear driving data", ADR 003, architecture "Clearing
+  driving data".
+- **Depends on:** M1-10, M1-18
+- **Work:**
+  - `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for a date range, in one
+    transaction. `DailyCount` does not change.
+  - It logs who cleared which range, and the deleted counts. The log has no field values.
+  - `ClearDrivingDataController` (`ROLE_CLEAR_DRIVING_DATA`):
+    - The user selects the first and the last date.
+    - The page shows the number of stop rows and route runs in the range.
+    - The user confirms. The form has CSRF.
+  - `app:driving-data:clear <FROM_DATE> <TO_DATE>` uses the same service, and asks for
+    confirmation unless `--no-interaction` is given.
+- **Tests first:**
+  - **Integration:**
+    - The rows in the range are deleted. Rows before and after the range do not change.
+    - `DailyCount` rows in the range do not change.
+    - A failure part-way leaves the data untouched.
+    - The command deletes the range and prints the counts.
+  - **Functional:**
+    - The page shows the correct counts before confirmation.
+    - A user without `ROLE_CLEAR_DRIVING_DATA` gets 403.
+    - A missing CSRF token is rejected.
+    - A range with the last date before the first date is rejected.
+- **Acceptance criteria:** clearing behaves as in the README.
+
+### M1-21 Daily counts
 
 - **Plan step:** 8. **Implements:** README "Enter daily counts".
-- **Depends on:** M1-09
+- **Depends on:** M1-10
 - **Work:**
   - The `DailyCount` entity and migration, unique per date.
-  - `DailyCountController` (`ROLE_EDITOR`) with `DailyCountWeekType`: seven days with mails,
-    complaints and phone calls.
+  - `DailyCountController` (`ROLE_EDIT_DAILY_COUNTS`) with `DailyCountWeekType`: seven days with
+    mails, complaints and phone calls.
   - Previous and next week navigation.
   - Validation: integers ≥ 0, no future dates.
   - Saving updates the existing rows.
@@ -466,12 +549,12 @@ decided. Everything else can continue while it is open.
     - Saving a week creates seven rows.
     - Editing a day updates it without creating a duplicate.
     - Negative numbers and future dates are rejected.
-    - A user gets 403.
+    - A user without `ROLE_EDIT_DAILY_COUNTS` gets 403.
 - **Acceptance criteria:** daily counts can be entered and corrected as in the README.
 
 ## E. Overview
 
-### M1-20 Periods and filters
+### M1-22 Periods and filters
 
 - **Plan step:** 9. **Implements:** README "Filters", architecture "Calculating the figures".
 - **Depends on:** M1-02
@@ -497,11 +580,11 @@ decided. Everything else can continue while it is open.
   - Invalid query values.
 - **Acceptance criteria:** the date ranges match the definitions in the README.
 
-### M1-21 Figure calculation
+### M1-23 Figure calculation
 
 - **Plan step:** 9. **Implements:** README "Key figures", architecture "Calculating the
   figures".
-- **Depends on:** M1-17, M1-19, M1-20
+- **Depends on:** M1-18, M1-21, M1-22
 - **Work:**
   - `KpiCalculator` runs one aggregate query over `DailyStats` and `DailyCount` per range, with
     an optional supplier.
@@ -523,10 +606,10 @@ decided. Everything else can continue while it is open.
     - Distinct citizens are counted over several days.
 - **Acceptance criteria:** the figures for the fixture day match the totals worked out by hand.
 
-### M1-22 Tile, sparkline and panel components
+### M1-24 Tile, sparkline and panel components
 
 - **Plan step:** 9. **Implements:** architecture "User interface".
-- **Depends on:** M1-09, M1-10
+- **Depends on:** M1-10, M1-11
 - **Work:** Twig components (`symfony/ux-twig-component`), ported from the prototype:
   - `Tile`: label, value, tone, delta chip, sparkline, link and a `?` help popover
   - `Sparkline`: inline SVG, with gaps for missing months
@@ -540,12 +623,12 @@ decided. Everything else can continue while it is open.
     - The "–" value for missing data.
 - **Acceptance criteria:** the components render like the prototype's tiles and panels.
 
-### M1-23 Overview with the eight tiles
+### M1-25 Overview with the eight tiles
 
 - **Plan step:** 9. **Implements:** README "Features" (overview), "Key figures", "Filters".
-- **Depends on:** M1-21, M1-22
+- **Depends on:** M1-23, M1-24
 - **Work:**
-  - `OverviewController` (`ROLE_USER`).
+  - `OverviewController` (`ROLE_VIEW_OVERVIEW`).
   - The top-bar filters: a segmented control for the period, a previous/next stepper, the
     comparison select and the supplier select. All are GET links or forms.
   - The eight tiles, each with the current value, the delta and a 12-month sparkline.
@@ -554,35 +637,41 @@ decided. Everything else can continue while it is open.
   - With fixture data, each tile shows the expected value. Use `data-test` attributes, not
     markup.
   - The filters change the values, and invalid query values fall back to the defaults.
-  - A user sees the page. Anonymous visitors are redirected.
+  - A user with `ROLE_VIEW_OVERVIEW` sees the page. Anonymous visitors are redirected.
 - **Acceptance criteria:**
   - The overview works end to end: upload, enter counts, see the figures.
   - Views can be shared as links.
 
-### M1-24 Punctuality chart, supplier table and help texts
+### M1-26 Punctuality chart, supplier table and help texts
 
 - **Plan step:** 9. **Implements:** README "Features" (overview), "Key figures".
-- **Depends on:** M1-23
+- **Depends on:** M1-25
 - **Work:**
   - The `LineChart` component: inline SVG, a target line, gridlines and a hidden data table.
+    It uses classes and SVG presentation attributes, not `style` attributes.
   - The 12-month punctuality chart with `APP_PUNCTUALITY_TARGET`.
   - The supplier table for the driving figures, always showing all suppliers.
   - Help texts for each figure, and the "about the figures" dialog content.
 - **Tests first:**
   - **Unit:** the `LineChart` scales, the target line and missing months.
   - **Functional:**
-    - The table lists every supplier, and "Unknown" if there are unmapped routes.
+    - The table lists every supplier, and "Unknown" if there are routes without an assignment
+      on dates in the period.
     - The values per supplier.
     - Every tile has a help text.
 - **Acceptance criteria:** the overview matches the README's feature list.
 
-### M1-25 Development fixtures
+### M1-27 Development fixtures
 
 - **Plan step:** 4 and 9. **Implements:** README "Fixtures".
-- **Depends on:** M1-18, M1-19
+- **Depends on:** M1-19, M1-21
 - **Work:**
-  - `AppFixtures`: a user per role (with known development passwords), suppliers, routes, an
-    imported sample day (run through the real import service) and daily counts.
+  - `AppFixtures`:
+    - a user with `ROLE_ADMIN`, and a user for each permission role (with known development
+      passwords)
+    - suppliers, routes and assignments, with one supplier change during the period
+    - an imported sample day (run through the real import service)
+    - daily counts
   - `task fixtures:load`.
 - **Tests first (integration):** loading the fixtures gives the expected counts, and the overview
   shows non-empty figures.
@@ -590,10 +679,10 @@ decided. Everything else can continue while it is open.
 
 ## F. Deployment
 
-### M1-26 Woodpecker deployment
+### M1-28 Woodpecker deployment
 
 - **Plan step:** 10. **Implements:** README "Deployment".
-- **Depends on:** M1-23
+- **Depends on:** M1-25
 - **Work:**
   - `.woodpecker/stg.yml`: push to `release/*` or `hotfix/*`.
   - `.woodpecker/prod.yml`: the `release` event.
