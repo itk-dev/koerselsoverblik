@@ -105,7 +105,7 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 
 **Expected cost:** roughly 20–30 % extra time early on, falling as factories, fixtures and test helpers build up. This is an estimate, to be revisited after the first tasks.
 
-**Taskfile tasks** (following the economics conventions):
+**Taskfile tasks:**
 
 - `task test`, `task test:unit` and `task test:file -- <FILE>`
 - `task test:coverage` and `task test:coverage:check`, which fails if coverage is below 100 %
@@ -295,7 +295,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
    - `rregeer/phpunit-coverage-check`
    - doctrine-fixtures, `zenstruck/foundry`, `dama/doctrine-test-bundle`
    - `infection/infection`, and pcov in the phpfpm image
-   - Extend the Taskfile (created in step 2 with the diagram tasks) following the economics conventions (`setup`, `compose`, `composer`, `phpfpm`, `test*`, `code-analysis`, `prepare-code`, `coding-standards:*`, `db:migrate`, `fixtures:load`, `docs:diagrams`).
+   - Write the Taskfile (`setup`, `compose`, `composer`, `phpfpm`, `test*`, `code-analysis`, `prepare-code`, `coding-standards:*`, `db:migrate`, `fixtures:load`, `docs:diagrams`).
    - **Smoke test first:** a failing functional test that `/` redirects to `/login`.
 6. Docs:
    - Check `README.md` against the actual setup.
@@ -333,6 +333,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 **`none` mode** (development convenience):
 
 - `NoLoginAuthenticator` signs every request in as a local user with the roles in `APP_NO_LOGIN_ROLES`.
+- `APP_NO_LOGIN_ROLES` defaults to `ROLE_USER`. A wrong server configuration then gives no extra rights. Local development sets `ROLE_ADMIN` explicitly.
 - The app refuses to start in `prod` unless `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
 
 ## 6. Base layout and menu
@@ -481,7 +482,7 @@ Menu items are shown with `is_granted()`.
 
 ## 10. Deployment with Woodpecker
 
-Deployment uses Woodpecker, following the economics conventions.
+Deployment uses Woodpecker.
 
 **Pipelines:**
 
@@ -505,7 +506,9 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 
 **Server configuration:**
 
-- `.env.local` on the server holds `APP_SECRET`, `APP_PERSON_ID_SECRET`, `APP_AUTH_MODE=password` and `DATABASE_URL`.
+- `.env.local` on every server, staging included, holds `APP_ENV=prod`, `APP_SECRET`, `APP_PERSON_ID_SECRET`, `APP_AUTH_MODE=password` and `DATABASE_URL`.
+- The guard against `none` mode depends on `APP_ENV=prod`.
+- Do not include `.env.local` in the backups of the database host.
 - Woodpecker secrets hold the host, path, user and keys.
 
 **After the first deploy:** create the first admin with `app:user:create`.
@@ -572,6 +575,7 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
     - No names, addresses or other personal details are imported.
     - Rejected-row messages and logs never contain field values.
     - Uploaded files are deleted after processing.
+    - The HMAC key is not included in the backups of the database host.
   - **About the person id:**
     - It is an internal id of the planning system and means nothing outside it.
     - That lowers the risk, but for us it is still personal data: the organisation has access to the planning system and can look the id up.
@@ -589,6 +593,37 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
     - Does one file always contain whole days? If not, option 2 would wipe the rest of a partial day.
   - **Staff accounts** (username, name) are also personal data. Decide what to store when this is settled.
   - **Decide before task M1-10b.** The parser and the `StopRow` design depend on it.
+
+## Outside this plan (PM to place)
+
+The concept's estimate includes work that this plan does not include:
+
+- technical project management
+- customer acceptance tests and feedback
+- go-live assistance
+- the operations and cybersecurity agreements
+
+This plan also does not include:
+
+- server provisioning
+- backup and restore
+- the initial history load for the 12-month trends
+- alerts on failed syncs
+
+The PM decides where each item belongs.
+
+## Concept questions not in this plan (PM acceptance needed)
+
+The concept's open questions 4–7, 11 and 13 are not part of milestone 1:
+
+- daily vs annual figures
+- the punctuality service target
+- punctuality at pickup
+- the source of penalties
+- supplier access
+- the upload cadence
+
+Development can start without answers to them. The PM must accept this before step 4.
 
 ## Verification
 

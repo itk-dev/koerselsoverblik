@@ -128,15 +128,16 @@ Set these in `.env.local`:
 | Variable | Description | Default |
 |---|---|---|
 | `APP_AUTH_MODE` | Login method: `password`, `none` or `oidc` (`oidc` is not yet implemented) | `password` |
-| `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_ADMIN` |
+| `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_USER` |
 | `APP_ALLOW_NO_LOGIN_IN_PROD` | Set to `1` to allow `APP_AUTH_MODE=none` in `prod`. The app refuses to start otherwise | `0` |
-| `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports | – (required) |
+| `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 
 **WARNING:** `APP_AUTH_MODE=none` gives everyone the roles in `APP_NO_LOGIN_ROLES` without
-logging in. Use it for local development only.
+logging in. Use it for local development only. For full rights in local development, set
+`APP_NO_LOGIN_ROLES=ROLE_ADMIN` explicitly.
 
 ## Usage
 
@@ -236,6 +237,14 @@ task phpfpm -- bin/console app:user:set-roles <USERNAME> <ROLE> [<ROLE>...]
 - Names, addresses and other personal details in the extract are not imported.
 - Nothing is stored or shown at driver level.
 - Uploaded files are deleted once they have been processed.
+
+### The pseudonymisation key
+
+If one attacker gets both the database and `APP_PERSON_ID_SECRET`, the pseudonymisation does
+not protect the data. Keep the key apart from the database:
+
+- Set the key in `.env.local`.
+- Do not include `.env.local` in the backups of the database host.
 
 ## Development
 
@@ -359,7 +368,12 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 
 To set up a new server:
 
-1. Set `APP_SECRET`, `APP_PERSON_ID_SECRET` and the database settings in `.env.local`.
+1. Set these in `.env.local` (staging included):
+   - `APP_ENV=prod`. The guard against `none` mode depends on it.
+   - `APP_AUTH_MODE=password`
+   - `APP_SECRET`
+   - `APP_PERSON_ID_SECRET`
+   - the database settings
 2. Deploy.
 3. Create the first admin:
 
