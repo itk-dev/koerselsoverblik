@@ -28,8 +28,8 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 
 - **Correct figures first.** Every figure is calculated the same way for any period, from summed
   counts. A wrong number is the worst possible bug, so calculation code has the strictest tests.
-- **No duplicates.** Re-importing data overwrites what was there before. The same data must never
-  be counted twice.
+- **No duplicates.** Re-importing data replaces all stored data for the dates in the file. The
+  same data must never be counted twice, and rows that are not in a corrected file must not stay.
 - **Source-independent import.** The column layout of an extract is described in a mapping file,
   not in code, so another source can be added without code changes.
 - **Minimal personal data.** No names, addresses or driver data are imported. How citizen
@@ -114,8 +114,8 @@ are added only when file sizes or integrations need them.
 | `User` | Login account: username, roles, password hash |
 | `Supplier` | A transport supplier |
 | `Route` | A route from the extract and its supplier |
-| `ImportBatch` | One upload: mapping, file name, who and when, the date range, row counts, rejection reasons |
-| `StopRow` | One stop from the extract, keyed by mapping name and row key. See [open decisions](#open-decisions) |
+| `ImportBatch` | One upload: mapping, file name, who and when, the replaced dates, row counts, rejection reasons |
+| `StopRow` | One stop from the extract, with an optional row key from the mapping. See [open decisions](#open-decisions) |
 | `RouteRun` | Derived: one route run with its last drop-off, delay, peak passengers and distances |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
@@ -133,7 +133,8 @@ information that can't be recalculated.
 A mapping file, `config/import/driving_data/<MAPPING_NAME>.yaml`, describes one source's extract:
 
 - the sheet and the header row
-- the **row key**: one or more columns that identify a row
+- an optional **row key**: one or more columns that identify a row. It finds duplicate rows in
+  one file
 - for each application field: the source column, type, date format, value maps for codes, and
   whether it is required
 
@@ -148,17 +149,41 @@ a mapping before it is used.
 1. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
    with their row number and a reason. Field values are never written to messages or logs. The
    person id is pseudonymised before it leaves the parser.
-2. **Upsert.** `StopRowUpserter` writes rows keyed on `(mapping_name, row_key)`, which is a unique
-   index. An existing key is updated, and a new key is inserted. Duplicates are impossible at
-   database level. It returns the counts and the set of affected dates.
-3. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the affected dates. It orders
+2. **Replace.** `StopRowReplacer` finds the import dates: the dates that have at least one valid
+   row. It deletes all `StopRow` rows for these dates, from all mappings, and then inserts the
+   rows of the file. Rows that are not in the new file are removed, and two uploads can never
+   count the same date twice. A row key that occurs more than once in the file is rejected after
+   the first occurrence, and a unique index on `(mapping_name, row_key)` makes this sure. It
+   returns the deleted and inserted counts and the import dates.
+3. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the import dates. It orders
    each route's stops by planned time and splits them into runs at the end-of-route flag.
-4. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the affected dates, one
+4. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the import dates, one
    per supplier.
-5. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts.
+5. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts
+   and the import dates.
 
 All steps for one upload run in one database transaction. A failed import leaves the data as it
 was.
+
+**Whole days:** a file that holds only part of a day removes the other rows of that day. Users
+must upload whole days. The result page lists the replaced dates.
+
+**No rollback:** an `ImportBatch` cannot be undone. To correct a wrong upload, upload the correct
+file for the same dates, or clear the dates.
+
+### Clearing driving data
+
+Users with `ROLE_CLEAR_DRIVING_DATA` can delete the driving data for a date range, for example
+after a wrong upload:
+
+1. The user selects a date range. The page shows the number of stop rows and route runs in it.
+2. The user confirms.
+3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the range in one
+   transaction. `DailyCount` does not change.
+4. The application logs who cleared which range, and the deleted counts. The log has no field
+   values.
+
+`app:driving-data:clear <FROM> <TO>` uses the same service.
 
 ## Calculating the figures
 
@@ -274,7 +299,7 @@ The project is developed test first, with 100 % line coverage and mutation testi
 | Layer | What | Tools |
 |---|---|---|
 | Unit | `Report`, `Import`, value objects, `FormatExtension` | PHPUnit |
-| Integration | Repositories and aggregate queries, upsert, commands | `KernelTestCase`, MariaDB, `dama/doctrine-test-bundle` |
+| Integration | Repositories and aggregate queries, replacement and clearing, commands | `KernelTestCase`, MariaDB, `dama/doctrine-test-bundle` |
 | Functional | Every route × role, forms, login, upload end to end, the overview | `WebTestCase` |
 
 **Mutation testing (Infection):**
@@ -307,8 +332,8 @@ testing and the diagram check on every pull request.
     correction window, or replaced by aggregates and distinct-count sketches.
   - The data model above shows the current working assumption (rows with a pseudonymised key).
   - It must be decided before the extract parser is built (task M1-10b).
-- **Stable row key.** Is there a single stable row id column in the extract? It is configured in
-  the mapping either way.
+- **Whole days.** Does each extract hold whole days? The replacement of whole dates depends on
+  it.
 
 ## Decision records
 
@@ -316,5 +341,5 @@ See [`adr/`](adr/README.md):
 
 - [001: Stack](adr/001-stack.md)
 - [002: Configurable authentication modes](adr/002-auth-modes.md)
-- [003: Driving data import with mappings and overwrite by row key](adr/003-driving-data-import-mapping-and-overwrite.md)
+- [003: Driving data import with mappings and replacement of whole dates](adr/003-driving-data-import-mapping-and-overwrite.md)
 - [004: Personal data in driving data](adr/004-personal-data-in-driving-data.md)

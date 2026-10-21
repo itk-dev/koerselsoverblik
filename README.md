@@ -35,8 +35,11 @@ The user interface is in Danish.
   - supplier
   - The filters live in the URL, so a view can be shared as a link.
 - **Upload driving data:** upload a driving data extract (`.xlsx`).
-  - Rows are matched on their row id. A row that already exists is overwritten, and new rows are added.
-  - The figures for the affected dates are recalculated.
+  - Each date in the file replaces all stored driving data for that date. Rows that are not in
+    a corrected file are removed.
+  - The figures for the replaced dates are recalculated.
+- **Clear driving data:** delete the driving data for a date range, for example after a wrong
+  upload.
   - Columns are read through an [import mapping](#import-mappings), so another source can be
     added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
@@ -153,16 +156,39 @@ logging in. Use it for local development only. For full rights in local developm
 
 1. Go to **Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
 2. Choose a driving data extract (`.xlsx`) and upload it.
-3. The result page shows how many rows were added, updated and rejected, with a reason for
-   each rejected row.
+3. The result page shows the replaced dates and how many rows were deleted, inserted and
+   rejected, with a reason for each rejected row.
 
-Uploading the same file again changes nothing. Uploading a file with corrected rows overwrites
-only those rows.
+Each date in the file replaces all stored driving data for that date. Uploading the same file
+again changes nothing. Uploading a corrected file gives exactly the rows of that file for its
+dates.
+
+**CAUTION:** upload whole days only. A file that holds only part of a day removes the other rows
+of that day.
+
+An upload cannot be undone. To correct a wrong upload, upload the correct file for the same
+dates, or [clear the driving data](#clear-driving-data) for the dates.
 
 From the command line:
 
 ```shell
 task phpfpm -- bin/console app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]
+```
+
+### Clear driving data
+
+1. Go to **Clear driving data** (requires `ROLE_CLEAR_DRIVING_DATA`).
+2. Select the first and the last date.
+3. Check the number of rows that will be deleted.
+4. Confirm.
+
+This deletes the uploaded driving data and the calculated figures for the dates. The daily
+counts of mails, complaints and phone calls do not change. You cannot undo this.
+
+From the command line:
+
+```shell
+task phpfpm -- bin/console app:driving-data:clear <FROM_DATE> <TO_DATE>
 ```
 
 ### Import mappings
@@ -174,8 +200,8 @@ change in an existing extract, add or edit a mapping. No code changes are needed
 A mapping defines:
 
 - **Sheet and header row:** where the data starts in the workbook.
-- **Row id:** the column, or columns, that identify a row. Rows with the same id are overwritten
-  on re-upload.
+- **Row id (optional):** the column, or columns, that identify a row. If a row id occurs more
+  than once in a file, the second and later rows are rejected.
 - **Fields:** for each application field, the source column and how to read it:
   - type: `string`, `int`, `float`, `bool`, `datetime`
   - date format: for example an Excel serial date or a format string
@@ -187,7 +213,7 @@ A mapping defines:
 # config/import/driving_data/<MAPPING_NAME>.yaml
 sheet: 0
 header_row: 1
-row_id: [<ROW_ID_COLUMN>]
+row_id: [<ROW_ID_COLUMN>]   # optional
 fields:
   route:            { column: <COLUMN_NAME>, type: string, required: true }
   person_id:        { column: <COLUMN_NAME>, type: string, required: true }

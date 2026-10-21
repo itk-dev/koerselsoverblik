@@ -53,11 +53,11 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 
 - **Unit** (`tests/Unit`):
   - pure logic: `PeriodRangeFactory`, `KpiCalculator` maths, `Delta`, `Tone`
-  - the import mapping loader and validation, the parser, upserter, `RouteBuilder`, `DailyStatsAggregator`
+  - the import mapping loader and validation, the parser, `RouteBuilder`, `DailyStatsAggregator`
   - `FormatExtension`, the authenticators' `supports()`, value objects
 - **Integration** (`tests/Integration`, `KernelTestCase` + MariaDB test DB, isolated with `dama/doctrine-test-bundle`):
   - repositories and the SUM and distinct-count queries
-  - upsert by row id
+  - replacement of whole dates, and clearing a date range
   - console commands (`CommandTester`)
 - **Functional** (`tests/Functional`, `WebTestCase`):
   - every route × permission role (200/403/redirect)
@@ -151,7 +151,8 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
   - username/password login (users are created with a command)
   - base layout and menu
 - **Data in:**
-  - upload of driving data (rows with the same id are overwritten)
+  - upload of driving data (each date in the file replaces the stored data for that date)
+  - clearing the driving data for a date range
   - manual entry of mails, complaints and phone calls per day
 - **Views:**
   - empty running (%)
@@ -172,7 +173,7 @@ Afterwards it is kept in sync whenever the implementation diverges.
 **Contents:**
 
 - **What it is:** the purpose, and the eight figures with short definitions
-- **Features:** login and roles, upload with overwrite by row id, daily counts, filters
+- **Features:** login and roles, upload with replacement of whole dates, clearing dates, daily counts, filters
 - **Getting started:** `task setup`, the first user, the local URL
 - **Configuration:** auth mode, the pseudonymisation secret, the punctuality settings
 - **Usage:** upload, mapping routes to suppliers, daily counts, users
@@ -192,11 +193,11 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
 - **Components:**
   - controllers and forms
   - `Security`: authenticators per mode, role guards
-  - `Import/DrivingData`: mapping (YAML) → parser → upserter → route builder → daily stats aggregator
+  - `Import/DrivingData`: mapping (YAML) → parser → replacer → route builder → daily stats aggregator
   - `Report`: `PeriodRangeFactory`, `KpiCalculator`, `Delta`/`Tone`
   - Twig components
 - **Data model:** an ER diagram of `User`, `Supplier`, `Route`, `ImportBatch`, `StopRow`, `RouteRun`, `DailyStats` and `DailyCount`.
-- **Sequence: upload.** Form → `ImportBatch` → parse → upsert by row id → rebuild `RouteRun`/`DailyStats` for the affected dates → result page.
+- **Sequence: upload.** Form → `ImportBatch` → parse → replace the stop rows for the dates in the file → rebuild `RouteRun`/`DailyStats` for those dates → result page.
 - **Sequence: overview request.** Authenticator by mode → `IsGranted` → `PeriodFilter` → `KpiCalculator` (current period, comparison period, 12 months) → Twig.
 - **Auth modes:** a flowchart of how `APP_AUTH_MODE` selects the authenticator.
 
@@ -224,7 +225,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 
 **Each task has:**
 
-- **ID and title**, e.g. `M1-11 Upsert stop rows by row id`
+- **ID and title**, e.g. `M1-11 Replace stop rows for the dates in a file`
 - **Step:** the plan step, and the README or architecture section it implements
 - **Depends on:** the tasks that must be merged first
 - **Tests first:** the failing tests that define the task
@@ -258,10 +259,11 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 | M1-09 | `Supplier`/`Route` entities and admin forms | 7 | 08 |
 | M1-10a | Import mapping: YAML format, `MappingLoader` with validation, `mapping:validate` command | 7 | 02 |
 | M1-10b | Extract parser driven by the mapping: field types, dates, value maps, person id pseudonymisation | 7 | 10a |
-| M1-11 | `StopRow` upsert by row id and `ImportBatch` | 7 | 10b |
+| M1-11 | `StopRow` replacement of whole dates and `ImportBatch` | 7 | 10b |
 | M1-12 | `RouteBuilder`: last drop-off, delay, peak passengers, cancellations | 7 | 11 |
-| M1-13 | `DailyStatsAggregator`: rebuild the affected dates | 7 | 12 |
+| M1-13 | `DailyStatsAggregator`: rebuild the import dates | 7 | 12 |
 | M1-14 | Upload form, result page, `app:driving-data:import` | 7 | 13, 08 |
+| M1-14b | Clear driving data for a date range: page, confirmation, `app:driving-data:clear` | 7 | 13, 08 |
 | M1-15 | `DailyCount` entity and the week grid form | 8 | 08 |
 | M1-16 | `PeriodFilter` and `PeriodRangeFactory` | 9 | 02 |
 | M1-17 | `KpiCalculator`, `Kpis`, `Delta`, `Tone` | 9 | 13, 15, 16 |
@@ -361,6 +363,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 
 - Overview (`ROLE_VIEW_OVERVIEW`)
 - Upload driving data (`ROLE_UPLOAD_DRIVING_DATA`)
+- Clear driving data (`ROLE_CLEAR_DRIVING_DATA`)
 - Daily counts (`ROLE_EDIT_DAILY_COUNTS`)
 - Administration: suppliers and routes (`ROLE_MANAGE_SUPPLIERS`), users (`ROLE_MANAGE_USERS`)
 
@@ -375,7 +378,7 @@ Menu items are shown with `is_granted()`.
 
 **Upload flow** (`ROLE_UPLOAD_DRIVING_DATA`):
 
-- An upload form creates an `ImportBatch`: file name, uploaded by, row counts (added/updated/rejected), errors.
+- An upload form creates an `ImportBatch`: file name, uploaded by, the replaced dates, row counts (deleted/inserted/rejected), errors.
 - The file is processed **synchronously** in the request, and the result page is shown.
   - Move to async processing only if file sizes require it (see "Later milestones").
 - CLI: `app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]`.
@@ -389,7 +392,7 @@ Menu items are shown with `is_granted()`.
 - `APP_DRIVING_DATA_MAPPING` selects the mapping used for uploads. The default is `default`.
 - **A mapping defines:**
   - **Location:** the sheet and the header row.
-  - **Row id:** one or more columns. This is the overwrite key.
+  - **Row id (optional):** one or more columns. A row id that occurs more than once in one file is rejected after the first occurrence.
   - **Field mapping:** a column for each application field.
   - **Parsing per field:** type (`string`, `int`, `float`, `bool`, `datetime`), date format (Excel serial or a format string), value maps for codes (stop type, stop status, yes/no), and whether the field is required.
 - **Implementation:**
@@ -401,10 +404,15 @@ Menu items are shown with `is_granted()`.
   - unit tests for the loader and validation, and for each field type and value map
   - parser tests run against a test mapping in `tests/fixtures/mappings/`
 
-**Storage and overwrite:**
+**Storage and replacement** (see [ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)):
 
-- `StopRow` holds one row per stop from the extract. The **unique key is the row id** defined by the mapping, together with the mapping name.
-- On re-upload, an existing row id is **overwritten**, and new ids are inserted.
+- `StopRow` holds one row per stop from the extract.
+- **Replace whole dates:** the import dates are the dates with at least one valid row. `StopRowReplacer` deletes all `StopRow` rows for these dates, from all mappings, and then inserts the rows of the file.
+  - Rows that are not in a corrected file are removed.
+  - Two uploads can never count the same date twice.
+  - A file that holds only part of a day removes the other rows of that day. The result page lists the replaced dates.
+- If the mapping has a row id, a unique index on `(mapping_name, row_key)` stops duplicate rows in one file.
+- **No rollback:** an `ImportBatch` cannot be undone. Upload the correct file, or clear the dates.
 - Only the fields the calculations need are kept:
   - route, date, stop type (pickup/drop-off), stop status, end-of-route flag
   - passengers after the stop
@@ -415,9 +423,16 @@ Menu items are shown with `is_granted()`.
 
 **Derived data:**
 
-- After an import, `RouteRun` and `DailyStats` are rebuilt for the **affected dates**:
+- After an import, `RouteRun` and `DailyStats` are rebuilt for the **import dates**:
   - **`RouteRun`** (one per route run): last drop-off planned and actual, delay, peak passengers, cancelled.
   - **`DailyStats`** (date × supplier): trips, completed, cancelled, route runs, last drop-offs, on time, solo runs, driven km, empty km, driven minutes, empty minutes.
+
+**Clear driving data** (`ROLE_CLEAR_DRIVING_DATA`):
+
+- A page where the user selects a date range. It shows the number of stop rows and route runs in the range, and asks for confirmation.
+- `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the range in one transaction. `DailyCount` does not change.
+- The action is logged: who, when, the range and the deleted counts. No field values.
+- CLI: `app:driving-data:clear <FROM_DATE> <TO_DATE>`, with the same service.
 
 **Calculation rules:**
 
@@ -548,18 +563,19 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 
 ```text
 src/
-  Controller/            OverviewController, ImportController, DailyCountController,
+  Controller/            OverviewController, ImportController, ClearDrivingDataController,
+                         DailyCountController,
                          SecurityController, Admin/{User,Supplier,Route}Controller
   Entity/                User, Supplier, Route, ImportBatch, StopRow, RouteRun,
                          DailyStats, DailyCount
   Form/                  ImportType, DailyCountWeekType, SupplierType, RouteType, UserType
   Report/                PeriodFilter, PeriodRangeFactory, KpiCalculator, Kpis, Delta, Tone
-  Import/DrivingData/    Mapping, MappingLoader, StopRowParser, StopRowUpserter, RouteBuilder,
-                         DailyStatsAggregator
+  Import/DrivingData/    Mapping, MappingLoader, StopRowParser, StopRowReplacer, RouteBuilder,
+                         DailyStatsAggregator, DrivingDataClearer
   Security/              PasswordAuthenticator, NoLoginAuthenticator
   Twig/                  FormatExtension, Components/{Tile,Sparkline,LineChart,Panel}
   Command/               User{Create,SetPassword,SetRoles}Command, DrivingDataImportCommand,
-                         DrivingDataMappingValidateCommand
+                         DrivingDataClearCommand, DrivingDataMappingValidateCommand
 config/import/driving_data/   default.yaml (import mapping for the current source)
 templates/ assets/styles/ translations/ migrations/ tests/
 docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
@@ -567,20 +583,20 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
 
 ## Open questions affecting milestone 1
 
-- **Row id:** which column in the extract is a stable row id? It is set in the mapping. If there is no single column, the mapping uses a composite key (route, date, person id, stop type).
+- **Whole days:** does each extract hold whole days? Re-upload replaces whole dates, so a partial day removes the other rows of that day.
+- **Row id:** is there a stable row id column in the extract? It is optional. If it exists, the import uses it to reject duplicate rows in one file.
 - **Actual time:** which column holds the actual time? It is set in the mapping until this is confirmed.
 - **Supplier mapping:** where does route → supplier come from? It is admin-maintained until a source is known.
 - **Solo routes:** do we count actual solo runs (as assumed) or trips planned as solo?
 - **Test data:** we need an anonymised sample extract for the fixtures.
 - **No PII in the database (not decided yet).** The goal is to store no personal data about citizens.
   - **Problem:** a hashed person id or row id is still personal data under GDPR (pseudonymised, not anonymised), because it can be linked back through the source system.
-  - **Hard requirements:** re-imports must overwrite earlier data, and the same data must never be counted twice. Duplicates would make every figure wrong.
+  - **Hard requirements:** re-imports must replace earlier data, and the same data must never be counted twice. Duplicates would make every figure wrong.
+  - **Overwrite is the same for every option:** a re-upload replaces whole dates ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)). No option needs the person id for that.
   - **Options:**
-    1. **Pseudonymised rows** (the current plan): exact distinct counts and row-level overwrite, but the database holds personal data. Needs a DPIA, retention rules and access control.
-    2. **Aggregates only:** store counts per route run and per day, with a HyperLogLog sketch per day for distinct citizens (about 1 % error, no identifiers). Overwrite means re-uploading replaces all data for the dates in the file.
-       - Duplicates are impossible.
-       - A file that contains only part of a day would replace the whole day.
-    3. **Rows for a correction window, then aggregates:** keep pseudonymised rows only for as long as corrections can arrive (for example 60 days). After that, a purge job deletes them and keeps the aggregates and sketches. This gives row-level overwrite for recent data and no identifiers in older data.
+    1. **Pseudonymised rows** (the current plan): exact distinct counts, and the derived data can be rebuilt from the rows. But the database holds personal data. Needs a DPIA, retention rules and access control.
+    2. **Aggregates only:** store counts per route run and per day, with a HyperLogLog sketch per day for distinct citizens (about 1 % error, no identifiers). A calculation fix needs a re-upload of the affected dates.
+    3. **Rows for a correction window, then aggregates:** keep pseudonymised rows only for as long as corrections can arrive (for example 60 days). After that, a purge job deletes them and keeps the aggregates and sketches. Recent data can be rebuilt, and older data holds no identifiers.
   - **Applies to every option:**
     - No names, addresses or other personal details are imported.
     - Rejected-row messages and logs never contain field values.
@@ -591,16 +607,14 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
     - That lowers the risk, but for us it is still personal data: the organisation has access to the planning system and can look the id up.
     - Hashing it with a secret means the database alone doesn't reveal the planning-system id. The organisation can still re-identify through the planning system, so for us it remains pseudonymised personal data.
   - **What the person id is used for:**
-    - **The Citizens figure** (distinct people in a period). This is the only figure that needs it. Trips, solo routes, empty running and punctuality don't.
-    - **The fallback row key** (route, date, person id, stop type). This is only needed if the extract has no stable row id column of its own.
-    - If the extract has a stable row id, the person id does not need to be stored. At most it is read during the import for the Citizens count. The options for Citizens without storing it:
+    - **The Citizens figure** (distinct people in a period). This is the only use. Trips, solo routes, empty running and punctuality don't need it, and the import doesn't need it as a row key.
+    - So the person id does not need to be stored. At most it is read during the import for the Citizens count. The options for Citizens without storing it:
       - drop the figure, or show it for single days only (an exact count per day, stored as a number at import)
       - a HyperLogLog sketch per day, built during the import, after which the id is discarded. Weeks, months and years are calculated by combining the sketches, with about 1 % error.
       - take distinct counts per period from the source system, if it can provide them
   - **Inputs to the decision (still undecided):**
-    - Does the extract have a stable row id column? If yes, the person id is not needed for the overwrite key.
     - How late can corrections to an extract arrive? This sets the correction window in option 3.
-    - Does one file always contain whole days? If not, option 2 would wipe the rest of a partial day.
+    - Is an approximate Citizens figure (about 1 % error) acceptable? Options 2 and 3 depend on it.
   - **Staff accounts** (username, name) are also personal data. Decide what to store when this is settled.
   - **Decide before task M1-10b.** The parser and the `StopRow` design depend on it.
 
@@ -656,8 +670,10 @@ Development can start without answers to them. The PM must accept this before st
 - **Import:**
   - The fixture extract produces its hand-computed totals for every figure.
   - `app:driving-data:mapping:validate` accepts the default mapping with the fixture, and rejects a mapping with a missing column or an unknown value.
-  - Re-importing the same file gives 0 added rows, only updated ones, and unchanged totals.
-  - Changing one row and re-importing changes only that row.
+  - Re-importing the same file deletes and inserts the same number of rows, and the totals do not change.
+  - Re-importing a file with one row removed removes that row from the totals.
+  - A file with a date that is not stored yet does not change the other dates.
+  - Clearing a date range removes its driving figures and keeps its daily counts.
 - **Daily counts:** saving a week, then editing a day, updates the existing rows.
 - **Overview:**
   - Unit tests for periods (weeks, partial periods, clamping), the KPI maths, `Delta` and `Tone`.
