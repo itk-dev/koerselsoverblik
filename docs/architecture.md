@@ -284,8 +284,9 @@ authenticator's `supports()` checks the mode, so only one is ever active.
 
 - Forms use CSRF tokens.
 - Uploads are limited to `.xlsx` and a maximum size, and are deleted after processing.
-- The parser has configurable limits for the number of rows and columns. It checks them before
-  it reads the rows (ASVS V12.1.2).
+- The parser reads the extract with OpenSpout, which streams one row at a time. It has
+  configurable limits for the number of rows and columns, and stops at the first row or column
+  above a limit (ASVS V12.1.2).
 - The parser rejects XML with a `DOCTYPE`, so an extract cannot use external entities (XXE,
   ASVS V5.5.2).
 - The import runs synchronously in the request. The limits above keep it short.

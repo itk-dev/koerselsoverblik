@@ -276,7 +276,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one br
 3. Packages:
    - `symfony/orm-pack`, with the MariaDB `DATABASE_URL`
    - `twig-bundle`, `asset-mapper`, `form`, `validator`, `security-bundle`, `translation`, `rate-limiter`, `twig/intl-extra`
-   - `phpoffice/phpspreadsheet`, `symfony/ux-twig-component`
+   - `openspout/openspout` (streams `.xlsx` rows with low memory use), `symfony/ux-twig-component`
    - `nelmio/security-bundle`, for the HTTP security headers
 4. Design system:
    - Require `itk-dev/itkaarhus-design-system` from the vcs repository `https://github.com/itk-dev/itkaarhus-design-system`.

@@ -432,9 +432,11 @@ decided. Everything else can continue while it is open.
 - **Plan step:** 7. **Implements:** ADR 003, ADR 004 (as decided).
 - **Depends on:** M1-14, and **ADR 004 decided**
 - **Work:**
-  - `StopRowParser` reads an `.xlsx` with `phpoffice/phpspreadsheet`, only through `Mapping`.
+  - `StopRowParser` reads an `.xlsx` with `openspout/openspout`, only through `Mapping`.
+    OpenSpout streams the sheet one row at a time, so the memory use does not grow with the
+    file size.
   - It converts each field by type: string, int, float, bool with true values, and datetime
-    (Excel serial or a format string, in Europe/Copenhagen).
+    (a date cell, an Excel serial or a format string, in Europe/Copenhagen).
   - It applies value maps.
   - The output is `StopRowData` value objects, or a `RejectedRow` with the row number and a
     reason. The reason never includes field values.
@@ -442,10 +444,12 @@ decided. Everything else can continue while it is open.
   - Limits on untrusted files (ASVS V12.1.2, V5.5.2):
     - A maximum file size, number of rows and number of columns. They are configurable, with
       defaults well above the size of a normal extract.
-    - The parser checks the sheet dimensions before it reads the rows, and rejects the whole
-      file if a limit is exceeded. It reads cell values only, not formatting.
-    - The reader rejects XML with a `DOCTYPE`, so there are no external entities (XXE).
-      PhpSpreadsheet's `XmlScanner` does this. A test keeps it so after upgrades.
+    - The parser counts the columns in the header row and the rows while it streams. It stops
+      at the first row or column above a limit, and rejects the whole file. It reads cell
+      values only, not formatting.
+    - The parser rejects XML with a `DOCTYPE`, so there are no external entities (XXE). First
+      find out if OpenSpout rejects a `DOCTYPE` itself. If it does not, the parser checks the
+      sheet XML in the file before OpenSpout reads it. A test keeps this so after upgrades.
 - **Tests first (unit):**
   - The anonymised one-day fixture and small hand-made workbooks give the expected rows.
   - Every type conversion, including bad values.
@@ -454,7 +458,8 @@ decided. Everything else can continue while it is open.
   - Rejected-row reasons contain no values.
   - The same person id with the same secret gives the same key. A different secret gives a
     different key.
-  - A file with one row or one column more than the limit is rejected, with no rows read.
+  - A file with one row or one column more than the limit is rejected, and no rows are
+    returned.
   - A workbook with a `DOCTYPE` and an external entity in a sheet is rejected.
   - A file that is not a valid `.xlsx` (for example a renamed text file) is rejected.
 - **Acceptance criteria:**
