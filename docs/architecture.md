@@ -286,6 +286,23 @@ authenticator's `supports()` checks the mode, so only one is ever active.
 - Uploads are limited to `.xlsx` and a maximum size, and are deleted after processing.
 - Rejection reasons and logs never contain field values from the extract.
 
+**HTTP security headers** (ASVS V14.4): `nelmio/security-bundle` adds these headers to every
+response. The configuration is in the repository, and a functional test checks it.
+
+| Header | Value |
+|---|---|
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` (in `prod` only) |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `same-origin` |
+
+**Effects of the Content Security Policy:**
+
+- Templates have no inline scripts, no inline event handlers and no `style` attributes.
+- The server-rendered SVG charts use classes and SVG presentation attributes for styling.
+- The `popover` help texts need no script.
+- If a page needs an inline script later, it uses a nonce from the bundle.
+
 ## User interface
 
 **Rendering:**

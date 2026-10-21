@@ -63,6 +63,7 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
   - every route × permission role (200/403/redirect)
   - forms: valid submit, validation errors, CSRF
   - login, logout and rate limiting
+  - the HTTP security headers
   - upload end-to-end with the fixture file
   - the overview with filters
   - the route-guard test
@@ -255,6 +256,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
 | M1-04 | Permission roles and `ROLE_ADMIN`, deny-by-default `access_control`, route-guard test | 5 | 02 |
 | M1-05 | `User` entity and the `app:user:*` commands | 5 | 04 |
 | M1-06 | Password login: CSRF, rate limiting, remember-me, logout | 5 | 05 |
+| M1-06b | HTTP security headers with `nelmio/security-bundle`, and a test that checks them | 5 | 04 |
 | M1-07 | `APP_AUTH_MODE` wiring and the `none` authenticator with its prod guard | 5 | 06 |
 | M1-08 | Base layout, design system assets, menu by role, `FormatExtension` | 6 | 04 |
 | M1-09 | `Supplier`, `Route` and `RouteSupplierAssignment` entities and admin forms, with the overlap check | 7 | 08 |
@@ -290,6 +292,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
    - `symfony/orm-pack`, with the MariaDB `DATABASE_URL`
    - `twig-bundle`, `asset-mapper`, `form`, `validator`, `security-bundle`, `translation`, `rate-limiter`, `twig/intl-extra`
    - `phpoffice/phpspreadsheet`, `symfony/ux-twig-component`
+   - `nelmio/security-bundle`, for the HTTP security headers
 4. Design system:
    - Require `itk-dev/itkaarhus-design-system` from the vcs repository `https://github.com/itk-dev/itkaarhus-design-system`.
    - Map it in AssetMapper as `itkaarhus-ds`.
@@ -342,6 +345,13 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one branch and one PR.
   - `app:user:create <USERNAME> [--role=<ROLE>]` (prompts for name and password)
   - `app:user:set-password`
   - `app:user:set-roles`
+
+**HTTP security headers** (ASVS V14.4, `nelmio/security-bundle`):
+
+- `Strict-Transport-Security` (in `prod` only), a Content Security Policy with `default-src 'self'` and `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`.
+- See [Security](architecture.md#security) for the full values.
+- No inline scripts, no inline event handlers and no `style` attributes in templates. SVG charts use classes and presentation attributes.
+- A functional test checks the headers on `/login` and on `/`.
 
 **`none` mode** (development convenience):
 
@@ -675,6 +685,7 @@ Development can start without answers to them. The PM must accept this before st
   - Login works for a user created with `app:user:create`.
   - Wrong passwords are rejected and rate limited.
   - The route-guard test passes, and each route returns the expected status per role.
+  - Every response has the HTTP security headers, and the browser console shows no Content Security Policy errors.
 - **Import:**
   - The fixture extract produces its hand-computed totals for every figure.
   - `app:driving-data:mapping:validate` accepts the default mapping with the fixture, and rejects a mapping with a missing column or an unknown value.
