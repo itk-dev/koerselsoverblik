@@ -1,4 +1,6 @@
 {
+    "name": "itk-dev/passenger-transport-performance",
+    "description": "Key figures for citizen transport",
     "license": "proprietary",
     "type": "project",
     "require": {
