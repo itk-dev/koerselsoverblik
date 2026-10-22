@@ -69,6 +69,7 @@ averages of daily percentages.
 | Phone calls | Phone calls received | Manual entry |
 
 **NOTE:**
+
 - When the selected period has not ended yet, the comparison period is cut to the same number
   of days. Otherwise "fewer trips than last month" would always be true in the middle of a month.
 - The supplier filter applies to the driving figures only. Mails, complaints and phone calls are
@@ -315,11 +316,18 @@ task test:mutation:full
 ```
 
 - **Test suites:** tests live in `tests/Unit`, `tests/Integration` and `tests/Functional`.
-- **Database:** integration and functional tests run against a MariaDB test database. Each test runs in a transaction that is rolled back.
+- **Database:** integration and functional tests run against a MariaDB test database. Each test runs
+  in a transaction that is rolled back.
 - **Fixture files:** these are in `tests/fixtures/` and are anonymised. Never commit real extracts.
-- **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig components are not mutated; the functional tests cover them. The HTML report is written to `var/infection/`.
-- **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A full run over the whole code base runs on `release/*` branches and is required before a release is merged to `main`.
-- **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most tests are fast unit tests.
+- **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
+  `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
+  components are not mutated; the functional tests cover them. The HTML report is written to
+  `var/infection/`.
+- **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
+  full run over the whole code base runs on `release/*` branches and is required before a release is
+  merged to `main`.
+- **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
+  tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
 
 ### Coding standards and code analysis
