@@ -1,108 +1,114 @@
 # AGENTS.md
 
-This is a Symfony project. Check `composer.json` for the exact Symfony/PHP version
-in use, and read `symfony.lock` to see which recipes ran. Don't assume Doctrine,
-Twig, API Platform, Messenger, or Lock are installed unless one of those says so.
+Instructions for coding agents in this project. Read them before you change code.
 
-## Ask before generating
+## The project
 
-If the task doesn't specify, ask rather than guess:
+Passenger Transport Performance shows key figures for citizen transport. It is a Symfony 8
+application on PHP 8.4, with Doctrine ORM and MariaDB. It runs in Docker with the ITK Dev
+`symfony-8` template.
 
-- Persistence: Doctrine ORM, Doctrine ODM, or none?
-- Interface: server-rendered (Twig), API (Serializer, maybe API Platform), or both?
-- Auth: SecurityBundle, and which authenticator?
+Read these documents before you start a task:
 
-If you can't ask (no interactive channel), state the assumption you're making and
-pick the smallest option (e.g. no persistence layer) rather than scaffolding a
-full stack nobody asked for.
+- [README.md](README.md): the specification. The application must do what the README says.
+- [docs/plan.md](docs/plan.md): the plan and the development approach.
+- [docs/tasks.md](docs/tasks.md): the tasks. Each task is one issue, one branch and one pull
+  request.
+- [docs/architecture.md](docs/architecture.md): the design, the diagrams and the security rules.
+- [docs/adr/](docs/adr/): the architecture decisions.
 
-## Adding features: Flex, not hand-wiring
+## Commands
 
-Install new capabilities with `composer require <package>` (e.g. `symfony/lock`,
-`symfony/messenger`, `orm-pack`) and let the Flex recipe register the bundle and
-generate its config. Don't hand-edit `config/bundles.php` or hand-write a bundle's
-base config; that's what the recipe is for. Don't skip a good-fit component just
-because it isn't installed yet; installing it is one command.
+Run all commands with `task`. The tasks run PHP and Composer in the `phpfpm` container. Do not
+run `php`, `composer` or `bin/console` on the host. Run `task` to see all tasks.
 
-## Conventions
+```shell
+task setup                     # Start the stack, install dependencies, run migrations
+task console -- <COMMAND>      # Symfony console, for example `task console -- about`
+task composer -- <COMMAND>     # Composer, for example `task composer -- require <PACKAGE>`
+task db:migrate                # Run the database migrations
+task coding-standards-check    # Check all coding standards
+task coding-standards-apply    # Fix the coding standards
+task code-analysis             # PHPStan at max level
+task docs:diagrams             # Render the Mermaid diagrams to SVG
+```
 
-Follow <https://symfony.com/doc/current/best_practices.html> to write idiomatic
-Symfony:
+`.env` holds defaults only. Put secrets and local values in `.env.local`. Do not commit
+`.env.local`.
 
-- Use PHP attributes for framework metadata, and not only on controllers:
-  `#[Route]`, `#[MapRequestPayload]`, `#[IsGranted]` on actions, `#[Assert\...]`
-  on properties, `#[AsCommand]`, `#[AsEventListener]`, `#[AsMessageHandler]`, and
-  `#[AsAlias]` / `#[AsTaggedItem]` / `#[Autoconfigure]` on services. No YAML or
-  XML routing.
-- Rely on autowiring and autoconfiguration. Type-hint constructor arguments and
-  let the container resolve them. Where a type-hint can't express it, stay in the
-  class with `#[Autowire]` (parameters, env vars, expressions) or `#[Target]` (one
-  of several implementations of an interface). A YAML service definition is the
-  last resort, not the first.
-- Controllers extend `AbstractController`, stay thin, and delegate to services.
-- Use the framework for what it already does: Form for server-rendered forms,
-  Validator for validation, Serializer for JSON, Messenger for async work,
-  Security (voters, authenticators) for access control, Twig `path()`/`url()`
-  instead of hardcoded URLs.
-- Before hand-writing infrastructure (locks, queues, caches, HTTP clients,
-  mailers, schedulers) or reaching for a third-party library, check whether a
-  Symfony component covers it. It usually does.
+## Development approach
 
-Three specifics worth spelling out, because they are easy to get wrong:
+The project uses test-driven development. See "Development approach" in
+[docs/plan.md](docs/plan.md).
 
-- Bind request data with `#[MapRequestPayload]` / `#[MapQueryString]` on action
-  arguments, which wires up Serializer and Validator for you, instead of calling
-  `json_decode()` or `SerializerInterface` by hand. If neither package is
-  installed yet, `composer require` them rather than falling back to manual
-  parsing.
-- Use constructor property promotion, and `readonly` for DTOs and value objects.
-  Don't mark a service `readonly` if it might become `lazy: true`: a lazy proxy
-  can't extend a `readonly` class.
-- Use `symfony/lock` (`LockFactory`) for mutual exclusion. A hand-built flag or
-  lock file looks fine in review and is usually wrong under concurrency.
+- Write a failing test first. Then write the minimal code that makes it pass. Then refactor.
+- Do not write production code without a test that requires it.
+- Line coverage must be 100 %. Do not use `@codeCoverageIgnore`.
+- Infection requires a covered MSI of 100 % in `src/Report` and `src/Import`, and 80 % in the
+  remaining mutated code.
+- Put logic in plain PHP classes. Keep controllers, form types, commands and authenticators
+  thin, so that most tests are fast unit tests.
+- Functional tests assert behaviour, not markup. Use text and `data-test` attributes.
+- Tests are in `tests/Unit`, `tests/Integration` and `tests/Functional`. The test tasks come in
+  task M1-02.
 
-## Everyday workflow
+## Rules for the code
 
-- Run the app with `symfony serve -d`, and commands with `symfony console ...`
-  (or `bin/console` when the Symfony CLI isn't available).
-- When something fails, read `var/log/dev.log` and the web profiler
-  (`/_profiler`) before changing code.
-- If `maker-bundle` is installed, prefer `bin/console make:*` with every argument
-  passed up front and `--no-interaction` where supported: makers prompt on a
-  terminal by default, which hangs a non-interactive shell. If a maker still
-  needs interactive input, hand-write the code instead.
-- If Doctrine ORM is installed, schema changes go through migrations
-  (`bin/console make:migration`, then `doctrine:migrations:migrate`), never
+- Every controller has a class-level `#[IsGranted]` with a permission role. Do not check
+  `ROLE_ADMIN` or `ROLE_USER` in a controller. See "Security" in
+  [docs/architecture.md](docs/architecture.md).
+- Templates have no inline scripts, no inline event handlers and no `style` attributes. The
+  Content Security Policy blocks them.
+- Logs and error messages never contain field values from the driving data.
+- Change the database schema only with Doctrine migrations. Do not use
   `doctrine:schema:update` or hand-written SQL.
-- `.env` is committed and holds defaults only. Real secrets belong in `.env.local`
-  (git-ignored) or the secrets vault (`bin/console secrets:set`), read via
-  `%env(...)%`.
+- The user interface is in Danish. Code, comments and documentation are in English.
 
-## Testing
+## Symfony conventions
 
-Install `symfony/test-pack` if it isn't already. Functional/HTTP tests extend
-`WebTestCase`; service-level tests extend `KernelTestCase`. Run
-`php bin/phpunit` (falls back to `vendor/bin/phpunit`). A feature isn't done
-until it has a test that exercises it the way a caller would, an HTTP request for
-a controller or a service call for a service, not just "it didn't throw."
+Follow the [Symfony best practices](https://symfony.com/doc/current/best_practices.html):
 
-## Code style
+- Add packages with `task composer -- require <PACKAGE>`, and let the Flex recipe configure
+  them. Do not edit `config/bundles.php` by hand. Flex does not add Docker services
+  (`extra.symfony.docker` is `false`), because the template has them.
+- Use PHP attributes for framework metadata, for example `#[Route]`, `#[IsGranted]`,
+  `#[Assert\...]`, `#[AsCommand]` and `#[AsEventListener]`. Do not use YAML or XML routing.
+- Use autowiring and autoconfiguration. Use `#[Autowire]` or `#[Target]` when a type is not
+  sufficient. Use a YAML service definition only as the last solution.
+- Controllers extend `AbstractController` and send the work to services.
+- Use the framework components: Form for forms, Validator for validation, Security for access
+  control, and `path()` or `url()` in Twig.
+- Bind request data with `#[MapRequestPayload]` or `#[MapQueryString]`.
+- Use constructor property promotion. Use `readonly` for DTOs and value objects.
 
-Symfony's coding standard, the `@Symfony` php-cs-fixer ruleset (a PSR-12-derived
-superset). Run `vendor/bin/php-cs-fixer fix` if `friendsofphp/php-cs-fixer` is
-installed; it isn't part of the skeleton by default.
+To find how the project is configured, use these commands. Do not guess:
 
-## Discover, don't guess
+- `task console -- debug:router`, `debug:container` and `debug:config <BUNDLE>`
+- `task console -- lint:container`, and `lint:yaml config/`
+- The source code and docblocks in `vendor/`
 
-Framework APIs change between versions and your training data may be stale. Look
-things up in the project instead of relying on memory:
+## Coding standards
 
-- `bin/console about`: versions, environment, paths.
-- `bin/console debug:router`, `debug:container`, `debug:autowiring <name>`,
-  `debug:config <bundle>`, `config:dump-reference <bundle>`: what exists and how
-  it is configured.
-- `bin/console lint:container`, plus `lint:twig templates/` and
-  `lint:yaml config/` where those packages are installed: validate before running.
-- Read the installed source and docblocks under `vendor/`.
-- Docs: <https://symfony.com/doc/current/> (switch to the version matching
-  `composer.json` if it differs).
+- PHP uses the `@Symfony` ruleset of PHP CS Fixer.
+- YAML in `config/` has 4 spaces. Other YAML files have 2 spaces. Prettier checks them.
+- Markdown lines have a maximum of 120 characters. markdownlint checks them.
+- Run `task coding-standards-check` and `task code-analysis` before you commit.
+
+## Git and pull requests
+
+- Create a branch `feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>` from `develop`.
+- Use Conventional Commits, for example `feat:`, `fix:`, `test:`, `docs:` and `chore:`.
+- Add the task ID to the pull request title, for example
+  `feat: replace stop rows for the dates in a file (M1-16)`.
+- Add `Closes #<ISSUE_NUMBER>` to the pull request description.
+- Add an entry to `CHANGELOG.md` under "Unreleased".
+
+## Writing
+
+Write comments, docblocks, commit messages and documentation in ASD-STE100 Simplified
+Technical English:
+
+- Use short sentences: no more than 20 words in procedures and 25 words in descriptions.
+- Use the active voice and the simple tenses.
+- Write instructions in the imperative.
+- Do not use phrasal verbs.
