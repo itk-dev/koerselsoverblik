@@ -561,9 +561,19 @@ applies: README first, architecture and ADRs updated, then tasks.
   - complaints: more than the count
   - phone enquiries: more than the count, depending on the data
   - estimated cost of empty running
-- **OIDC login:** everyone who can sign in has access to everything
+- **OIDC login:** everyone who is assigned to the application has access to everything
+- **Security and data protection (decision needed, Q-M2-01):** are these part of Sølv?
+  - security and audit logging: sign-ins, denied requests, changes to users and to the import mapping
+  - retention rules for the stored data
+  - a DPIA. [ADR 004](adr/004-personal-data-in-driving-data.md) option 1 (pseudonymised rows) requires one, and milestone 2 adds complaint and mail data.
 
 ## M2.1 Dashboard and trends
+
+**Contents (decision needed, Q-M2-02):**
+
+- The concept's front page has six figures, with complaints per 1,000 trips as the figure itself.
+- The milestone 1 overview has eight tiles, with complaints as a count.
+- The PM decides which of the two Sølv delivers. Until then, the plan keeps the eight tiles and adds complaints per 1,000 trips.
 
 **Verdict:**
 
@@ -572,10 +582,17 @@ applies: README first, architecture and ADRs updated, then tasks.
 
 **Settings:**
 
-- Which figures count towards the verdict: punctuality, complaints, empty running, solo routes, cancellations.
+- Which figures count towards the verdict: punctuality, complaints, empty running, solo routes.
 - The minimum change before a change counts at all.
 - The defaults are punctuality and complaints, with at least 1 %.
 - The settings live in the URL, like the other filters, so a configured dashboard can be shared as a link.
+
+**Cancellations (investigation, Q-M2-03):**
+
+- Cancellations are not in the verdict, because no cancellation figure is defined.
+- `StopRow` keeps only `stop_status`. It does not keep when a trip was cancelled, so late and early cancellations cannot be told apart.
+- The concept's extract gives two different counts (28 and 33) for the same data.
+- Find where cancellations and their time are recorded reliably. Then define the figure and add it to the verdict, or leave it out.
 
 **Trend views:**
 
@@ -610,9 +627,22 @@ applies: README first, architecture and ADRs updated, then tasks.
 |---|---|---|
 | Telephony system | Calls offered, answered, abandoned in queue, average answer time, share answered within target | If possible. Depends on an API or export |
 | Mailboxes via the mail API | Mails received, closed and unhandled per day | Needs a service account and permissions to the mailboxes |
-| Complaints | Received date, supplier, route, category, outcome, closed date | Source not chosen: the case management system, the self-service complaint form, or collected from the shared mailbox through the mail API |
+| Complaints | Received date, supplier, route, category, outcome, closed date | Source not chosen (Q-M2-06): F2, the OS2forms complaint form, or collected from the shared mailbox through the mail API |
 
 - **Testing:** tests use recorded responses (fixtures). There are no live calls in CI.
+
+**Mail API permissions:**
+
+- An application permission such as `Mail.Read` gives access to every mailbox in the tenant. Do not grant it without a limit.
+- Use `Mail.ReadBasic` if the counts need only the mail headers. It does not give access to the body or the attachments.
+- Limit the application to the shared mailbox with Exchange RBAC for Applications.
+- IT operations grants the permissions (Q-M2-05).
+
+**Complaint source:**
+
+- The stakeholder comment on the concept prefers F2, or the OS2forms complaint form before the case gets to the ESDH system.
+- The PM decides the source (Q-M2-06).
+- If milestone 2 is ready before the source is, the complaint count stays a manual daily count, as in milestone 1. The views beyond the count then need manual entry of complaint cases.
 
 ## M2.3 Extra views
 
@@ -628,6 +658,8 @@ applies: README first, architecture and ADRs updated, then tasks.
 - **Case handling:** outcome, processing time in working days, the share within the deadline, repeat complaints.
 - **Depends on the source:** which fields it delivers. Manual entry of complaint cases is the fallback.
 - **Working days:** calculated with a holiday calendar.
+- **Not in the plan yet (decision needed, Q-M2-07):** the 10 and 20 working-day service targets, the share of complaints upheld, and a split by contract lot. The PM decides if Sølv leaves them out on purpose.
+- **Personal data:** repeat complaints need an identifier for the complainant. Complaints from F2 or the mailbox can contain driver names. [ADR 004](adr/004-personal-data-in-driving-data.md) covers only driving data. Extend it, or add an ADR for complaint and mail data, before the complaint integration starts (Q-M2-08).
 
 **Phone enquiries beyond the count:**
 
@@ -638,8 +670,11 @@ applies: README first, architecture and ADRs updated, then tasks.
 **Estimated cost of empty running:**
 
 - Empty minutes × a price per minute, or empty km × a price per km, depending on what the data contains.
-- The price and the unit (`minute` or `km`) are configurable (`APP_EMPTY_RUNNING_PRICE`, `APP_EMPTY_RUNNING_PRICE_UNIT`).
 - The view always says it is an estimate, and shows the price it used.
+- **Where the price comes from (investigation, Q-M2-09):**
+  - As env vars, only a developer can change the price.
+  - The alternatives are to read the price from the upload, or to let an administrator set it in the application.
+  - Find out what the extract contains reliably: minutes, km, a price. Then decide.
 
 ## M2.4 OIDC login
 
@@ -650,7 +685,9 @@ applies: README first, architecture and ADRs updated, then tasks.
 
 **Access:**
 
-- Everyone who can sign in has access to everything.
+- Everyone who can sign in has access to everything. This is on purpose in Sølv.
+- So the assignment in the identity provider decides who is an administrator.
+- Only a named group is assigned to the application, not the whole organisation. The product owner names the group (Q-M2-10).
 - Signed-in users get the roles in `APP_OIDC_DEFAULT_ROLES`, default `ROLE_ADMIN`.
 - The role guards from milestone 1 stay in place. Restricting access later means changing the role assignment (for example mapping group claims to roles), not the controllers.
 
@@ -658,17 +695,28 @@ applies: README first, architecture and ADRs updated, then tasks.
 
 ## Open questions for milestone 2
 
-**Data sources:**
+Each question has an owner, a date when the answer is needed, and the work it blocks. The
+owners are roles. The PM puts names on them.
 
-- **Telephony:** is there an API or a scheduled export? Which fields does it have?
-- **Mailboxes:** which mailboxes count? Should every mail count, or only mails about transport? Who grants the service account its permissions?
-- **Complaints:** which source should be used? Do all complaints arrive through it, or also by mail and phone? Can the fields be extracted in a structured way?
+- **During milestone 1** means that the investigation runs in parallel with milestone 1. The answer is needed before milestone 2 is broken into tasks.
+- **Before M2 tasks** means before milestone 2 is broken into tasks.
 
-**Settings and data:**
+| Id | Question | Owner | Needed by | Blocks |
+|---|---|---|---|---|
+| Q-M2-01 | **Security and data protection:** are security and audit logging, retention rules and a DPIA part of Sølv? | PM, with the data protection adviser | Before M2 tasks | M2 scope |
+| Q-M2-02 | **Dashboard:** does Sølv deliver the concept's six figures or the eight milestone 1 tiles? | PM | Before M2 tasks | M2.1 |
+| Q-M2-03 | **Cancellations:** where are cancellations and their time recorded reliably? | Developer, with the transport office | Before M2 tasks | M2.1 verdict |
+| Q-M2-04 | **Telephony:** is there an API or a scheduled export? Which fields does it have? | IT operations, with the owner of the telephony system | During milestone 1 | M2.2 telephony, M2.3 phone enquiries |
+| Q-M2-05 | **Mailboxes:** which mailboxes count? Should every mail count, or only mails about transport? Who creates the service account and grants its permissions? | Product owner (mailboxes), IT operations (service account) | During milestone 1 | M2.2 mailboxes |
+| Q-M2-06 | **Complaints:** which source should be used? Do all complaints arrive through it, or also by mail and phone? Can the fields be extracted in a structured way? | PM | During milestone 1 | M2.2 complaints, M2.3 complaints |
+| Q-M2-07 | **Complaint measures:** does Sølv leave out the 10 and 20 working-day service targets, the share upheld and the split by contract lot on purpose? | PM | Before M2 tasks | M2.3 complaints |
+| Q-M2-08 | **Complaint and mail data:** extend ADR 004, or add a new ADR? | Product owner, with the data protection adviser | Before the complaint integration starts | M2.2 complaints, M2.3 repeat complaints |
+| Q-M2-09 | **Empty running cost:** what does the extract contain reliably? What is the price, per minute or per km, and who sets it? | Developer (extract), product owner (price) | Before M2 tasks | M2.3 estimated cost |
+| Q-M2-10 | **OIDC group:** which named group is assigned to the application? | Product owner, with IT operations | Before M2.4 is deployed | M2.4 |
+| Q-M2-11 | **Working days:** which holiday calendar applies? | Product owner | Before M2 tasks | M2.3 processing time |
+| Q-M2-12 | **Staff data:** what is stored about OIDC users (see ADR 004, staff accounts)? | Product owner, with the data protection adviser | Before M2.4 starts | M2.4 |
 
-- **Empty running cost:** what is the price, and is it per minute or per km?
-- **Working days:** which holiday calendar applies?
-- **Staff data:** what is stored about OIDC users (see ADR 004, staff accounts)?
+The PM confirms that milestone 1 can start without answers to these questions.
 
 ---
 
@@ -707,6 +755,22 @@ docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
 ```
 
 ## Open questions affecting milestone 1
+
+The table gives the owner, the date when the answer is needed and the task each question
+blocks. The owners are roles. The PM puts names on them. The details are in the list after
+the table.
+
+| Question | Owner | Needed by | Blocks |
+|---|---|---|---|
+| Whole days | Product owner (transport office) | Before M1-16 | M1-16 |
+| Row id | Product owner, with a developer | Before M1-14 | M1-14 |
+| Actual time | Product owner | Before M1-14 | M1-14 |
+| Supplier mapping | Product owner | Before M1-28 (go-live) | Nothing. Administrators keep the assignments (M1-13) until a source is known. |
+| Solo routes | Product owner | Before M1-23 | M1-23 |
+| Test data | Product owner | Before M1-15 | M1-15, M1-27 |
+| Self-service password change | PM accepts it as out of scope | Before M1-07 | M1-07 |
+| Multi-factor authentication for administrators | PM accepts the risk | Before M1-07 | M1-07 |
+| No PII in the database ([ADR 004](adr/004-personal-data-in-driving-data.md)) | Product owner, with the data protection adviser | Before M1-15 | M1-15 |
 
 - **Whole days:** does each extract hold whole days? Re-upload replaces whole dates, so a partial day removes the other rows of that day.
 - **Row id:** is there a stable row id column in the extract? It is optional. If it exists, the import uses it to reject duplicate rows in one file.
