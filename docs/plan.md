@@ -809,6 +809,11 @@ The PM confirms that milestone 1 can start without answers to these questions.
 4. **Planning system API:** if the planning system can deliver data automatically, replacing uploads.
 5. **Async processing:** Symfony Messenger with a supervisor-run worker, when upload sizes or integrations need it.
 6. **Demo data:** a generator for presentations, ported from the prototype.
+7. **Prove the dependency checks** (ASVS V14.2.1, moved from M1-02):
+   - In a scratch branch, require a package version with a known advisory. Make sure that the
+     `composer-audit` job fails and names the advisory. Do not merge the branch.
+   - On GitHub, open Insights → Dependency graph → Dependabot. Make sure that `composer` and
+     `github-actions` show no errors.
 
 ---
 

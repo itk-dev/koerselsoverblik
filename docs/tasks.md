@@ -163,9 +163,8 @@ decided. Everything else can continue while it is open.
   - `task test:coverage:check` passes at 100 % and fails if a line is uncovered. Prove it once
     with a throwaway uncovered method.
   - The PR workflow runs on pull requests to `develop` and `main`.
-  - The `composer audit` step fails on a dependency with a known vulnerability. Prove it once
-    in a scratch branch.
-  - Dependabot shows the configuration as valid on GitHub.
+  - The proofs that `composer audit` fails on a known vulnerability and that GitHub accepts the
+    Dependabot configuration are moved to "Later milestones" in the [plan](plan.md).
 
 ### M1-03 Mutation testing
 
