@@ -5,6 +5,8 @@ use App\Kernel;
 require_once dirname(__DIR__).'/vendor/autoload_runtime.php';
 
 return static function (array $context) {
-    /** @var array{APP_ENV: string, APP_DEBUG: bool|int|string} $context The context from the Symfony runtime. */
-    return new Kernel($context['APP_ENV'], (bool) $context['APP_DEBUG']);
+    /** @var string $environment The Symfony runtime always sets APP_ENV. */
+    $environment = $context['APP_ENV'];
+
+    return new Kernel($environment, (bool) $context['APP_DEBUG']);
 };
