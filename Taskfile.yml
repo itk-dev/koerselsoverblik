@@ -13,6 +13,10 @@ vars:
   PHP: '{{ .DOCKER_COMPOSE }} run --rm phpfpm php'
   COMPOSER: '{{ .DOCKER_COMPOSE }} run --rm phpfpm composer'
   CONSOLE: '{{ .PHP }} bin/console'
+  PHPUNIT: '{{ .PHP }} vendor/bin/phpunit'
+  # Xdebug collects the coverage, because the phpfpm image has no pcov.
+  PHPUNIT_COVERAGE: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/phpunit'
+  COVERAGE_DIR: var/coverage
 
   MERMAID_CLI_IMAGE: '{{ .TASK_MERMAID_CLI_IMAGE | default "minlag/mermaid-cli:12.0.0" }}'
   DIAGRAMS_DIR: docs/diagrams
@@ -62,6 +66,54 @@ tasks:
       - task: console
         vars:
           CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+  # --------------------------------------------------------------- Tests ---
+
+  test:db:setup:
+    desc: Create the test database and run the migrations on it
+    cmds:
+      - task: console
+        vars:
+          CLI_ARGS: doctrine:database:create --env=test --if-not-exists
+      - task: console
+        vars:
+          CLI_ARGS: doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
+
+  test:
+    desc: Run all tests
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT }} {{ .CLI_ARGS }}'
+
+  test:unit:
+    desc: Run the unit tests
+    cmds:
+      - '{{ .PHPUNIT }} --testsuite Unit {{ .CLI_ARGS }}'
+
+  test:file:
+    desc: 'Run the tests in one file — `task test:file -- tests/Functional/SmokeTest.php`'
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT }} {{ .CLI_ARGS }}'
+
+  test:coverage:
+    desc: Run all tests with coverage. The reports are in var/coverage/.
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT_COVERAGE }} --coverage-clover {{ .COVERAGE_DIR }}/clover.xml --coverage-html {{ .COVERAGE_DIR }}/html --coverage-text'
+
+  test:coverage:check:
+    desc: Run all tests, and fail if line coverage is below 100 %
+    cmds:
+      - task: test:coverage
+      - '{{ .PHP }} vendor/bin/coverage-check {{ .COVERAGE_DIR }}/clover.xml 100'
+
+  prepare-code:
+    desc: Run all checks before you push
+    cmds:
+      - task: coding-standards-check
+      - task: code-analysis
+      - task: test:coverage:check
 
   # ------------------------------------------------------- Code analysis ---
 
