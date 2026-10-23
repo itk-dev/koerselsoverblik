@@ -8,8 +8,8 @@
 /vendor/
 ###< symfony/framework-bundle ###
 
+# The go-task checksum cache (see `sources` in Taskfile.yml)
 /.task/
-/.preview/
 
 ###> friendsofphp/php-cs-fixer ###
 /.php-cs-fixer.php
