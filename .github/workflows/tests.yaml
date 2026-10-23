@@ -1,0 +1,58 @@
+### ### Tests and code analysis
+###
+### Runs PHPStan, and runs the tests with the coverage gate. The jobs use the
+### same Taskfile tasks as local development.
+###
+### The template workflows run the coding standards and the Composer checks.
+
+name: Tests
+
+env:
+  COMPOSE_USER: runner
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  code-analysis:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task code-analysis
+
+  tests:
+    name: Tests with coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task test:coverage:check
