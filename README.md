@@ -58,7 +58,7 @@ averages of daily percentages.
   until the vehicle is empty again. A route can have several runs a day.
 
 | Figure | Definition | Source |
-|---|---|---|
+| --- | --- | --- |
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
 | Citizens | Distinct citizens in the period, counted on the pseudonymised person id | Driving data |
@@ -82,7 +82,7 @@ Every figure has a **?** in the interface that explains what is counted and wher
 Each part of the application has its own permission role:
 
 | Role | Can |
-|---|---|
+| --- | --- |
 | `ROLE_VIEW_OVERVIEW` | View the overview |
 | `ROLE_UPLOAD_DRIVING_DATA` | Upload driving data |
 | `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
@@ -138,7 +138,7 @@ Run `task` to list every available task.
 Set these in `.env.local`:
 
 | Variable | Description | Default |
-|---|---|---|
+| --- | --- | --- |
 | `APP_AUTH_MODE` | Login method: `password`, `none` or `oidc` (`oidc` is not yet implemented) | `password` |
 | `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_VIEW_OVERVIEW` |
 | `APP_ALLOW_NO_LOGIN_IN_PROD` | Set to `1` to allow `APP_AUTH_MODE=none` in `prod`. The app refuses to start otherwise | `0` |
@@ -405,7 +405,7 @@ Hotfixes branch from `main` as `hotfix/<VERSION>` and follow steps 3–5.
 Deployment runs on [Woodpecker](https://woodpecker.itkdev.dk):
 
 | Pipeline | Trigger | Target |
-|---|---|---|
+| --- | --- | --- |
 | `.woodpecker/stg.yml` | Push to a `release/*` or `hotfix/*` branch | Staging |
 | `.woodpecker/prod.yml` | A GitHub release | Production |
 

@@ -1,7 +1,7 @@
 # 003: Driving data import with mappings and replacement of whole dates
 
 | Field | Value |
-|-------|-------|
+| --- | --- |
 | **Created By** | Troels Ugilt Jensen |
 | **Date** | 2026-10-10 |
 | **Decision Maker** | Troels Ugilt Jensen |

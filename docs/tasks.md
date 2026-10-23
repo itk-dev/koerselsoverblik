@@ -52,7 +52,7 @@ split it and update this file.
 ## Overview
 
 | ID | Task | Depends on |
-|---|---|---|
+| --- | --- | --- |
 | **A** | **Setup and quality gates** | |
 | M1-01 | Project skeleton | – |
 | M1-02 | Test tooling, coverage gate and PR workflow | 01 |

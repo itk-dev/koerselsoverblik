@@ -545,7 +545,7 @@ Menu items are shown with `is_granted()`.
 sparkline and a `?` help text.
 
 | Tile | Value | Better when |
-|---|---|---|
+| --- | --- | --- |
 | Empty running | % of km | lower |
 | Trips | count | – |
 | Citizens | distinct count | – |
@@ -569,7 +569,7 @@ Deployment uses Woodpecker.
 **Pipelines:**
 
 | Pipeline | Trigger | Target |
-|---|---|---|
+| --- | --- | --- |
 | `.woodpecker/stg.yml` | Push to `release/*` or `hotfix/*` | Staging |
 | `.woodpecker/prod.yml` | `release` event | Production |
 
@@ -689,7 +689,7 @@ applies: README first, architecture and ADRs updated, then tasks.
 **Sources:**
 
 | Source | Data | Status |
-|---|---|---|
+| --- | --- | --- |
 | Telephony system | Calls offered, answered, abandoned in queue, average answer time, share answered within target | If possible. Depends on an API or export |
 | Mailboxes via the mail API | Mails received, closed and unhandled per day | Needs a service account and permissions to the mailboxes |
 | Complaints | Received date, supplier, route, category, outcome, closed date | Source not chosen (Q-M2-06): F2, the OS2forms complaint form, or collected from the shared mailbox through the mail API |
@@ -780,7 +780,7 @@ owners are roles. The PM puts names on them.
 - **Before M2 tasks** means before milestone 2 is broken into tasks.
 
 | Id | Question | Owner | Needed by | Blocks |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Q-M2-01 | **Security and data protection:** are security and audit logging, retention rules and a DPIA part of Sølv? | PM, with the data protection adviser | Before M2 tasks | M2 scope |
 | Q-M2-02 | **Dashboard:** does Sølv deliver the concept's six figures or the eight milestone 1 tiles? | PM | Before M2 tasks | M2.1 |
 | Q-M2-03 | **Cancellations:** where are cancellations and their time recorded reliably? | Developer, with the transport office | Before M2 tasks | M2.1 verdict |
@@ -840,7 +840,7 @@ blocks. The owners are roles. The PM puts names on them. The details are in the 
 the table.
 
 | Question | Owner | Needed by | Blocks |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Whole days | Product owner (transport office) | Before M1-16 | M1-16 |
 | Row id | Product owner, with a developer | Before M1-14 | M1-14 |
 | Actual time | Product owner | Before M1-14 | M1-14 |
