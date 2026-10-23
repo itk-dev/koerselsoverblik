@@ -49,8 +49,8 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 - **UI tests assert behaviour, not markup.** Functional tests check what is shown (figures,
   labels, links, access per role), using text and `data-test` attributes. Changing the layout
   does not break them.
-- **Fast feedback loop.** Coverage uses `pcov`, which is much faster than Xdebug. The unit suite
-  runs on its own in seconds (`task test:unit`). Infection runs only on changed lines in PRs.
+- **Fast feedback loop.** The unit suite runs on its own in seconds, with no coverage
+  (`task test:unit`). Infection runs only on changed lines in PRs.
 
 **Test layers** (PHPUnit):
 
@@ -80,7 +80,9 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 
 **100 % code coverage:**
 
-- PHPUnit with `pcov`, installed in the phpfpm image for development and CI. Xdebug coverage mode is only a fallback.
+- PHPUnit with Xdebug in coverage mode (`PHP_XDEBUG_MODE=coverage`), for development and CI. The
+  `itkdev/php8.4-fpm` image has Xdebug but not pcov. pcov is faster. Add it if the coverage run
+  becomes too slow.
 - `phpunit.dist.xml` `<source>` covers all of `src/`. The only exclusions are `src/Kernel.php` and `migrations/`.
 - `@codeCoverageIgnore` is not used.
 - CI fails below 100 % line coverage (`coverage-check` on the Clover report). Branch coverage is reported.
@@ -313,7 +315,7 @@ dependencies, the tests to write first, and its acceptance criteria.
    - php-cs-fixer, twig-cs-fixer, PHPStan (symfony + doctrine, max level), PHPUnit
    - `rregeer/phpunit-coverage-check`
    - doctrine-fixtures, `zenstruck/foundry`, `dama/doctrine-test-bundle`
-   - `infection/infection`, and pcov in the phpfpm image
+   - `infection/infection`, with Xdebug coverage from the phpfpm image
    - `ergebnis/composer-normalize`, allowed in `config.allow-plugins`
    - Write the Taskfile with the ITK Dev header (`dotenv: [".env.local", ".env"]` and the vars
      `DOCKER_COMPOSE`, `PHP`, `COMPOSER` and `CONSOLE`) and the tasks `setup`, `compose`,

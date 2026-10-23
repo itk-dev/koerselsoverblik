@@ -143,7 +143,8 @@ decided. Everything else can continue while it is open.
 - **Depends on:** M1-01
 - **Work:**
   - PHPUnit with `tests/Unit`, `tests/Integration` and `tests/Functional`.
-  - pcov in the phpfpm image, and a MariaDB test database with `dama/doctrine-test-bundle`.
+  - Coverage with Xdebug from the phpfpm image (the image has no pcov), and a MariaDB test
+    database with `dama/doctrine-test-bundle`.
   - `zenstruck/foundry` and `doctrine/doctrine-fixtures-bundle`.
   - `rregeer/phpunit-coverage-check` at 100 %. The only exclusions are `src/Kernel.php` and
     `migrations/`.
