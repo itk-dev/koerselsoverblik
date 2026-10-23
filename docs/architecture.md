@@ -252,7 +252,7 @@ authenticator's `supports()` checks the mode, so only one is ever active.
 - Each part of the application has its own permission role. Controllers check only these:
 
   | Permission role | Grants |
-  |---|---|
+  | --- | --- |
   | `ROLE_VIEW_OVERVIEW` | The overview |
   | `ROLE_UPLOAD_DRIVING_DATA` | Upload of driving data |
   | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date range |
