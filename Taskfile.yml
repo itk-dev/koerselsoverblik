@@ -78,6 +78,8 @@ tasks:
       - task: coding-standards-composer-check
       - task: coding-standards-php-check
       - task: coding-standards-twig-check
+      - task: coding-standards-javascript-check
+      - task: coding-standards-styles-check
       - task: coding-standards-markdown-check
       - task: coding-standards-yaml-check
 
@@ -87,6 +89,8 @@ tasks:
       - task: coding-standards-composer-apply
       - task: coding-standards-php-apply
       - task: coding-standards-twig-apply
+      - task: coding-standards-javascript-apply
+      - task: coding-standards-styles-apply
       - task: coding-standards-markdown-apply
       - task: coding-standards-yaml-apply
 
@@ -120,6 +124,26 @@ tasks:
     desc: Apply the Twig coding standards
     cmds:
       - '{{ .PHP }} vendor/bin/twig-cs-fixer fix'
+
+  coding-standards-javascript-check:
+    desc: Check the JavaScript coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.js' --check"
+
+  coding-standards-javascript-apply:
+    desc: Apply the JavaScript coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.js' --write"
+
+  coding-standards-styles-check:
+    desc: Check the CSS coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.{css,scss}' --check"
+
+  coding-standards-styles-apply:
+    desc: Apply the CSS coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.{css,scss}' --write"
 
   coding-standards-markdown-check:
     desc: Check the Markdown coding standards

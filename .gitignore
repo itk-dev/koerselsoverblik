@@ -18,3 +18,8 @@
 
 /.twig-cs-fixer.php
 /.twig-cs-fixer.cache
+
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
