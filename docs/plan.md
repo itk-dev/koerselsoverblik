@@ -321,7 +321,7 @@ dependencies, the tests to write first, and its acceptance criteria.
      `DOCKER_COMPOSE`, `PHP`, `COMPOSER` and `CONSOLE`) and the tasks `setup`, `compose`,
      `composer`, `console`, `test*`, `code-analysis`, `prepare-code`, `coding-standards-*`,
      `db:migrate`, `fixtures:load` and `docs:diagrams`.
-   - The PR workflow also runs `composer audit`, and `.github/dependabot.yml` covers Composer and GitHub Actions.
+   - The PR workflow also runs `composer audit`.
    - **Smoke test first:** a failing functional test that `/` redirects to `/login`.
 6. Docs:
    - Check `README.md` against the actual setup.
@@ -809,11 +809,12 @@ The PM confirms that milestone 1 can start without answers to these questions.
 4. **Planning system API:** if the planning system can deliver data automatically, replacing uploads.
 5. **Async processing:** Symfony Messenger with a supervisor-run worker, when upload sizes or integrations need it.
 6. **Demo data:** a generator for presentations, ported from the prototype.
-7. **Prove the dependency checks** (ASVS V14.2.1, moved from M1-02):
-   - In a scratch branch, require a package version with a known advisory. Make sure that the
-     `composer-audit` job fails and names the advisory. Do not merge the branch.
-   - On GitHub, open Insights → Dependency graph → Dependabot. Make sure that `composer` and
-     `github-actions` show no errors.
+7. **Prove the dependency check** (ASVS V14.2.1, moved from M1-02): in a scratch branch, require a
+   package version with a known advisory. Make sure that the `composer-audit` job fails and names
+   the advisory. Do not merge the branch.
+8. **Dependabot (optional):** add `.github/dependabot.yml`. It opens update PRs to `develop` for
+   `composer` and `github-actions`, once a week. On GitHub, open Insights → Dependency graph →
+   Dependabot. Make sure that `composer` and `github-actions` show no errors.
 
 ---
 

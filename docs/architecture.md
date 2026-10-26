@@ -295,8 +295,8 @@ authenticator's `supports()` checks the mode, so only one is ever active.
 **Passwords** (ASVS V2.1): a password has at least 12 characters, and `NotCompromisedPassword`
 rejects passwords from known breaches. The commands and the user form use the same rules.
 
-**Dependencies** (ASVS V14.2.1): the PR workflow runs `composer audit`, and Dependabot opens
-update pull requests for Composer packages and GitHub Actions.
+**Dependencies** (ASVS V14.2.1): the PR workflow runs `composer audit`. Dependabot is an
+option for a later milestone.
 
 **HTTP security headers** (ASVS V14.4): `nelmio/security-bundle` adds these headers to every
 response. The configuration is in the repository, and a functional test checks it.

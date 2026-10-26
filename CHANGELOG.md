@@ -12,4 +12,4 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   MariaDB, Taskfile tasks, coding standards and PHPStan.
 - [#7](https://github.com/itk-dev/passenger-transport-performance/issues/7)
   M1-02 Test tooling: PHPUnit with unit, integration and functional suites, Foundry, a MariaDB
-  test database, a 100 % line coverage gate, a tests workflow and Dependabot.
+  test database, a 100 % line coverage gate and a tests workflow.
