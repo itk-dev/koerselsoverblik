@@ -152,19 +152,16 @@ decided. Everything else can continue while it is open.
     `prepare-code`.
   - A PR workflow running coding standards, `composer normalize --dry-run`, PHPStan and tests
     with the coverage gate, with a MariaDB service container.
-  - Dependency checks (ASVS V14.2.1):
-    - The PR workflow runs `composer audit`. It fails if a dependency has a known
-      vulnerability.
-    - `.github/dependabot.yml` opens update PRs to `develop` for `composer` and
-      `github-actions`, once a week.
+  - Dependency check (ASVS V14.2.1): the PR workflow runs `composer audit`. It fails if a
+    dependency has a known vulnerability.
 - **Tests first:** a functional smoke test: `GET /` returns 200. It changes to a redirect to
   `/login` in M1-05.
 - **Acceptance criteria:**
   - `task test:coverage:check` passes at 100 % and fails if a line is uncovered. Prove it once
     with a throwaway uncovered method.
   - The PR workflow runs on pull requests to `develop` and `main`.
-  - The proofs that `composer audit` fails on a known vulnerability and that GitHub accepts the
-    Dependabot configuration are moved to "Later milestones" in the [plan](plan.md).
+  - The proof that `composer audit` fails on a known vulnerability is moved to "Later milestones"
+    in the [plan](plan.md).
 
 ### M1-03 Mutation testing
 
