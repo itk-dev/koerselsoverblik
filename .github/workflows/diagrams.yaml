@@ -1,0 +1,28 @@
+### ### Diagrams
+###
+### Renders the Mermaid diagrams in `docs/diagrams/` again and fails if a
+### rendered SVG is out of date. The job has no `paths` filter, because a
+### required check with a `paths` filter stays pending on other PRs.
+
+name: Diagrams
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  diagrams-check:
+    name: Check the rendered diagrams
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - run: |
+          task docs:diagrams:check
