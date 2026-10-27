@@ -324,8 +324,8 @@ task test:mutation:full
   components are not mutated; the functional tests cover them. The HTML report is written to
   `var/infection/`.
 - **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
-  full run over the whole code base runs on `release/*` branches and is required before a release is
-  merged to `main`.
+  full run over the whole code base runs on `release/*` and `hotfix/*` branches and is required
+  before a release is merged to `main`.
 - **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
   tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
