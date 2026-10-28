@@ -1,0 +1,39 @@
+# Local development only.
+services:
+  # A mock OIDC identity provider: https://github.com/geigerzaehler/oidc-provider-mock
+  #
+  # The container name is the external host name, so that the browser and the application reach
+  # the mock with the same name. Then the issuer in the discovery document matches the issuer in
+  # the ID token.
+  #
+  # Each user has the claims that OidcAuthenticator reads: upn and the role claim (roles).
+  idp:
+    image: ghcr.io/geigerzaehler/oidc-provider-mock:latest
+    container_name: idp.${COMPOSE_DOMAIN:?}
+    networks:
+      - app
+      - frontend
+    expose:
+      - "80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_idp.rule=Host(`idp.${COMPOSE_DOMAIN:?}`)"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME:?}_idp.loadbalancer.server.port=80"
+    command:
+      - "--port"
+      - "80"
+      - "--user-claims"
+      - '{"sub": "admin", "name": "Admin", "upn": "admin@example.com", "email": "admin@example.com", "roles": ["ROLE_ADMIN"]}'
+      - "--user-claims"
+      - '{"sub": "viewer", "name": "Viewer", "upn": "viewer@example.com", "email": "viewer@example.com", "roles": ["ROLE_VIEW_OVERVIEW"]}'
+      - "--user-claims"
+      - '{"sub": "uploader", "name": "Uploader", "upn": "uploader@example.com", "email": "uploader@example.com", "roles": ["ROLE_UPLOAD_DRIVING_DATA"]}'
+      - "--user-claims"
+      - '{"sub": "clearer", "name": "Clearer", "upn": "clearer@example.com", "email": "clearer@example.com", "roles": ["ROLE_CLEAR_DRIVING_DATA"]}'
+      - "--user-claims"
+      - '{"sub": "counter", "name": "Counter", "upn": "counter@example.com", "email": "counter@example.com", "roles": ["ROLE_EDIT_DAILY_COUNTS"]}'
+      - "--user-claims"
+      - '{"sub": "supplier-manager", "name": "Supplier manager", "upn": "supplier-manager@example.com", "email": "supplier-manager@example.com", "roles": ["ROLE_MANAGE_SUPPLIERS"]}'
+      - "--user-claims"
+      - '{"sub": "user", "name": "User", "upn": "user@example.com", "email": "user@example.com", "roles": []}'

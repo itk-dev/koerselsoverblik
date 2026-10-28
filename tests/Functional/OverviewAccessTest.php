@@ -2,15 +2,14 @@
 
 namespace App\Tests\Functional;
 
+use App\Entity\User;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 /**
  * Checks the access to the overview for anonymous and signed-in users.
- *
- * The users are the in-memory test users in config/packages/security.yaml. M1-06 replaces them.
  */
 final class OverviewAccessTest extends WebTestCase
 {
@@ -20,22 +19,13 @@ final class OverviewAccessTest extends WebTestCase
 
         $client->request('GET', '/');
 
-        self::assertResponseRedirects('/login');
-    }
-
-    public function testAnonymousUserCanGetTheLogin(): void
-    {
-        $client = static::createClient();
-
-        $client->request('GET', '/login');
-
-        self::assertResponseIsSuccessful();
+        self::assertResponseRedirects('/openidconnect/login/default');
     }
 
     public function testUserWithTheOverviewRoleCanGetTheOverview(): void
     {
         $client = static::createClient();
-        $this->loginAs($client, 'viewer');
+        $this->loginWithRoles($client, ['ROLE_VIEW_OVERVIEW']);
 
         $client->request('GET', '/');
 
@@ -45,7 +35,7 @@ final class OverviewAccessTest extends WebTestCase
     public function testUserWithNoPermissionRoleIsDenied(): void
     {
         $client = static::createClient();
-        $this->loginAs($client, 'user');
+        $this->loginWithRoles($client, []);
 
         $client->request('GET', '/');
 
@@ -55,7 +45,7 @@ final class OverviewAccessTest extends WebTestCase
     public function testAdminCanGetTheOverview(): void
     {
         $client = static::createClient();
-        $this->loginAs($client, 'admin');
+        $this->loginWithRoles($client, ['ROLE_ADMIN']);
 
         $client->request('GET', '/');
 
@@ -63,13 +53,19 @@ final class OverviewAccessTest extends WebTestCase
     }
 
     /**
-     * Loads the user from the provider, so that the user is equal to the user at the refresh.
+     * Stores a user with the roles, so that the user is equal to the user at the refresh.
+     *
+     * @param list<string> $roles
      */
-    private function loginAs(KernelBrowser $client, string $username): void
+    private function loginWithRoles(KernelBrowser $client, array $roles): void
     {
-        $provider = static::getContainer()->get('security.user.provider.concrete.users_in_memory');
-        self::assertInstanceOf(UserProviderInterface::class, $provider);
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
+        $user = new User('user@example.com');
+        $user->setRoles($roles);
+        $entityManager->persist($user);
+        $entityManager->flush();
 
-        $client->loginUser($provider->loadUserByIdentifier($username));
+        $client->loginUser($user);
     }
 }

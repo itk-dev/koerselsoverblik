@@ -10,7 +10,9 @@
         "doctrine/doctrine-bundle": "^3.3",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.7",
+        "itk-dev/openid-connect-bundle": "^6.1",
         "symfony/asset-mapper": "~8.1.0",
+        "symfony/clock": "~8.1.0",
         "symfony/console": "~8.1.0",
         "symfony/dotenv": "~8.1.0",
         "symfony/flex": "^2",
@@ -18,6 +20,7 @@
         "symfony/monolog-bundle": "^4.1",
         "symfony/runtime": "~8.1.0",
         "symfony/security-bundle": "~8.1.0",
+        "symfony/twig-bundle": "~8.1.0",
         "symfony/yaml": "~8.1.0"
     },
     "require-dev": {

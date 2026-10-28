@@ -15,9 +15,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class RouteGuardTest extends KernelTestCase
 {
     /**
-     * The routes that anonymous users can get. M1-07 replaces them with the OIDC routes.
+     * The application routes that anonymous users can get. The bundle's OIDC login route is not
+     * an application route.
      */
-    private const array PUBLIC_ROUTES = ['login'];
+    private const array PUBLIC_ROUTES = ['openid_connect_generic'];
 
     public function testEveryApplicationRouteRequiresAPermissionRole(): void
     {

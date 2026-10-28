@@ -26,3 +26,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a role hierarchy, a placeholder login, and a test that fails if a route has no permission role.
   The monolog bundle writes the test logs to a file, so that Infection can run. `task prepare-code`
   fixes the coding standards before it runs the checks.
+- [#17](https://github.com/itk-dev/passenger-transport-performance/issues/17)
+  OIDC plan: fixed OIDC routes, the `oidc-provider-mock` service for local development, the user
+  is identified by email (the `upn` claim), and an authentication log records each login with the
+  roles. The user list and `ROLE_MANAGE_USERS` are removed.
+- [#20](https://github.com/itk-dev/passenger-transport-performance/issues/20)
+  M1-06 User entity and role mapping: the `User` entity (email, roles, last login) with a
+  migration, and `OidcRoleMapper`.
+- [#21](https://github.com/itk-dev/passenger-transport-performance/issues/21)
+  M1-07 OIDC login and mock service: `itk-dev/openid-connect-bundle` with `OidcAuthenticator`,
+  the authentication log, trusted proxies, a page for a failed login, and the
+  `oidc-provider-mock` service in `docker-compose.override.yaml`. The placeholder login is
+  removed.
