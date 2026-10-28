@@ -99,7 +99,24 @@ final class OidcLoginFlowTest extends WebTestCase
         $this->client->request('GET', self::CALLBACK_PATH, ['state' => 'another-state', 'code' => 'the-code']);
 
         self::assertResponseStatusCodeSame(Response::HTTP_INTERNAL_SERVER_ERROR);
+        self::assertSelectorExists('[data-test="login-failed"]');
+        self::assertSelectorNotExists('[data-test="login-declined"]');
+        self::assertSelectorExists(sprintf('a[href="%s"]', self::LOGIN_URL));
+        self::assertTrue($this->client->getResponse()->headers->hasCacheControlDirective('no-store'));
         self::assertNull($this->userRepository()->findOneByEmail('foobar@example.com'));
+    }
+
+    public function testALoginThatTheIdentityProviderDeclinesShowsAPage(): void
+    {
+        $this->client->request('GET', '/');
+        $this->client->request('GET', self::LOGIN_URL);
+
+        $this->client->request('GET', self::CALLBACK_PATH, ['state' => 'the-state', 'error' => 'access_denied']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+        self::assertSelectorExists('[data-test="login-declined"]');
+        self::assertSelectorNotExists('[data-test="login-failed"]');
+        self::assertSelectorExists(sprintf('a[href="%s"]', self::LOGIN_URL));
     }
 
     public function testAUserWithNoKnownRoleCanSignInButIsDenied(): void
