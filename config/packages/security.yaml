@@ -3,7 +3,19 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
+    # ROLE_ADMIN gives all permission roles. Controllers check only the permission roles.
+    # See "Security" in docs/architecture.md.
+    role_hierarchy:
+        ROLE_ADMIN:
+            - ROLE_VIEW_OVERVIEW
+            - ROLE_UPLOAD_DRIVING_DATA
+            - ROLE_CLEAR_DRIVING_DATA
+            - ROLE_EDIT_DAILY_COUNTS
+            - ROLE_MANAGE_SUPPLIERS
+            - ROLE_MANAGE_USERS
+
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
+    # A temporary provider. M1-06 replaces it with the User entity.
     providers:
         users_in_memory: { memory: null }
 
@@ -15,17 +27,14 @@ security:
         main:
             lazy: true
             provider: users_in_memory
-
-            # Activate different ways to authenticate:
-            # https://symfony.com/doc/current/security.html#the-firewall
-
-            # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
+            # Sends anonymous users to the placeholder login. M1-07 replaces it with the OIDC login.
+            entry_point: App\Security\LoginEntryPoint
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/assets/, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:
@@ -37,3 +46,12 @@ when@test:
                 cost: 4 # Lowest possible value for bcrypt
                 time_cost: 3 # Lowest possible value for argon
                 memory_cost: 10 # Lowest possible value for argon
+
+        # The test users for loginUser(). Every signed-in user also has ROLE_USER.
+        providers:
+            users_in_memory:
+                memory:
+                    users:
+                        viewer: { roles: [ROLE_USER, ROLE_VIEW_OVERVIEW] }
+                        user: { roles: [ROLE_USER] }
+                        admin: { roles: [ROLE_USER, ROLE_ADMIN] }
