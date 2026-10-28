@@ -261,6 +261,8 @@ decided. Everything else can continue while it is open.
   - `SecurityController` with `/openid-connect/generic`. The firewall handles `/logout`. M1-10
     adds a logout link in the user menu.
   - `TRUSTED_PROXIES`, so that the redirect after the login uses https behind Traefik.
+  - `OidcLoginFailureListener` shows a failed login as a page with a "Prøv igen" link, not as the
+    default error page.
   - The authentication log:
     - Turn on the bundle's audit trail (`audit_options`). It records each successful and failed
       login, with the IP address and the reason for a failure.

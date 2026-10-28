@@ -254,6 +254,9 @@ config file.
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
+- A failed login shows a page with a "Prøv igen" link (`OidcLoginFailureListener`): 403 when the
+  identity provider refused, and 500 otherwise. It does not redirect, so a broken login cannot
+  loop.
 - **Authentication log:** the bundle's audit trail records each successful and failed login,
   with the IP address and the reason for a failure. `OidcLogin` adds a record with the email and
   the roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
