@@ -21,3 +21,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   M1-04 Diagram check in CI: a workflow that fails if a rendered diagram SVG is out of date.
 - OIDC is the only login method in the plan, the tasks and the docs. The identity provider gives
   the roles in a claim. The password login and the `none` mode are removed from the plan.
+- [#14](https://github.com/itk-dev/passenger-transport-performance/issues/14)
+  M1-05 Permission roles and deny by default: the security bundle with the permission roles and
+  a role hierarchy, a placeholder login, and a test that fails if a route has no permission role.
