@@ -14,9 +14,11 @@ security:
             - ROLE_MANAGE_SUPPLIERS
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
-    # A temporary provider. M1-06 replaces it with the User entity.
     providers:
-        users_in_memory: { memory: null }
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
 
     firewalls:
         dev:
@@ -25,13 +27,19 @@ security:
             security: false
         main:
             lazy: true
-            provider: users_in_memory
-            # Sends anonymous users to the placeholder login. M1-07 replaces it with the OIDC login.
-            entry_point: App\Security\LoginEntryPoint
+            provider: app_user_provider
+            custom_authenticators:
+                - App\Security\OidcAuthenticator
+            # Sends anonymous users to the OIDC login.
+            entry_point: App\Security\OidcAuthenticator
+            # Ends the session in the application, not at the identity provider.
+            logout:
+                path: /logout
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        - { path: ^/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/openidconnect/, roles: PUBLIC_ACCESS }
+        - { path: ^/openid-connect/generic$, roles: PUBLIC_ACCESS }
         - { path: ^/assets/, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
 
@@ -45,12 +53,3 @@ when@test:
                 cost: 4 # Lowest possible value for bcrypt
                 time_cost: 3 # Lowest possible value for argon
                 memory_cost: 10 # Lowest possible value for argon
-
-        # The test users for loginUser(). Every signed-in user also has ROLE_USER.
-        providers:
-            users_in_memory:
-                memory:
-                    users:
-                        viewer: { roles: [ROLE_USER, ROLE_VIEW_OVERVIEW] }
-                        user: { roles: [ROLE_USER] }
-                        admin: { roles: [ROLE_USER, ROLE_ADMIN] }
