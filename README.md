@@ -43,7 +43,7 @@ The user interface is in Danish.
   - Columns are read through an [import mapping](#import-mappings), so another source can be
     added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
-- **Administration:** users, suppliers, and which supplier drives each route from which date.
+- **Administration:** suppliers, and which supplier drives each route from which date.
 - **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
@@ -88,7 +88,6 @@ Each part of the application has its own permission role:
 | `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
-| `ROLE_MANAGE_USERS` | See the list of users |
 
 `ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
 permission roles let us give narrower access later without code changes.
@@ -123,8 +122,11 @@ Every page requires a permission role. Anonymous users are sent to the identity 
    task setup
    ```
 
-   The stack includes `idp`, a local OIDC mock service. It has one test user with `ROLE_ADMIN`
-   and one test user for each permission role. The users are in `docker-compose.dev.yml`.
+   The stack includes `idp`, a local OIDC mock service
+   ([`oidc-provider-mock`](https://github.com/geigerzaehler/oidc-provider-mock)) at
+   <http://idp.passenger-transport-performance.local.itkdev.dk>. It has one test user with
+   `ROLE_ADMIN` and one test user for each permission role. The users are in
+   `docker-compose.dev.yml`.
 
 4. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
 
@@ -133,6 +135,13 @@ Every page requires a permission role. Anonymous users are sent to the identity 
    ```
 
 5. Sign in as one of the test users of the mock service.
+
+   The mock creates new signing keys when its container restarts. If a login then fails with
+   `"kid" invalid`, clear the cache:
+
+   ```shell
+   task console -- cache:pool:clear cache.app
+   ```
 
 Run `task` to list every available task.
 
@@ -145,8 +154,9 @@ Set these in `.env.local`:
 | `OIDC_METADATA_URL` | The identity provider's discovery URL (`.well-known/openid-configuration`) | The local mock service |
 | `OIDC_CLIENT_ID` | The client id of the application in the identity provider | The local mock client |
 | `OIDC_CLIENT_SECRET` | The client secret of the application in the identity provider | The local mock secret |
-| `OIDC_REDIRECT_URI` | The callback URL of the application, registered in the identity provider | The local callback URL |
+| `OIDC_REDIRECT_URI` | The callback URL of the application, `https://<HOST>/openid-connect/generic`, registered in the identity provider | The local callback URL |
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
+| `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |
 | `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
@@ -275,9 +285,18 @@ Users and roles are managed in the identity provider:
 - To change the roles of a user, change the value of the role claim in the identity provider.
   The change applies at the user's next login.
 
-A user is created in the application at the first login. **Administration → Users** (requires
-`ROLE_MANAGE_USERS`) lists the users, their roles from the last login, and the time of the last
-login. The list is read-only.
+A user is created in the application at the first login. The application has no user list.
+
+### Authentication log
+
+Each login is written to `var/log/openid_connect_audit.log`:
+
+- A successful login, with the email, the roles and the time. For example:
+  `user foobar@example.com logged in with roles [ROLE_ADMIN]`.
+- A failed login, with the IP address and the reason.
+
+The log holds personal data (emails and IP addresses). Its retention follows the staff data
+decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
 
 ## Data and privacy
 
