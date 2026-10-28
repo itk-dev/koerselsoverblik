@@ -12,7 +12,6 @@ security:
             - ROLE_CLEAR_DRIVING_DATA
             - ROLE_EDIT_DAILY_COUNTS
             - ROLE_MANAGE_SUPPLIERS
-            - ROLE_MANAGE_USERS
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     # A temporary provider. M1-06 replaces it with the User entity.

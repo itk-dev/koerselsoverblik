@@ -67,7 +67,7 @@ split it and update this file.
 | **C** | **Layout and administration** | |
 | M1-10 | Base layout, design system and menu | 05 |
 | M1-11 | Formatting extension | 02 |
-| M1-12 | User list | 07, 10 |
+| M1-12 | Removed: user list | – |
 | M1-13 | Suppliers, routes and dated assignments | 10 |
 | **D** | **Data in** | |
 | M1-14 | Import mapping | 02 |
@@ -201,8 +201,8 @@ decided. Everything else can continue while it is open.
 - **Depends on:** M1-02
 - **Work:**
   - `security-bundle` with the permission roles from the architecture: `ROLE_VIEW_OVERVIEW`,
-    `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS`,
-    `ROLE_MANAGE_SUPPLIERS` and `ROLE_MANAGE_USERS`.
+    `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS` and
+    `ROLE_MANAGE_SUPPLIERS`.
   - `role_hierarchy`: `ROLE_ADMIN` gives all permission roles.
   - `access_control`: the OIDC login and callback routes and the assets are public, and
     everything else requires `ROLE_USER`.
@@ -228,7 +228,8 @@ decided. Everything else can continue while it is open.
 - **Plan step:** 5. **Implements:** README "Roles", ADR 002.
 - **Depends on:** M1-05
 - **Work:**
-  - `User` entity (`username`, `roles`, `last_login_at`) and a migration. It has no password.
+  - `User` entity (`email`, `roles`, `last_login_at`) and a migration. `email` is the identifier
+    and holds the `upn` claim. It has no password.
   - Doctrine entity user provider.
   - `OidcRoleMapper`, a plain PHP class. It reads the role claim (`OIDC_ROLE_CLAIM`) and
     returns the values that are `ROLE_ADMIN` or a permission role.
@@ -239,8 +240,8 @@ decided. Everything else can continue while it is open.
     - It ignores unknown values, and `ROLE_USER`.
     - A missing or empty claim gives no roles.
     - The claim can be a string or a list.
-    - Username normalisation.
-  - **Integration:** the repository finds a user by username. A username is unique.
+    - Email normalisation (lower case).
+  - **Integration:** the repository finds a user by email. An email is unique.
 - **Acceptance criteria:** the migration runs, and `doctrine:schema:validate` is clean.
 
 ### M1-07 OIDC login and mock service
@@ -252,18 +253,31 @@ decided. Everything else can continue while it is open.
   - Require `itk-dev/openid-connect-bundle`, and configure one provider from the `OIDC_*`
     variables.
   - `OidcAuthenticator`, which extends the bundle's `OpenIdLoginAuthenticator`. At each login
-    it creates or updates the `User` with the roles from `OidcRoleMapper` and the login time.
-  - The firewall sends anonymous users to the OIDC login route. The login and callback routes
-    are public.
-  - `SecurityController` with `/logout`, and a logout link in the user menu from M1-10.
-  - The `idp` service in `docker-compose.dev.yml` with `ghcr.io/soluto/oidc-server-mock`. It has
-    one test user with `ROLE_ADMIN` and one test user for each permission role. The `OIDC_*`
-    defaults in `.env` point to it.
+    it reads the `upn` claim, and creates or updates the `User` with the roles from
+    `OidcRoleMapper` and the login time.
+  - The routes follow `itk-dev/devops_itksites`: the bundle routes are under `/openidconnect`,
+    and `/openid-connect/generic` is the callback (redirect URI). They are public. The firewall
+    sends anonymous users to the bundle's login route.
+  - `SecurityController` with `/openid-connect/generic` and `/logout`, and a logout link in the
+    user menu from M1-10.
+  - The authentication log:
+    - Turn on the bundle's audit trail (`audit_options`). It records each successful and failed
+      login, with the IP address and the reason for a failure.
+    - At each login, `OidcAuthenticator` writes a record with the email, the roles and the time,
+      for example `user foobar@example.com logged in with roles [ROLE_ADMIN]`.
+    - Both go to the `openid_connect_audit` channel, which Monolog writes to its own file.
+  - The `idp` service in `docker-compose.dev.yml` with `ghcr.io/geigerzaehler/oidc-provider-mock`,
+    at `idp.<COMPOSE_DOMAIN>`. It has one test user with `ROLE_ADMIN` and one test user for each
+    permission role, each with `name`, `upn` and `roles` claims. The `OIDC_*` defaults in `.env`
+    point to it. The mock runs on HTTP, so `.env.dev` sets `OIDC_ALLOW_HTTP=true`. The default in
+    `.env` is `false`.
   - Remove the temporary in-memory user, the placeholder login route and `LoginEntryPoint`.
     Change `PUBLIC_ROUTES` in `RouteGuardTest` to the OIDC login and callback routes.
 - **Tests first (functional, with a stub for the identity provider):**
   - The first login creates the user with the roles from the claim, and redirects to `/`.
   - The next login updates the roles and the login time. It does not create a second user.
+  - A login writes the email, the roles and the time to the `openid_connect_audit` channel.
+  - A failed login is written to the `openid_connect_audit` channel.
   - A callback with an invalid state is rejected.
   - A user with no known role can sign in, but gets 403 on `/`.
   - Logout ends the session.
@@ -305,7 +319,7 @@ change.
 - **Work:**
   - `itk-dev/itkaarhus-design-system` (vcs repository), mapped in AssetMapper as `itkaarhus-ds`.
   - Port the prototype's shell to `templates/base.html.twig`:
-    - side navigation and a top bar with a user menu. The user menu shows the username. M1-07
+    - side navigation and a top bar with a user menu. The user menu shows the email. M1-07
       adds the logout link.
     - a mobile navigation drawer
     - an "about the figures" `<dialog>` with placeholder text
@@ -339,18 +353,11 @@ change.
   - ISO week 53, and periods across years
 - **Acceptance criteria:** every format matches the prototype's formatting.
 
-### M1-12 User list
+### M1-12 Removed: user list
 
-- **Plan step:** 5–6. **Implements:** README "Manage users".
-- **Depends on:** M1-07, M1-10
-- **Work:**
-  - `Admin\UserController` with `#[IsGranted('ROLE_MANAGE_USERS')]`: a read-only list of the
-    users, with the username, the roles from the last login and the time of the last login.
-  - The identity provider manages users and roles, so there is no create, edit or delete.
-- **Tests first (functional):**
-  - A user with `ROLE_MANAGE_USERS` sees every user with their roles and last login time.
-  - A user without `ROLE_MANAGE_USERS` gets 403.
-- **Acceptance criteria:** the user list works as in the README.
+This task was "User list". The identity provider manages users and roles, and the authentication
+log records each login, so the application has no user list and no `ROLE_MANAGE_USERS`. The task
+ID is kept, so that the other IDs do not change.
 
 ### M1-13 Suppliers, routes and dated assignments
 

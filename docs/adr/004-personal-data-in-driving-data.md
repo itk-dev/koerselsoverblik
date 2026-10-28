@@ -73,4 +73,5 @@ To be completed when decided.
 - [ ] Get answers to the open inputs above.
 - [ ] Get the data protection adviser's view.
 - [ ] Decide, and update the data model, the README and the plan.
-- [ ] Decide what staff account data is stored (username, display name).
+- [ ] Decide what staff account data is stored (email, display name), and how long the
+      authentication log is kept.
