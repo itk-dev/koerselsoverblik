@@ -646,7 +646,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         }>,
  *     },
  *     uid?: bool|array{ // Uid configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         default_uuid_version?: 7|6|4|1|Param, // Default: 7
  *         name_based_uuid_version?: 5|3|Param, // Default: 5
  *         name_based_uuid_namespace?: scalar|Param|null,
@@ -1424,6 +1424,48 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         },
  *     }>,
  * }
+ * @psalm-type ItkdevOpenidConnectConfig = array{
+ *     cache_options?: array{
+ *         cache_pool?: scalar|Param|null, // Method for caching // Default: "cache.app"
+ *     },
+ *     cli_login_options?: array{
+ *         route?: scalar|Param|null, // Return route for CLI login
+ *     },
+ *     user_provider?: scalar|Param|null, // The User Provider to inject // Default: null
+ *     logging_options?: array{
+ *         logger?: scalar|Param|null, // Service id of the PSR-3 logger to receive this bundle's failure logs, e.g. "monolog.logger.openid_connect". Defaults to the application logger, which Symfony always provides. Set "itkdev_openid_connect.null_logger" to turn logging off. // Default: null
+ *     },
+ *     audit_options?: array{
+ *         enabled?: bool|Param, // Write an authentication audit trail (logins, failures, CLI token issuance). Off by default: audit records identify people, so an existing installation must opt in rather than start logging personal data on upgrade. // Default: false
+ *         logger?: scalar|Param|null, // Service id of the PSR-3 logger to receive audit records, e.g. "monolog.logger.openid_connect_audit". Defaults to the application logger. Keep this separate from logging_options.logger: an operational threshold of "error" would otherwise discard the whole trail. // Default: null
+ *         identifier?: "raw"|"hashed"|Param, // Record user identifiers as-is ("raw") or pseudonymised ("hashed"). Hashing is keyed with the application secret, so records still correlate. Cannot come from an environment variable; use environment-specific configuration instead. // Default: "raw"
+ *     },
+ *     secret_expiry_options?: array{
+ *         warning_days?: int|Param, // How many days before a client secret expires the bundle starts warning (default: 30) // Default: 30
+ *     },
+ *     openid_providers?: list<array{ // Default: []
+ *         options?: array{
+ *             metadata_url?: scalar|Param|null, // URL to OpenId Discovery Document
+ *             client_id?: scalar|Param|null, // Client ID assigned by authorizer
+ *             client_secret?: scalar|Param|null, // Client secret/password assigned by authorizer
+ *             client_secret_expires_at?: scalar|Param|null, // Optional. Date the client secret expires, e.g. "2027-01-31". Anything strtotime() understands, and usually an environment variable. Set it and the bundle warns before the secret expires; leave it unset and the provider reports "unknown" and is not monitored. Set it where the real secret lives — a date carried in a committed default is a date nobody maintains.
+ *             leeway?: int|Param, // Leeway in seconds to account for clock skew between server and provider // Default: 10
+ *             cache_duration?: int|Param, // Cache duration in seconds for the OIDC discovery document and JWKS (default: 86400 — 24 hours) // Default: 86400
+ *             scopes?: Param|string|list<scalar|Param|null>,
+ *             pkce?: bool|Param, // Send a PKCE challenge (RFC 7636, S256) with the authorization request // Default: true
+ *             redirect_uri?: scalar|Param|null, // Redirect URI registered at identity provider
+ *             redirect_route?: scalar|Param|null, // Redirect route registered at identity provider (must not be set if redirect_uri is set)
+ *             redirect_route_parameters?: array<mixed>,
+ *             callback_path?: scalar|Param|null, // Optional. The request path the callback arrives on, for a proxy that rewrites it without sending X-Forwarded-Prefix. Include any base path. Defaults to the path of redirect_uri, or of the generated redirect_route; a trusted X-Forwarded-Prefix or a subdirectory deployment is already accounted for without this.
+ *             allow_http?: bool|Param, // Whether to allow http or not (default: false) // Default: false
+ *             http_client_options?: array{ // Options forwarded to the underlying Guzzle HTTP client. league/oauth2-client only forwards: timeout, proxy, verify (verify is only consulted when proxy is set).
+ *                 timeout?: float|Param, // Total request timeout in seconds. Defaults to 30; set to 0 to wait indefinitely (Guzzle's own default). // Default: 30.0
+ *                 proxy?: scalar|Param|null, // HTTP proxy URI
+ *                 verify?: bool|Param, // Verify TLS certificates (only consulted by Guzzle when proxy is set)
+ *             },
+ *         },
+ *     }>,
+ * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
@@ -1433,6 +1475,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     doctrine_migrations?: DoctrineMigrationsConfig,
  *     security?: SecurityConfig,
  *     monolog?: MonologConfig,
+ *     itkdev_openid_connect?: ItkdevOpenidConnectConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
@@ -1443,6 +1486,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         zenstruck_foundry?: ZenstruckFoundryConfig,
  *         security?: SecurityConfig,
  *         monolog?: MonologConfig,
+ *         itkdev_openid_connect?: ItkdevOpenidConnectConfig,
  *     },
  *     "when@prod"?: array{
  *         imports?: ImportsConfig,
@@ -1453,6 +1497,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         doctrine_migrations?: DoctrineMigrationsConfig,
  *         security?: SecurityConfig,
  *         monolog?: MonologConfig,
+ *         itkdev_openid_connect?: ItkdevOpenidConnectConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
@@ -1465,6 +1510,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         dama_doctrine_test?: DamaDoctrineTestConfig,
  *         security?: SecurityConfig,
  *         monolog?: MonologConfig,
+ *         itkdev_openid_connect?: ItkdevOpenidConnectConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,

@@ -1,0 +1,18 @@
+itkdev_openid_connect:
+    cache_options:
+        cache_pool: 'cache.app'
+    # Required by the bundle. CLI login is not enabled: its authenticator is not on the firewall.
+    cli_login_options:
+        route: overview
+    # The authentication log. See "Authentication log" in README.md.
+    audit_options:
+        enabled: true
+        logger: 'monolog.logger.openid_connect_audit'
+    openid_providers:
+        default:
+            options:
+                metadata_url: '%env(string:OIDC_METADATA_URL)%'
+                client_id: '%env(OIDC_CLIENT_ID)%'
+                client_secret: '%env(OIDC_CLIENT_SECRET)%'
+                redirect_uri: '%env(string:OIDC_REDIRECT_URI)%'
+                allow_http: '%env(bool:OIDC_ALLOW_HTTP)%'
