@@ -1,7 +1,7 @@
 # 001: Stack
 
 | Field | Value |
-|-------|-------|
+| --- | --- |
 | **Created By** | Troels Ugilt Jensen |
 | **Date** | 2026-10-10 |
 | **Decision Maker** | Troels Ugilt Jensen |

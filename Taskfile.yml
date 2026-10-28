@@ -1,9 +1,19 @@
 # https://taskfile.dev — install with `brew install go-task` (or see docs).
 # Run `task` (or `task --list-all`) to see all available commands.
 
-version: "3"
+version: '3'
+
+# https://taskfile.dev/usage/#env-files
+dotenv: ['.env.local', '.env']
 
 vars:
+  # https://taskfile.dev/reference/templating/
+  BASE_URL: '{{ .TASK_BASE_URL | default .COMPOSE_SERVER_DOMAIN | default .COMPOSE_DOMAIN }}'
+  DOCKER_COMPOSE: '{{ .TASK_DOCKER_COMPOSE | default "docker compose" }}'
+  PHP: '{{ .DOCKER_COMPOSE }} run --rm phpfpm php'
+  COMPOSER: '{{ .DOCKER_COMPOSE }} run --rm phpfpm composer'
+  CONSOLE: '{{ .PHP }} bin/console'
+
   MERMAID_CLI_IMAGE: '{{ .TASK_MERMAID_CLI_IMAGE | default "minlag/mermaid-cli:12.0.0" }}'
   DIAGRAMS_DIR: docs/diagrams
 
@@ -14,26 +24,167 @@ tasks:
       - task --list-all
     silent: true
 
+  # --------------------------------------------------------------- Stack ---
+
+  setup:
+    desc: Set up the stack, install the Composer dependencies and run the migrations
+    cmds:
+      - docker network inspect frontend >/dev/null 2>&1 || docker network create frontend
+      - task: compose
+        vars:
+          CLI_ARGS: pull
+      - task: compose
+        vars:
+          CLI_ARGS: up --detach --remove-orphans --wait
+      - task: composer
+        vars:
+          CLI_ARGS: install
+      - task: db:migrate
+
+  compose:
+    desc: 'Run a docker compose command — `task compose -- ps`'
+    cmds:
+      - '{{ .DOCKER_COMPOSE }} {{ .CLI_ARGS }}'
+
+  composer:
+    desc: 'Run a composer command — `task composer -- outdated`'
+    cmds:
+      - '{{ .COMPOSER }} {{ .CLI_ARGS }}'
+
+  console:
+    desc: 'Run a Symfony console command — `task console -- about`'
+    cmds:
+      - '{{ .CONSOLE }} {{ .CLI_ARGS }}'
+
+  db:migrate:
+    desc: Run the database migrations
+    cmds:
+      - task: console
+        vars:
+          CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+  # ------------------------------------------------------- Code analysis ---
+
+  code-analysis:
+    desc: Analyse the code with PHPStan
+    cmds:
+      - '{{ .PHP }} vendor/bin/phpstan analyse'
+
+  # ---------------------------------------------------- Coding standards ---
+
+  coding-standards-check:
+    desc: Check all coding standards
+    cmds:
+      - task: coding-standards-composer-check
+      - task: coding-standards-php-check
+      - task: coding-standards-twig-check
+      - task: coding-standards-javascript-check
+      - task: coding-standards-styles-check
+      - task: coding-standards-markdown-check
+      - task: coding-standards-yaml-check
+
+  coding-standards-apply:
+    desc: Apply all coding standards
+    cmds:
+      - task: coding-standards-composer-apply
+      - task: coding-standards-php-apply
+      - task: coding-standards-twig-apply
+      - task: coding-standards-javascript-apply
+      - task: coding-standards-styles-apply
+      - task: coding-standards-markdown-apply
+      - task: coding-standards-yaml-apply
+
+  coding-standards-composer-check:
+    desc: Check that composer.json is valid and normalized
+    cmds:
+      - '{{ .COMPOSER }} validate --strict'
+      - '{{ .COMPOSER }} normalize --dry-run'
+
+  coding-standards-composer-apply:
+    desc: Normalize composer.json
+    cmds:
+      - '{{ .COMPOSER }} normalize'
+
+  coding-standards-php-check:
+    desc: Check the PHP coding standards
+    cmds:
+      - '{{ .PHP }} vendor/bin/php-cs-fixer fix --dry-run --diff'
+
+  coding-standards-php-apply:
+    desc: Apply the PHP coding standards
+    cmds:
+      - '{{ .PHP }} vendor/bin/php-cs-fixer fix'
+
+  coding-standards-twig-check:
+    desc: Check the Twig coding standards
+    cmds:
+      - '{{ .PHP }} vendor/bin/twig-cs-fixer lint'
+
+  coding-standards-twig-apply:
+    desc: Apply the Twig coding standards
+    cmds:
+      - '{{ .PHP }} vendor/bin/twig-cs-fixer fix'
+
+  coding-standards-javascript-check:
+    desc: Check the JavaScript coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.js' --check"
+
+  coding-standards-javascript-apply:
+    desc: Apply the JavaScript coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.js' --write"
+
+  coding-standards-styles-check:
+    desc: Check the CSS coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.{css,scss}' --check"
+
+  coding-standards-styles-apply:
+    desc: Apply the CSS coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.{css,scss}' --write"
+
+  coding-standards-markdown-check:
+    desc: Check the Markdown coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm markdownlint markdownlint '**/*.md'"
+
+  coding-standards-markdown-apply:
+    desc: Apply the Markdown coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm markdownlint markdownlint '**/*.md' --fix"
+
+  coding-standards-yaml-check:
+    desc: Check the YAML coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier '**/*.{yml,yaml}' --check"
+
+  coding-standards-yaml-apply:
+    desc: Apply the YAML coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier '**/*.{yml,yaml}' --write"
+
   # ---------------------------------------------------------------- Docs ---
 
   docs:diagrams:
     desc: Render every Mermaid diagram in docs/diagrams/ to SVG.
     sources:
-      - "{{ .DIAGRAMS_DIR }}/*.mmd"
-      - "{{ .DIAGRAMS_DIR }}/mermaid.json"
+      - '{{ .DIAGRAMS_DIR }}/*.mmd'
+      - '{{ .DIAGRAMS_DIR }}/mermaid.json'
     generates:
-      - "{{ .DIAGRAMS_DIR }}/*.svg"
+      - '{{ .DIAGRAMS_DIR }}/*.svg'
     cmds:
       - for: { var: DIAGRAMS, split: "\n" }
         task: docs:diagram
         vars:
-          NAME: "{{ .ITEM }}"
+          NAME: '{{ .ITEM }}'
     vars:
       DIAGRAMS:
         sh: find {{ .DIAGRAMS_DIR }} -name '*.mmd' -exec basename {} .mmd \; | sort
 
   docs:diagram:
-    desc: "Render a single Mermaid diagram — `task docs:diagram NAME=context`."
+    desc: 'Render a single Mermaid diagram — `task docs:diagram NAME=context`.'
     requires:
       vars: [NAME]
     cmds:

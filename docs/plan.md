@@ -1,3 +1,6 @@
+<!-- The top-level headings group the plan into its parts. -->
+<!-- markdownlint-disable MD025 -->
+
 # Plan: Passenger Transport Performance
 
 ## Context
@@ -70,8 +73,10 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 - **Fixtures:**
   - Foundry factories for every entity.
   - An anonymised one-day extract in `tests/fixtures/`, with its expected totals worked out by hand.
-  - Small hand-made extracts for edge cases: cancelled routes, unmapped routes, re-upload with changed and removed rows, malformed files.
-  - Supplier changes: a route that changes supplier in the middle of a period, and the figures before the change stay the same.
+  - Small hand-made extracts for edge cases: cancelled routes, unmapped routes, re-upload with
+    changed and removed rows, malformed files.
+  - Supplier changes: a route that changes supplier in the middle of a period, and the figures
+    before the change stay the same.
 
 **100 % code coverage:**
 
@@ -85,27 +90,36 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 
 - `infection/infection` with `infection.json5`.
   - It mutates `src/` using the PHPUnit suite with `--threads=max`.
-  - **Not mutated:** `src/Controller`, `src/Form`, `src/Twig/Components` and `src/Kernel.php`. This glue is still covered (100 % lines) by the functional tests. Mutating it mostly produces equivalent mutants and slow runs.
+  - **Not mutated:** `src/Controller`, `src/Form`, `src/Twig/Components` and `src/Kernel.php`. This
+    glue is still covered (100 % lines) by the functional tests. Mutating it mostly produces
+    equivalent mutants and slow runs.
   - Reports are written to `var/infection/`.
 - **Thresholds, enforced in CI:**
   - `minCoveredMsi: 100` for `src/Report` and `src/Import`, where a wrong number is the worst bug.
-  - `minCoveredMsi: 80` for the rest of the mutated code (`Security`, `Command`, `Twig` extensions, entities and repositories). Raise it when it is reached comfortably.
+  - `minCoveredMsi: 80` for the rest of the mutated code (`Security`, `Command`, `Twig` extensions,
+    entities and repositories). Raise it when it is reached comfortably.
 - Equivalent mutants are listed with a reason in `infection.json5` and reviewed in PRs.
 - **When it runs:**
   - **On every feature PR to `develop`, for changed lines only** (`--git-diff-lines --git-diff-base=origin/develop`).
     - Fast, because only the mutants in the lines the PR touched are run.
     - This is the merge gate.
   - **Full run on release branches.**
-    - `.github/workflows/mutation-full.yml` runs Infection over the whole code base on push to `release/*` or `hotfix/*`, and on their PRs to `main`.
+    - `.github/workflows/mutation-full.yml` runs Infection over the whole code base on push to
+      `release/*` or `hotfix/*`, and on their PRs to `main`.
     - It runs only when a release is being prepared, so no time is spent when nothing has changed.
-    - It catches what changed-lines runs miss. A change in one class can let mutants survive in another, untouched class, for example when a test that used to kill them is changed or deleted.
-    - It is a required status check on the release PR to `main`, so production is never released with surviving mutants above the thresholds.
+    - It catches what changed-lines runs miss. A change in one class can let mutants survive in
+      another, untouched class, for example when a test that used to kill them is changed or
+      deleted.
+    - It is a required status check on the release PR to `main`, so production is never released
+      with surviving mutants above the thresholds.
     - The full HTML report is kept as a workflow artifact.
     - Survivors are fixed on the release branch before merging.
     - Staging deploys from the same push (Woodpecker) still happen, so testers aren't blocked while the run completes.
-  - **Locally:** `task test:mutation:full` runs the same full run whenever a developer wants it, for example after a larger refactoring.
+  - **Locally:** `task test:mutation:full` runs the same full run whenever a developer wants it, for
+    example after a larger refactoring.
 
-**Expected cost:** roughly 20–30 % extra time early on, falling as factories, fixtures and test helpers build up. This is an estimate, to be revisited after the first tasks.
+**Expected cost:** roughly 20–30 % extra time early on, falling as factories, fixtures and test
+helpers build up. This is an estimate, to be revisited after the first tasks.
 
 **Taskfile tasks:**
 
@@ -121,12 +135,15 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 **CI** (GitHub Actions, next to the template workflows):
 
 - **PR workflow:** coding standards, PHPStan, tests with the coverage gate, and mutation testing on changed lines.
-- **Release workflow:** a full mutation run on push to `release/*` or `hotfix/*`, and on their PRs to `main` (a required check).
+- **Release workflow:** a full mutation run on push to `release/*` or `hotfix/*`, and on their PRs
+  to `main` (a required check).
 
 **Branching** (our usual flow):
 
 - `develop` is the default branch, and all development starts from it.
-- **Feature work:** feature branches (`feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>`) are cut from `develop` and merged back through a PR. The PR workflow and changed-lines mutation testing gate the merge.
+- **Feature work:** feature branches (`feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>`) are cut
+  from `develop` and merged back through a PR. The PR workflow and changed-lines mutation testing
+  gate the merge.
 - **Release:**
   1. Cut a release branch (`release/<VERSION>`) from `develop`.
   2. Every push to it deploys to staging (Woodpecker) and runs the full mutation run.
@@ -134,9 +151,12 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
   4. The release branch is merged to `main` through a PR. The full mutation run is a required check.
 - **Production:** a GitHub release (tag `<VERSION>`) on `main` deploys to production (Woodpecker).
 - **Back-merge:** after the release, `main` is merged back into `develop`, so release fixes are not lost.
-- **Hotfixes:** `hotfix/<VERSION>` is cut from `main`, follows the same path as a release (full run, PR to `main`, release), and is merged back into `develop`.
-- `CHANGELOG.md` gets an entry per feature PR under "Unreleased". The release branch turns "Unreleased" into the version.
-- **To set up before step 4:** create `develop` from `main` and make it the default branch. Protect `develop` and `main` with the required checks.
+- **Hotfixes:** `hotfix/<VERSION>` is cut from `main`, follows the same path as a release (full run,
+  PR to `main`, release), and is merged back into `develop`.
+- `CHANGELOG.md` gets an entry per feature PR under "Unreleased". The release branch turns
+  "Unreleased" into the version.
+- **To set up before step 4:** create `develop` from `main` and make it the default branch. Protect
+  `develop` and `main` with the required checks.
 - A MariaDB service container for the integration and functional tests.
 
 ---
@@ -191,7 +211,8 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
 
 **Diagrams:**
 
-- **System context:** users by role, the application, the driving data extract, and the later sources (telephony system, mailbox, case management system, identity provider).
+- **System context:** users by role, the application, the driving data extract, and the later
+  sources (telephony system, mailbox, case management system, identity provider).
 - **Containers:** Traefik → nginx → phpfpm (Symfony) → MariaDB.
 - **Components:**
   - controllers and forms
@@ -199,9 +220,12 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
   - `Import/DrivingData`: mapping (YAML) → parser → replacer → route builder → daily stats aggregator
   - `Report`: `PeriodRangeFactory`, `KpiCalculator`, `Delta`/`Tone`
   - Twig components
-- **Data model:** an ER diagram of `User`, `Supplier`, `Route`, `RouteSupplierAssignment`, `ImportBatch`, `StopRow`, `RouteRun`, `DailyStats` and `DailyCount`.
-- **Sequence: upload.** Form → `ImportBatch` → parse → replace the stop rows for the dates in the file → rebuild `RouteRun`/`DailyStats` for those dates → result page.
-- **Sequence: overview request.** Authenticator by mode → `IsGranted` → `PeriodFilter` → `KpiCalculator` (current period, comparison period, 12 months) → Twig.
+- **Data model:** an ER diagram of `User`, `Supplier`, `Route`, `RouteSupplierAssignment`,
+  `ImportBatch`, `StopRow`, `RouteRun`, `DailyStats` and `DailyCount`.
+- **Sequence: upload.** Form → `ImportBatch` → parse → replace the stop rows for the dates in the
+  file → rebuild `RouteRun`/`DailyStats` for those dates → result page.
+- **Sequence: overview request.** Authenticator by mode → `IsGranted` → `PeriodFilter` →
+  `KpiCalculator` (current period, comparison period, 12 months) → Twig.
 - **Auth modes:** a flowchart of how `APP_AUTH_MODE` selects the authenticator.
 
 **Files and rendering:**
@@ -257,7 +281,9 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one br
 2. Security.
 3. Features as a vertical slice, so a user can upload a file and see one figure on the overview as early as possible.
 
-**Result:** [`docs/tasks.md`](tasks.md) has 28 tasks in six groups: setup and quality gates, security, layout and administration, data in, overview, and deployment. Each task lists its dependencies, the tests to write first, and its acceptance criteria.
+**Result:** [`docs/tasks.md`](tasks.md) has 28 tasks in six groups: setup and quality gates,
+security, layout and administration, data in, overview, and deployment. Each task lists its
+dependencies, the tests to write first, and its acceptance criteria.
 
 ## 4. Project setup (ITK Dev conventions)
 
@@ -275,11 +301,13 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one br
    - Run `composer install`.
 3. Packages:
    - `symfony/orm-pack`, with the MariaDB `DATABASE_URL`
-   - `twig-bundle`, `asset-mapper`, `form`, `validator`, `security-bundle`, `translation`, `rate-limiter`, `twig/intl-extra`
+   - `twig-bundle`, `asset-mapper`, `form`, `validator`, `security-bundle`, `translation`,
+     `rate-limiter`, `twig/intl-extra`
    - `openspout/openspout` (streams `.xlsx` rows with low memory use), `symfony/ux-twig-component`
    - `nelmio/security-bundle`, for the HTTP security headers
 4. Design system:
-   - Require `itk-dev/itkaarhus-design-system` from the vcs repository `https://github.com/itk-dev/itkaarhus-design-system`.
+   - Require `itk-dev/itkaarhus-design-system` from the vcs repository
+     `https://github.com/itk-dev/itkaarhus-design-system`.
    - Map it in AssetMapper as `itkaarhus-ds`.
 5. Dev tooling:
    - php-cs-fixer, twig-cs-fixer, PHPStan (symfony + doctrine, max level), PHPUnit
@@ -287,7 +315,10 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one br
    - doctrine-fixtures, `zenstruck/foundry`, `dama/doctrine-test-bundle`
    - `infection/infection`, and pcov in the phpfpm image
    - `ergebnis/composer-normalize`, allowed in `config.allow-plugins`
-   - Write the Taskfile with the ITK Dev header (`dotenv: [".env.local", ".env"]` and the vars `DOCKER_COMPOSE`, `PHP`, `COMPOSER` and `CONSOLE`) and the tasks `setup`, `compose`, `composer`, `console`, `test*`, `code-analysis`, `prepare-code`, `coding-standards-*`, `db:migrate`, `fixtures:load` and `docs:diagrams`.
+   - Write the Taskfile with the ITK Dev header (`dotenv: [".env.local", ".env"]` and the vars
+     `DOCKER_COMPOSE`, `PHP`, `COMPOSER` and `CONSOLE`) and the tasks `setup`, `compose`,
+     `composer`, `console`, `test*`, `code-analysis`, `prepare-code`, `coding-standards-*`,
+     `db:migrate`, `fixtures:load` and `docs:diagrams`.
    - The PR workflow also runs `composer audit`, and `.github/dependabot.yml` covers Composer and GitHub Actions.
    - **Smoke test first:** a failing functional test that `/` redirects to `/login`.
 6. Docs:
@@ -315,7 +346,8 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one br
 
 - Every controller has a class-level `#[IsGranted]` with a permission role, with stricter rules per action where needed.
 - `access_control` denies by default (`^/` → `ROLE_USER`). Only `/login` and assets are public.
-- A test walks the router. It fails if any application route lacks `IsGranted`, or if it checks `ROLE_ADMIN` or `ROLE_USER`.
+- A test walks the router. It fails if any application route lacks `IsGranted`, or if it checks
+  `ROLE_ADMIN` or `ROLE_USER`.
 - The user form and `app:user:set-roles` accept `ROLE_ADMIN` and the permission roles.
 
 **Mode wiring** (ready for `none` and `oidc`):
@@ -335,15 +367,19 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one br
 
 **HTTP security headers** (ASVS V14.4, `nelmio/security-bundle`):
 
-- `Strict-Transport-Security` (in `prod` only), a Content Security Policy with `default-src 'self'` and `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`.
+- `Strict-Transport-Security` (in `prod` only), a Content Security Policy with `default-src 'self'`
+  and `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff` and `Referrer-Policy:
+  same-origin`.
 - See [Security](architecture.md#security) for the full values.
-- No inline scripts, no inline event handlers and no `style` attributes in templates. SVG charts use classes and presentation attributes.
+- No inline scripts, no inline event handlers and no `style` attributes in templates. SVG charts use
+  classes and presentation attributes.
 - A functional test checks the headers on `/login` and on `/`.
 
 **`none` mode** (development convenience):
 
 - `NoLoginAuthenticator` signs every request in as a local user with the roles in `APP_NO_LOGIN_ROLES`.
-- `APP_NO_LOGIN_ROLES` defaults to `ROLE_VIEW_OVERVIEW`. A wrong server configuration then gives read access only. Local development sets `ROLE_ADMIN` explicitly.
+- `APP_NO_LOGIN_ROLES` defaults to `ROLE_VIEW_OVERVIEW`. A wrong server configuration then gives
+  read access only. Local development sets `ROLE_ADMIN` explicitly.
 - The app refuses to start in `prod` unless `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
 
 ## 6. Base layout and menu
@@ -370,13 +406,15 @@ Menu items are shown with `is_granted()`.
 **Language and formatting:**
 
 - Danish locale, with texts in `translations/messages+intl-icu.da.yaml`.
-- `FormatExtension` provides: percent, percentage points, signed delta, kilometres, period labels, and "–" for missing values.
+- `FormatExtension` provides: percent, percentage points, signed delta, kilometres, period labels,
+  and "–" for missing values.
 
 ## 7. Upload of driving data
 
 **Upload flow** (`ROLE_UPLOAD_DRIVING_DATA`):
 
-- An upload form creates an `ImportBatch`: file name, uploaded by, the replaced dates, row counts (deleted/inserted/rejected), errors.
+- An upload form creates an `ImportBatch`: file name, uploaded by, the replaced dates, row counts
+  (deleted/inserted/rejected), errors.
 - The file is processed **synchronously** in the request, and the result page is shown.
   - Move to async processing only if file sizes require it (see "Later milestones").
 - CLI: `app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]`.
@@ -390,14 +428,18 @@ Menu items are shown with `is_granted()`.
 - `APP_DRIVING_DATA_MAPPING` selects the mapping used for uploads. The default is `default`.
 - **A mapping defines:**
   - **Location:** the sheet and the header row.
-  - **Row id (optional):** one or more columns. A row id that occurs more than once in one file is rejected after the first occurrence.
+  - **Row id (optional):** one or more columns. A row id that occurs more than once in one file is
+    rejected after the first occurrence.
   - **Field mapping:** a column for each application field.
-  - **Parsing per field:** type (`string`, `int`, `float`, `bool`, `datetime`), date format (Excel serial or a format string), value maps for codes (stop type, stop status, yes/no), and whether the field is required.
+  - **Parsing per field:** type (`string`, `int`, `float`, `bool`, `datetime`), date format (Excel
+    serial or a format string), value maps for codes (stop type, stop status, yes/no), and whether
+    the field is required.
 - **Implementation:**
   - `MappingLoader` reads the YAML and validates it with the Symfony Config component (`TreeBuilder`).
   - The app refuses to start if a mapping is invalid.
   - `StopRowParser` reads the workbook only through a `Mapping` value object. It never refers to column names directly.
-- `app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE>` checks a sample file against a mapping. It reports missing columns and unmapped values, and previews the first parsed rows.
+- `app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE>` checks a sample file against a
+  mapping. It reports missing columns and unmapped values, and previews the first parsed rows.
 - **Tests:**
   - unit tests for the loader and validation, and for each field type and value map
   - parser tests run against a test mapping in `tests/fixtures/mappings/`
@@ -405,7 +447,9 @@ Menu items are shown with `is_granted()`.
 **Storage and replacement** (see [ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)):
 
 - `StopRow` holds one row per stop from the extract.
-- **Replace whole dates:** the import dates are the dates with at least one valid row. `StopRowReplacer` deletes all `StopRow` rows for these dates, from all mappings, and then inserts the rows of the file.
+- **Replace whole dates:** the import dates are the dates with at least one valid row.
+  `StopRowReplacer` deletes all `StopRow` rows for these dates, from all mappings, and then inserts
+  the rows of the file.
   - Rows that are not in a corrected file are removed.
   - Two uploads can never count the same date twice.
   - A file that holds only part of a day removes the other rows of that day. The result page lists the replaced dates.
@@ -423,19 +467,23 @@ Menu items are shown with `is_granted()`.
 
 - After an import, `RouteRun` and `DailyStats` are rebuilt for the **import dates**:
   - **`RouteRun`** (one per route run): last drop-off planned and actual, delay, peak passengers, cancelled.
-  - **`DailyStats`** (date × supplier): trips, completed, cancelled, route runs, last drop-offs, on time, solo runs, driven km, empty km, driven minutes, empty minutes.
+  - **`DailyStats`** (date × supplier): trips, completed, cancelled, route runs, last drop-offs, on
+    time, solo runs, driven km, empty km, driven minutes, empty minutes.
 
 **Clear driving data** (`ROLE_CLEAR_DRIVING_DATA`):
 
-- A page where the user selects a date range. It shows the number of stop rows and route runs in the range, and asks for confirmation.
-- `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the range in one transaction. `DailyCount` does not change.
+- A page where the user selects a date range. It shows the number of stop rows and route runs in the
+  range, and asks for confirmation.
+- `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the range in one
+  transaction. `DailyCount` does not change.
 - The action is logged: who, when, the range and the deleted counts. No field values.
 - CLI: `app:driving-data:clear <FROM_DATE> <TO_DATE>`, with the same service.
 
 **Calculation rules:**
 
 - **Punctuality:**
-  - The last drop-off of a completed route run is on time if it is at most `APP_PUNCTUALITY_TOLERANCE_MINUTES` after the planned time.
+  - The last drop-off of a completed route run is on time if it is at most
+    `APP_PUNCTUALITY_TOLERANCE_MINUTES` after the planned time.
   - The actual time is the `actual_time` field in the mapping.
   - Cancelled runs are excluded.
 - **Empty running %:** the distance to the next stop where no passengers are on board, divided by the total distance.
@@ -448,12 +496,14 @@ Menu items are shown with `is_granted()`.
 
 - `Supplier`, `Route` and `RouteSupplierAssignment`, maintained with hand-built forms.
 - The extract has no supplier, so admins maintain the assignments.
-- **Assignments have dates:** each has `valid_from` and an optional `valid_to`. The assignments of one route must not overlap.
+- **Assignments have dates:** each has `valid_from` and an optional `valid_to`. The assignments of
+  one route must not overlap.
   - A route can change supplier, and the supplier comparison keeps the past figures of each supplier.
   - To change supplier, end the current assignment and add a new one from the change date.
   - `DailyStatsAggregator` finds the supplier for each route and date.
   - A change to an assignment rebuilds `DailyStats` only for the dates of the old and the new date range.
-- A route with no assignment on a date counts as "Unknown" on that date. Routes with no current assignment are listed at the top of the routes page.
+- A route with no assignment on a date counts as "Unknown" on that date. Routes with no current
+  assignment are listed at the top of the routes page.
 
 ## 8. Manual entry of daily counts
 
@@ -486,14 +536,16 @@ Menu items are shown with `is_granted()`.
   - partial periods: the comparison is cut to the same number of days
   - the trailing 12 months
 - **`KpiCalculator`:**
-  - SQL `SUM`s over `DailyStats` and `DailyCount`, plus the distinct count of citizens, returned as a `Kpis` value object.
+  - SQL `SUM`s over `DailyStats` and `DailyCount`, plus the distinct count of citizens, returned as
+    a `Kpis` value object.
   - Ratios come from summed counts and are never averaged.
 - **`Delta`/`Tone`:** the change from the comparison period, and the ok/warn/danger thresholds from one config file.
 
-**Eight tiles.** Each tile shows the value, the change from the comparison period, a 12-month sparkline and a `?` help text.
+**Eight tiles.** Each tile shows the value, the change from the comparison period, a 12-month
+sparkline and a `?` help text.
 
 | Tile | Value | Better when |
-|---|---|---|
+| --- | --- | --- |
 | Empty running | % of km | lower |
 | Trips | count | – |
 | Citizens | distinct count | – |
@@ -503,10 +555,12 @@ Menu items are shown with `is_granted()`.
 | Mails | count | – |
 | Phone calls | count | – |
 
-- The supplier filter narrows the driving figures. Daily counts are office-wide, and their tiles say so when a supplier is selected.
+- The supplier filter narrows the driving figures. Daily counts are office-wide, and their tiles say
+  so when a supplier is selected.
 - A 12-month punctuality line chart with the target line.
 - A supplier table for the driving figures.
-- Charts are server-rendered inline SVG Twig components (`Sparkline`, `LineChart`), each with a hidden data table for screen readers.
+- Charts are server-rendered inline SVG Twig components (`Sparkline`, `LineChart`), each with a
+  hidden data table for screen readers.
 
 ## 10. Deployment with Woodpecker
 
@@ -515,7 +569,7 @@ Deployment uses Woodpecker.
 **Pipelines:**
 
 | Pipeline | Trigger | Target |
-|---|---|---|
+| --- | --- | --- |
 | `.woodpecker/stg.yml` | Push to `release/*` or `hotfix/*` | Staging |
 | `.woodpecker/prod.yml` | `release` event | Production |
 
@@ -534,7 +588,8 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 
 **Server configuration:**
 
-- `.env.local` on every server, staging included, holds `APP_ENV=prod`, `APP_SECRET`, `APP_PERSON_ID_SECRET`, `APP_AUTH_MODE=password` and `DATABASE_URL`.
+- `.env.local` on every server, staging included, holds `APP_ENV=prod`, `APP_SECRET`,
+  `APP_PERSON_ID_SECRET`, `APP_AUTH_MODE=password` and `DATABASE_URL`.
 - The guard against `none` mode depends on `APP_ENV=prod`.
 - Do not include `.env.local` in the backups of the database host.
 - Woodpecker secrets hold the host, path, user and keys.
@@ -565,7 +620,8 @@ applies: README first, architecture and ADRs updated, then tasks.
 - **Security and data protection (decision needed, Q-M2-01):** are these part of Sølv?
   - security and audit logging: sign-ins, denied requests, changes to users and to the import mapping
   - retention rules for the stored data
-  - a DPIA. [ADR 004](adr/004-personal-data-in-driving-data.md) option 1 (pseudonymised rows) requires one, and milestone 2 adds complaint and mail data.
+  - a DPIA. [ADR 004](adr/004-personal-data-in-driving-data.md) option 1 (pseudonymised rows)
+    requires one, and milestone 2 adds complaint and mail data.
 
 ## M2.1 Dashboard and trends
 
@@ -573,7 +629,8 @@ applies: README first, architecture and ADRs updated, then tasks.
 
 - The concept's front page has six figures, with complaints per 1,000 trips as the figure itself.
 - The milestone 1 overview has eight tiles, with complaints as a count.
-- The PM decides which of the two Sølv delivers. Until then, the plan keeps the eight tiles and adds complaints per 1,000 trips.
+- The PM decides which of the two Sølv delivers. Until then, the plan keeps the eight tiles and adds
+  complaints per 1,000 trips.
 
 **Verdict:**
 
@@ -590,9 +647,11 @@ applies: README first, architecture and ADRs updated, then tasks.
 **Cancellations (investigation, Q-M2-03):**
 
 - Cancellations are not in the verdict, because no cancellation figure is defined.
-- `StopRow` keeps only `stop_status`. It does not keep when a trip was cancelled, so late and early cancellations cannot be told apart.
+- `StopRow` keeps only `stop_status`. It does not keep when a trip was cancelled, so late and early
+  cancellations cannot be told apart.
 - The concept's extract gives two different counts (28 and 33) for the same data.
-- Find where cancellations and their time are recorded reliably. Then define the figure and add it to the verdict, or leave it out.
+- Find where cancellations and their time are recorded reliably. Then define the figure and add it
+  to the verdict, or leave it out.
 
 **Trend views:**
 
@@ -611,20 +670,26 @@ applies: README first, architecture and ADRs updated, then tasks.
 
 - Each integration is a console command, e.g. `app:integration:telephony:sync`.
 - They run once a night, from cron on the server, configured in the Woodpecker deploy (the economics convention).
-- No queue or worker is needed while each sync is a short batch job. Add Symfony Messenger with a supervisor-run worker only if a sync becomes long-running.
+- No queue or worker is needed while each sync is a short batch job. Add Symfony Messenger with a
+  supervisor-run worker only if a sync becomes long-running.
 
 **Design:**
 
 - A `DataProviderInterface` adapter per source.
-- Each sync is idempotent: it fetches a date range, by default yesterday plus a few days back to pick up corrections, and overwrites the data for those dates. Running it twice never duplicates data.
-- Integrations write to the same tables as manual entry, with a `source` column (`manual` or the integration name). An integration never overwrites a day that was entered by hand without saying so in the sync report.
+- Each sync is idempotent: it fetches a date range, by default yesterday plus a few days back to
+  pick up corrections, and overwrites the data for those dates. Running it twice never duplicates
+  data.
+- Integrations write to the same tables as manual entry, with a `source` column (`manual` or the
+  integration name). An integration never overwrites a day that was entered by hand without saying
+  so in the sync report.
 - Credentials come from env vars or Symfony secrets.
-- Each run is logged with its date range, counts and errors. Sync status ("last successful sync") is shown in the administration.
+- Each run is logged with its date range, counts and errors. Sync status ("last successful sync") is
+  shown in the administration.
 
 **Sources:**
 
 | Source | Data | Status |
-|---|---|---|
+| --- | --- | --- |
 | Telephony system | Calls offered, answered, abandoned in queue, average answer time, share answered within target | If possible. Depends on an API or export |
 | Mailboxes via the mail API | Mails received, closed and unhandled per day | Needs a service account and permissions to the mailboxes |
 | Complaints | Received date, supplier, route, category, outcome, closed date | Source not chosen (Q-M2-06): F2, the OS2forms complaint form, or collected from the shared mailbox through the mail API |
@@ -633,16 +698,19 @@ applies: README first, architecture and ADRs updated, then tasks.
 
 **Mail API permissions:**
 
-- An application permission such as `Mail.Read` gives access to every mailbox in the tenant. Do not grant it without a limit.
+- An application permission such as `Mail.Read` gives access to every mailbox in the tenant. Do not
+  grant it without a limit.
 - Use `Mail.ReadBasic` if the counts need only the mail headers. It does not give access to the body or the attachments.
 - Limit the application to the shared mailbox with Exchange RBAC for Applications.
 - IT operations grants the permissions (Q-M2-05).
 
 **Complaint source:**
 
-- The stakeholder comment on the concept prefers F2, or the OS2forms complaint form before the case gets to the ESDH system.
+- The stakeholder comment on the concept prefers F2, or the OS2forms complaint form before the case
+  gets to the ESDH system.
 - The PM decides the source (Q-M2-06).
-- If milestone 2 is ready before the source is, the complaint count stays a manual daily count, as in milestone 1. The views beyond the count then need manual entry of complaint cases.
+- If milestone 2 is ready before the source is, the complaint count stays a manual daily count, as
+  in milestone 1. The views beyond the count then need manual entry of complaint cases.
 
 ## M2.3 Extra views
 
@@ -658,14 +726,21 @@ applies: README first, architecture and ADRs updated, then tasks.
 - **Case handling:** outcome, processing time in working days, the share within the deadline, repeat complaints.
 - **Depends on the source:** which fields it delivers. Manual entry of complaint cases is the fallback.
 - **Working days:** calculated with a holiday calendar.
-- **Not in the plan yet (decision needed, Q-M2-07):** the 10 and 20 working-day service targets, the share of complaints upheld, and a split by contract lot. The PM decides if Sølv leaves them out on purpose.
-- **Personal data:** repeat complaints need an identifier for the complainant. Complaints from F2 or the mailbox can contain driver names. [ADR 004](adr/004-personal-data-in-driving-data.md) covers only driving data. Extend it, or add an ADR for complaint and mail data, before the complaint integration starts (Q-M2-08).
+- **Not in the plan yet (decision needed, Q-M2-07):** the 10 and 20 working-day service targets, the
+  share of complaints upheld, and a split by contract lot. The PM decides if Sølv leaves them out on
+  purpose.
+- **Personal data:** repeat complaints need an identifier for the complainant. Complaints from F2 or
+  the mailbox can contain driver names. [ADR 004](adr/004-personal-data-in-driving-data.md) covers
+  only driving data. Extend it, or add an ADR for complaint and mail data, before the complaint
+  integration starts (Q-M2-08).
 
 **Phone enquiries beyond the count:**
 
 - **Figures:** answered, abandoned in the queue, average answer time, and the share answered within target.
-- **Depends on the source:** these exist only if the telephony data provides them. Otherwise the view shows the count only.
-- **Weighted averages:** answer time and the within-target share are stored weighted by answered calls, so averages over a period are exact.
+- **Depends on the source:** these exist only if the telephony data provides them. Otherwise the
+  view shows the count only.
+- **Weighted averages:** answer time and the within-target share are stored weighted by answered
+  calls, so averages over a period are exact.
 
 **Estimated cost of empty running:**
 
@@ -687,9 +762,11 @@ applies: README first, architecture and ADRs updated, then tasks.
 
 - Everyone who can sign in has access to everything. This is on purpose in Sølv.
 - So the assignment in the identity provider decides who is an administrator.
-- Only a named group is assigned to the application, not the whole organisation. The product owner names the group (Q-M2-10).
+- Only a named group is assigned to the application, not the whole organisation. The product owner
+  names the group (Q-M2-10).
 - Signed-in users get the roles in `APP_OIDC_DEFAULT_ROLES`, default `ROLE_ADMIN`.
-- The role guards from milestone 1 stay in place. Restricting access later means changing the role assignment (for example mapping group claims to roles), not the controllers.
+- The role guards from milestone 1 stay in place. Restricting access later means changing the role
+  assignment (for example mapping group claims to roles), not the controllers.
 
 **Other modes:** password and `none` modes stay available.
 
@@ -698,11 +775,12 @@ applies: README first, architecture and ADRs updated, then tasks.
 Each question has an owner, a date when the answer is needed, and the work it blocks. The
 owners are roles. The PM puts names on them.
 
-- **During milestone 1** means that the investigation runs in parallel with milestone 1. The answer is needed before milestone 2 is broken into tasks.
+- **During milestone 1** means that the investigation runs in parallel with milestone 1. The answer
+  is needed before milestone 2 is broken into tasks.
 - **Before M2 tasks** means before milestone 2 is broken into tasks.
 
 | Id | Question | Owner | Needed by | Blocks |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Q-M2-01 | **Security and data protection:** are security and audit logging, retention rules and a DPIA part of Sølv? | PM, with the data protection adviser | Before M2 tasks | M2 scope |
 | Q-M2-02 | **Dashboard:** does Sølv deliver the concept's six figures or the eight milestone 1 tiles? | PM | Before M2 tasks | M2.1 |
 | Q-M2-03 | **Cancellations:** where are cancellations and their time recorded reliably? | Developer, with the transport office | Before M2 tasks | M2.1 verdict |
@@ -722,7 +800,8 @@ The PM confirms that milestone 1 can start without answers to these questions.
 
 # Later milestones (outline)
 
-1. **Theme pages:** activity, punctuality (delay bands, the worst routes), capacity (planned vs actual solo, trips that could not share a vehicle because they were in different contract lots).
+1. **Theme pages:** activity, punctuality (delay bands, the worst routes), capacity (planned vs
+   actual solo, trips that could not share a vehicle because they were in different contract lots).
 2. **Management report:** any period, split by area, with a printable one-pager.
 3. **Role-based access from OIDC claims:** if not everyone should see everything.
 4. **Planning system API:** if the planning system can deliver data automatically, replacing uploads.
@@ -761,7 +840,7 @@ blocks. The owners are roles. The PM puts names on them. The details are in the 
 the table.
 
 | Question | Owner | Needed by | Blocks |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Whole days | Product owner (transport office) | Before M1-16 | M1-16 |
 | Row id | Product owner, with a developer | Before M1-14 | M1-14 |
 | Actual time | Product owner | Before M1-14 | M1-14 |
@@ -772,22 +851,37 @@ the table.
 | Multi-factor authentication for administrators | PM accepts the risk | Before M1-07 | M1-07 |
 | No PII in the database ([ADR 004](adr/004-personal-data-in-driving-data.md)) | Product owner, with the data protection adviser | Before M1-15 | M1-15 |
 
-- **Whole days:** does each extract hold whole days? Re-upload replaces whole dates, so a partial day removes the other rows of that day.
-- **Row id:** is there a stable row id column in the extract? It is optional. If it exists, the import uses it to reject duplicate rows in one file.
+- **Whole days:** does each extract hold whole days? Re-upload replaces whole dates, so a partial
+  day removes the other rows of that day.
+- **Row id:** is there a stable row id column in the extract? It is optional. If it exists, the
+  import uses it to reject duplicate rows in one file.
 - **Actual time:** which column holds the actual time? It is set in the mapping until this is confirmed.
 - **Supplier mapping:** where does route → supplier come from? It is admin-maintained until a source is known.
 - **Solo routes:** do we count actual solo runs (as assumed) or trips planned as solo?
 - **Test data:** we need an anonymised sample extract for the fixtures.
-- **Self-service password change:** not in milestone 1. An administrator or a console command sets passwords (ASVS V2.1).
-- **Multi-factor authentication for administrators:** not in milestone 1. OIDC in a later milestone can give it. Until then, it is a known risk (ASVS V4.3.1).
+- **Self-service password change:** not in milestone 1. An administrator or a console command sets
+  passwords (ASVS V2.1).
+- **Multi-factor authentication for administrators:** not in milestone 1. OIDC in a later milestone
+  can give it. Until then, it is a known risk (ASVS V4.3.1).
 - **No PII in the database (not decided yet).** The goal is to store no personal data about citizens.
-  - **Problem:** a hashed person id or row id is still personal data under GDPR (pseudonymised, not anonymised), because it can be linked back through the source system.
-  - **Hard requirements:** re-imports must replace earlier data, and the same data must never be counted twice. Duplicates would make every figure wrong.
-  - **Overwrite is the same for every option:** a re-upload replaces whole dates ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)). No option needs the person id for that.
+  - **Problem:** a hashed person id or row id is still personal data under GDPR (pseudonymised, not
+    anonymised), because it can be linked back through the source system.
+  - **Hard requirements:** re-imports must replace earlier data, and the same data must never be
+    counted twice. Duplicates would make every figure wrong.
+  - **Overwrite is the same for every option:** a re-upload replaces whole dates ([ADR
+    003](adr/003-driving-data-import-mapping-and-overwrite.md)). No option needs the person id for
+    that.
   - **Options:**
-    1. **Pseudonymised rows** (the current plan): exact distinct counts, and the derived data can be rebuilt from the rows. But the database holds personal data. Needs a DPIA, retention rules and access control.
-    2. **Aggregates only:** store counts per route run and per day, with a HyperLogLog sketch per day for distinct citizens (about 1 % error, no identifiers). A calculation fix needs a re-upload of the affected dates.
-    3. **Rows for a correction window, then aggregates:** keep pseudonymised rows only for as long as corrections can arrive (for example 60 days). After that, a purge job deletes them and keeps the aggregates and sketches. Recent data can be rebuilt, and older data holds no identifiers.
+    1. **Pseudonymised rows** (the current plan): exact distinct counts, and the derived data can be
+       rebuilt from the rows. But the database holds personal data. Needs a DPIA, retention rules
+       and access control.
+    2. **Aggregates only:** store counts per route run and per day, with a HyperLogLog sketch per
+       day for distinct citizens (about 1 % error, no identifiers). A calculation fix needs a
+       re-upload of the affected dates.
+    3. **Rows for a correction window, then aggregates:** keep pseudonymised rows only for as long
+       as corrections can arrive (for example 60 days). After that, a purge job deletes them and
+       keeps the aggregates and sketches. Recent data can be rebuilt, and older data holds no
+       identifiers.
   - **Applies to every option:**
     - No names, addresses or other personal details are imported.
     - Rejected-row messages and logs never contain field values.
@@ -795,19 +889,27 @@ the table.
     - The HMAC key is not included in the backups of the database host.
   - **About the person id:**
     - It is an internal id of the planning system and means nothing outside it.
-    - That lowers the risk, but for us it is still personal data: the organisation has access to the planning system and can look the id up.
-    - Hashing it with a secret means the database alone doesn't reveal the planning-system id. The organisation can still re-identify through the planning system, so for us it remains pseudonymised personal data.
+    - That lowers the risk, but for us it is still personal data: the organisation has access to the
+      planning system and can look the id up.
+    - Hashing it with a secret means the database alone doesn't reveal the planning-system id. The
+      organisation can still re-identify through the planning system, so for us it remains
+      pseudonymised personal data.
   - **What the person id is used for:**
-    - **The Citizens figure** (distinct people in a period). This is the only use. Trips, solo routes, empty running and punctuality don't need it, and the import doesn't need it as a row key.
-    - So the person id does not need to be stored. At most it is read during the import for the Citizens count. The options for Citizens without storing it:
+    - **The Citizens figure** (distinct people in a period). This is the only use. Trips, solo
+      routes, empty running and punctuality don't need it, and the import doesn't need it as a row
+      key.
+    - So the person id does not need to be stored. At most it is read during the import for the
+      Citizens count. The options for Citizens without storing it:
       - drop the figure, or show it for single days only (an exact count per day, stored as a number at import)
-      - a HyperLogLog sketch per day, built during the import, after which the id is discarded. Weeks, months and years are calculated by combining the sketches, with about 1 % error.
+      - a HyperLogLog sketch per day, built during the import, after which the id is discarded.
+        Weeks, months and years are calculated by combining the sketches, with about 1 % error.
       - take distinct counts per period from the source system, if it can provide them
   - **Inputs to the decision (still undecided):**
     - How late can corrections to an extract arrive? This sets the correction window in option 3.
     - Is an approximate Citizens figure (about 1 % error) acceptable? Options 2 and 3 depend on it.
   - **Staff accounts** (username, name) are also personal data. Decide what to store when this is settled.
-  - **Who decides:** the product owner in the transport office, with the data protection adviser. See [ADR 004](adr/004-personal-data-in-driving-data.md).
+  - **Who decides:** the product owner in the transport office, with the data protection adviser.
+    See [ADR 004](adr/004-personal-data-in-driving-data.md).
   - **Decide before task M1-15.** The parser and the `StopRow` design depend on it.
 
 ## Outside this plan (PM to place)
@@ -862,7 +964,8 @@ Development can start without answers to them. The PM must accept this before st
   - Every response has the HTTP security headers, and the browser console shows no Content Security Policy errors.
 - **Import:**
   - The fixture extract produces its hand-computed totals for every figure.
-  - `app:driving-data:mapping:validate` accepts the default mapping with the fixture, and rejects a mapping with a missing column or an unknown value.
+  - `app:driving-data:mapping:validate` accepts the default mapping with the fixture, and rejects a
+    mapping with a missing column or an unknown value.
   - Re-importing the same file deletes and inserts the same number of rows, and the totals do not change.
   - Re-importing a file with one row removed removes that row from the totals.
   - A file with a date that is not stored yet does not change the other dates.

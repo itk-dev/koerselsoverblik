@@ -63,7 +63,7 @@ password login.
 The application runs on the ITK Dev Docker setup (`symfony-8` template):
 
 | Container | Role |
-|---|---|
+| --- | --- |
 | Traefik | TLS termination and routing to the site |
 | nginx | Serves static assets and passes PHP requests to phpfpm |
 | phpfpm | The Symfony 8 application on PHP 8.4 |
@@ -79,7 +79,7 @@ are added only when file sizes or integrations need them.
 [![Components](diagrams/components.svg)](diagrams/components.mmd)
 
 | Namespace | Responsibility |
-|---|---|
+| --- | --- |
 | `Controller` | Thin HTTP layer: checks the role, handles the form, calls a service, renders a template |
 | `Form` | Hand-built form types for upload, daily counts and administration |
 | `Security` | One authenticator per auth mode, and the role guards |
@@ -111,7 +111,7 @@ are added only when file sizes or integrations need them.
 - **Trip:** one citizen's journey from pickup to drop-off.
 
 | Entity | Purpose |
-|---|---|
+| --- | --- |
 | `User` | Login account: username, roles, password hash |
 | `Supplier` | A transport supplier |
 | `Route` | A route from the extract |
@@ -214,7 +214,7 @@ after a wrong upload:
 object.
 
 | Figure | Calculation |
-|---|---|
+| --- | --- |
 | Empty running (%) | `SUM(empty_km) / SUM(driven_km)` |
 | Trips | `SUM(trips)` |
 | Citizens | Distinct citizens in the range (depends on [ADR 004](adr/004-personal-data-in-driving-data.md)) |
@@ -252,7 +252,7 @@ authenticator's `supports()` checks the mode, so only one is ever active.
 - Each part of the application has its own permission role. Controllers check only these:
 
   | Permission role | Grants |
-  |---|---|
+  | --- | --- |
   | `ROLE_VIEW_OVERVIEW` | The overview |
   | `ROLE_UPLOAD_DRIVING_DATA` | Upload of driving data |
   | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date range |
@@ -302,7 +302,7 @@ update pull requests for Composer packages and GitHub Actions.
 response. The configuration is in the repository, and a functional test checks it.
 
 | Header | Value |
-|---|---|
+| --- | --- |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` (in `prod` only) |
 | `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
 | `X-Content-Type-Options` | `nosniff` |
@@ -337,7 +337,7 @@ The project is developed test first, with 100 % line coverage and mutation testi
 [plan](plan.md#development-approach-test-driven-100--coverage-mutation-testing) for the full rules.
 
 | Layer | What | Tools |
-|---|---|---|
+| --- | --- | --- |
 | Unit | `Report`, `Import`, value objects, `FormatExtension` | PHPUnit |
 | Integration | Repositories and aggregate queries, replacement and clearing, commands | `KernelTestCase`, MariaDB, `dama/doctrine-test-bundle` |
 | Functional | Every route × role, forms, login, upload end to end, the overview | `WebTestCase` |

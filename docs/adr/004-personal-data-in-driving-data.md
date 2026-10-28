@@ -1,7 +1,7 @@
 # 004: Personal data in driving data
 
 | Field | Value |
-|-------|-------|
+| --- | --- |
 | **Created By** | Troels Ugilt Jensen |
 | **Date** | 2026-10-10 |
 | **Decision Maker** | The product owner in the transport office, with the data protection adviser |

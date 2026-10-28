@@ -58,7 +58,7 @@ averages of daily percentages.
   until the vehicle is empty again. A route can have several runs a day.
 
 | Figure | Definition | Source |
-|---|---|---|
+| --- | --- | --- |
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
 | Citizens | Distinct citizens in the period, counted on the pseudonymised person id | Driving data |
@@ -69,6 +69,7 @@ averages of daily percentages.
 | Phone calls | Phone calls received | Manual entry |
 
 **NOTE:**
+
 - When the selected period has not ended yet, the comparison period is cut to the same number
   of days. Otherwise "fewer trips than last month" would always be true in the middle of a month.
 - The supplier filter applies to the driving figures only. Mails, complaints and phone calls are
@@ -81,7 +82,7 @@ Every figure has a **?** in the interface that explains what is counted and wher
 Each part of the application has its own permission role:
 
 | Role | Can |
-|---|---|
+| --- | --- |
 | `ROLE_VIEW_OVERVIEW` | View the overview |
 | `ROLE_UPLOAD_DRIVING_DATA` | Upload driving data |
 | `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
@@ -137,7 +138,7 @@ Run `task` to list every available task.
 Set these in `.env.local`:
 
 | Variable | Description | Default |
-|---|---|---|
+| --- | --- | --- |
 | `APP_AUTH_MODE` | Login method: `password`, `none` or `oidc` (`oidc` is not yet implemented) | `password` |
 | `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_VIEW_OVERVIEW` |
 | `APP_ALLOW_NO_LOGIN_IN_PROD` | Set to `1` to allow `APP_AUTH_MODE=none` in `prod`. The app refuses to start otherwise | `0` |
@@ -315,11 +316,18 @@ task test:mutation:full
 ```
 
 - **Test suites:** tests live in `tests/Unit`, `tests/Integration` and `tests/Functional`.
-- **Database:** integration and functional tests run against a MariaDB test database. Each test runs in a transaction that is rolled back.
+- **Database:** integration and functional tests run against a MariaDB test database. Each test runs
+  in a transaction that is rolled back.
 - **Fixture files:** these are in `tests/fixtures/` and are anonymised. Never commit real extracts.
-- **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig components are not mutated; the functional tests cover them. The HTML report is written to `var/infection/`.
-- **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A full run over the whole code base runs on `release/*` branches and is required before a release is merged to `main`.
-- **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most tests are fast unit tests.
+- **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
+  `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
+  components are not mutated; the functional tests cover them. The HTML report is written to
+  `var/infection/`.
+- **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
+  full run over the whole code base runs on `release/*` branches and is required before a release is
+  merged to `main`.
+- **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
+  tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
 
 ### Coding standards and code analysis
@@ -397,7 +405,7 @@ Hotfixes branch from `main` as `hotfix/<VERSION>` and follow steps 3–5.
 Deployment runs on [Woodpecker](https://woodpecker.itkdev.dk):
 
 | Pipeline | Trigger | Target |
-|---|---|---|
+| --- | --- | --- |
 | `.woodpecker/stg.yml` | Push to a `release/*` or `hotfix/*` branch | Staging |
 | `.woodpecker/prod.yml` | A GitHub release | Production |
 
