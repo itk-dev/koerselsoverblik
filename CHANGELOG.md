@@ -24,3 +24,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#14](https://github.com/itk-dev/passenger-transport-performance/issues/14)
   M1-05 Permission roles and deny by default: the security bundle with the permission roles and
   a role hierarchy, a placeholder login, and a test that fails if a route has no permission role.
+  The monolog bundle writes the test logs to a file, so that Infection can run. `task prepare-code`
+  fixes the coding standards before it runs the checks.

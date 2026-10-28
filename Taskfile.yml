@@ -141,8 +141,9 @@ tasks:
       - '{{ .PHP }} bin/mutation-core-check.php {{ .MUTATION_LOG }}'
 
   prepare-code:
-    desc: Run all checks before you push
+    desc: Fix the coding standards, normalize composer.json and run all checks. Run it before you commit
     cmds:
+      - task: coding-standards-apply
       - task: coding-standards-check
       - task: code-analysis
       - task: test:coverage:check
