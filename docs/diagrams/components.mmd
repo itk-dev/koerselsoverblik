@@ -4,13 +4,13 @@ title: Components (milestone 1)
 flowchart TB
     subgraph web["Web layer"]
         controllers["Controllers<br/>Overview, Import, ClearDrivingData,<br/>DailyCount, Security, Admin/*"]
-        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, Route, User"]
+        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, Route"]
         twig["Twig templates and components<br/>Tile, Sparkline, LineChart, Panel"]
         format["FormatExtension"]
     end
 
     subgraph security["Security"]
-        authenticators["Authenticators<br/>Password, NoLogin (OIDC later)"]
+        authenticators["OidcAuthenticator<br/>OidcRoleMapper"]
         guards["Role guards<br/>#[IsGranted], access_control"]
     end
 
@@ -30,7 +30,7 @@ flowchart TB
         delta["Delta / Tone"]
     end
 
-    commands["Console commands<br/>app:user:*, app:driving-data:*"]
+    commands["Console commands<br/>app:driving-data:*"]
     repositories[("Doctrine entities<br/>and repositories")]
 
     controllers --> forms

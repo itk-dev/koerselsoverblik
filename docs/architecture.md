@@ -1,7 +1,7 @@
 # Architecture
 
 This document describes the architecture of Passenger Transport Performance for milestone 1:
-username/password login, upload of driving data, manual entry of daily counts, and an overview
+OIDC login, upload of driving data, manual entry of daily counts, and an overview
 with eight key figures. See the [README](../README.md) for what the application does and
 [the plan](plan.md) for how it is built.
 
@@ -47,14 +47,16 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 - **Viewers** read the overview.
 - **Data editors** export extracts from the planning system and upload them, and enter the daily
   counts of mails, complaints and phone calls.
-- **Administrators** manage users, suppliers, and which supplier drives each route in each
-  period.
+- **Administrators** see the list of users, and manage suppliers and which supplier drives each
+  route in each period.
 
 These are tasks, not roles. Each task has its own permission role (see
 [Authorization](#security)), so one user can do one task or many.
 
-**Later milestones:** the dashed systems feed the application directly, replacing manual entry and
-password login.
+**Identity provider:** users sign in through the identity provider (OIDC). It also gives the
+roles of each user.
+
+**Later milestones:** the dashed systems feed the application directly, replacing manual entry.
 
 ## Containers
 
@@ -68,8 +70,9 @@ The application runs on the ITK Dev Docker setup (`symfony-8` template):
 | nginx | Serves static assets and passes PHP requests to phpfpm |
 | phpfpm | The Symfony 8 application on PHP 8.4 |
 | MariaDB | All application data |
+| idp | Local development only: an OIDC mock service (`ghcr.io/soluto/oidc-server-mock`) with test users |
 
-Console commands (`app:user:*`, `app:driving-data:*`) run in the phpfpm container.
+Console commands (`app:driving-data:*`) run in the phpfpm container.
 
 Uploads are processed synchronously within the request. A queue (Symfony Messenger) and a worker
 are added only when file sizes or integrations need them.
@@ -82,11 +85,11 @@ are added only when file sizes or integrations need them.
 | --- | --- |
 | `Controller` | Thin HTTP layer: checks the role, handles the form, calls a service, renders a template |
 | `Form` | Hand-built form types for upload, daily counts and administration |
-| `Security` | One authenticator per auth mode, and the role guards |
+| `Security` | The OIDC authenticator, the mapping from the role claim to roles, and the role guards |
 | `Import\DrivingData` | Reads an extract through a mapping and turns it into stored data and aggregates |
 | `Report` | Period handling and the calculation of every figure |
 | `Twig` | Formatting helpers and server-rendered components: tiles, sparklines, line charts, panels |
-| `Command` | Console commands for users and imports |
+| `Command` | Console commands for imports and clearing |
 | `Entity`, `Repository` | Doctrine entities and the aggregate queries |
 
 **Rules:**
@@ -112,7 +115,7 @@ are added only when file sizes or integrations need them.
 
 | Entity | Purpose |
 | --- | --- |
-| `User` | Login account: username, roles, password hash |
+| `User` | An account from the identity provider: username, roles from the last login, time of the last login. No password |
 | `Supplier` | A transport supplier |
 | `Route` | A route from the extract |
 | `RouteSupplierAssignment` | The supplier that drives a route from `valid_from` to `valid_to` (empty = no end date) |
@@ -236,16 +239,22 @@ config file.
 
 ## Security
 
-[![Authentication modes](diagrams/auth-modes.svg)](diagrams/auth-modes.mmd)
+[![Authentication](diagrams/authentication.svg)](diagrams/authentication.mmd)
 
-**Authentication:** `APP_AUTH_MODE` selects the authenticator. There is one firewall, and each
-authenticator's `supports()` checks the mode, so only one is ever active.
+**Authentication:** OIDC is the only login method (see
+[ADR 002](adr/002-oidc-authentication.md)).
 
-- **`password`**: a login form with CSRF protection, login rate limiting, remember-me and logout.
-  Users are created with `app:user:create`.
-- **`none`**: every request is signed in as a local user with `APP_NO_LOGIN_ROLES`. The
-  application refuses to start in `prod` unless `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
-- **`oidc`**: a later milestone.
+- There is one firewall with `OidcAuthenticator`. It extends `OpenIdLoginAuthenticator` from
+  `itk-dev/openid-connect-bundle`.
+- An anonymous user is sent to the identity provider. After the login, the identity provider
+  sends the user back to the callback route.
+- At each login, `OidcRoleMapper` reads the role claim (`OIDC_ROLE_CLAIM`). It keeps the values
+  that are `ROLE_ADMIN` or a permission role, and ignores the rest. The `User` is created or
+  updated with these roles.
+- The application does not edit roles. A role change in the identity provider applies at the
+  next login.
+- Logout ends the session in the application.
+- Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**
 
@@ -261,7 +270,7 @@ authenticator's `supports()` checks the mode, so only one is ever active.
   | `ROLE_MANAGE_USERS` | Users |
 
 - `ROLE_ADMIN` gives all permission roles. At first, users get `ROLE_ADMIN` only. Narrower
-  access later needs only role assignments, or a new bundle in `role_hierarchy`.
+  access later needs only other values in the role claim, or a new bundle in `role_hierarchy`.
 
   ```yaml
   role_hierarchy:
@@ -276,7 +285,8 @@ authenticator's `supports()` checks the mode, so only one is ever active.
 
 - Every signed-in user also has `ROLE_USER`. It grants nothing alone.
 - Every controller has a class-level `#[IsGranted]` with a permission role.
-- `access_control` denies everything to anonymous users except `/login` and assets.
+- `access_control` denies everything to anonymous users except the OIDC login and callback
+  routes and the assets.
 - A test walks the router. It fails if an application route has no `IsGranted`, or if it checks
   `ROLE_ADMIN` or `ROLE_USER`.
 
@@ -292,8 +302,8 @@ authenticator's `supports()` checks the mode, so only one is ever active.
 - The import runs synchronously in the request. The limits above keep it short.
 - Rejection reasons and logs never contain field values from the extract.
 
-**Passwords** (ASVS V2.1): a password has at least 12 characters, and `NotCompromisedPassword`
-rejects passwords from known breaches. The commands and the user form use the same rules.
+**Passwords and multi-factor authentication** (ASVS V2.1, V4.3.1): the application stores no
+passwords. The identity provider applies its password rules and multi-factor authentication.
 
 **Dependencies** (ASVS V14.2.1): the PR workflow runs `composer audit`. Dependabot is an
 option for a later milestone.
@@ -340,7 +350,7 @@ The project is developed test first, with 100 % line coverage and mutation testi
 | --- | --- | --- |
 | Unit | `Report`, `Import`, value objects, `FormatExtension` | PHPUnit |
 | Integration | Repositories and aggregate queries, replacement and clearing, commands | `KernelTestCase`, MariaDB, `dama/doctrine-test-bundle` |
-| Functional | Every route × role, forms, login, upload end to end, the overview | `WebTestCase` |
+| Functional | Every route × role, forms, the OIDC login with a stubbed identity provider, upload end to end, the overview | `WebTestCase` |
 
 **Mutation testing (Infection):**
 
@@ -375,17 +385,15 @@ testing and the diagram check on every pull request.
   - It must be decided before the extract parser is built (task M1-15).
 - **Whole days.** Does each extract hold whole days? The replacement of whole dates depends on
   it.
-- **Self-service password change** (ASVS V2.1). In milestone 1, an administrator or a console
-  command sets passwords. Users cannot change their own password.
-- **Multi-factor authentication for administrators** (ASVS V4.3.1). In milestone 1,
-  administrators sign in with a password only. OIDC in a later milestone can give multi-factor
-  authentication. Until then, this is a known risk.
+- **Role claim.** Which claim holds the roles, and which values does the identity provider
+  send? Which group is assigned to the application? IT operations sets this up before go-live
+  (task M1-28).
 
 ## Decision records
 
 See [`adr/`](adr/README.md):
 
 - [001: Stack](adr/001-stack.md)
-- [002: Configurable authentication modes](adr/002-auth-modes.md)
+- [002: OIDC authentication with roles from the identity provider](adr/002-oidc-authentication.md)
 - [003: Driving data import with mappings and replacement of whole dates](adr/003-driving-data-import-mapping-and-overwrite.md)
 - [004: Personal data in driving data](adr/004-personal-data-in-driving-data.md)
