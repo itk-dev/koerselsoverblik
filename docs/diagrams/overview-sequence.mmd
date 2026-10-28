@@ -13,7 +13,7 @@ sequenceDiagram
     participant T as Twig
 
     User->>FW: GET /?p=month&d=2026-09-18&c=previous&s=3
-    FW->>FW: authenticate per APP_AUTH_MODE
+    FW->>FW: user from the session (OIDC login)
     FW->>C: IsGranted ROLE_VIEW_OVERVIEW
     C->>F: map query string (invalid values fall back to defaults)
     C->>R: current, comparison and 12 trailing months

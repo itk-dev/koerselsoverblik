@@ -44,7 +44,7 @@ The user interface is in Danish.
     added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
 - **Administration:** users, suppliers, and which supplier drives each route from which date.
-- **Login:** username and password. Every page requires a role.
+- **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
 
@@ -88,12 +88,16 @@ Each part of the application has its own permission role:
 | `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
-| `ROLE_MANAGE_USERS` | Manage users |
+| `ROLE_MANAGE_USERS` | See the list of users |
 
 `ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
 permission roles let us give narrower access later without code changes.
 
-Every page requires a permission role. Anonymous users are sent to the login page.
+The identity provider gives the roles. It sends them in a claim (`OIDC_ROLE_CLAIM`), and the
+application copies them to the user at each login. Values that are not `ROLE_ADMIN` or a
+permission role are ignored. A user with no known role can sign in, but cannot open any page.
+
+Every page requires a permission role. Anonymous users are sent to the identity provider.
 
 ## Requirements
 
@@ -119,17 +123,16 @@ Every page requires a permission role. Anonymous users are sent to the login pag
    task setup
    ```
 
-4. Create the first user. You are asked for the name and password:
+   The stack includes `idp`, a local OIDC mock service. It has one test user with `ROLE_ADMIN`
+   and one test user for each permission role. The users are in `docker-compose.dev.yml`.
 
-   ```shell
-   task console -- app:user:create <USERNAME> --role=ROLE_ADMIN
-   ```
-
-5. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
+4. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
 
    ```shell
    itkdev-docker-compose open
    ```
+
+5. Sign in as one of the test users of the mock service.
 
 Run `task` to list every available task.
 
@@ -139,17 +142,18 @@ Set these in `.env.local`:
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `APP_AUTH_MODE` | Login method: `password`, `none` or `oidc` (`oidc` is not yet implemented) | `password` |
-| `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_VIEW_OVERVIEW` |
-| `APP_ALLOW_NO_LOGIN_IN_PROD` | Set to `1` to allow `APP_AUTH_MODE=none` in `prod`. The app refuses to start otherwise | `0` |
+| `OIDC_METADATA_URL` | The identity provider's discovery URL (`.well-known/openid-configuration`) | The local mock service |
+| `OIDC_CLIENT_ID` | The client id of the application in the identity provider | The local mock client |
+| `OIDC_CLIENT_SECRET` | The client secret of the application in the identity provider | The local mock secret |
+| `OIDC_REDIRECT_URI` | The callback URL of the application, registered in the identity provider | The local callback URL |
+| `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
 | `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 
-**WARNING:** `APP_AUTH_MODE=none` gives everyone the roles in `APP_NO_LOGIN_ROLES` without
-logging in. Use it for local development only. For full rights in local development, set
-`APP_NO_LOGIN_ROLES=ROLE_ADMIN` explicitly.
+The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
+from the real identity provider.
 
 ## Usage
 
@@ -265,13 +269,15 @@ listed at the top. When an assignment changes, the figures are recalculated for 
 
 ### Manage users
 
-Under **Administration → Users** (requires `ROLE_MANAGE_USERS`), or from the command line:
+Users and roles are managed in the identity provider:
 
-```shell
-task console -- app:user:create <USERNAME> --role=<ROLE>
-task console -- app:user:set-password <USERNAME>
-task console -- app:user:set-roles <USERNAME> <ROLE> [<ROLE>...]
-```
+- To give a person access, assign them to the application in the identity provider.
+- To change the roles of a user, change the value of the role claim in the identity provider.
+  The change applies at the user's next login.
+
+A user is created in the application at the first login. **Administration → Users** (requires
+`ROLE_MANAGE_USERS`) lists the users, their roles from the last login, and the time of the last
+login. The list is read-only.
 
 ## Data and privacy
 
@@ -352,10 +358,11 @@ task fixtures:load
 
 This loads:
 
-- a user with `ROLE_ADMIN`, and a user for each permission role
 - suppliers and routes
 - an imported sample day
 - daily counts
+
+The fixtures do not create users. Sign in with the test users of the local mock service.
 
 ### Diagrams
 
@@ -421,17 +428,14 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 To set up a new server:
 
 1. Set these in `.env.local` (staging included):
-   - `APP_ENV=prod`. The guard against `none` mode depends on it.
-   - `APP_AUTH_MODE=password`
+   - `APP_ENV=prod`
    - `APP_SECRET`
    - `APP_PERSON_ID_SECRET`
+   - the `OIDC_*` settings from the identity provider
    - the database settings
 2. Deploy.
-3. Create the first admin:
-
-   ```shell
-   itkdev-docker-compose-server exec phpfpm bin/console app:user:create <USERNAME> --role=ROLE_ADMIN
-   ```
+3. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
+4. Make sure that the administrator can sign in.
 
 ## Documentation
 
