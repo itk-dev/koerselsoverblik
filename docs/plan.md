@@ -100,6 +100,9 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
   - `minCoveredMsi: 100` for `src/Report` and `src/Import`, where a wrong number is the worst bug.
   - `minCoveredMsi: 80` for the rest of the mutated code (`Security`, `Command`, `Twig` extensions,
     entities and repositories). Raise it when it is reached comfortably.
+  - Infection has one threshold for each run. Thus `infection.json5` sets 80 % for all mutated
+    code. Then `bin/mutation-core-check.php` reads the JSON log, and fails if a mutant escaped in
+    `src/Report` or `src/Import`.
 - Equivalent mutants are listed with a reason in `infection.json5` and reviewed in PRs.
 - **When it runs:**
   - **On every feature PR to `develop`, for changed lines only** (`--git-diff-lines --git-diff-base=origin/develop`).
