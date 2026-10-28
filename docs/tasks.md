@@ -255,11 +255,12 @@ decided. Everything else can continue while it is open.
     it creates or updates the `User` with the roles from `OidcRoleMapper` and the login time.
   - The firewall sends anonymous users to the OIDC login route. The login and callback routes
     are public.
-  - `SecurityController` with `/logout`.
+  - `SecurityController` with `/logout`, and a logout link in the user menu from M1-10.
   - The `idp` service in `docker-compose.dev.yml` with `ghcr.io/soluto/oidc-server-mock`. It has
     one test user with `ROLE_ADMIN` and one test user for each permission role. The `OIDC_*`
     defaults in `.env` point to it.
-  - Remove the temporary in-memory user and the placeholder login route.
+  - Remove the temporary in-memory user, the placeholder login route and `LoginEntryPoint`.
+    Change `PUBLIC_ROUTES` in `RouteGuardTest` to the OIDC login and callback routes.
 - **Tests first (functional, with a stub for the identity provider):**
   - The first login creates the user with the roles from the claim, and redirects to `/`.
   - The next login updates the roles and the login time. It does not create a second user.
@@ -304,7 +305,8 @@ change.
 - **Work:**
   - `itk-dev/itkaarhus-design-system` (vcs repository), mapped in AssetMapper as `itkaarhus-ds`.
   - Port the prototype's shell to `templates/base.html.twig`:
-    - side navigation and a top bar with a user menu
+    - side navigation and a top bar with a user menu. The user menu shows the username. M1-07
+      adds the logout link.
     - a mobile navigation drawer
     - an "about the figures" `<dialog>` with placeholder text
   - Port the prototype's stylesheet to `assets/styles/app.css`.
