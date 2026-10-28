@@ -10,7 +10,7 @@ flowchart TB
     end
 
     subgraph security["Security"]
-        authenticators["Authenticators<br/>Oidc, NoLogin"]
+        authenticators["OidcAuthenticator<br/>OidcRoleMapper"]
         guards["Role guards<br/>#[IsGranted], access_control"]
     end
 

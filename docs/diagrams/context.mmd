@@ -4,12 +4,12 @@ title: System context
 flowchart LR
     user["Viewer<br/>(ROLE_VIEW_OVERVIEW)"]
     editor["Data editor<br/>(ROLE_UPLOAD_DRIVING_DATA,<br/>ROLE_CLEAR_DRIVING_DATA,<br/>ROLE_EDIT_DAILY_COUNTS)"]
-    admin["Administrator<br/>(ROLE_MANAGE_SUPPLIERS)"]
+    admin["Administrator<br/>(ROLE_MANAGE_SUPPLIERS,<br/>ROLE_MANAGE_USERS)"]
 
     app["Passenger Transport Performance<br/>(Symfony web application)"]
 
     planning[("Planning system<br/>driving data extract (.xlsx)")]
-    idp["Identity provider (OIDC)"]
+    idp["Identity provider (OIDC)<br/>login and roles"]
 
     subgraph later["Later milestones"]
         telephony["Telephony system"]
@@ -19,13 +19,13 @@ flowchart LR
 
     user -- "views overview" --> app
     editor -- "uploads extracts,<br/>enters daily counts" --> app
-    admin -- "manages suppliers<br/>and routes" --> app
+    admin -- "views users,<br/>manages suppliers and routes" --> app
     planning -. "exported by an editor<br/>and uploaded" .-> editor
+    idp -- "login,<br/>role claim" --> app
 
     telephony -. "call statistics" .-> app
     mailbox -. "mail counts" .-> app
     cases -. "complaints" .-> app
-    idp -- "login" --> app
 
     classDef future stroke-dasharray: 5 5
     class telephony,mailbox,cases future

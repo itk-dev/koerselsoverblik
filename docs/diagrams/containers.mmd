@@ -12,8 +12,11 @@ flowchart LR
     end
 
     console["Console<br/>bin/console app:*"]
+    idp["Identity provider (OIDC)<br/>idp mock service in local development"]
 
     browser -- "HTTPS" --> traefik
+    browser -- "login redirect" --> idp
+    phpfpm -- "token request" --> idp
     traefik -- "HTTP" --> nginx
     nginx -- "FastCGI" --> phpfpm
     phpfpm -- "Doctrine DBAL" --> mariadb

@@ -5,6 +5,7 @@ parameters:
         - config/
         - public/
         - src/
+        - tests/
     excludePaths:
         - config/reference.php
     symfony:

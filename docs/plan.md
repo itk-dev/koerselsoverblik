@@ -23,7 +23,9 @@ This project builds the real application on that concept and prototype.
 
 **Auth:**
 
-- Configurable via `APP_AUTH_MODE=oidc|none`. OIDC is the only real login. There is no password login.
+- OIDC is the only login method, with `itk-dev/openid-connect-bundle`.
+- The identity provider gives the roles in a claim.
+- Local development uses an OIDC mock service in Docker.
 - Every route is guarded by a role.
 
 ---
@@ -49,15 +51,15 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 - **UI tests assert behaviour, not markup.** Functional tests check what is shown (figures,
   labels, links, access per role), using text and `data-test` attributes. Changing the layout
   does not break them.
-- **Fast feedback loop.** Coverage uses `pcov`, which is much faster than Xdebug. The unit suite
-  runs on its own in seconds (`task test:unit`). Infection runs only on changed lines in PRs.
+- **Fast feedback loop.** The unit suite runs on its own in seconds, with no coverage
+  (`task test:unit`). Infection runs only on changed lines in PRs.
 
 **Test layers** (PHPUnit):
 
 - **Unit** (`tests/Unit`):
   - pure logic: `PeriodRangeFactory`, `KpiCalculator` maths, `Delta`, `Tone`
   - the import mapping loader and validation, the parser, `RouteBuilder`, `DailyStatsAggregator`
-  - `FormatExtension`, the authenticators' `supports()`, value objects
+  - `FormatExtension`, `OidcRoleMapper`, value objects
 - **Integration** (`tests/Integration`, `KernelTestCase` + MariaDB test DB, isolated with `dama/doctrine-test-bundle`):
   - repositories and the SUM and distinct-count queries
   - replacement of whole dates, and clearing a date range
@@ -65,7 +67,7 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 - **Functional** (`tests/Functional`, `WebTestCase`):
   - every route × permission role (200/403/redirect)
   - forms: valid submit, validation errors, CSRF
-  - OIDC login (with a mocked identity provider) and logout
+  - OIDC login and logout, with a stub for the identity provider
   - the HTTP security headers
   - upload end-to-end with the fixture file
   - the overview with filters
@@ -80,7 +82,9 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
 
 **100 % code coverage:**
 
-- PHPUnit with `pcov`, installed in the phpfpm image for development and CI. Xdebug coverage mode is only a fallback.
+- PHPUnit with Xdebug in coverage mode (`PHP_XDEBUG_MODE=coverage`), for development and CI. The
+  `itkdev/php8.4-fpm` image has Xdebug but not pcov. pcov is faster. Add it if the coverage run
+  becomes too slow.
 - `phpunit.dist.xml` `<source>` covers all of `src/`. The only exclusions are `src/Kernel.php` and `migrations/`.
 - `@codeCoverageIgnore` is not used.
 - CI fails below 100 % line coverage (`coverage-check` on the Clover report). Branch coverage is reported.
@@ -98,6 +102,9 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
   - `minCoveredMsi: 100` for `src/Report` and `src/Import`, where a wrong number is the worst bug.
   - `minCoveredMsi: 80` for the rest of the mutated code (`Security`, `Command`, `Twig` extensions,
     entities and repositories). Raise it when it is reached comfortably.
+  - Infection has one threshold for each run. Thus `infection.json5` sets 80 % for all mutated
+    code. Then `bin/mutation-core-check.php` reads the JSON log, and fails if a mutant escaped in
+    `src/Report` or `src/Import`.
 - Equivalent mutants are listed with a reason in `infection.json5` and reviewed in PRs.
 - **When it runs:**
   - **On every feature PR to `develop`, for changed lines only** (`--git-diff-lines --git-diff-base=origin/develop`).
@@ -171,7 +178,7 @@ helpers build up. This is an estimate, to be revisited after the first tasks.
   - the plan broken into tasks (`docs/tasks.md`)
 - **Setup and access:**
   - project setup
-  - OIDC login with Azure B2C (one admin role from the token's `roles` claim)
+  - OIDC login, with roles from the identity provider
   - base layout and menu
 - **Data in:**
   - upload of driving data (each date in the file replaces the stored data for that date)
@@ -197,8 +204,8 @@ Afterwards it is kept in sync whenever the implementation diverges.
 
 - **What it is:** the purpose, and the eight figures with short definitions
 - **Features:** login and roles, upload with replacement of whole dates, clearing dates, daily counts, filters
-- **Getting started:** `task setup`, sign-in with the mock identity provider, the local URL
-- **Configuration:** auth mode, the pseudonymisation secret, the punctuality settings
+- **Getting started:** `task setup`, the first user, the local URL
+- **Configuration:** the OIDC settings, the pseudonymisation secret, the punctuality settings
 - **Usage:** upload, mapping routes to suppliers, daily counts, users
 - **Data and privacy**
 - **Development:** tests, coverage, mutation testing, coding standards, fixtures, diagrams
@@ -216,7 +223,7 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
 - **Containers:** Traefik → nginx → phpfpm (Symfony) → MariaDB.
 - **Components:**
   - controllers and forms
-  - `Security`: authenticators per mode, role guards
+  - `Security`: the OIDC authenticator, the role mapper, role guards
   - `Import/DrivingData`: mapping (YAML) → parser → replacer → route builder → daily stats aggregator
   - `Report`: `PeriodRangeFactory`, `KpiCalculator`, `Delta`/`Tone`
   - Twig components
@@ -224,9 +231,9 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
   `ImportBatch`, `StopRow`, `RouteRun`, `DailyStats` and `DailyCount`.
 - **Sequence: upload.** Form → `ImportBatch` → parse → replace the stop rows for the dates in the
   file → rebuild `RouteRun`/`DailyStats` for those dates → result page.
-- **Sequence: overview request.** Authenticator by mode → `IsGranted` → `PeriodFilter` →
+- **Sequence: overview request.** OIDC session → `IsGranted` → `PeriodFilter` →
   `KpiCalculator` (current period, comparison period, 12 months) → Twig.
-- **Auth modes:** a flowchart of how `APP_AUTH_MODE` selects the authenticator.
+- **Authentication:** a flowchart of the OIDC login and the role mapping.
 
 **Files and rendering:**
 
@@ -241,7 +248,7 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
 - `docs/architecture.md` embeds the SVGs and links to the sources.
 - Key decisions become ADRs in `docs/adr/`:
   - `001-stack.md`
-  - `002-auth-modes.md`
+  - `002-oidc-authentication.md`
   - `003-driving-data-import-mapping-and-overwrite.md`
   - `004-personal-data-in-driving-data.md` (draft, see the PII open question)
 
@@ -302,7 +309,8 @@ dependencies, the tests to write first, and its acceptance criteria.
 3. Packages:
    - `symfony/orm-pack`, with the MariaDB `DATABASE_URL`
    - `twig-bundle`, `asset-mapper`, `form`, `validator`, `security-bundle`, `translation`,
-     `rate-limiter`, `twig/intl-extra`
+     `twig/intl-extra`
+   - `itk-dev/openid-connect-bundle`, for the OIDC login
    - `openspout/openspout` (streams `.xlsx` rows with low memory use), `symfony/ux-twig-component`
    - `nelmio/security-bundle`, for the HTTP security headers
 4. Design system:
@@ -313,14 +321,14 @@ dependencies, the tests to write first, and its acceptance criteria.
    - php-cs-fixer, twig-cs-fixer, PHPStan (symfony + doctrine, max level), PHPUnit
    - `rregeer/phpunit-coverage-check`
    - doctrine-fixtures, `zenstruck/foundry`, `dama/doctrine-test-bundle`
-   - `infection/infection`, and pcov in the phpfpm image
+   - `infection/infection`, with Xdebug coverage from the phpfpm image
    - `ergebnis/composer-normalize`, allowed in `config.allow-plugins`
    - Write the Taskfile with the ITK Dev header (`dotenv: [".env.local", ".env"]` and the vars
      `DOCKER_COMPOSE`, `PHP`, `COMPOSER` and `CONSOLE`) and the tasks `setup`, `compose`,
      `composer`, `console`, `test*`, `code-analysis`, `prepare-code`, `coding-standards-*`,
      `db:migrate`, `fixtures:load` and `docs:diagrams`.
-   - The PR workflow also runs `composer audit`, and `.github/dependabot.yml` covers Composer and GitHub Actions.
-   - **Smoke test first:** a failing functional test that `/` returns 200.
+   - The PR workflow also runs `composer audit`.
+   - **Smoke test first:** a failing functional test that `/` redirects to the login route.
 6. Docs:
    - Check `README.md` against the actual setup.
    - Add `CHANGELOG.md`.
@@ -334,40 +342,44 @@ dependencies, the tests to write first, and its acceptance criteria.
 - `ROLE_CLEAR_DRIVING_DATA`: clear the driving data for a date range
 - `ROLE_EDIT_DAILY_COUNTS`: enter daily counts
 - `ROLE_MANAGE_SUPPLIERS`: suppliers, routes and route → supplier assignments
+- `ROLE_MANAGE_USERS`: users
 
 **`ROLE_ADMIN`** (`role_hierarchy`):
 
 - `ROLE_ADMIN` gives all permission roles.
-- The identity provider assigns the roles through the token (see `oidc` mode).
+- At first, users get `ROLE_ADMIN` only. Narrower access later needs only role assignments.
 - Every signed-in user also has `ROLE_USER`. It grants nothing alone.
 
 **Guarding:**
 
 - Every controller has a class-level `#[IsGranted]` with a permission role, with stricter rules per action where needed.
-- `access_control` denies by default (`^/` → `ROLE_USER`). Only the OIDC routes (`/openidconnect/*` and
-  `/openid-connect/generic`) and assets are public.
+- `access_control` denies by default (`^/` → `ROLE_USER`). Only the OIDC login and callback
+  routes and the assets are public.
 - A test walks the router. It fails if any application route lacks `IsGranted`, or if it checks
   `ROLE_ADMIN` or `ROLE_USER`.
-- `User::setRoles()` accepts only `ROLE_ADMIN` and the permission roles.
 
-**Mode wiring** (`oidc` and `none`):
+**OIDC login** (see [ADR 002](adr/002-oidc-authentication.md)):
 
-- One firewall. Each authenticator's `supports()` checks `APP_AUTH_MODE`.
-- The default is `oidc`.
-- Login routes for inactive modes return 404.
-
-**`oidc` mode** (`itk-dev/openid-connect-bundle`):
-
-- `User` entity: email (from the `upn` claim) as identifier, and roles. No password is stored. Doctrine
-  entity provider.
-- Users are created or updated at each sign-in, from the `name` and `upn` claims.
-- The identity provider (Azure B2C) is authoritative for roles. At first there is one role: `admin` in
-  the `roles` claim gives `ROLE_ADMIN`, so all users have the same access. At each sign-in, the roles
-  from the token replace the stored roles. A user without the admin role cannot sign in.
-- The ITK Dev standard setup, as in `itk-dev/devops_itksites`: provider `azure_az`, `AzureOIDCAuthenticator`,
-  `OpenIdConnectFailureListener` and the `AZURE_AZ_OIDC_*` env vars. `/logout` ends the local session.
-- Local development uses a mock identity provider container (`oidc-provider-mock`).
-- No user administration in the application, and no user commands.
+- OIDC is the only login method. There is no password login and no "no login" mode.
+- `itk-dev/openid-connect-bundle` with one provider. The settings are `OIDC_METADATA_URL`,
+  `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI` and `OIDC_ROLE_CLAIM`.
+- One firewall with `OidcAuthenticator`, which extends the bundle's `OpenIdLoginAuthenticator`.
+  Anonymous users are sent to the identity provider. Logout ends the session in the application.
+- `User` entity: username, roles, last login time. No password. Doctrine entity provider. The
+  user is created at the first login and updated at each login.
+- **Roles from a claim:**
+  - `OidcRoleMapper` reads the claim `OIDC_ROLE_CLAIM`. It keeps the values that are
+    `ROLE_ADMIN` or a permission role, and ignores the rest.
+  - A user with no known role can sign in, but gets 403 on every page.
+  - The application does not edit roles. A role change in the identity provider applies at the
+    next login.
+- **Local development:** the `idp` service in `docker-compose.dev.yml` runs an OIDC mock
+  (`ghcr.io/soluto/oidc-server-mock`). It has one test user with `ROLE_ADMIN` and one test user
+  for each permission role. The `OIDC_*` defaults in `.env` point to it.
+- **Tests:** functional tests sign in with `loginUser()`. The tests of the OIDC flow replace the
+  identity provider with a stub, so there are no calls to the mock service in CI.
+- **Passwords and multi-factor authentication** are the identity provider's job (ASVS V2.1,
+  V4.3.1).
 
 **HTTP security headers** (ASVS V14.4, `nelmio/security-bundle`):
 
@@ -377,14 +389,7 @@ dependencies, the tests to write first, and its acceptance criteria.
 - See [Security](architecture.md#security) for the full values.
 - No inline scripts, no inline event handlers and no `style` attributes in templates. SVG charts use
   classes and presentation attributes.
-- A functional test checks the headers on a redirect and on `/`.
-
-**`none` mode** (development convenience):
-
-- `NoLoginAuthenticator` signs every request in as a local user with the roles in `APP_NO_LOGIN_ROLES`.
-- `APP_NO_LOGIN_ROLES` defaults to `ROLE_VIEW_OVERVIEW`. A wrong server configuration then gives
-  read access only. Local development sets `ROLE_ADMIN` explicitly.
-- The app refuses to start in `prod` unless `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
+- A functional test checks the headers on the redirect to the login and on `/`.
 
 ## 6. Base layout and menu
 
@@ -403,7 +408,7 @@ dependencies, the tests to write first, and its acceptance criteria.
 - Upload driving data (`ROLE_UPLOAD_DRIVING_DATA`)
 - Clear driving data (`ROLE_CLEAR_DRIVING_DATA`)
 - Daily counts (`ROLE_EDIT_DAILY_COUNTS`)
-- Administration: suppliers and routes (`ROLE_MANAGE_SUPPLIERS`)
+- Administration: suppliers and routes (`ROLE_MANAGE_SUPPLIERS`), users (`ROLE_MANAGE_USERS`)
 
 Menu items are shown with `is_granted()`.
 
@@ -593,12 +598,13 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 **Server configuration:**
 
 - `.env.local` on every server, staging included, holds `APP_ENV=prod`, `APP_SECRET`,
-  `APP_PERSON_ID_SECRET`, `APP_AUTH_MODE=oidc`, the `AZURE_AZ_OIDC_*` settings and `DATABASE_URL`.
-- The guard against `none` mode depends on `APP_ENV=prod`.
+  `APP_PERSON_ID_SECRET`, the `OIDC_*` settings and `DATABASE_URL`.
 - Do not include `.env.local` in the backups of the database host.
 - Woodpecker secrets hold the host, path, user and keys.
 
-**Before the first deploy:** IT operations confirms the claim and value for the admin role (Q-M2-10).
+**Before the first deploy:** register the client in the identity provider for each server. IT
+operations assigns the named group to the application and gives the first administrator
+`ROLE_ADMIN` in the role claim.
 
 ---
 
@@ -754,10 +760,6 @@ applies: README first, architecture and ADRs updated, then tasks.
   - The alternatives are to read the price from the upload, or to let an administrator set it in the application.
   - Find out what the extract contains reliably: minutes, km, a price. Then decide.
 
-## M2.4 OIDC login
-
-Moved to milestone 1 (tasks M1-06 to M1-08). Password login is dropped.
-
 ## Open questions for milestone 2
 
 Each question has an owner, a date when the answer is needed, and the work it blocks. The
@@ -778,9 +780,9 @@ owners are roles. The PM puts names on them.
 | Q-M2-07 | **Complaint measures:** does Sølv leave out the 10 and 20 working-day service targets, the share upheld and the split by contract lot on purpose? | PM | Before M2 tasks | M2.3 complaints |
 | Q-M2-08 | **Complaint and mail data:** extend ADR 004, or add a new ADR? | Product owner, with the data protection adviser | Before the complaint integration starts | M2.2 complaints, M2.3 repeat complaints |
 | Q-M2-09 | **Empty running cost:** what does the extract contain reliably? What is the price, per minute or per km, and who sets it? | Developer (extract), product owner (price) | Before M2 tasks | M2.3 estimated cost |
-| Q-M2-10 | **OIDC admin role:** which claim and value does Azure B2C send for the admin role (assumed: `admin` in `roles`)? | Product owner, with IT operations | Before M1-28 (go-live) | M1-28 |
+| Q-M2-10 | Moved to milestone 1: "OIDC group and role claim" | – | – | – |
 | Q-M2-11 | **Working days:** which holiday calendar applies? | Product owner | Before M2 tasks | M2.3 processing time |
-| Q-M2-12 | **Staff data:** what is stored about OIDC users (see ADR 004, staff accounts)? | Product owner, with the data protection adviser | Before M1-06 | M1-06 |
+| Q-M2-12 | Moved to milestone 1: "Staff data" | – | – | – |
 
 The PM confirms that milestone 1 can start without answers to these questions.
 
@@ -791,10 +793,15 @@ The PM confirms that milestone 1 can start without answers to these questions.
 1. **Theme pages:** activity, punctuality (delay bands, the worst routes), capacity (planned vs
    actual solo, trips that could not share a vehicle because they were in different contract lots).
 2. **Management report:** any period, split by area, with a printable one-pager.
-3. **Role-based access from OIDC claims:** if not everyone should see everything.
-4. **Planning system API:** if the planning system can deliver data automatically, replacing uploads.
-5. **Async processing:** Symfony Messenger with a supervisor-run worker, when upload sizes or integrations need it.
-6. **Demo data:** a generator for presentations, ported from the prototype.
+3. **Planning system API:** if the planning system can deliver data automatically, replacing uploads.
+4. **Async processing:** Symfony Messenger with a supervisor-run worker, when upload sizes or integrations need it.
+5. **Demo data:** a generator for presentations, ported from the prototype.
+6. **Prove the dependency check** (ASVS V14.2.1, moved from M1-02): in a scratch branch, require a
+   package version with a known advisory. Make sure that the `composer-audit` job fails and names
+   the advisory. Do not merge the branch.
+7. **Dependabot (optional):** add `.github/dependabot.yml`. It opens update PRs to `develop` for
+   `composer` and `github-actions`, once a week. On GitHub, open Insights → Dependency graph →
+   Dependabot. Make sure that `composer` and `github-actions` show no errors.
 
 ---
 
@@ -804,7 +811,7 @@ The PM confirms that milestone 1 can start without answers to these questions.
 src/
   Controller/            OverviewController, ImportController, ClearDrivingDataController,
                          DailyCountController,
-                         SecurityController, Admin/{Supplier,Route}Controller
+                         SecurityController (logout), Admin/{User,Supplier,Route}Controller
   Entity/                User, Supplier, Route, RouteSupplierAssignment, ImportBatch, StopRow, RouteRun,
                          DailyStats, DailyCount
   Form/                  ImportType, DailyCountWeekType, SupplierType, RouteType,
@@ -812,10 +819,10 @@ src/
   Report/                PeriodFilter, PeriodRangeFactory, KpiCalculator, Kpis, Delta, Tone
   Import/DrivingData/    Mapping, MappingLoader, StopRowParser, StopRowReplacer, RouteBuilder,
                          DailyStatsAggregator, DrivingDataClearer
-  Security/              OidcAuthenticator, NoLoginAuthenticator
+  Security/              OidcAuthenticator, OidcRoleMapper
   Twig/                  FormatExtension, Components/{Tile,Sparkline,LineChart,Panel}
-  Command/               DrivingDataImportCommand,
-                         DrivingDataClearCommand, DrivingDataMappingValidateCommand
+  Command/               DrivingDataImportCommand, DrivingDataClearCommand,
+                         DrivingDataMappingValidateCommand
 config/import/driving_data/   default.yaml (import mapping for the current source)
 templates/ assets/styles/ translations/ migrations/ tests/
 docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
@@ -835,8 +842,8 @@ the table.
 | Supplier mapping | Product owner | Before M1-28 (go-live) | Nothing. Administrators keep the assignments (M1-13) until a source is known. |
 | Solo routes | Product owner | Before M1-23 | M1-23 |
 | Test data | Product owner | Before M1-15 | M1-15, M1-27 |
-| OIDC admin role (Q-M2-10) | Product owner, with IT operations | Before M1-28 (go-live) | M1-28 |
-| Staff data (Q-M2-12) | Product owner, with the data protection adviser | Before M1-06 | M1-06 |
+| OIDC group and role claim (was Q-M2-10) | Product owner, with IT operations | Before M1-28 (go-live) | M1-28. The mock service is used until then. |
+| Staff data (was Q-M2-12) | Product owner, with the data protection adviser | Before M1-06 | M1-06 |
 | No PII in the database ([ADR 004](adr/004-personal-data-in-driving-data.md)) | Product owner, with the data protection adviser | Before M1-15 | M1-15 |
 
 - **Whole days:** does each extract hold whole days? Re-upload replaces whole dates, so a partial
@@ -847,12 +854,12 @@ the table.
 - **Supplier mapping:** where does route → supplier come from? It is admin-maintained until a source is known.
 - **Solo routes:** do we count actual solo runs (as assumed) or trips planned as solo?
 - **Test data:** we need an anonymised sample extract for the fixtures.
-- **OIDC admin role:** which claim and value does Azure B2C send for the admin role? The tasks assume
-  `admin` in the `roles` claim.
-  Multi-factor authentication is the identity provider's responsibility
-  (ASVS V4.3.1).
-- **Staff data:** what is stored about OIDC users? At least the user identifier. A display name
-  waits for this decision.
+- **OIDC group and role claim:** which named group is assigned to the application? Which claim
+  holds the roles, and which values does the identity provider send? Only a named group is
+  assigned, not the whole organisation.
+- **Staff data:** what is stored about the users from the identity provider (see ADR 004, staff
+  accounts)? Until it is decided, `User` keeps only the username, the roles and the last login
+  time.
 - **No PII in the database (not decided yet).** The goal is to store no personal data about citizens.
   - **Problem:** a hashed person id or row id is still personal data under GDPR (pseudonymised, not
     anonymised), because it can be linked back through the source system.
@@ -948,9 +955,8 @@ Development can start without answers to them. The PM must accept this before st
   - `task setup` gives a working site at the local URL.
   - `doctrine:schema:validate` is clean.
 - **Auth:**
-  - A user with the admin role signs in with the identity provider and gets `ROLE_ADMIN`. A user
-    without it cannot sign in.
-  - An anonymous visitor is sent to the identity provider.
+  - Each test user of the mock service can sign in, and sees only the pages for their roles.
+  - A role change in the identity provider applies at the next login.
   - The route-guard test passes, and each route returns the expected status per role.
   - Every response has the HTTP security headers, and the browser console shows no Content Security Policy errors.
 - **Import:**

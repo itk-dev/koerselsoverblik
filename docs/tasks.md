@@ -60,14 +60,14 @@ split it and update this file.
 | M1-04 | Diagram check in CI | 02 |
 | **B** | **Security** | |
 | M1-05 | Permission roles and deny by default | 02 |
-| M1-06 | User entity | 05 |
-| M1-07 | OIDC login | 06 |
-| M1-08 | Authentication modes and no-login mode | 07 |
+| M1-06 | User entity and role mapping | 05 |
+| M1-07 | OIDC login and mock service | 06 |
+| M1-08 | Removed: OIDC is the only login method | – |
 | M1-09 | HTTP security headers | 05 |
 | **C** | **Layout and administration** | |
 | M1-10 | Base layout, design system and menu | 05 |
 | M1-11 | Formatting extension | 02 |
-| M1-12 | Dropped: user administration (roles come from the identity provider) | – |
+| M1-12 | User list | 07, 10 |
 | M1-13 | Suppliers, routes and dated assignments | 10 |
 | **D** | **Data in** | |
 | M1-14 | Import mapping | 02 |
@@ -143,7 +143,8 @@ decided. Everything else can continue while it is open.
 - **Depends on:** M1-01
 - **Work:**
   - PHPUnit with `tests/Unit`, `tests/Integration` and `tests/Functional`.
-  - pcov in the phpfpm image, and a MariaDB test database with `dama/doctrine-test-bundle`.
+  - Coverage with Xdebug from the phpfpm image (the image has no pcov), and a MariaDB test
+    database with `dama/doctrine-test-bundle`.
   - `zenstruck/foundry` and `doctrine/doctrine-fixtures-bundle`.
   - `rregeer/phpunit-coverage-check` at 100 %. The only exclusions are `src/Kernel.php` and
     `migrations/`.
@@ -151,20 +152,16 @@ decided. Everything else can continue while it is open.
     `prepare-code`.
   - A PR workflow running coding standards, `composer normalize --dry-run`, PHPStan and tests
     with the coverage gate, with a MariaDB service container.
-  - Dependency checks (ASVS V14.2.1):
-    - The PR workflow runs `composer audit`. It fails if a dependency has a known
-      vulnerability.
-    - `.github/dependabot.yml` opens update PRs to `develop` for `composer` and
-      `github-actions`, once a week.
-- **Tests first:** a functional smoke test: `GET /` returns 200. M1-05 changes it, so that
-  anonymous visitors are denied.
+  - Dependency check (ASVS V14.2.1): the PR workflow runs `composer audit`. It fails if a
+    dependency has a known vulnerability.
+- **Tests first:** a functional smoke test: `GET /` returns 200. It changes to a redirect to
+  the OIDC login route in M1-05.
 - **Acceptance criteria:**
   - `task test:coverage:check` passes at 100 % and fails if a line is uncovered. Prove it once
     with a throwaway uncovered method.
   - The PR workflow runs on pull requests to `develop` and `main`.
-  - The `composer audit` step fails on a dependency with a known vulnerability. Prove it once
-    in a scratch branch.
-  - Dependabot shows the configuration as valid on GitHub.
+  - The proof that `composer audit` fails on a known vulnerability is moved to "Later milestones"
+    in the [plan](plan.md).
 
 ### M1-03 Mutation testing
 
@@ -204,19 +201,21 @@ decided. Everything else can continue while it is open.
 - **Depends on:** M1-02
 - **Work:**
   - `security-bundle` with the permission roles from the architecture: `ROLE_VIEW_OVERVIEW`,
-    `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS` and
-    `ROLE_MANAGE_SUPPLIERS`.
+    `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS`,
+    `ROLE_MANAGE_SUPPLIERS` and `ROLE_MANAGE_USERS`.
   - `role_hierarchy`: `ROLE_ADMIN` gives all permission roles.
-  - `access_control`: the OIDC routes (`/openidconnect/*` and `/openid-connect/generic`) and assets are public, and everything
-    else requires `ROLE_USER`.
+  - `access_control`: the OIDC login and callback routes and the assets are public, and
+    everything else requires `ROLE_USER`.
   - A placeholder `OverviewController` with `#[IsGranted('ROLE_VIEW_OVERVIEW')]`.
-  - A temporary in-memory user for tests until M1-07.
+  - A temporary in-memory user for tests until M1-06.
+  - Until M1-07, the firewall sends anonymous users to a placeholder login route. M1-07 replaces
+    it with the OIDC login route.
 - **Tests first:**
   - **Route guard (functional):** iterates every route in the router, excluding framework and
     profiler routes. It fails if a controller class or action has no `IsGranted`, or if it
     checks `ROLE_ADMIN` or `ROLE_USER`.
-  - **Anonymous access (functional):** `GET /` does not give 200 to an anonymous visitor. This
-    replaces the M1-02 smoke test. M1-07 changes it to a redirect to the identity provider.
+  - **Anonymous access (functional):** `GET /` redirects to the login route. This replaces the
+    M1-02 smoke test.
   - **Signed-in access (functional):**
     - A user with `ROLE_VIEW_OVERVIEW` gets 200 on `/`.
     - A user with only `ROLE_USER` gets 403.
@@ -224,90 +223,60 @@ decided. Everything else can continue while it is open.
 - **Acceptance criteria:** a new route without a permission role makes the route-guard test
   fail.
 
-### M1-06 User entity
+### M1-06 User entity and role mapping
 
-- **Plan step:** 5. **Implements:** ADR 002, architecture "Data model".
+- **Plan step:** 5. **Implements:** README "Roles", ADR 002.
 - **Depends on:** M1-05
 - **Work:**
-  - `User` entity (`email`, `roles`) and a migration, as in `itk-dev/devops_itksites`. `email` is
-    the identifier and holds the `upn` claim. The entity stores no password.
-  - `roles` holds the roles from the last sign-in. Only the OIDC login (M1-07) sets them. Every
-    user also has `ROLE_USER`.
+  - `User` entity (`username`, `roles`, `last_login_at`) and a migration. It has no password.
   - Doctrine entity user provider.
-  - The display name waits for the staff data decision in ADR 004.
-- **Tests first:**
-  - **Unit:** `setRoles()` accepts only `ROLE_ADMIN` and the permission roles.
-  - **Integration:** the provider loads a user by email with the stored roles and `ROLE_USER`. An
-    unknown email gives `UserNotFoundException`.
-- **Acceptance criteria:** a user loaded by the provider has the roles from the last sign-in.
-
-### M1-07 OIDC login
-
-- **Plan step:** 5. **Implements:** README "Configuration", ADR 002.
-- **Depends on:** M1-06
-- **Work:**
-  - Use the ITK Dev standard setup, as in `itk-dev/devops_itksites`.
-  - `itk-dev/openid-connect-bundle` with one provider, `azure_az`. Its settings come from the
-    `AZURE_AZ_OIDC_*` env vars. The bundle routes are under `/openidconnect`.
-  - `AzureOIDCAuthenticator` extends the bundle's `OpenIdLoginAuthenticator`. It validates the
-    claims, reads `name` and `upn`, then creates or updates the `User` by `upn`. It is the
-    firewall's `entry_point`, and its `start()` redirects to the bundle's login route.
-  - The roles come from the token only. At first there is one role:
-    - The `roles` claim must contain `admin`. It gives `ROLE_ADMIN`, so all users have the same
-      access.
-    - At each sign-in, the roles from the token replace the stored roles.
-    - A token without `admin` in `roles` cannot sign in.
-    - The claim name and value are provisional until Q-M2-10 is answered.
-  - `OpenIdConnectController`: `/openid-connect/generic` is the redirect URI. The firewall's
-    `logout` ends the local session at `/logout`.
-  - `OpenIdConnectFailureListener` shows a failed login as a page, not as a redirect loop.
-  - The bundle requires `cli_login_options`. CLI login is not enabled.
-  - A mock identity provider for local development: the `idp` service
-    (`ghcr.io/geigerzaehler/oidc-provider-mock`) in `docker-compose.override.yml`, at
-    `idp.<COMPOSE_DOMAIN>`. It has two users with `name`, `upn` and `email` claims: `admin`
-    has `"roles": ["admin"]`, and `user` has no roles. `.env.dev` points the `AZURE_AZ_OIDC_*`
-    vars at it, with `AZURE_AZ_OIDC_ALLOW_HTTP=true`.
-  - Remove the temporary in-memory user.
+  - `OidcRoleMapper`, a plain PHP class. It reads the role claim (`OIDC_ROLE_CLAIM`) and
+    returns the values that are `ROLE_ADMIN` or a permission role.
+  - The display name and other staff data wait for the staff data decision in ADR 004.
 - **Tests first:**
   - **Unit:**
-    - The claims → user step. A new `upn` creates a user. A known `upn` updates the same user.
-      Missing claims are rejected.
-    - `admin` in the `roles` claim gives `ROLE_ADMIN`. Other values are ignored.
-    - The stored roles are replaced at each sign-in, so a role removed in the identity provider
-      is removed in the application.
-    - A token without `admin` in `roles` is rejected.
-    - The failure listener renders a failed login as a page.
-  - **Functional** (the identity provider metadata and token endpoints are replaced with
-    `MockHttpClient`):
-    - The bundle login route redirects to the authorization endpoint with `state` and `nonce`.
-    - A valid callback signs the user in and redirects to `/`.
-    - A callback with a wrong `state` is rejected.
-    - Logout ends the session.
-- **Acceptance criteria:**
-  - A user with the admin role in the identity provider can sign in and gets `ROLE_ADMIN`. A
-    user without it cannot sign in.
-  - Locally, `task setup` starts the mock identity provider, and a developer can sign in with it.
-  - An anonymous visitor to `/` is sent to the identity provider.
+    - `OidcRoleMapper` keeps `ROLE_ADMIN` and the permission roles.
+    - It ignores unknown values, and `ROLE_USER`.
+    - A missing or empty claim gives no roles.
+    - The claim can be a string or a list.
+    - Username normalisation.
+  - **Integration:** the repository finds a user by username. A username is unique.
+- **Acceptance criteria:** the migration runs, and `doctrine:schema:validate` is clean.
 
-### M1-08 Authentication modes and no-login mode
+### M1-07 OIDC login and mock service
 
-- **Plan step:** 5. **Implements:** README "Configuration", ADR 002, the auth-modes diagram.
-- **Depends on:** M1-07
+- **Plan step:** 5. **Implements:** README "Getting started", "Configuration" and "Roles",
+  ADR 002, the authentication diagram.
+- **Depends on:** M1-06
 - **Work:**
-  - `APP_AUTH_MODE` (`oidc` by default). Each authenticator's `supports()` checks the mode.
-  - `NoLoginAuthenticator` with `APP_NO_LOGIN_ROLES` (default `ROLE_VIEW_OVERVIEW`).
-  - A kernel or container check that refuses to start in `prod` with `none` unless
-    `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
-  - The OIDC routes return 404 when the mode is not `oidc`.
-- **Tests first:**
-  - **Unit:** `supports()` per mode, and the prod guard for each combination of environment and
-    flag.
-  - **Functional, `none` mode:** with `APP_NO_LOGIN_ROLES=ROLE_VIEW_OVERVIEW`, a page that
-    requires another permission role gives 403. With `ROLE_ADMIN`, it gives 200.
-  - **Functional, OIDC routes:** return 404 in `none` mode.
+  - Require `itk-dev/openid-connect-bundle`, and configure one provider from the `OIDC_*`
+    variables.
+  - `OidcAuthenticator`, which extends the bundle's `OpenIdLoginAuthenticator`. At each login
+    it creates or updates the `User` with the roles from `OidcRoleMapper` and the login time.
+  - The firewall sends anonymous users to the OIDC login route. The login and callback routes
+    are public.
+  - `SecurityController` with `/logout`, and a logout link in the user menu from M1-10.
+  - The `idp` service in `docker-compose.dev.yml` with `ghcr.io/soluto/oidc-server-mock`. It has
+    one test user with `ROLE_ADMIN` and one test user for each permission role. The `OIDC_*`
+    defaults in `.env` point to it.
+  - Remove the temporary in-memory user, the placeholder login route and `LoginEntryPoint`.
+    Change `PUBLIC_ROUTES` in `RouteGuardTest` to the OIDC login and callback routes.
+- **Tests first (functional, with a stub for the identity provider):**
+  - The first login creates the user with the roles from the claim, and redirects to `/`.
+  - The next login updates the roles and the login time. It does not create a second user.
+  - A callback with an invalid state is rejected.
+  - A user with no known role can sign in, but gets 403 on `/`.
+  - Logout ends the session.
+  - `/` redirects to the OIDC login route before the login.
 - **Acceptance criteria:**
-  - The two modes behave as described in the README.
+  - Locally, each mock user can sign in and sees only the pages for their roles.
   - The route-guard test still passes.
+
+### M1-08 Removed: OIDC is the only login method
+
+This task was "Authentication modes and no-login mode". OIDC is now the only login method (see
+ADR 002), so there are no modes to select. The task ID is kept, so that the other IDs do not
+change.
 
 ### M1-09 HTTP security headers
 
@@ -321,7 +290,7 @@ decided. Everything else can continue while it is open.
 - **Tests first (functional):**
   - A response has each header with the value from the architecture.
   - `Strict-Transport-Security` is not sent outside `prod`.
-  - The headers are also on redirects and on error pages.
+  - The headers are also on the redirect to the login and on error pages.
 - **Acceptance criteria:**
   - Every response has the headers.
   - Templates have no inline scripts, no inline event handlers and no `style` attributes. Later
@@ -336,7 +305,8 @@ decided. Everything else can continue while it is open.
 - **Work:**
   - `itk-dev/itkaarhus-design-system` (vcs repository), mapped in AssetMapper as `itkaarhus-ds`.
   - Port the prototype's shell to `templates/base.html.twig`:
-    - side navigation and a top bar with a user menu
+    - side navigation and a top bar with a user menu. The user menu shows the username. M1-07
+      adds the logout link.
     - a mobile navigation drawer
     - an "about the figures" `<dialog>` with placeholder text
   - Port the prototype's stylesheet to `assets/styles/app.css`.
@@ -369,10 +339,18 @@ decided. Everything else can continue while it is open.
   - ISO week 53, and periods across years
 - **Acceptance criteria:** every format matches the prototype's formatting.
 
-### M1-12 User administration (dropped)
+### M1-12 User list
 
-Dropped. The roles come from the `roles` claim in the token, so they are managed in the identity
-provider.
+- **Plan step:** 5–6. **Implements:** README "Manage users".
+- **Depends on:** M1-07, M1-10
+- **Work:**
+  - `Admin\UserController` with `#[IsGranted('ROLE_MANAGE_USERS')]`: a read-only list of the
+    users, with the username, the roles from the last login and the time of the last login.
+  - The identity provider manages users and roles, so there is no create, edit or delete.
+- **Tests first (functional):**
+  - A user with `ROLE_MANAGE_USERS` sees every user with their roles and last login time.
+  - A user without `ROLE_MANAGE_USERS` gets 403.
+- **Acceptance criteria:** the user list works as in the README.
 
 ### M1-13 Suppliers, routes and dated assignments
 
@@ -730,7 +708,7 @@ provider.
 - **Plan step:** 4 and 9. **Implements:** README "Fixtures".
 - **Depends on:** M1-19, M1-21
 - **Work:**
-  - `AppFixtures`:
+  - `AppFixtures` (no users; local sign-in uses the users of the `idp` mock service):
     - suppliers, routes and assignments, with one supplier change during the period
     - an imported sample day (run through the real import service)
     - daily counts
@@ -750,9 +728,11 @@ provider.
   - `.woodpecker/prod.yml`: the `release` event.
   - Both use `itkdev/ansible-plugin` with the steps in the README.
   - The server compose files from the template.
-  - Document the server's `.env.local` variables.
+  - Document the server's `.env.local` variables, including the `OIDC_*` variables.
+  - Register the staging and production clients in the identity provider. Agree the role claim
+    (name and values) and the assigned group with IT operations.
 - **Tests first:** none (deployment configuration).
 - **Acceptance criteria:**
   - A push to a `release/*` branch deploys to staging.
-  - A user in the assigned identity provider group can sign in on the server.
+  - A user with `ROLE_ADMIN` in the role claim can sign in on staging.
   - The release checklist in the README works end to end.

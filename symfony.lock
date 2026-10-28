@@ -1,4 +1,7 @@
 {
+    "dama/doctrine-test-bundle": {
+        "version": "v8.7.0"
+    },
     "doctrine/deprecations": {
         "version": "1.1",
         "recipe": {
@@ -20,6 +23,18 @@
             "config/packages/doctrine.yaml",
             "src/Entity/.gitignore",
             "src/Repository/.gitignore"
+        ]
+    },
+    "doctrine/doctrine-fixtures-bundle": {
+        "version": "4.3",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "3.0",
+            "ref": "1f5514cfa15b947298df4d771e694e578d4c204d"
+        },
+        "files": [
+            "src/DataFixtures/AppFixtures.php"
         ]
     },
     "doctrine/doctrine-migrations-bundle": {
@@ -49,6 +64,21 @@
     },
     "phpstan/phpstan": {
         "version": "2.3.1"
+    },
+    "phpunit/phpunit": {
+        "version": "13.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "11.1",
+            "ref": "ca0bc067abfb40a8de1b2561b96cbfc2b833c314"
+        },
+        "files": [
+            ".env.test",
+            "phpunit.dist.xml",
+            "tests/bootstrap.php",
+            "bin/phpunit"
+        ]
     },
     "symfony/asset-mapper": {
         "version": "8.1",
@@ -111,6 +141,30 @@
             "AGENTS.md"
         ]
     },
+    "symfony/monolog-bundle": {
+        "version": "4.1",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "3.7",
+            "ref": "feb8fd9520b5694c7d0d2ba17fd4b4d33f9dd9cf"
+        },
+        "files": [
+            "config/packages/monolog.yaml"
+        ]
+    },
+    "symfony/property-info": {
+        "version": "8.1",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "7.3",
+            "ref": "dae70df71978ae9226ae915ffd5fad817f5ca1f7"
+        },
+        "files": [
+            "config/packages/property_info.yaml"
+        ]
+    },
     "symfony/routing": {
         "version": "8.1",
         "recipe": {
@@ -124,7 +178,33 @@
             "config/routes.yaml"
         ]
     },
+    "symfony/security-bundle": {
+        "version": "8.1",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "7.4",
+            "ref": "02d47835088cd548c827e5d53b3c4b361bca3390"
+        },
+        "files": [
+            "config/packages/security.yaml",
+            "config/routes/security.yaml"
+        ]
+    },
     "vincentlanglet/twig-cs-fixer": {
         "version": "4.1.1"
+    },
+    "zenstruck/foundry": {
+        "version": "2.14",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "2.7",
+            "ref": "9bd824886195ebe64a24438db1b6d17eb833ac56"
+        },
+        "files": [
+            "config/packages/zenstruck_foundry.yaml",
+            "src/Story/AppStory.php"
+        ]
     }
 }

@@ -43,8 +43,8 @@ The user interface is in Danish.
   - Columns are read through an [import mapping](#import-mappings), so another source can be
     added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
-- **Administration:** suppliers, and which supplier drives each route from which date.
-- **Login:** single sign-on with the identity provider (OIDC). Every page requires a role.
+- **Administration:** users, suppliers, and which supplier drives each route from which date.
+- **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
 
@@ -88,13 +88,14 @@ Each part of the application has its own permission role:
 | `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
+| `ROLE_MANAGE_USERS` | See the list of users |
 
-`ROLE_ADMIN` gives all the permission roles above.
+`ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
+permission roles let us give narrower access later without code changes.
 
-The identity provider (Azure B2C) is authoritative for roles. At first there is one role: `admin`
-in the token's `roles` claim gives `ROLE_ADMIN`, so all users have the same access. At each
-sign-in, the roles from the token replace the user's stored roles. A user without the admin role
-cannot sign in.
+The identity provider gives the roles. It sends them in a claim (`OIDC_ROLE_CLAIM`), and the
+application copies them to the user at each login. Values that are not `ROLE_ADMIN` or a
+permission role are ignored. A user with no known role can sign in, but cannot open any page.
 
 Every page requires a permission role. Anonymous users are sent to the identity provider.
 
@@ -122,23 +123,16 @@ Every page requires a permission role. Anonymous users are sent to the identity 
    task setup
    ```
 
+   The stack includes `idp`, a local OIDC mock service. It has one test user with `ROLE_ADMIN`
+   and one test user for each permission role. The users are in `docker-compose.dev.yml`.
+
 4. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
 
    ```shell
    itkdev-docker-compose open
    ```
 
-5. Sign in with the mock identity provider. It runs as the `idp` service at
-   <http://idp.passenger-transport-performance.local.itkdev.dk>, and `.env.dev` points the
-   application at it. Pick "Authorize as admin" to sign in. "Authorize as user" has no admin
-   role, so the sign-in is refused.
-
-   The mock creates new signing keys when its container restarts. If a sign-in then fails with
-   `"kid" invalid`, clear the cache:
-
-   ```shell
-   task console -- cache:pool:clear cache.app
-   ```
+5. Sign in as one of the test users of the mock service.
 
 Run `task` to list every available task.
 
@@ -148,23 +142,18 @@ Set these in `.env.local`:
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `APP_AUTH_MODE` | Login method: `oidc` or `none` | `oidc` |
-| `AZURE_AZ_OIDC_METADATA_URL` | The identity provider's OpenID Connect discovery URL | The mock identity provider (in `.env.dev`) |
-| `AZURE_AZ_OIDC_CLIENT_ID` | The client id from the identity provider | The mock identity provider (in `.env.dev`) |
-| `AZURE_AZ_OIDC_CLIENT_SECRET` | The client secret from the identity provider | The mock identity provider (in `.env.dev`) |
-| `AZURE_AZ_OIDC_CLIENT_SECRET_EXPIRES_AT` | The date the client secret expires. The bundle logs a warning before it expires | – |
-| `AZURE_AZ_OIDC_REDIRECT_URI` | The callback URL, `https://<HOST>/openid-connect/generic` | The local URL (in `.env.dev`) |
-| `AZURE_AZ_OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the mock identity provider needs it | `false` |
-| `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_VIEW_OVERVIEW` |
-| `APP_ALLOW_NO_LOGIN_IN_PROD` | Set to `1` to allow `APP_AUTH_MODE=none` in `prod`. The app refuses to start otherwise | `0` |
+| `OIDC_METADATA_URL` | The identity provider's discovery URL (`.well-known/openid-configuration`) | The local mock service |
+| `OIDC_CLIENT_ID` | The client id of the application in the identity provider | The local mock client |
+| `OIDC_CLIENT_SECRET` | The client secret of the application in the identity provider | The local mock secret |
+| `OIDC_REDIRECT_URI` | The callback URL of the application, registered in the identity provider | The local callback URL |
+| `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
 | `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 
-**WARNING:** `APP_AUTH_MODE=none` gives everyone the roles in `APP_NO_LOGIN_ROLES` without
-logging in. Use it for local development only. For full rights in local development, set
-`APP_NO_LOGIN_ROLES=ROLE_ADMIN` explicitly.
+The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
+from the real identity provider.
 
 ## Usage
 
@@ -280,8 +269,15 @@ listed at the top. When an assignment changes, the figures are recalculated for 
 
 ### Manage users
 
-Users and their roles are managed in the identity provider. Give a person the admin role there,
-and they can sign in. A user is created in the application at the first sign-in.
+Users and roles are managed in the identity provider:
+
+- To give a person access, assign them to the application in the identity provider.
+- To change the roles of a user, change the value of the role claim in the identity provider.
+  The change applies at the user's next login.
+
+A user is created in the application at the first login. **Administration → Users** (requires
+`ROLE_MANAGE_USERS`) lists the users, their roles from the last login, and the time of the last
+login. The list is read-only.
 
 ## Data and privacy
 
@@ -334,8 +330,8 @@ task test:mutation:full
   components are not mutated; the functional tests cover them. The HTML report is written to
   `var/infection/`.
 - **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
-  full run over the whole code base runs on `release/*` branches and is required before a release is
-  merged to `main`.
+  full run over the whole code base runs on `release/*` and `hotfix/*` branches and is required
+  before a release is merged to `main`.
 - **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
   tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
@@ -365,6 +361,8 @@ This loads:
 - suppliers and routes
 - an imported sample day
 - daily counts
+
+The fixtures do not create users. Sign in with the test users of the local mock service.
 
 ### Diagrams
 
@@ -430,13 +428,14 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 To set up a new server:
 
 1. Set these in `.env.local` (staging included):
-   - `APP_ENV=prod`. The guard against `none` mode depends on it.
-   - `APP_AUTH_MODE=oidc`
-   - the `AZURE_AZ_OIDC_*` settings from the identity provider
+   - `APP_ENV=prod`
    - `APP_SECRET`
    - `APP_PERSON_ID_SECRET`
+   - the `OIDC_*` settings from the identity provider
    - the database settings
 2. Deploy.
+3. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
+4. Make sure that the administrator can sign in.
 
 ## Documentation
 

@@ -1,0 +1,57 @@
+security:
+    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    # ROLE_ADMIN gives all permission roles. Controllers check only the permission roles.
+    # See "Security" in docs/architecture.md.
+    role_hierarchy:
+        ROLE_ADMIN:
+            - ROLE_VIEW_OVERVIEW
+            - ROLE_UPLOAD_DRIVING_DATA
+            - ROLE_CLEAR_DRIVING_DATA
+            - ROLE_EDIT_DAILY_COUNTS
+            - ROLE_MANAGE_SUPPLIERS
+            - ROLE_MANAGE_USERS
+
+    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
+    # A temporary provider. M1-06 replaces it with the User entity.
+    providers:
+        users_in_memory: { memory: null }
+
+    firewalls:
+        dev:
+            # Ensure dev tools and static assets are always allowed
+            pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
+            security: false
+        main:
+            lazy: true
+            provider: users_in_memory
+            # Sends anonymous users to the placeholder login. M1-07 replaces it with the OIDC login.
+            entry_point: App\Security\LoginEntryPoint
+
+    # Note: Only the *first* matching rule is applied
+    access_control:
+        - { path: ^/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/assets/, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: ROLE_USER }
+
+when@test:
+    security:
+        password_hashers:
+            # Password hashers are resource-intensive by design to ensure security.
+            # In tests, it's safe to reduce their cost to improve performance.
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4 # Lowest possible value for bcrypt
+                time_cost: 3 # Lowest possible value for argon
+                memory_cost: 10 # Lowest possible value for argon
+
+        # The test users for loginUser(). Every signed-in user also has ROLE_USER.
+        providers:
+            users_in_memory:
+                memory:
+                    users:
+                        viewer: { roles: [ROLE_USER, ROLE_VIEW_OVERVIEW] }
+                        user: { roles: [ROLE_USER] }
+                        admin: { roles: [ROLE_USER, ROLE_ADMIN] }

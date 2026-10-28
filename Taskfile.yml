@@ -13,6 +13,14 @@ vars:
   PHP: '{{ .DOCKER_COMPOSE }} run --rm phpfpm php'
   COMPOSER: '{{ .DOCKER_COMPOSE }} run --rm phpfpm composer'
   CONSOLE: '{{ .PHP }} bin/console'
+  PHPUNIT: '{{ .PHP }} vendor/bin/phpunit'
+  # Xdebug collects the coverage, because the phpfpm image has no pcov.
+  PHPUNIT_COVERAGE: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/phpunit'
+  COVERAGE_DIR: var/coverage
+  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads=max --ignore-msi-with-no-mutations'
+  MUTATION_LOG: var/infection/infection.json
+  # The changed-lines run compares with this git reference.
+  MUTATION_BASE: '{{ .TASK_MUTATION_BASE | default "origin/develop" }}'
 
   MERMAID_CLI_IMAGE: '{{ .TASK_MERMAID_CLI_IMAGE | default "minlag/mermaid-cli:12.0.0" }}'
   DIAGRAMS_DIR: docs/diagrams
@@ -62,6 +70,84 @@ tasks:
       - task: console
         vars:
           CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+  # --------------------------------------------------------------- Tests ---
+
+  test:db:setup:
+    desc: Create the test database and run the migrations on it
+    cmds:
+      - task: console
+        vars:
+          CLI_ARGS: doctrine:database:create --env=test --if-not-exists
+      - task: console
+        vars:
+          CLI_ARGS: doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
+
+  test:
+    desc: Run all tests
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT }} {{ .CLI_ARGS }}'
+
+  test:unit:
+    desc: Run the unit tests
+    cmds:
+      - '{{ .PHPUNIT }} --testsuite Unit {{ .CLI_ARGS }}'
+
+  test:file:
+    desc: 'Run the tests in one file — `task test:file -- tests/Functional/SmokeTest.php`'
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT }} {{ .CLI_ARGS }}'
+
+  test:coverage:
+    desc: Run all tests with coverage. The reports are in var/coverage/.
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT_COVERAGE }} --coverage-clover {{ .COVERAGE_DIR }}/clover.xml --coverage-html {{ .COVERAGE_DIR }}/html --coverage-text'
+
+  test:coverage:check:
+    desc: Run all tests, and fail if line coverage is below 100 %
+    cmds:
+      - task: test:coverage
+      - '{{ .PHP }} vendor/bin/coverage-check {{ .COVERAGE_DIR }}/clover.xml 100'
+
+  test:mutation:
+    desc: Run mutation testing on the lines that changed since develop. The reports are in var/infection/.
+    cmds:
+      - task: test:db:setup
+      - rm -f {{ .MUTATION_LOG }}
+      - '{{ .INFECTION }} --git-diff-lines --git-diff-base={{ .MUTATION_BASE }} {{ .CLI_ARGS }}'
+      - task: test:mutation:core-check
+
+  test:mutation:full:
+    desc: Run mutation testing on all code. The reports are in var/infection/.
+    cmds:
+      - task: test:db:setup
+      - rm -f {{ .MUTATION_LOG }}
+      # The filter "src/" matches all source files. Infection fails on an unfiltered run with no
+      # source files, but a filtered run with no files passes. This is necessary while src/ has no
+      # mutated code. Do not use the positional path "src/" instead: Infection then applies no filter.
+      # "--filter" is deprecated since Infection 0.34.
+      - '{{ .INFECTION }} --filter=src/ {{ .CLI_ARGS }}'
+      - task: test:mutation:core-check
+
+  test:mutation:core-check:
+    internal: true
+    # Infection writes no log when it finds no source files. Then there is nothing to check.
+    status:
+      - test ! -f {{ .MUTATION_LOG }}
+    cmds:
+      - '{{ .PHP }} bin/mutation-core-check.php {{ .MUTATION_LOG }}'
+
+  prepare-code:
+    desc: Fix the coding standards, normalize composer.json and run all checks. Run it before you commit
+    cmds:
+      - task: coding-standards-apply
+      - task: coding-standards-check
+      - task: code-analysis
+      - task: test:coverage:check
+      - task: test:mutation
 
   # ------------------------------------------------------- Code analysis ---
 
