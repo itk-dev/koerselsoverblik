@@ -92,7 +92,8 @@ To find how the project is configured, use these commands. Do not guess:
 - PHP uses the `@Symfony` ruleset of PHP CS Fixer.
 - YAML in `config/` has 4 spaces. Other YAML files have 2 spaces. Prettier checks them.
 - Markdown lines have a maximum of 120 characters. markdownlint checks them.
-- Run `task coding-standards-check` and `task code-analysis` before you commit.
+- Run `task prepare-code` before you commit. It fixes the coding standards, normalizes
+  `composer.json`, and runs the checks, the coverage gate and the mutation tests.
 
 ## Git and pull requests
 

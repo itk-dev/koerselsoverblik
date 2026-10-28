@@ -1,0 +1,42 @@
+### ### Full mutation testing
+###
+### Runs Infection on all code when a release is prepared. Feature PRs run
+### mutation testing only on the changed lines (see tests.yaml).
+
+name: Full mutation testing
+
+env:
+  COMPOSE_USER: runner
+
+on:
+  push:
+    branches:
+      - "release/**"
+      - "hotfix/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  mutation-full:
+    name: Mutation testing on all code
+    # A PR to main runs this job only when it comes from a release or hotfix branch.
+    if: >-
+      github.event_name == 'push'
+      || startsWith(github.head_ref, 'release/')
+      || startsWith(github.head_ref, 'hotfix/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task test:mutation:full

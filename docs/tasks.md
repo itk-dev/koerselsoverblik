@@ -60,14 +60,14 @@ split it and update this file.
 | M1-04 | Diagram check in CI | 02 |
 | **B** | **Security** | |
 | M1-05 | Permission roles and deny by default | 02 |
-| M1-06 | User entity and user commands | 05 |
-| M1-07 | Password login | 06 |
-| M1-08 | Authentication modes and no-login mode | 07 |
+| M1-06 | User entity and role mapping | 05 |
+| M1-07 | OIDC login and mock service | 06 |
+| M1-08 | Removed: OIDC is the only login method | – |
 | M1-09 | HTTP security headers | 05 |
 | **C** | **Layout and administration** | |
 | M1-10 | Base layout, design system and menu | 05 |
 | M1-11 | Formatting extension | 02 |
-| M1-12 | User administration | 07, 10 |
+| M1-12 | User list | 07, 10 |
 | M1-13 | Suppliers, routes and dated assignments | 10 |
 | **D** | **Data in** | |
 | M1-14 | Import mapping | 02 |
@@ -143,7 +143,8 @@ decided. Everything else can continue while it is open.
 - **Depends on:** M1-01
 - **Work:**
   - PHPUnit with `tests/Unit`, `tests/Integration` and `tests/Functional`.
-  - pcov in the phpfpm image, and a MariaDB test database with `dama/doctrine-test-bundle`.
+  - Coverage with Xdebug from the phpfpm image (the image has no pcov), and a MariaDB test
+    database with `dama/doctrine-test-bundle`.
   - `zenstruck/foundry` and `doctrine/doctrine-fixtures-bundle`.
   - `rregeer/phpunit-coverage-check` at 100 %. The only exclusions are `src/Kernel.php` and
     `migrations/`.
@@ -151,20 +152,16 @@ decided. Everything else can continue while it is open.
     `prepare-code`.
   - A PR workflow running coding standards, `composer normalize --dry-run`, PHPStan and tests
     with the coverage gate, with a MariaDB service container.
-  - Dependency checks (ASVS V14.2.1):
-    - The PR workflow runs `composer audit`. It fails if a dependency has a known
-      vulnerability.
-    - `.github/dependabot.yml` opens update PRs to `develop` for `composer` and
-      `github-actions`, once a week.
+  - Dependency check (ASVS V14.2.1): the PR workflow runs `composer audit`. It fails if a
+    dependency has a known vulnerability.
 - **Tests first:** a functional smoke test: `GET /` returns 200. It changes to a redirect to
-  `/login` in M1-05.
+  the OIDC login route in M1-05.
 - **Acceptance criteria:**
   - `task test:coverage:check` passes at 100 % and fails if a line is uncovered. Prove it once
     with a throwaway uncovered method.
   - The PR workflow runs on pull requests to `develop` and `main`.
-  - The `composer audit` step fails on a dependency with a known vulnerability. Prove it once
-    in a scratch branch.
-  - Dependabot shows the configuration as valid on GitHub.
+  - The proof that `composer audit` fails on a known vulnerability is moved to "Later milestones"
+    in the [plan](plan.md).
 
 ### M1-03 Mutation testing
 
@@ -207,15 +204,18 @@ decided. Everything else can continue while it is open.
     `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS`,
     `ROLE_MANAGE_SUPPLIERS` and `ROLE_MANAGE_USERS`.
   - `role_hierarchy`: `ROLE_ADMIN` gives all permission roles.
-  - `access_control`: `^/login` and assets are public, and everything else requires `ROLE_USER`.
+  - `access_control`: the OIDC login and callback routes and the assets are public, and
+    everything else requires `ROLE_USER`.
   - A placeholder `OverviewController` with `#[IsGranted('ROLE_VIEW_OVERVIEW')]`.
   - A temporary in-memory user for tests until M1-06.
+  - Until M1-07, the firewall sends anonymous users to a placeholder login route. M1-07 replaces
+    it with the OIDC login route.
 - **Tests first:**
   - **Route guard (functional):** iterates every route in the router, excluding framework and
     profiler routes. It fails if a controller class or action has no `IsGranted`, or if it
     checks `ROLE_ADMIN` or `ROLE_USER`.
-  - **Anonymous access (functional):** `GET /` redirects to `/login`. This replaces the M1-02
-    smoke test.
+  - **Anonymous access (functional):** `GET /` redirects to the login route. This replaces the
+    M1-02 smoke test.
   - **Signed-in access (functional):**
     - A user with `ROLE_VIEW_OVERVIEW` gets 200 on `/`.
     - A user with only `ROLE_USER` gets 403.
@@ -223,74 +223,60 @@ decided. Everything else can continue while it is open.
 - **Acceptance criteria:** a new route without a permission role makes the route-guard test
   fail.
 
-### M1-06 User entity and user commands
+### M1-06 User entity and role mapping
 
-- **Plan step:** 5. **Implements:** README "Manage users" (commands), ADR 002.
+- **Plan step:** 5. **Implements:** README "Roles", ADR 002.
 - **Depends on:** M1-05
 - **Work:**
-  - `User` entity (`username`, `roles`, `password_hash`) and a migration.
+  - `User` entity (`username`, `roles`, `last_login_at`) and a migration. It has no password.
   - Doctrine entity user provider.
-  - `app:user:create <USERNAME> [--role=<ROLE>]`, which prompts for the password.
-  - `app:user:set-password <USERNAME>`.
-  - `app:user:set-roles <USERNAME> <ROLE>...`.
-  - A password policy (ASVS V2.1), as a constraint on a plain password. All places that set a
-    password use it:
-    - at least 12 characters
-    - `NotCompromisedPassword`, which checks the password against known breaches
-  - The display name waits for the staff data decision in ADR 004.
+  - `OidcRoleMapper`, a plain PHP class. It reads the role claim (`OIDC_ROLE_CLAIM`) and
+    returns the values that are `ROLE_ADMIN` or a permission role.
+  - The display name and other staff data wait for the staff data decision in ADR 004.
 - **Tests first:**
-  - **Unit:** role validation (only `ROLE_ADMIN` and the permission roles), and username
-    normalisation.
-  - **Integration (`CommandTester`):**
-    - Each command succeeds.
-    - A duplicate username is rejected.
-    - An unknown user gives an error.
-    - An unknown role is rejected.
-    - A password with 11 characters is rejected. A password with 12 characters is accepted.
-    - A breached password is rejected. The test replaces the breach check with a stub, so it
-      makes no network call.
-    - The password is hashed, never stored in clear text.
-- **Acceptance criteria:** the commands work as documented in the README.
+  - **Unit:**
+    - `OidcRoleMapper` keeps `ROLE_ADMIN` and the permission roles.
+    - It ignores unknown values, and `ROLE_USER`.
+    - A missing or empty claim gives no roles.
+    - The claim can be a string or a list.
+    - Username normalisation.
+  - **Integration:** the repository finds a user by username. A username is unique.
+- **Acceptance criteria:** the migration runs, and `doctrine:schema:validate` is clean.
 
-### M1-07 Password login
+### M1-07 OIDC login and mock service
 
-- **Plan step:** 5. **Implements:** README "Getting started" step 4, ADR 002.
+- **Plan step:** 5. **Implements:** README "Getting started", "Configuration" and "Roles",
+  ADR 002, the authentication diagram.
 - **Depends on:** M1-06
 - **Work:**
-  - `PasswordAuthenticator` and `SecurityController` (`/login`, `/logout`).
-  - The login form with CSRF.
-  - Login throttling (`symfony/rate-limiter`) and remember-me.
-  - Remove the temporary in-memory user.
-- **Tests first (functional):**
-  - Valid credentials sign in and redirect to `/`.
-  - A wrong password shows an error.
-  - Repeated failures are throttled.
-  - A missing or invalid CSRF token is rejected.
+  - Require `itk-dev/openid-connect-bundle`, and configure one provider from the `OIDC_*`
+    variables.
+  - `OidcAuthenticator`, which extends the bundle's `OpenIdLoginAuthenticator`. At each login
+    it creates or updates the `User` with the roles from `OidcRoleMapper` and the login time.
+  - The firewall sends anonymous users to the OIDC login route. The login and callback routes
+    are public.
+  - `SecurityController` with `/logout`, and a logout link in the user menu from M1-10.
+  - The `idp` service in `docker-compose.dev.yml` with `ghcr.io/soluto/oidc-server-mock`. It has
+    one test user with `ROLE_ADMIN` and one test user for each permission role. The `OIDC_*`
+    defaults in `.env` point to it.
+  - Remove the temporary in-memory user, the placeholder login route and `LoginEntryPoint`.
+    Change `PUBLIC_ROUTES` in `RouteGuardTest` to the OIDC login and callback routes.
+- **Tests first (functional, with a stub for the identity provider):**
+  - The first login creates the user with the roles from the claim, and redirects to `/`.
+  - The next login updates the roles and the login time. It does not create a second user.
+  - A callback with an invalid state is rejected.
+  - A user with no known role can sign in, but gets 403 on `/`.
   - Logout ends the session.
-  - Remember-me survives a new session.
-- **Acceptance criteria:** a user created with `app:user:create` can sign in, and can see `/`
-  only after signing in.
-
-### M1-08 Authentication modes and no-login mode
-
-- **Plan step:** 5. **Implements:** README "Configuration", ADR 002, the auth-modes diagram.
-- **Depends on:** M1-07
-- **Work:**
-  - `APP_AUTH_MODE` (`password` by default). Each authenticator's `supports()` checks the mode.
-  - `NoLoginAuthenticator` with `APP_NO_LOGIN_ROLES` (default `ROLE_VIEW_OVERVIEW`).
-  - A kernel or container check that refuses to start in `prod` with `none` unless
-    `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
-  - Login routes return 404 when the mode is not `password`.
-  - `oidc` fails with a clear "not implemented" error at boot.
-- **Tests first:**
-  - **Unit:** `supports()` per mode, and the prod guard for each combination of environment and
-    flag.
-  - **Functional, `none` mode:** with `APP_NO_LOGIN_ROLES=ROLE_VIEW_OVERVIEW`, a page that
-    requires another permission role gives 403. With `ROLE_ADMIN`, it gives 200.
-  - **Functional, `/login`:** returns 404 in `none` mode.
+  - `/` redirects to the OIDC login route before the login.
 - **Acceptance criteria:**
-  - The three modes behave as described in the README.
+  - Locally, each mock user can sign in and sees only the pages for their roles.
   - The route-guard test still passes.
+
+### M1-08 Removed: OIDC is the only login method
+
+This task was "Authentication modes and no-login mode". OIDC is now the only login method (see
+ADR 002), so there are no modes to select. The task ID is kept, so that the other IDs do not
+change.
 
 ### M1-09 HTTP security headers
 
@@ -304,7 +290,7 @@ decided. Everything else can continue while it is open.
 - **Tests first (functional):**
   - A response has each header with the value from the architecture.
   - `Strict-Transport-Security` is not sent outside `prod`.
-  - The headers are also on the login page and on error pages.
+  - The headers are also on the redirect to the login and on error pages.
 - **Acceptance criteria:**
   - Every response has the headers.
   - Templates have no inline scripts, no inline event handlers and no `style` attributes. Later
@@ -319,7 +305,8 @@ decided. Everything else can continue while it is open.
 - **Work:**
   - `itk-dev/itkaarhus-design-system` (vcs repository), mapped in AssetMapper as `itkaarhus-ds`.
   - Port the prototype's shell to `templates/base.html.twig`:
-    - side navigation and a top bar with a user menu
+    - side navigation and a top bar with a user menu. The user menu shows the username. M1-07
+      adds the logout link.
     - a mobile navigation drawer
     - an "about the figures" `<dialog>` with placeholder text
   - Port the prototype's stylesheet to `assets/styles/app.css`.
@@ -352,24 +339,18 @@ decided. Everything else can continue while it is open.
   - ISO week 53, and periods across years
 - **Acceptance criteria:** every format matches the prototype's formatting.
 
-### M1-12 User administration
+### M1-12 User list
 
 - **Plan step:** 5–6. **Implements:** README "Manage users".
 - **Depends on:** M1-07, M1-10
 - **Work:**
-  - `Admin\UserController` with `#[IsGranted('ROLE_MANAGE_USERS')]`: list, create, edit roles,
-    set password and delete.
-  - `UserType` form. The roles are `ROLE_ADMIN` and the permission roles. A password that is
-    set in the form uses the password policy from M1-06.
-  - A user cannot remove their own `ROLE_MANAGE_USERS` (directly or through `ROLE_ADMIN`), and
-    the last user with `ROLE_MANAGE_USERS` cannot be deleted.
+  - `Admin\UserController` with `#[IsGranted('ROLE_MANAGE_USERS')]`: a read-only list of the
+    users, with the username, the roles from the last login and the time of the last login.
+  - The identity provider manages users and roles, so there is no create, edit or delete.
 - **Tests first (functional):**
-  - Each action works for a user with `ROLE_MANAGE_USERS` and returns 403 for a user without it.
-  - Validation errors are shown.
-  - A password that does not agree with the password policy is rejected.
-  - CSRF on delete.
-  - The self-demotion and last-user rules.
-- **Acceptance criteria:** users can be managed in the UI, as in the README.
+  - A user with `ROLE_MANAGE_USERS` sees every user with their roles and last login time.
+  - A user without `ROLE_MANAGE_USERS` gets 403.
+- **Acceptance criteria:** the user list works as in the README.
 
 ### M1-13 Suppliers, routes and dated assignments
 
@@ -727,9 +708,7 @@ decided. Everything else can continue while it is open.
 - **Plan step:** 4 and 9. **Implements:** README "Fixtures".
 - **Depends on:** M1-19, M1-21
 - **Work:**
-  - `AppFixtures`:
-    - a user with `ROLE_ADMIN`, and a user for each permission role (with known development
-      passwords)
+  - `AppFixtures` (no users; local sign-in uses the users of the `idp` mock service):
     - suppliers, routes and assignments, with one supplier change during the period
     - an imported sample day (run through the real import service)
     - daily counts
@@ -749,9 +728,11 @@ decided. Everything else can continue while it is open.
   - `.woodpecker/prod.yml`: the `release` event.
   - Both use `itkdev/ansible-plugin` with the steps in the README.
   - The server compose files from the template.
-  - Document the server's `.env.local` variables.
+  - Document the server's `.env.local` variables, including the `OIDC_*` variables.
+  - Register the staging and production clients in the identity provider. Agree the role claim
+    (name and values) and the assigned group with IT operations.
 - **Tests first:** none (deployment configuration).
 - **Acceptance criteria:**
   - A push to a `release/*` branch deploys to staging.
-  - The first admin can be created on the server and can sign in.
+  - A user with `ROLE_ADMIN` in the role claim can sign in on staging.
   - The release checklist in the README works end to end.

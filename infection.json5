@@ -1,0 +1,26 @@
+{
+    // Mutation testing for all mutated code. See "Mutation testing" in docs/plan.md.
+    // bin/mutation-core-check.php reads the JSON log and sets the 100 % gate for src/Report and
+    // src/Import. Keep the json log.
+    $schema: 'vendor/infection/infection/resources/schema.json',
+    source: {
+        directories: ['src'],
+        // The functional tests cover this glue. Mutants in it are mostly equivalent.
+        excludes: ['Controller', 'Form', 'Twig/Components', 'Kernel.php'],
+    },
+    tmpDir: 'var/infection/tmp',
+    logs: {
+        text: 'var/infection/infection.log',
+        html: 'var/infection/infection.html',
+        summary: 'var/infection/summary.log',
+        json: 'var/infection/infection.json',
+    },
+    testFramework: 'phpunit',
+    phpUnit: {
+        configDir: '.',
+    },
+    mutators: {
+        '@default': true,
+    },
+    minCoveredMsi: 80,
+}
