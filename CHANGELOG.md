@@ -17,3 +17,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   M1-03 Mutation testing: Infection with a covered MSI gate of 100 % in `src/Report` and
   `src/Import` and 80 % in the remaining code, a changed-lines job for PRs and a full run for
   releases.
+- [#11](https://github.com/itk-dev/passenger-transport-performance/issues/11)
+  M1-04 Diagram check in CI: a workflow that fails if a rendered diagram SVG is out of date.
