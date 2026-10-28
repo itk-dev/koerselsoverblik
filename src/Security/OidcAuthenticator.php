@@ -2,6 +2,7 @@
 
 namespace App\Security;
 
+use ItkDev\OpenIdConnect\Exception\OpenIdConnectExceptionInterface;
 use ItkDev\OpenIdConnectBundle\Security\OpenIdConfigurationProviderManager;
 use ItkDev\OpenIdConnectBundle\Security\OpenIdLoginAuthenticator;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -10,6 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
@@ -31,7 +33,15 @@ final class OidcAuthenticator extends OpenIdLoginAuthenticator
 
     public function authenticate(Request $request): Passport
     {
-        $user = $this->oidcLogin->login($this->validateClaims($request));
+        try {
+            $claims = $this->validateClaims($request);
+        } catch (OpenIdConnectExceptionInterface $exception) {
+            // Chained, so that onAuthenticationFailure() in the bundle reads the cause and throws
+            // AuthenticationFailedException. OidcLoginFailureListener shows it as a page.
+            throw new CustomUserMessageAuthenticationException($exception->getMessage(), previous: $exception);
+        }
+
+        $user = $this->oidcLogin->login($claims);
 
         return new SelfValidatingPassport(new UserBadge($user->getUserIdentifier(), static fn () => $user));
     }

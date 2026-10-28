@@ -1,0 +1,33 @@
+{#
+    Shown by App\EventListener\OidcLoginFailureListener when an OIDC login fails.
+
+    It does not use the layout: an error page must not depend on more than it needs. "Prøv igen"
+    is a link, not a redirect, so that a broken login does not loop.
+#}
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ declined ? 'Login afvist' : 'Login mislykkedes' }} - Kørselsoverblik</title>
+</head>
+<body>
+<main>
+    <h1>Kørselsoverblik</h1>
+
+    {% if declined %}
+        <div data-test="login-declined">
+            <p>Login blev <strong>ikke gennemført</strong>.</p>
+            <p>Det sker, hvis du har afbrudt login, eller hvis dit login er udløbet. <a href="{{ login_url }}">Prøv igen</a>.</p>
+        </div>
+    {% else %}
+        <div data-test="login-failed">
+            <p>Vi kunne <strong>ikke gennemføre dit login</strong>.</p>
+            <p>Det sker, hvis login har ventet for længe. <a href="{{ login_url }}">Prøv igen</a>.</p>
+            <p>Hvis det bliver ved med at fejle, så kontakt ITK Dev og oplys tidspunktet.</p>
+        </div>
+    {% endif %}
+</main>
+</body>
+</html>
