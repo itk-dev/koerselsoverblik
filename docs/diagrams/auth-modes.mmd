@@ -2,7 +2,7 @@
 title: Authentication modes
 ---
 flowchart TD
-    request["Request"] --> public{"Public path?<br/>/login, assets"}
+    request["Request"] --> public{"Public path?<br/>OIDC routes, assets"}
     public -- yes --> serve["Serve"]
     public -- no --> mode{"APP_AUTH_MODE"}
 
@@ -10,14 +10,11 @@ flowchart TD
     prodcheck -- yes --> refuse["Refuse to start"]
     prodcheck -- no --> nologin["NoLoginAuthenticator<br/>local user with APP_NO_LOGIN_ROLES"]
 
-    mode -- password --> session{"Logged in?"}
-    session -- no --> login["Redirect to /login<br/>form with CSRF and rate limiting"]
-    session -- yes --> user["User from the database"]
-
-    mode -- oidc --> oidc["OIDC authenticator<br/>(later milestone)"]
+    mode -- oidc --> session{"Logged in?"}
+    session -- no --> login["Redirect to the identity provider<br/>callback requires admin in the roles claim<br/>and creates or updates the user"]
+    session -- yes --> user["User from the database<br/>with the roles from the last sign-in"]
 
     nologin --> guard{"#[IsGranted] role?"}
     user --> guard
-    oidc --> guard
     guard -- granted --> controller["Controller"]
     guard -- denied --> forbidden["403"]

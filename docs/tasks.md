@@ -60,14 +60,14 @@ split it and update this file.
 | M1-04 | Diagram check in CI | 02 |
 | **B** | **Security** | |
 | M1-05 | Permission roles and deny by default | 02 |
-| M1-06 | User entity and user commands | 05 |
-| M1-07 | Password login | 06 |
+| M1-06 | User entity | 05 |
+| M1-07 | OIDC login | 06 |
 | M1-08 | Authentication modes and no-login mode | 07 |
 | M1-09 | HTTP security headers | 05 |
 | **C** | **Layout and administration** | |
 | M1-10 | Base layout, design system and menu | 05 |
 | M1-11 | Formatting extension | 02 |
-| M1-12 | User administration | 07, 10 |
+| M1-12 | Dropped: user administration (roles come from the identity provider) | – |
 | M1-13 | Suppliers, routes and dated assignments | 10 |
 | **D** | **Data in** | |
 | M1-14 | Import mapping | 02 |
@@ -156,8 +156,8 @@ decided. Everything else can continue while it is open.
       vulnerability.
     - `.github/dependabot.yml` opens update PRs to `develop` for `composer` and
       `github-actions`, once a week.
-- **Tests first:** a functional smoke test: `GET /` returns 200. It changes to a redirect to
-  `/login` in M1-05.
+- **Tests first:** a functional smoke test: `GET /` returns 200. M1-05 changes it, so that
+  anonymous visitors are denied.
 - **Acceptance criteria:**
   - `task test:coverage:check` passes at 100 % and fails if a line is uncovered. Prove it once
     with a throwaway uncovered method.
@@ -204,18 +204,19 @@ decided. Everything else can continue while it is open.
 - **Depends on:** M1-02
 - **Work:**
   - `security-bundle` with the permission roles from the architecture: `ROLE_VIEW_OVERVIEW`,
-    `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS`,
-    `ROLE_MANAGE_SUPPLIERS` and `ROLE_MANAGE_USERS`.
+    `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS` and
+    `ROLE_MANAGE_SUPPLIERS`.
   - `role_hierarchy`: `ROLE_ADMIN` gives all permission roles.
-  - `access_control`: `^/login` and assets are public, and everything else requires `ROLE_USER`.
+  - `access_control`: the OIDC routes (`/openidconnect/*` and `/openid-connect/generic`) and assets are public, and everything
+    else requires `ROLE_USER`.
   - A placeholder `OverviewController` with `#[IsGranted('ROLE_VIEW_OVERVIEW')]`.
-  - A temporary in-memory user for tests until M1-06.
+  - A temporary in-memory user for tests until M1-07.
 - **Tests first:**
   - **Route guard (functional):** iterates every route in the router, excluding framework and
     profiler routes. It fails if a controller class or action has no `IsGranted`, or if it
     checks `ROLE_ADMIN` or `ROLE_USER`.
-  - **Anonymous access (functional):** `GET /` redirects to `/login`. This replaces the M1-02
-    smoke test.
+  - **Anonymous access (functional):** `GET /` does not give 200 to an anonymous visitor. This
+    replaces the M1-02 smoke test. M1-07 changes it to a redirect to the identity provider.
   - **Signed-in access (functional):**
     - A user with `ROLE_VIEW_OVERVIEW` gets 200 on `/`.
     - A user with only `ROLE_USER` gets 403.
@@ -223,73 +224,89 @@ decided. Everything else can continue while it is open.
 - **Acceptance criteria:** a new route without a permission role makes the route-guard test
   fail.
 
-### M1-06 User entity and user commands
+### M1-06 User entity
 
-- **Plan step:** 5. **Implements:** README "Manage users" (commands), ADR 002.
+- **Plan step:** 5. **Implements:** ADR 002, architecture "Data model".
 - **Depends on:** M1-05
 - **Work:**
-  - `User` entity (`username`, `roles`, `password_hash`) and a migration.
+  - `User` entity (`email`, `roles`) and a migration, as in `itk-dev/devops_itksites`. `email` is
+    the identifier and holds the `upn` claim. The entity stores no password.
+  - `roles` holds the roles from the last sign-in. Only the OIDC login (M1-07) sets them. Every
+    user also has `ROLE_USER`.
   - Doctrine entity user provider.
-  - `app:user:create <USERNAME> [--role=<ROLE>]`, which prompts for the password.
-  - `app:user:set-password <USERNAME>`.
-  - `app:user:set-roles <USERNAME> <ROLE>...`.
-  - A password policy (ASVS V2.1), as a constraint on a plain password. All places that set a
-    password use it:
-    - at least 12 characters
-    - `NotCompromisedPassword`, which checks the password against known breaches
   - The display name waits for the staff data decision in ADR 004.
 - **Tests first:**
-  - **Unit:** role validation (only `ROLE_ADMIN` and the permission roles), and username
-    normalisation.
-  - **Integration (`CommandTester`):**
-    - Each command succeeds.
-    - A duplicate username is rejected.
-    - An unknown user gives an error.
-    - An unknown role is rejected.
-    - A password with 11 characters is rejected. A password with 12 characters is accepted.
-    - A breached password is rejected. The test replaces the breach check with a stub, so it
-      makes no network call.
-    - The password is hashed, never stored in clear text.
-- **Acceptance criteria:** the commands work as documented in the README.
+  - **Unit:** `setRoles()` accepts only `ROLE_ADMIN` and the permission roles.
+  - **Integration:** the provider loads a user by email with the stored roles and `ROLE_USER`. An
+    unknown email gives `UserNotFoundException`.
+- **Acceptance criteria:** a user loaded by the provider has the roles from the last sign-in.
 
-### M1-07 Password login
+### M1-07 OIDC login
 
-- **Plan step:** 5. **Implements:** README "Getting started" step 4, ADR 002.
+- **Plan step:** 5. **Implements:** README "Configuration", ADR 002.
 - **Depends on:** M1-06
 - **Work:**
-  - `PasswordAuthenticator` and `SecurityController` (`/login`, `/logout`).
-  - The login form with CSRF.
-  - Login throttling (`symfony/rate-limiter`) and remember-me.
+  - Use the ITK Dev standard setup, as in `itk-dev/devops_itksites`.
+  - `itk-dev/openid-connect-bundle` with one provider, `azure_az`. Its settings come from the
+    `AZURE_AZ_OIDC_*` env vars. The bundle routes are under `/openidconnect`.
+  - `AzureOIDCAuthenticator` extends the bundle's `OpenIdLoginAuthenticator`. It validates the
+    claims, reads `name` and `upn`, then creates or updates the `User` by `upn`. It is the
+    firewall's `entry_point`, and its `start()` redirects to the bundle's login route.
+  - The roles come from the token only. At first there is one role:
+    - The `roles` claim must contain `admin`. It gives `ROLE_ADMIN`, so all users have the same
+      access.
+    - At each sign-in, the roles from the token replace the stored roles.
+    - A token without `admin` in `roles` cannot sign in.
+    - The claim name and value are provisional until Q-M2-10 is answered.
+  - `OpenIdConnectController`: `/openid-connect/generic` is the redirect URI. The firewall's
+    `logout` ends the local session at `/logout`.
+  - `OpenIdConnectFailureListener` shows a failed login as a page, not as a redirect loop.
+  - The bundle requires `cli_login_options`. CLI login is not enabled.
+  - A mock identity provider for local development: the `idp` service
+    (`ghcr.io/geigerzaehler/oidc-provider-mock`) in `docker-compose.override.yml`, at
+    `idp.<COMPOSE_DOMAIN>`. It has two users with `name`, `upn` and `email` claims: `admin`
+    has `"roles": ["admin"]`, and `user` has no roles. `.env.dev` points the `AZURE_AZ_OIDC_*`
+    vars at it, with `AZURE_AZ_OIDC_ALLOW_HTTP=true`.
   - Remove the temporary in-memory user.
-- **Tests first (functional):**
-  - Valid credentials sign in and redirect to `/`.
-  - A wrong password shows an error.
-  - Repeated failures are throttled.
-  - A missing or invalid CSRF token is rejected.
-  - Logout ends the session.
-  - Remember-me survives a new session.
-- **Acceptance criteria:** a user created with `app:user:create` can sign in, and can see `/`
-  only after signing in.
+- **Tests first:**
+  - **Unit:**
+    - The claims → user step. A new `upn` creates a user. A known `upn` updates the same user.
+      Missing claims are rejected.
+    - `admin` in the `roles` claim gives `ROLE_ADMIN`. Other values are ignored.
+    - The stored roles are replaced at each sign-in, so a role removed in the identity provider
+      is removed in the application.
+    - A token without `admin` in `roles` is rejected.
+    - The failure listener renders a failed login as a page.
+  - **Functional** (the identity provider metadata and token endpoints are replaced with
+    `MockHttpClient`):
+    - The bundle login route redirects to the authorization endpoint with `state` and `nonce`.
+    - A valid callback signs the user in and redirects to `/`.
+    - A callback with a wrong `state` is rejected.
+    - Logout ends the session.
+- **Acceptance criteria:**
+  - A user with the admin role in the identity provider can sign in and gets `ROLE_ADMIN`. A
+    user without it cannot sign in.
+  - Locally, `task setup` starts the mock identity provider, and a developer can sign in with it.
+  - An anonymous visitor to `/` is sent to the identity provider.
 
 ### M1-08 Authentication modes and no-login mode
 
 - **Plan step:** 5. **Implements:** README "Configuration", ADR 002, the auth-modes diagram.
 - **Depends on:** M1-07
 - **Work:**
-  - `APP_AUTH_MODE` (`password` by default). Each authenticator's `supports()` checks the mode.
+  - `APP_AUTH_MODE` (`oidc` by default). Each authenticator's `supports()` checks the mode.
   - `NoLoginAuthenticator` with `APP_NO_LOGIN_ROLES` (default `ROLE_VIEW_OVERVIEW`).
   - A kernel or container check that refuses to start in `prod` with `none` unless
     `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
-  - Login routes return 404 when the mode is not `password`.
-  - `oidc` fails with a clear "not implemented" error at boot.
+  - The OIDC routes return 404 when the mode is not `oidc`.
 - **Tests first:**
   - **Unit:** `supports()` per mode, and the prod guard for each combination of environment and
     flag.
   - **Functional, `none` mode:** with `APP_NO_LOGIN_ROLES=ROLE_VIEW_OVERVIEW`, a page that
     requires another permission role gives 403. With `ROLE_ADMIN`, it gives 200.
-  - **Functional, `/login`:** returns 404 in `none` mode.
+  - **Functional, OIDC routes:** return 404 in `none` mode.
 - **Acceptance criteria:**
-  - The three modes behave as described in the README.
+  - The two modes behave as described in the README.
   - The route-guard test still passes.
 
 ### M1-09 HTTP security headers
@@ -304,7 +321,7 @@ decided. Everything else can continue while it is open.
 - **Tests first (functional):**
   - A response has each header with the value from the architecture.
   - `Strict-Transport-Security` is not sent outside `prod`.
-  - The headers are also on the login page and on error pages.
+  - The headers are also on redirects and on error pages.
 - **Acceptance criteria:**
   - Every response has the headers.
   - Templates have no inline scripts, no inline event handlers and no `style` attributes. Later
@@ -352,24 +369,10 @@ decided. Everything else can continue while it is open.
   - ISO week 53, and periods across years
 - **Acceptance criteria:** every format matches the prototype's formatting.
 
-### M1-12 User administration
+### M1-12 User administration (dropped)
 
-- **Plan step:** 5–6. **Implements:** README "Manage users".
-- **Depends on:** M1-07, M1-10
-- **Work:**
-  - `Admin\UserController` with `#[IsGranted('ROLE_MANAGE_USERS')]`: list, create, edit roles,
-    set password and delete.
-  - `UserType` form. The roles are `ROLE_ADMIN` and the permission roles. A password that is
-    set in the form uses the password policy from M1-06.
-  - A user cannot remove their own `ROLE_MANAGE_USERS` (directly or through `ROLE_ADMIN`), and
-    the last user with `ROLE_MANAGE_USERS` cannot be deleted.
-- **Tests first (functional):**
-  - Each action works for a user with `ROLE_MANAGE_USERS` and returns 403 for a user without it.
-  - Validation errors are shown.
-  - A password that does not agree with the password policy is rejected.
-  - CSRF on delete.
-  - The self-demotion and last-user rules.
-- **Acceptance criteria:** users can be managed in the UI, as in the README.
+Dropped. The roles come from the `roles` claim in the token, so they are managed in the identity
+provider.
 
 ### M1-13 Suppliers, routes and dated assignments
 
@@ -728,8 +731,6 @@ decided. Everything else can continue while it is open.
 - **Depends on:** M1-19, M1-21
 - **Work:**
   - `AppFixtures`:
-    - a user with `ROLE_ADMIN`, and a user for each permission role (with known development
-      passwords)
     - suppliers, routes and assignments, with one supplier change during the period
     - an imported sample day (run through the real import service)
     - daily counts
@@ -753,5 +754,5 @@ decided. Everything else can continue while it is open.
 - **Tests first:** none (deployment configuration).
 - **Acceptance criteria:**
   - A push to a `release/*` branch deploys to staging.
-  - The first admin can be created on the server and can sign in.
+  - A user in the assigned identity provider group can sign in on the server.
   - The release checklist in the README works end to end.

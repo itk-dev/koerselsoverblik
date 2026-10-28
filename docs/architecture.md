@@ -1,7 +1,7 @@
 # Architecture
 
 This document describes the architecture of Passenger Transport Performance for milestone 1:
-username/password login, upload of driving data, manual entry of daily counts, and an overview
+single sign-on with OIDC, upload of driving data, manual entry of daily counts, and an overview
 with eight key figures. See the [README](../README.md) for what the application does and
 [the plan](plan.md) for how it is built.
 
@@ -47,14 +47,13 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 - **Viewers** read the overview.
 - **Data editors** export extracts from the planning system and upload them, and enter the daily
   counts of mails, complaints and phone calls.
-- **Administrators** manage users, suppliers, and which supplier drives each route in each
+- **Administrators** manage suppliers, and which supplier drives each route in each
   period.
 
 These are tasks, not roles. Each task has its own permission role (see
 [Authorization](#security)), so one user can do one task or many.
 
-**Later milestones:** the dashed systems feed the application directly, replacing manual entry and
-password login.
+**Later milestones:** the dashed systems feed the application directly, replacing manual entry.
 
 ## Containers
 
@@ -69,7 +68,7 @@ The application runs on the ITK Dev Docker setup (`symfony-8` template):
 | phpfpm | The Symfony 8 application on PHP 8.4 |
 | MariaDB | All application data |
 
-Console commands (`app:user:*`, `app:driving-data:*`) run in the phpfpm container.
+Console commands (`app:driving-data:*`) run in the phpfpm container.
 
 Uploads are processed synchronously within the request. A queue (Symfony Messenger) and a worker
 are added only when file sizes or integrations need them.
@@ -112,7 +111,7 @@ are added only when file sizes or integrations need them.
 
 | Entity | Purpose |
 | --- | --- |
-| `User` | Login account: username, roles, password hash |
+| `User` | Login account: email, and the roles from the token at the last sign-in |
 | `Supplier` | A transport supplier |
 | `Route` | A route from the extract |
 | `RouteSupplierAssignment` | The supplier that drives a route from `valid_from` to `valid_to` (empty = no end date) |
@@ -241,11 +240,14 @@ config file.
 **Authentication:** `APP_AUTH_MODE` selects the authenticator. There is one firewall, and each
 authenticator's `supports()` checks the mode, so only one is ever active.
 
-- **`password`**: a login form with CSRF protection, login rate limiting, remember-me and logout.
-  Users are created with `app:user:create`.
+- **`oidc`** (default): `itk-dev/openid-connect-bundle` with the authorization code flow, set up as
+  in `itk-dev/devops_itksites` (provider `azure_az`, `AzureOIDCAuthenticator`). The bundle routes
+  under `/openidconnect` redirect to the identity provider, and `/openid-connect/generic` signs
+  the user in. The `User` is created or updated by its `upn` claim at each sign-in. The
+  identity provider (Azure B2C) is authoritative for roles: see Authorization. Local development
+  uses a mock identity provider container.
 - **`none`**: every request is signed in as a local user with `APP_NO_LOGIN_ROLES`. The
   application refuses to start in `prod` unless `APP_ALLOW_NO_LOGIN_IN_PROD=1`.
-- **`oidc`**: a later milestone.
 
 **Authorization:**
 
@@ -258,10 +260,15 @@ authenticator's `supports()` checks the mode, so only one is ever active.
   | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date range |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, routes and route → supplier assignments |
-  | `ROLE_MANAGE_USERS` | Users |
 
-- `ROLE_ADMIN` gives all permission roles. At first, users get `ROLE_ADMIN` only. Narrower
-  access later needs only role assignments, or a new bundle in `role_hierarchy`.
+- `ROLE_ADMIN` gives all permission roles. A new bundle of roles needs only a change to
+  `role_hierarchy`.
+- **Roles from the token:** at first there is one role. `admin` in the `roles` claim gives
+  `ROLE_ADMIN`, so all users have the same access. At each sign-in, the roles from the token
+  replace the stored roles, and a user without the admin role cannot sign in. Neither the
+  environment nor the application changes roles. A role removed in the identity provider takes
+  effect at the next sign-in. The claim name and value are provisional (see
+  [open decisions](#open-decisions)).
 
   ```yaml
   role_hierarchy:
@@ -271,12 +278,12 @@ authenticator's `supports()` checks the mode, so only one is ever active.
       - ROLE_CLEAR_DRIVING_DATA
       - ROLE_EDIT_DAILY_COUNTS
       - ROLE_MANAGE_SUPPLIERS
-      - ROLE_MANAGE_USERS
   ```
 
 - Every signed-in user also has `ROLE_USER`. It grants nothing alone.
 - Every controller has a class-level `#[IsGranted]` with a permission role.
-- `access_control` denies everything to anonymous users except `/login` and assets.
+- `access_control` denies everything to anonymous users except the OIDC routes (`/openidconnect/*` and `/openid-connect/generic`)
+  and assets.
 - A test walks the router. It fails if an application route has no `IsGranted`, or if it checks
   `ROLE_ADMIN` or `ROLE_USER`.
 
@@ -291,9 +298,6 @@ authenticator's `supports()` checks the mode, so only one is ever active.
   ASVS V5.5.2).
 - The import runs synchronously in the request. The limits above keep it short.
 - Rejection reasons and logs never contain field values from the extract.
-
-**Passwords** (ASVS V2.1): a password has at least 12 characters, and `NotCompromisedPassword`
-rejects passwords from known breaches. The commands and the user form use the same rules.
 
 **Dependencies** (ASVS V14.2.1): the PR workflow runs `composer audit`, and Dependabot opens
 update pull requests for Composer packages and GitHub Actions.
@@ -375,11 +379,12 @@ testing and the diagram check on every pull request.
   - It must be decided before the extract parser is built (task M1-15).
 - **Whole days.** Does each extract hold whole days? The replacement of whole dates depends on
   it.
-- **Self-service password change** (ASVS V2.1). In milestone 1, an administrator or a console
-  command sets passwords. Users cannot change their own password.
-- **Multi-factor authentication for administrators** (ASVS V4.3.1). In milestone 1,
-  administrators sign in with a password only. OIDC in a later milestone can give multi-factor
-  authentication. Until then, this is a known risk.
+- **OIDC admin role.** Which claim and value does Azure B2C send for the admin role? The docs
+  assume `admin` in the `roles` claim. IT operations confirms before the first deploy.
+- **Staff data.** What is stored about OIDC users (see
+  [ADR 004](adr/004-personal-data-in-driving-data.md))? This must be decided before task M1-06.
+- **Multi-factor authentication** (ASVS V4.3.1) is the identity provider's responsibility. Confirm
+  with IT operations that it is required for users with the admin role.
 
 ## Decision records
 

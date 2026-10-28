@@ -43,8 +43,8 @@ The user interface is in Danish.
   - Columns are read through an [import mapping](#import-mappings), so another source can be
     added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
-- **Administration:** users, suppliers, and which supplier drives each route from which date.
-- **Login:** username and password. Every page requires a role.
+- **Administration:** suppliers, and which supplier drives each route from which date.
+- **Login:** single sign-on with the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
 
@@ -88,12 +88,15 @@ Each part of the application has its own permission role:
 | `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
-| `ROLE_MANAGE_USERS` | Manage users |
 
-`ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
-permission roles let us give narrower access later without code changes.
+`ROLE_ADMIN` gives all the permission roles above.
 
-Every page requires a permission role. Anonymous users are sent to the login page.
+The identity provider (Azure B2C) is authoritative for roles. At first there is one role: `admin`
+in the token's `roles` claim gives `ROLE_ADMIN`, so all users have the same access. At each
+sign-in, the roles from the token replace the user's stored roles. A user without the admin role
+cannot sign in.
+
+Every page requires a permission role. Anonymous users are sent to the identity provider.
 
 ## Requirements
 
@@ -119,16 +122,22 @@ Every page requires a permission role. Anonymous users are sent to the login pag
    task setup
    ```
 
-4. Create the first user. You are asked for the name and password:
-
-   ```shell
-   task console -- app:user:create <USERNAME> --role=ROLE_ADMIN
-   ```
-
-5. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
+4. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
 
    ```shell
    itkdev-docker-compose open
+   ```
+
+5. Sign in with the mock identity provider. It runs as the `idp` service at
+   <http://idp.passenger-transport-performance.local.itkdev.dk>, and `.env.dev` points the
+   application at it. Pick "Authorize as admin" to sign in. "Authorize as user" has no admin
+   role, so the sign-in is refused.
+
+   The mock creates new signing keys when its container restarts. If a sign-in then fails with
+   `"kid" invalid`, clear the cache:
+
+   ```shell
+   task console -- cache:pool:clear cache.app
    ```
 
 Run `task` to list every available task.
@@ -139,7 +148,13 @@ Set these in `.env.local`:
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `APP_AUTH_MODE` | Login method: `password`, `none` or `oidc` (`oidc` is not yet implemented) | `password` |
+| `APP_AUTH_MODE` | Login method: `oidc` or `none` | `oidc` |
+| `AZURE_AZ_OIDC_METADATA_URL` | The identity provider's OpenID Connect discovery URL | The mock identity provider (in `.env.dev`) |
+| `AZURE_AZ_OIDC_CLIENT_ID` | The client id from the identity provider | The mock identity provider (in `.env.dev`) |
+| `AZURE_AZ_OIDC_CLIENT_SECRET` | The client secret from the identity provider | The mock identity provider (in `.env.dev`) |
+| `AZURE_AZ_OIDC_CLIENT_SECRET_EXPIRES_AT` | The date the client secret expires. The bundle logs a warning before it expires | – |
+| `AZURE_AZ_OIDC_REDIRECT_URI` | The callback URL, `https://<HOST>/openid-connect/generic` | The local URL (in `.env.dev`) |
+| `AZURE_AZ_OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the mock identity provider needs it | `false` |
 | `APP_NO_LOGIN_ROLES` | Comma-separated roles given to everyone when `APP_AUTH_MODE=none` | `ROLE_VIEW_OVERVIEW` |
 | `APP_ALLOW_NO_LOGIN_IN_PROD` | Set to `1` to allow `APP_AUTH_MODE=none` in `prod`. The app refuses to start otherwise | `0` |
 | `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
@@ -265,13 +280,8 @@ listed at the top. When an assignment changes, the figures are recalculated for 
 
 ### Manage users
 
-Under **Administration → Users** (requires `ROLE_MANAGE_USERS`), or from the command line:
-
-```shell
-task console -- app:user:create <USERNAME> --role=<ROLE>
-task console -- app:user:set-password <USERNAME>
-task console -- app:user:set-roles <USERNAME> <ROLE> [<ROLE>...]
-```
+Users and their roles are managed in the identity provider. Give a person the admin role there,
+and they can sign in. A user is created in the application at the first sign-in.
 
 ## Data and privacy
 
@@ -352,7 +362,6 @@ task fixtures:load
 
 This loads:
 
-- a user with `ROLE_ADMIN`, and a user for each permission role
 - suppliers and routes
 - an imported sample day
 - daily counts
@@ -422,16 +431,12 @@ To set up a new server:
 
 1. Set these in `.env.local` (staging included):
    - `APP_ENV=prod`. The guard against `none` mode depends on it.
-   - `APP_AUTH_MODE=password`
+   - `APP_AUTH_MODE=oidc`
+   - the `AZURE_AZ_OIDC_*` settings from the identity provider
    - `APP_SECRET`
    - `APP_PERSON_ID_SECRET`
    - the database settings
 2. Deploy.
-3. Create the first admin:
-
-   ```shell
-   itkdev-docker-compose-server exec phpfpm bin/console app:user:create <USERNAME> --role=ROLE_ADMIN
-   ```
 
 ## Documentation
 
