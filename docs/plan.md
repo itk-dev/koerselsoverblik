@@ -370,7 +370,7 @@ dependencies, the tests to write first, and its acceptance criteria.
 - `User` entity: email (the `upn` claim), roles, last login time. No password. Doctrine entity
   provider. The user is created at the first login and updated at each login.
 - **Authentication log:** the bundle's audit trail records each successful and failed login.
-  `OidcAuthenticator` adds a record with the email, the roles and the time, for example
+  `OidcLogin` adds a record with the email, the roles and the time, for example
   `user foobar@example.com logged in with roles [ROLE_ADMIN]`. Both go to the `openid_connect_audit`
   channel and its own log file.
 - No user list in the application, and no `ROLE_MANAGE_USERS`.
@@ -380,7 +380,7 @@ dependencies, the tests to write first, and its acceptance criteria.
   - A user with no known role can sign in, but gets 403 on every page.
   - The application does not edit roles. A role change in the identity provider applies at the
     next login.
-- **Local development:** the `idp` service in `docker-compose.dev.yml` runs an OIDC mock
+- **Local development:** the `idp` service in `docker-compose.override.yaml` runs an OIDC mock
   (`ghcr.io/geigerzaehler/oidc-provider-mock`). It has one test user with `ROLE_ADMIN` and one
   test user for each permission role. The `OIDC_*` defaults in `.env` point to it, and `.env.dev`
   sets `OIDC_ALLOW_HTTP=true`.

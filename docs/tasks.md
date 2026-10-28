@@ -258,15 +258,17 @@ decided. Everything else can continue while it is open.
   - The bundle routes are under `/openidconnect`, and `/openid-connect/generic` is the callback
     (redirect URI). They are public. The firewall
     sends anonymous users to the bundle's login route.
-  - `SecurityController` with `/openid-connect/generic` and `/logout`, and a logout link in the
-    user menu from M1-10.
+  - `SecurityController` with `/openid-connect/generic`. The firewall handles `/logout`. M1-10
+    adds a logout link in the user menu.
+  - `TRUSTED_PROXIES`, so that the redirect after the login uses https behind Traefik.
   - The authentication log:
     - Turn on the bundle's audit trail (`audit_options`). It records each successful and failed
       login, with the IP address and the reason for a failure.
-    - At each login, `OidcAuthenticator` writes a record with the email, the roles and the time,
+    - At each login, `OidcLogin` writes a record with the email, the roles and the time,
       for example `user foobar@example.com logged in with roles [ROLE_ADMIN]`.
     - Both go to the `openid_connect_audit` channel, which Monolog writes to its own file.
-  - The `idp` service in `docker-compose.dev.yml` with `ghcr.io/geigerzaehler/oidc-provider-mock`,
+  - The `idp` service in `docker-compose.override.yaml` (local development only) with
+    `ghcr.io/geigerzaehler/oidc-provider-mock`,
     at `idp.<COMPOSE_DOMAIN>`. It has one test user with `ROLE_ADMIN` and one test user for each
     permission role, each with `name`, `upn` and `roles` claims. The `OIDC_*` defaults in `.env`
     point to it. The mock runs on HTTP, so `.env.dev` sets `OIDC_ALLOW_HTTP=true`. The default in

@@ -255,9 +255,9 @@ config file.
   next login.
 - Logout ends the session in the application.
 - **Authentication log:** the bundle's audit trail records each successful and failed login,
-  with the IP address and the reason for a failure. `OidcAuthenticator` adds a record with the
-  email and the roles at each login. Both go to the `openid_connect_audit` channel, which Monolog
-  writes to `var/log/openid_connect_audit.log`.
+  with the IP address and the reason for a failure. `OidcLogin` adds a record with the email and
+  the roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
+  `var/log/openid_connect_audit.<APP_ENV>.log`.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**

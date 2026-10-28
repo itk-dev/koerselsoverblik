@@ -125,8 +125,8 @@ Every page requires a permission role. Anonymous users are sent to the identity 
    The stack includes `idp`, a local OIDC mock service
    ([`oidc-provider-mock`](https://github.com/geigerzaehler/oidc-provider-mock)) at
    <http://idp.passenger-transport-performance.local.itkdev.dk>. It has one test user with
-   `ROLE_ADMIN` and one test user for each permission role. The users are in
-   `docker-compose.dev.yml`.
+   `ROLE_ADMIN`, one test user for each permission role, and `user` with no role. The users are
+   in `docker-compose.override.yaml`.
 
 4. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
 
@@ -134,7 +134,8 @@ Every page requires a permission role. Anonymous users are sent to the identity 
    itkdev-docker-compose open
    ```
 
-5. Sign in as one of the test users of the mock service.
+5. Sign in as one of the test users of the mock service. Click "Authorize as admin" for all
+   roles.
 
    The mock creates new signing keys when its container restarts. If a login then fails with
    `"kid" invalid`, clear the cache:
@@ -157,6 +158,7 @@ Set these in `.env.local`:
 | `OIDC_REDIRECT_URI` | The callback URL of the application, `https://<HOST>/openid-connect/generic`, registered in the identity provider | The local callback URL |
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
 | `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |
+| `TRUSTED_PROXIES` | The proxies whose `X-Forwarded-*` headers are trusted, so that URLs use https behind Traefik | `127.0.0.1,REMOTE_ADDR` |
 | `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
@@ -289,10 +291,11 @@ A user is created in the application at the first login. The application has no 
 
 ### Authentication log
 
-Each login is written to `var/log/openid_connect_audit.log`:
+Each login is written to `var/log/openid_connect_audit.<APP_ENV>.log`, for example
+`var/log/openid_connect_audit.prod.log`:
 
 - A successful login, with the email, the roles and the time. For example:
-  `user foobar@example.com logged in with roles [ROLE_ADMIN]`.
+  `user foobar@example.com logged in with roles [ROLE_ADMIN] at 2026-10-28T12:00:00+01:00`.
 - A failed login, with the IP address and the reason.
 
 The log holds personal data (emails and IP addresses). Its retention follows the staff data
