@@ -255,8 +255,8 @@ decided. Everything else can continue while it is open.
   - `OidcAuthenticator`, which extends the bundle's `OpenIdLoginAuthenticator`. At each login
     it reads the `upn` claim, and creates or updates the `User` with the roles from
     `OidcRoleMapper` and the login time.
-  - The routes follow `itk-dev/devops_itksites`: the bundle routes are under `/openidconnect`,
-    and `/openid-connect/generic` is the callback (redirect URI). They are public. The firewall
+  - The bundle routes are under `/openidconnect`, and `/openid-connect/generic` is the callback
+    (redirect URI). They are public. The firewall
     sends anonymous users to the bundle's login route.
   - `SecurityController` with `/openid-connect/generic` and `/logout`, and a logout link in the
     user menu from M1-10.

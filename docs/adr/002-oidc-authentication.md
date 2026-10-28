@@ -40,9 +40,8 @@ Option 1:
 
 - **Authentication:**
   - `OidcAuthenticator` extends the bundle's `OpenIdLoginAuthenticator`. There is one firewall.
-  - Anonymous users are sent to the identity provider. The routes follow
-    `itk-dev/devops_itksites`: the bundle routes under `/openidconnect` and the callback
-    `/openid-connect/generic` are public, as are the assets.
+  - Anonymous users are sent to the identity provider. The bundle routes under `/openidconnect`,
+    the callback `/openid-connect/generic` and the assets are public.
   - The settings are `OIDC_METADATA_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`,
     `OIDC_REDIRECT_URI` and `OIDC_ALLOW_HTTP`.
 - **Users:** the `User` entity is created at the first login and updated at each login. It keeps
@@ -64,8 +63,8 @@ Option 1:
   - Every controller has a class-level `#[IsGranted]`, and `access_control` denies by default.
   - A test fails if any route has no permission role, or if it checks `ROLE_ADMIN`.
 - **Local development:** the `idp` service in `docker-compose.dev.yml` runs an OIDC mock
-  (`ghcr.io/geigerzaehler/oidc-provider-mock`), as in `itk-dev/devops_itksites`. It has one test
-  user with `ROLE_ADMIN` and one test user for each permission role.
+  (`ghcr.io/geigerzaehler/oidc-provider-mock`). It has one test user with `ROLE_ADMIN` and one
+  test user for each permission role.
 - **Tests:** functional tests sign in with `loginUser()`. The tests of the OIDC flow replace the
   identity provider with a stub.
 

@@ -365,8 +365,8 @@ dependencies, the tests to write first, and its acceptance criteria.
   `OIDC_ALLOW_HTTP`.
 - One firewall with `OidcAuthenticator`, which extends the bundle's `OpenIdLoginAuthenticator`.
   Anonymous users are sent to the identity provider. Logout ends the session in the application.
-- The routes follow `itk-dev/devops_itksites`: the bundle routes under `/openidconnect`, and the
-  callback `/openid-connect/generic` in `SecurityController`.
+- Routes: the bundle routes under `/openidconnect`, and the callback `/openid-connect/generic` in
+  `SecurityController`.
 - `User` entity: email (the `upn` claim), roles, last login time. No password. Doctrine entity
   provider. The user is created at the first login and updated at each login.
 - **Authentication log:** the bundle's audit trail records each successful and failed login.

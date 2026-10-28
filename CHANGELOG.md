@@ -27,6 +27,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The monolog bundle writes the test logs to a file, so that Infection can run. `task prepare-code`
   fixes the coding standards before it runs the checks.
 - [#17](https://github.com/itk-dev/passenger-transport-performance/issues/17)
-  OIDC plan: the routes and the `oidc-provider-mock` service follow `itk-dev/devops_itksites`, the
-  user is identified by email (the `upn` claim), and an authentication log records each login
-  with the roles. The user list and `ROLE_MANAGE_USERS` are removed.
+  OIDC plan: fixed OIDC routes, the `oidc-provider-mock` service for local development, the user
+  is identified by email (the `upn` claim), and an authentication log records each login with the
+  roles. The user list and `ROLE_MANAGE_USERS` are removed.

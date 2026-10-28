@@ -245,8 +245,8 @@ config file.
 
 - There is one firewall with `OidcAuthenticator`. It extends `OpenIdLoginAuthenticator` from
   `itk-dev/openid-connect-bundle`.
-- The routes follow `itk-dev/devops_itksites`. An anonymous user is sent to the bundle's login
-  route under `/openidconnect`, and from there to the identity provider. After the login, the
+- An anonymous user is sent to the bundle's login route under `/openidconnect`, and from there
+  to the identity provider. After the login, the
   identity provider sends the user back to the callback route, `/openid-connect/generic`.
 - At each login, `OidcRoleMapper` reads the role claim (`OIDC_ROLE_CLAIM`). It keeps the values
   that are `ROLE_ADMIN` or a permission role, and ignores the rest. The `User` is created or
