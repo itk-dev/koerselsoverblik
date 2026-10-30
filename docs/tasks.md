@@ -311,12 +311,19 @@ change.
     - an "about the figures" `<dialog>` with placeholder text
   - Port the prototype's stylesheet to `assets/styles/app.css`.
   - Danish translations in `translations/messages+intl-icu.da.yaml`.
-  - The menu shows each item only to users with its permission role: overview, upload, clear
-    driving data, daily counts and administration.
+  - `MenuBuilder`, a plain PHP class, shows an item only if its route exists and the user has
+    its permission role. The items are overview, clear driving data, daily counts, and the group
+    "Administration" with suppliers and users. There is no upload item, because the team
+    considers to drop the manual upload (see M1-19).
+  - No fonts from external hosts. The design system has no font files, so the layout uses the
+    fallback fonts of `--itkaarhus-font-sans`.
+- **Tests first (unit, `MenuBuilder`):**
+  - An item is hidden if its route does not exist or the user does not have its role.
+  - A user with `ROLE_EDIT_DAILY_COUNTS` also sees "daily counts" when its route exists.
+  - A group is hidden when no child is visible.
 - **Tests first (functional):**
   - A user with only `ROLE_VIEW_OVERVIEW` sees only the overview in the menu.
-  - A user with `ROLE_UPLOAD_DRIVING_DATA` also sees "upload".
-  - A user with `ROLE_ADMIN` sees all items.
+  - A user with `ROLE_ADMIN` sees all items whose route exists.
   - The active menu item is marked.
   - The page has `lang="da"`.
 - **Acceptance criteria:**
@@ -524,6 +531,8 @@ change.
 - **Plan step:** 7. **Implements:** README "Upload driving data".
 - **Depends on:** M1-18
 - **Work:**
+  - The team considers to drop the manual upload. If the upload stays, add an upload item to
+    `MainMenu` with the route of `ImportController`.
   - `ImportController` (`ROLE_UPLOAD_DRIVING_DATA`) with `ImportType`: `.xlsx` only, with the
     size limit from M1-15. The form checks the MIME type and the extension.
   - The import runs synchronously in the request. This is accepted in milestone 1, because the
