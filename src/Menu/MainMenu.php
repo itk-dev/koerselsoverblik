@@ -17,10 +17,7 @@ final class MainMenu
         return [
             new MenuItem('menu.overview', 'overview', 'ROLE_VIEW_OVERVIEW', icon: 'dashboard'),
             new MenuItem('menu.daily_counts', 'daily_counts', 'ROLE_EDIT_DAILY_COUNTS', icon: 'calendar'),
-            new MenuItem('menu.administration', children: [
-                new MenuItem('menu.suppliers', 'admin_supplier_index', 'ROLE_MANAGE_SUPPLIERS', icon: 'car'),
-                new MenuItem('menu.users', 'admin_user_index', 'ROLE_MANAGE_USERS', icon: 'users'),
-            ]),
+            new MenuItem('menu.suppliers', 'supplier_index', 'ROLE_MANAGE_SUPPLIERS', icon: 'car'),
         ];
     }
 }

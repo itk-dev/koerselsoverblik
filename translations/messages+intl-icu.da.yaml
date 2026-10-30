@@ -10,9 +10,7 @@ menu:
   label: Hovedmenu
   overview: Overblik
   daily_counts: Daglige tal
-  administration: Administration
   suppliers: Leverandører og ruter
-  users: Brugere
 
 about:
   title: Om tallene
