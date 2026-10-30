@@ -21,6 +21,15 @@ final class MenuBuilderTest extends TestCase
         self::assertSame([], $items);
     }
 
+    public function testLinkWithoutARouteIsHidden(): void
+    {
+        $builder = $this->builder(routes: ['overview'], grantedRoles: ['ROLE_VIEW_OVERVIEW']);
+
+        $items = $builder->build([new MenuItem('menu.overview', role: 'ROLE_VIEW_OVERVIEW')]);
+
+        self::assertSame([], $items);
+    }
+
     public function testItemIsShownWhenTheRoleIsGranted(): void
     {
         $builder = $this->builder(routes: ['overview'], grantedRoles: ['ROLE_VIEW_OVERVIEW']);
@@ -77,6 +86,30 @@ final class MenuBuilderTest extends TestCase
         );
 
         self::assertSame(['menu.overview', 'menu.daily_counts'], $labels);
+    }
+
+    public function testMainMenuShowsEveryItemWhenAllRoutesExistAndAllRolesAreGranted(): void
+    {
+        $routes = ['overview', 'clear_driving_data', 'daily_counts', 'admin_supplier_index', 'admin_user_index'];
+        $roles = [
+            'ROLE_VIEW_OVERVIEW',
+            'ROLE_CLEAR_DRIVING_DATA',
+            'ROLE_EDIT_DAILY_COUNTS',
+            'ROLE_MANAGE_SUPPLIERS',
+            'ROLE_MANAGE_USERS',
+        ];
+        $builder = $this->builder(routes: $routes, grantedRoles: $roles);
+
+        $items = $builder->build(MainMenu::items());
+
+        self::assertSame(
+            ['menu.overview', 'menu.clear_driving_data', 'menu.daily_counts', 'menu.administration'],
+            array_map(static fn (MenuItem $item): string => $item->label, $items),
+        );
+        self::assertSame(
+            ['menu.suppliers', 'menu.users'],
+            array_map(static fn (MenuItem $item): string => $item->label, $items[3]->children),
+        );
     }
 
     public function testMainMenuShowsOnlyTheOverviewToAViewer(): void
