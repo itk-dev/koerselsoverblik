@@ -1,7 +1,6 @@
 /*
  * The behaviour of the page shell: the navigation drawer on small screens and the
- * "Om tallene" dialog. The template has no inline scripts, because the Content Security
- * Policy blocks them.
+ * "Om tallene" dialog.
  */
 
 const shell = document.querySelector("[data-shell]");
