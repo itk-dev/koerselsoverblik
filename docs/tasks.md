@@ -67,7 +67,7 @@ split it and update this file.
 | **C** | **Layout and administration** | |
 | M1-10 | Base layout, design system and menu | 05 |
 | M1-11 | Formatting extension | 02 |
-| M1-12 | User list | 07, 10 |
+| M1-12 | Removed: no user list | – |
 | M1-13 | Suppliers, routes and dated assignments | 10 |
 | **D** | **Data in** | |
 | M1-14 | Import mapping | 02 |
@@ -201,8 +201,8 @@ decided. Everything else can continue while it is open.
 - **Depends on:** M1-02
 - **Work:**
   - `security-bundle` with the permission roles from the architecture: `ROLE_VIEW_OVERVIEW`,
-    `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS`,
-    `ROLE_MANAGE_SUPPLIERS` and `ROLE_MANAGE_USERS`.
+    `ROLE_UPLOAD_DRIVING_DATA`, `ROLE_CLEAR_DRIVING_DATA`, `ROLE_EDIT_DAILY_COUNTS` and
+    `ROLE_MANAGE_SUPPLIERS`. M1-10 removed `ROLE_MANAGE_USERS` (see M1-12).
   - `role_hierarchy`: `ROLE_ADMIN` gives all permission roles.
   - `access_control`: the OIDC login and callback routes and the assets are public, and
     everything else requires `ROLE_USER`.
@@ -311,12 +311,20 @@ change.
     - an "about the figures" `<dialog>` with placeholder text
   - Port the prototype's stylesheet to `assets/styles/app.css`.
   - Danish translations in `translations/messages+intl-icu.da.yaml`.
-  - The menu shows each item only to users with its permission role: overview, upload, clear
-    driving data, daily counts and administration.
+  - `MenuBuilder`, a plain PHP class, shows an item only if its route exists and the user has
+    its permission role. The items are overview, daily counts, and suppliers and routes. All
+    users have the same role, so there is no "Administration" group. There is no upload item,
+    because the team considers to drop the manual upload (see M1-19). There is no item for clear
+    driving data (see M1-20).
+  - No fonts from external hosts. The design system has no font files, so the layout uses the
+    fallback fonts of `--itkaarhus-font-sans`.
+- **Tests first (unit, `MenuBuilder`):**
+  - An item is hidden if its route does not exist or the user does not have its role.
+  - A user with `ROLE_EDIT_DAILY_COUNTS` also sees "daily counts" when its route exists.
+  - A group is hidden when no child is visible.
 - **Tests first (functional):**
   - A user with only `ROLE_VIEW_OVERVIEW` sees only the overview in the menu.
-  - A user with `ROLE_UPLOAD_DRIVING_DATA` also sees "upload".
-  - A user with `ROLE_ADMIN` sees all items.
+  - A user with `ROLE_ADMIN` sees all items whose route exists.
   - The active menu item is marked.
   - The page has `lang="da"`.
 - **Acceptance criteria:**
@@ -339,18 +347,11 @@ change.
   - ISO week 53, and periods across years
 - **Acceptance criteria:** every format matches the prototype's formatting.
 
-### M1-12 User list
+### M1-12 Removed: no user list
 
-- **Plan step:** 5–6. **Implements:** README "Manage users".
-- **Depends on:** M1-07, M1-10
-- **Work:**
-  - `Admin\UserController` with `#[IsGranted('ROLE_MANAGE_USERS')]`: a read-only list of the
-    users, with the username, the roles from the last login and the time of the last login.
-  - The identity provider manages users and roles, so there is no create, edit or delete.
-- **Tests first (functional):**
-  - A user with `ROLE_MANAGE_USERS` sees every user with their roles and last login time.
-  - A user without `ROLE_MANAGE_USERS` gets 403.
-- **Acceptance criteria:** the user list works as in the README.
+This task was "User list". The identity provider manages all users and roles, so the
+application has no user administration and no `ROLE_MANAGE_USERS`. The task ID is kept, so that
+the other IDs do not change.
 
 ### M1-13 Suppliers, routes and dated assignments
 
@@ -360,9 +361,9 @@ change.
   - `Supplier`, `Route` and `RouteSupplierAssignment` entities and migrations. An assignment has
     a `valid_from` date and an optional `valid_to` date.
   - All controllers have `#[IsGranted('ROLE_MANAGE_SUPPLIERS')]`.
-  - `Admin\SupplierController`: list, create, edit and delete. Deleting a supplier with
-    assignments is blocked.
-  - `Admin\RouteController`: list with routes that have no current assignment first, and the
+  - `SupplierController`: list (route `supplier_index`, the menu item from M1-10), create, edit
+    and delete. Deleting a supplier with assignments is blocked.
+  - `RouteController`: list with routes that have no current assignment first, and the
     assignments of each route.
   - `SupplierType`, `RouteType` and `RouteSupplierAssignmentType` forms. The assignments of one
     route must not overlap.
@@ -524,6 +525,8 @@ change.
 - **Plan step:** 7. **Implements:** README "Upload driving data".
 - **Depends on:** M1-18
 - **Work:**
+  - The team considers to drop the manual upload. If the upload stays, add an upload item to
+    `MainMenu` with the route of `ImportController`.
   - `ImportController` (`ROLE_UPLOAD_DRIVING_DATA`) with `ImportType`: `.xlsx` only, with the
     size limit from M1-15. The form checks the MIME type and the extension.
   - The import runs synchronously in the request. This is accepted in milestone 1, because the
@@ -552,6 +555,8 @@ change.
   driving data".
 - **Depends on:** M1-10, M1-18
 - **Work:**
+  - Add an item for clear driving data to `MainMenu`, with the route of the clear page and
+    `ROLE_CLEAR_DRIVING_DATA`.
   - `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for a date range, in one
     transaction. `DailyCount` does not change.
   - It logs who cleared which range, and the deleted counts. The log has no field values.

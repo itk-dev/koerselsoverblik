@@ -47,8 +47,8 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 - **Viewers** read the overview.
 - **Data editors** export extracts from the planning system and upload them, and enter the daily
   counts of mails, complaints and phone calls.
-- **Administrators** see the list of users, and manage suppliers and which supplier drives each
-  route in each period.
+- **Administrators** manage suppliers and which supplier drives each route in each period. The
+  identity provider manages the users.
 
 These are tasks, not roles. Each task has its own permission role (see
 [Authorization](#security)), so one user can do one task or many.
@@ -267,7 +267,6 @@ config file.
   | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date range |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, routes and route → supplier assignments |
-  | `ROLE_MANAGE_USERS` | Users |
 
 - `ROLE_ADMIN` gives all permission roles. At first, users get `ROLE_ADMIN` only. Narrower
   access later needs only other values in the role claim, or a new bundle in `role_hierarchy`.
@@ -280,7 +279,6 @@ config file.
       - ROLE_CLEAR_DRIVING_DATA
       - ROLE_EDIT_DAILY_COUNTS
       - ROLE_MANAGE_SUPPLIERS
-      - ROLE_MANAGE_USERS
   ```
 
 - Every signed-in user also has `ROLE_USER`. It grants nothing alone.
@@ -335,6 +333,14 @@ response. The configuration is in the repository, and a functional test checks i
 - Charts are Twig components that render inline SVG on the server. Each chart includes a hidden
   data table for screen readers. No chart JavaScript is used.
 - Help texts (**?**) use the native HTML `popover` attribute.
+- The page loads no file from an external host. The design system has no font files, so the
+  layout uses the fallback fonts of `--itkaarhus-font-sans` (Helvetica Neue, Arial). Inter has
+  the SIL Open Font License, so a later task can add it to `assets/fonts`.
+
+**Menu:** `MainMenu` defines the items, and `MenuBuilder` removes the items that the user must
+not see. An item is visible only if its route exists and the user has its permission role. A
+group is visible only if at least one child is visible. `MainMenu` already has the items for
+daily counts and suppliers, so each item shows when its task adds the route.
 
 **Language:** the UI is in Danish. Texts live in `translations/messages+intl-icu.da.yaml`, and
 `FormatExtension` formats numbers, percentages, percentage points, deltas and period labels.

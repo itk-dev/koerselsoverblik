@@ -16,6 +16,6 @@ final class OverviewController extends AbstractController
     #[Route('/', name: 'overview', methods: ['GET'])]
     public function __invoke(): Response
     {
-        return new Response('Passenger Transport Performance');
+        return $this->render('overview/index.html.twig');
     }
 }

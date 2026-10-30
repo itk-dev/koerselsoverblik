@@ -342,7 +342,8 @@ dependencies, the tests to write first, and its acceptance criteria.
 - `ROLE_CLEAR_DRIVING_DATA`: clear the driving data for a date range
 - `ROLE_EDIT_DAILY_COUNTS`: enter daily counts
 - `ROLE_MANAGE_SUPPLIERS`: suppliers, routes and route → supplier assignments
-- `ROLE_MANAGE_USERS`: users
+
+The identity provider manages the users, so there is no role for user administration.
 
 **`ROLE_ADMIN`** (`role_hierarchy`):
 
@@ -408,7 +409,7 @@ dependencies, the tests to write first, and its acceptance criteria.
 - Upload driving data (`ROLE_UPLOAD_DRIVING_DATA`)
 - Clear driving data (`ROLE_CLEAR_DRIVING_DATA`)
 - Daily counts (`ROLE_EDIT_DAILY_COUNTS`)
-- Administration: suppliers and routes (`ROLE_MANAGE_SUPPLIERS`), users (`ROLE_MANAGE_USERS`)
+- Suppliers and routes (`ROLE_MANAGE_SUPPLIERS`)
 
 Menu items are shown with `is_granted()`.
 
@@ -811,7 +812,7 @@ The PM confirms that milestone 1 can start without answers to these questions.
 src/
   Controller/            OverviewController, ImportController, ClearDrivingDataController,
                          DailyCountController,
-                         SecurityController (logout), Admin/{User,Supplier,Route}Controller
+                         SecurityController (logout), SupplierController, RouteController
   Entity/                User, Supplier, Route, RouteSupplierAssignment, ImportBatch, StopRow, RouteRun,
                          DailyStats, DailyCount
   Form/                  ImportType, DailyCountWeekType, SupplierType, RouteType,
