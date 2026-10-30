@@ -16,7 +16,6 @@ final class MainMenu
     {
         return [
             new MenuItem('menu.overview', 'overview', 'ROLE_VIEW_OVERVIEW', icon: 'dashboard'),
-            new MenuItem('menu.clear_driving_data', 'clear_driving_data', 'ROLE_CLEAR_DRIVING_DATA', icon: 'ban'),
             new MenuItem('menu.daily_counts', 'daily_counts', 'ROLE_EDIT_DAILY_COUNTS', icon: 'calendar'),
             new MenuItem('menu.administration', children: [
                 new MenuItem('menu.suppliers', 'admin_supplier_index', 'ROLE_MANAGE_SUPPLIERS', icon: 'car'),

@@ -312,9 +312,9 @@ change.
   - Port the prototype's stylesheet to `assets/styles/app.css`.
   - Danish translations in `translations/messages+intl-icu.da.yaml`.
   - `MenuBuilder`, a plain PHP class, shows an item only if its route exists and the user has
-    its permission role. The items are overview, clear driving data, daily counts, and the group
-    "Administration" with suppliers and users. There is no upload item, because the team
-    considers to drop the manual upload (see M1-19).
+    its permission role. The items are overview, daily counts, and the group "Administration"
+    with suppliers and users. There is no upload item, because the team considers to drop the
+    manual upload (see M1-19). There is no item for clear driving data (see M1-20).
   - No fonts from external hosts. The design system has no font files, so the layout uses the
     fallback fonts of `--itkaarhus-font-sans`.
 - **Tests first (unit, `MenuBuilder`):**
@@ -561,6 +561,8 @@ change.
   driving data".
 - **Depends on:** M1-10, M1-18
 - **Work:**
+  - Add an item for clear driving data to `MainMenu`, with the route of the clear page and
+    `ROLE_CLEAR_DRIVING_DATA`.
   - `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for a date range, in one
     transaction. `DailyCount` does not change.
   - It logs who cleared which range, and the deleted counts. The log has no field values.

@@ -341,8 +341,8 @@ response. The configuration is in the repository, and a functional test checks i
 
 **Menu:** `MainMenu` defines the items, and `MenuBuilder` removes the items that the user must
 not see. An item is visible only if its route exists and the user has its permission role. A
-group is visible only if at least one child is visible. `MainMenu` already has the items of the
-planned pages, so the item of a page shows when its task adds the route.
+group is visible only if at least one child is visible. `MainMenu` already has the items for
+daily counts, suppliers and users, so each item shows when its task adds the route.
 
 **Language:** the UI is in Danish. Texts live in `translations/messages+intl-icu.da.yaml`, and
 `FormatExtension` formats numbers, percentages, percentage points, deltas and period labels.
