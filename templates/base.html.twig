@@ -1,23 +1,76 @@
+{% import '_icons.html.twig' as icons %}
 <!DOCTYPE html>
-<html>
+<html lang="{{ app.request.locale }}">
     <head>
         <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}{{ 'app.name'|trans }}{% endblock %}</title>
+        <link rel="icon" href="{{ asset('itkaarhus-ds/logos/aak-emblem.svg') }}">
         {% block stylesheets %}
+            <link rel="stylesheet" href="{{ asset('itkaarhus-ds/tokens.css') }}">
+            <link rel="stylesheet" href="{{ asset('itkaarhus-ds/components.css') }}">
         {% endblock %}
-
         {% block javascripts %}
+            {{ importmap('app') }}
         {% endblock %}
-
-        {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphp_hot_reload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-        {% endif %}
     </head>
     <body>
-        {% block body %}{% endblock %}
+        <a class="skip" href="#content">{{ 'layout.skip_to_content'|trans }}</a>
+
+        <div class="shell" data-shell>
+            <aside class="rail" id="rail">
+                <a class="brand" href="{{ path('overview') }}">
+                    <img class="brand__mark" src="{{ asset('itkaarhus-ds/logos/aak-emblem.svg') }}" alt="">
+                    <span class="brand__text">
+                        <b>{{ 'app.name'|trans }}</b>
+                        <small>{{ 'app.owner'|trans }}</small>
+                    </span>
+                </a>
+
+                <nav class="nav" aria-label="{{ 'menu.label'|trans }}" data-nav>
+                    {{ include('_menu.html.twig') }}
+                </nav>
+
+                <div class="rail__foot">
+                    <button class="about-link" type="button" data-about-open>{{ 'about.title'|trans }}</button>
+                </div>
+            </aside>
+
+            <div class="main">
+                <header class="topbar">
+                    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="rail" data-nav-toggle>
+                        {{ icons.icon('menu', 20) }}
+                        <span class="sr-only">{{ 'layout.show_menu'|trans }}</span>
+                    </button>
+                    <div class="topbar__controls">
+                        {% block topbar_controls %}{% endblock %}
+                    </div>
+                    {% if app.user %}
+                        <div class="user-menu" data-test="user-menu">
+                            {{ icons.icon('user') }}
+                            <span class="user-menu__name">{{ app.user.userIdentifier }}</span>
+                        </div>
+                    {% endif %}
+                </header>
+
+                <main class="content" id="content" tabindex="-1">
+                    {% block body %}{% endblock %}
+                </main>
+            </div>
+        </div>
+
+        <dialog class="about" aria-labelledby="about-title" data-about-dialog data-test="about-dialog">
+            <form method="dialog" class="about__form">
+                <header class="about__head">
+                    <h2 id="about-title">{{ 'about.title'|trans }}</h2>
+                    <button class="about__close" value="close" aria-label="{{ 'about.close'|trans }}">
+                        {{ icons.icon('x') }}
+                    </button>
+                </header>
+                <div class="about__body">
+                    <p>{{ 'about.placeholder'|trans }}</p>
+                </div>
+            </form>
+        </dialog>
     </body>
 </html>

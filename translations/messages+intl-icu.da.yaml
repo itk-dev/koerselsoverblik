@@ -1,0 +1,25 @@
+app:
+  name: Kørselsoverblik
+  owner: Kørselskontoret
+
+layout:
+  skip_to_content: Spring til indhold
+  show_menu: Vis menu
+
+menu:
+  label: Hovedmenu
+  overview: Overblik
+  clear_driving_data: Ryd kørselsdata
+  daily_counts: Daglige tal
+  administration: Administration
+  suppliers: Leverandører og ruter
+  users: Brugere
+
+about:
+  title: Om tallene
+  close: Luk
+  placeholder: Her kommer en forklaring af tallene og deres kilder.
+
+overview:
+  title: Overblik
+  placeholder: Nøgletallene kommer her.

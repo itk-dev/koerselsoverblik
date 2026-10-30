@@ -1,3 +1,345 @@
+/*
+ * The application layer on top of the itkaarhus design system. It is ported from the
+ * prototype's shell. Colours, spacing, radii and type sizes come from the design system tokens.
+ */
+
+:root {
+    --rail-w: 244px;
+    --topbar-h: 76px;
+    --hairline: 1px solid var(--itkaarhus-gray-200);
+    --surface: var(--itkaarhus-white);
+    --canvas: var(--itkaarhus-gray-50);
+}
+
 body {
-    background-color: skyblue;
+    margin: 0;
+    background: var(--canvas);
+    color: var(--itkaarhus-gray-900);
+    font-size: var(--itkaarhus-text-base);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.skip {
+    position: absolute;
+    left: var(--itkaarhus-space-4);
+    top: calc(-1 * var(--itkaarhus-space-9));
+    z-index: 40;
+    background: var(--itkaarhus-primary);
+    color: var(--itkaarhus-white);
+    padding: var(--itkaarhus-space-2) var(--itkaarhus-space-4);
+    border-radius: var(--itkaarhus-radius-2);
+    text-decoration: none;
+    transition: top 0.12s ease;
+}
+.skip:focus {
+    top: var(--itkaarhus-space-4);
+}
+
+/* The sprite has only the geometry. The stroke comes from this rule. */
+.icon,
+.nav__icon {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex: none;
+}
+
+:focus-visible {
+    outline: none;
+    box-shadow: var(--itkaarhus-focus);
+    border-radius: var(--itkaarhus-radius-1);
+}
+
+/* ----------------------------------------------------------------- shell */
+
+.shell {
+    display: grid;
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.rail {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: var(--itkaarhus-space-5);
+    padding: var(--itkaarhus-space-5) var(--itkaarhus-space-4);
+    background: var(--surface);
+    border-right: var(--hairline);
+    box-sizing: border-box;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--itkaarhus-space-3);
+    text-decoration: none;
+    color: inherit;
+    padding: var(--itkaarhus-space-1);
+}
+.brand__mark {
+    width: 30px;
+    height: 30px;
+    flex: none;
+}
+.brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+.brand__text b {
+    font-size: var(--itkaarhus-text-base);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.brand__text small {
+    font-size: var(--itkaarhus-text-xs);
+    color: var(--itkaarhus-gray-500);
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+.nav__item {
+    display: flex;
+    align-items: center;
+    gap: var(--itkaarhus-space-3);
+    padding: var(--itkaarhus-space-2) var(--itkaarhus-space-3);
+    border-radius: var(--itkaarhus-radius-2);
+    color: var(--itkaarhus-gray-700);
+    text-decoration: none;
+    font-size: var(--itkaarhus-text-sm);
+    font-weight: 500;
+    line-height: 1.3;
+}
+.nav__item:hover {
+    background: var(--itkaarhus-gray-50);
+    color: var(--itkaarhus-gray-900);
+}
+.nav__icon {
+    color: var(--itkaarhus-gray-400);
+}
+.nav__item.is-active {
+    background: var(--itkaarhus-blue-50);
+    color: var(--itkaarhus-blue-700);
+    font-weight: 600;
+}
+.nav__item.is-active .nav__icon {
+    color: var(--itkaarhus-primary);
+}
+.nav__group {
+    margin: var(--itkaarhus-space-4) 0 var(--itkaarhus-space-1);
+    padding: 0 var(--itkaarhus-space-3);
+    font-size: var(--itkaarhus-text-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--itkaarhus-gray-500);
+}
+
+.rail__foot {
+    border-top: var(--hairline);
+    padding-top: var(--itkaarhus-space-4);
+}
+.about-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: var(--itkaarhus-text-sm);
+    color: var(--itkaarhus-primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* --------------------------------------------------------------- topbar */
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: var(--itkaarhus-space-3);
+    min-height: var(--topbar-h);
+    padding: var(--itkaarhus-space-3) var(--itkaarhus-space-6);
+    background: color-mix(in srgb, var(--itkaarhus-white) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: var(--hairline);
+    box-sizing: border-box;
+}
+
+.nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: var(--hairline);
+    border-radius: var(--itkaarhus-radius-2);
+    background: var(--surface);
+    color: var(--itkaarhus-gray-700);
+    cursor: pointer;
+}
+
+.topbar__controls {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: var(--itkaarhus-space-2);
+    font-size: var(--itkaarhus-text-sm);
+    color: var(--itkaarhus-gray-700);
+}
+
+/* -------------------------------------------------------------- content */
+
+.content {
+    flex: 1;
+    padding: var(--itkaarhus-space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--itkaarhus-space-5);
+    max-width: 1320px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.content:focus {
+    outline: none;
+}
+
+/* --------------------------------------------------------------- dialog */
+
+.about {
+    border: none;
+    border-radius: var(--itkaarhus-radius-3);
+    padding: 0;
+    max-width: 620px;
+    width: calc(100% - var(--itkaarhus-space-6));
+    box-shadow: var(--itkaarhus-shadow-3);
+    color: var(--itkaarhus-gray-900);
+}
+.about::backdrop {
+    background: color-mix(in srgb, var(--itkaarhus-gray-900) 45%, transparent);
+}
+.about__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--itkaarhus-space-4);
+    padding: var(--itkaarhus-space-4) var(--itkaarhus-space-5);
+    border-bottom: var(--hairline);
+}
+.about__head h2 {
+    margin: 0;
+    font-size: var(--itkaarhus-text-md);
+    font-weight: 600;
+}
+.about__close {
+    border: var(--hairline);
+    background: var(--surface);
+    border-radius: var(--itkaarhus-radius-2);
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    color: var(--itkaarhus-gray-600);
+}
+.about__close:hover {
+    background: var(--itkaarhus-gray-50);
+    color: var(--itkaarhus-gray-900);
+}
+.about__body {
+    padding: var(--itkaarhus-space-5);
+    max-height: min(64vh, 560px);
+    overflow-y: auto;
+    font-size: var(--itkaarhus-text-sm);
+    line-height: 1.6;
+}
+.about__body p {
+    margin: 0 0 var(--itkaarhus-space-4);
+}
+
+/* ----------------------------------------------------------- responsive */
+
+@media (max-width: 1023.98px) {
+    .shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .rail {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: var(--rail-w);
+        z-index: 30;
+        transform: translateX(-100%);
+        transition: transform 0.18s ease;
+        box-shadow: var(--itkaarhus-shadow-3);
+    }
+    .shell.is-nav-open .rail {
+        transform: translateX(0);
+    }
+    .nav-toggle {
+        display: inline-flex;
+    }
+    .content {
+        padding: var(--itkaarhus-space-4);
+    }
+    .topbar {
+        padding: var(--itkaarhus-space-3) var(--itkaarhus-space-4);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+@media print {
+    .rail,
+    .topbar,
+    .skip {
+        display: none;
+    }
+    .shell {
+        grid-template-columns: 1fr;
+    }
+    html,
+    body,
+    .shell,
+    .main,
+    .content {
+        background: var(--itkaarhus-white);
+    }
 }

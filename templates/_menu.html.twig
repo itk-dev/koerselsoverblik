@@ -1,0 +1,21 @@
+{% import _self as menu %}
+
+{% for item in main_menu() %}
+    {% if item.children is empty %}
+        {{ menu.link(item) }}
+    {% else %}
+        <p class="nav__group">{{ item.label|trans }}</p>
+        {% for child in item.children %}
+            {{ menu.link(child) }}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+
+{% macro link(item) %}
+    {% import '_icons.html.twig' as icons %}
+    {% set active = item.route == app.current_route %}
+    <a class="nav__item{{ active ? ' is-active' }}" href="{{ path(item.route) }}" data-test="menu-item"{% if active %} aria-current="page"{% endif %}>
+        {{ icons.icon(item.icon, 18, 'icon nav__icon') }}
+        <span>{{ item.label|trans }}</span>
+    </a>
+{% endmacro %}

@@ -6,9 +6,8 @@ use App\Menu\MainMenu;
 use App\Menu\MenuBuilder;
 use App\Menu\MenuItem;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Routing\Route;
-use Symfony\Component\Routing\RouteCollection;
-use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 final class MenuBuilderTest extends TestCase
@@ -99,19 +98,18 @@ final class MenuBuilderTest extends TestCase
      */
     private function builder(array $routes, array $grantedRoles): MenuBuilder
     {
-        $collection = new RouteCollection();
-        foreach ($routes as $name) {
-            $collection->add($name, new Route('/'.$name));
-        }
-
-        $router = $this->createStub(RouterInterface::class);
-        $router->method('getRouteCollection')->willReturn($collection);
+        $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturnCallback(
+            static fn (string $name): string => in_array($name, $routes, true)
+                ? '/'.$name
+                : throw new RouteNotFoundException(sprintf('No route "%s".', $name)),
+        );
 
         $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
         $authorizationChecker->method('isGranted')->willReturnCallback(
             static fn (mixed $attribute): bool => in_array($attribute, $grantedRoles, true),
         );
 
-        return new MenuBuilder($router, $authorizationChecker);
+        return new MenuBuilder($urlGenerator, $authorizationChecker);
     }
 }
