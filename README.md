@@ -43,7 +43,7 @@ The user interface is in Danish.
   - Columns are read through an [import mapping](#import-mappings), so another source can be
     added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
-- **Administration:** users, suppliers, and which supplier drives each route from which date.
+- **Suppliers and routes:** the suppliers, and which supplier drives each route from which date.
 - **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
@@ -88,7 +88,6 @@ Each part of the application has its own permission role:
 | `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
-| `ROLE_MANAGE_USERS` | See the list of users |
 
 `ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
 permission roles let us give narrower access later without code changes.
@@ -247,7 +246,7 @@ starts.
 
 The driving data extract does not say which supplier drives a route. To assign them:
 
-1. Go to **Administration → Routes** (requires `ROLE_MANAGE_SUPPLIERS`).
+1. Go to **Suppliers and routes** (requires `ROLE_MANAGE_SUPPLIERS`).
 2. Assign each route to a supplier from a start date. Leave the end date empty.
 
 When a route changes supplier:
@@ -275,9 +274,8 @@ Users and roles are managed in the identity provider:
 - To change the roles of a user, change the value of the role claim in the identity provider.
   The change applies at the user's next login.
 
-A user is created in the application at the first login. **Administration → Users** (requires
-`ROLE_MANAGE_USERS`) lists the users, their roles from the last login, and the time of the last
-login. The list is read-only.
+A user is created in the application at the first login. The application has no user
+administration.
 
 ## Data and privacy
 

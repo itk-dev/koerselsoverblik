@@ -29,4 +29,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#24](https://github.com/itk-dev/koerselsoverblik/issues/24)
   M1-10 Base layout, design system and menu: the prototype's shell in Twig with the itkaarhus
   design system, a menu that shows an item only if its route exists and the user has its role,
-  and Danish translations. No fonts load from external hosts.
+  and Danish translations. No fonts load from external hosts. `ROLE_MANAGE_USERS` and the user
+  list (M1-12) are removed, because the identity provider manages all users. The menu has no
+  "Administration" group, because all users have the same role.
