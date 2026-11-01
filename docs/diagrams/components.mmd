@@ -3,7 +3,7 @@ title: Components (milestone 1)
 ---
 flowchart TB
     subgraph web["Web layer"]
-        controllers["Controllers<br/>Overview, Import, ClearDrivingData,<br/>DailyCount, Security, Supplier, Route"]
+        controllers["Controllers<br/>Overview, DailyCount, Security,<br/>Admin/Import, Admin/ClearDrivingData,<br/>Admin/Supplier, Admin/Route"]
         forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, Route"]
         twig["Twig templates and components<br/>Tile, Sparkline, LineChart, Panel"]
         format["FormatExtension"]
@@ -16,6 +16,7 @@ flowchart TB
 
     subgraph import["Import/DrivingData"]
         mapping["MappingLoader → Mapping<br/>config/import/driving_data/*.yaml"]
+        importrange["ImportRange<br/>max APP_DRIVING_DATA_MAX_DAYS"]
         parser["StopRowParser"]
         replacer["StopRowReplacer"]
         builder["RouteBuilder"]
@@ -39,12 +40,13 @@ flowchart TB
     guards --> controllers
     authenticators --> guards
 
-    controllers -- "upload" --> parser
+    controllers -- "upload: preview, confirm" --> parser
     commands --> parser
     mapping --> parser
+    importrange --> replacer
     parser --> replacer --> builder --> aggregator
     replacer --> repositories
-    controllers -- "clear dates" --> clearer
+    controllers -- "clear a date" --> clearer
     commands --> clearer
     clearer --> repositories
     builder --> repositories

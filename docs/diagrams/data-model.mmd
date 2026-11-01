@@ -38,7 +38,8 @@ erDiagram
         string file_name
         int uploaded_by FK
         datetime uploaded_at
-        json import_dates "replaced dates"
+        date first_date "first date of the replaced range"
+        date last_date "last date of the replaced range"
         int rows_deleted
         int rows_inserted
         int rows_rejected
