@@ -348,7 +348,8 @@ task test:mutation:full
 - **Test suites:** tests live in `tests/Unit`, `tests/Integration` and `tests/Functional`.
 - **Database:** integration and functional tests run against a MariaDB test database. Each test runs
   in a transaction that is rolled back.
-- **Fixture files:** these are in `tests/fixtures/` and are anonymised. Never commit real extracts.
+- **Fixture files:** the test extracts are made from YAML scenarios in `tests/fixtures/driving_data/`.
+  The data is invented. Never commit real extracts.
 - **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
   `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
   components are not mutated; the functional tests cover them. The HTML report is written to
@@ -383,10 +384,19 @@ task fixtures:load
 This loads:
 
 - suppliers and routes
-- an imported sample day
+- 13 months of generated driving data, imported through the real import
 - daily counts
 
 The fixtures do not create users. Sign in with the test users of the local mock service.
+
+To get extract files that you can upload by hand:
+
+```shell
+task fixtures:extracts
+```
+
+This writes the test scenarios and one file for each of the 13 months to
+`var/fixtures/driving_data/`. The data is invented.
 
 ### Diagrams
 

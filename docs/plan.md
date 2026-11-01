@@ -69,12 +69,13 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
   - forms: valid submit, validation errors, CSRF
   - OIDC login and logout, with a stub for the identity provider
   - the HTTP security headers
-  - upload end-to-end with the fixture file
+  - upload end-to-end with the `base` scenario file
   - the overview with filters
   - the route-guard test
 - **Fixtures:**
   - Foundry factories for every entity.
-  - An anonymised one-day extract in `tests/fixtures/`, with its expected totals worked out by hand.
+  - Generated extracts from YAML scenarios, each with its expected totals worked out by hand. See
+    "Test data" in the [data import plan](plan-data-import.md#test-data).
   - Small hand-made extracts for edge cases: cancelled routes, unmapped routes, re-upload with
     changed and removed rows, malformed files.
   - Supplier changes: a route that changes supplier in the middle of a period, and the figures
@@ -289,7 +290,7 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one br
 2. Security.
 3. Features as a vertical slice, so a user can upload a file and see one figure on the overview as early as possible.
 
-**Result:** [`docs/tasks.md`](tasks.md) has 28 tasks in six groups: setup and quality gates,
+**Result:** [`docs/tasks.md`](tasks.md) has 29 tasks in six groups: setup and quality gates,
 security, layout and administration, data in, overview, and deployment. Each task lists its
 dependencies, the tests to write first, and its acceptance criteria.
 
@@ -853,8 +854,8 @@ Development can start without answers to them. The PM must accept this before st
   - The route-guard test passes, and each route returns the expected status per role.
   - Every response has the HTTP security headers, and the browser console shows no Content Security Policy errors.
 - **Import:**
-  - The fixture extract produces its hand-computed totals for every figure.
-  - `app:driving-data:mapping:validate` accepts the default mapping with the fixture, and rejects a
+  - The `base` scenario produces its hand-computed totals for every figure.
+  - `app:driving-data:mapping:validate` accepts the default mapping with the `base` file, and rejects a
     mapping with a missing column or an unknown value.
   - Re-importing the same file deletes and inserts the same number of rows, and the totals do not change.
   - Re-importing a file with one row removed removes that row from the totals.

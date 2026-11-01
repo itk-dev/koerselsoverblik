@@ -72,7 +72,8 @@ split it and update this file.
 | M1-13 | Suppliers, routes and dated assignments | 10 |
 | **D** | **Data in** | |
 | M1-14 | Import mapping | 02 |
-| M1-15 | Extract parser | 14 |
+| M1-29 | Fixture extracts and generator | 14 |
+| M1-15 | Extract parser | 14, 29 |
 | M1-16 | Replace stop rows for the date range of an upload | 13, 15 |
 | M1-17 | Build route runs | 16 |
 | M1-18 | Aggregate daily stats | 17 |
@@ -85,7 +86,7 @@ split it and update this file.
 | M1-24 | Tile, sparkline and panel components | 10, 11 |
 | M1-25 | Overview with the eight tiles | 23, 24 |
 | M1-26 | Punctuality chart, supplier table and help texts | 25 |
-| M1-27 | Development fixtures | 19, 21 |
+| M1-27 | Development fixtures | 19, 21, 29 |
 | **F** | **Deployment** | |
 | M1-28 | Woodpecker deployment | 25 |
 
@@ -421,10 +422,53 @@ the other IDs do not change.
   - An invalid mapping stops the application from starting, with a clear message.
   - The validate command works as in the README.
 
+### M1-29 Fixture extracts and generator
+
+- **Plan step:** 3 and 7 ([data import plan](plan-data-import.md#test-data)). **Implements:**
+  README "Fixtures".
+- **Depends on:** M1-14
+- **Work:**
+  - `task composer -- require openspout/openspout`. M1-15 uses the same package.
+  - `ExtractWriter` in `src/DataFixtures/DrivingData/` writes an `.xlsx` from rows with the
+    application field names. It gets the columns from `MappingLoader` (`default.yaml`). It
+    reverses the value maps and the bool lists, and writes the rows above the header row.
+  - `ScenarioLoader` reads a YAML scenario from `tests/fixtures/driving_data/`: routes, runs and
+    stops, raw cell values for bad data, columns to leave out, and an `expected` section with the
+    totals worked out by hand.
+  - The scenarios:
+    - `base`: one day, several routes and runs, a solo run, empty km, a late run, a cancelled
+      stop, a stop with no registration, a time after midnight, and one booked trip outside the
+      fixed routes.
+    - `range_edges`: an empty date in the range, and a row outside the range.
+    - `bad_values`: a bad value for each type, an unknown code, an unknown `bool` value, and a
+      missing required field.
+    - `duplicate_row_ids`: a row id that occurs two times.
+  - `DevDatasetGenerator` makes a development dataset from a seed: 13 months, one file for each
+    month (31 days at most). It uses the suppliers and routes of the M1-27 fixtures. The same
+    seed gives the same files.
+  - `app:fixtures:driving-data` (only in the `dev` and `test` environments) writes the scenario
+    files and the development dataset to `var/fixtures/driving_data/`. `task fixtures:extracts`
+    runs it.
+  - All route names are invented. No file is committed. The tests build the files when they
+    run. The files for the limits and the `DOCTYPE` test are built in the M1-15 tests.
+- **Tests first:**
+  - **Unit:**
+    - A value that `ExtractWriter` writes reads back with the same value, for each type. This
+      includes a `time` of 24:00 or more.
+    - The value maps and the bool lists are reversed. An application value that is not in the
+      mapping stops the writer.
+    - The rows above the header row, and the header row, follow the mapping.
+    - `ScenarioLoader` rejects a scenario without an `expected` section.
+    - The same seed gives the same rows. Each month file has 31 days or fewer.
+  - **Integration:** `app:driving-data:mapping:validate default <FILE>` accepts the `base` file.
+- **Acceptance criteria:**
+  - `task fixtures:extracts` writes the scenario files and 13 month files.
+  - The `base` file passes the validate command with no rejected rows.
+
 ### M1-15 Extract parser
 
 - **Plan step:** 7 ([data import plan](plan-data-import.md)). **Implements:** ADR 003, ADR 004 (proposed).
-- **Depends on:** M1-14
+- **Depends on:** M1-14, M1-29
 - **Work:**
   - `StopRowParser` reads an `.xlsx` with `openspout/openspout`, only through `Mapping`.
     OpenSpout streams the sheet one row at a time, so the memory use does not grow with the
@@ -452,7 +496,8 @@ the other IDs do not change.
       find out if OpenSpout rejects a `DOCTYPE` itself. If it does not, the parser checks the
       sheet XML in the file before OpenSpout reads it. A test keeps this so after upgrades.
 - **Tests first (unit):**
-  - The anonymised one-day fixture and small hand-made workbooks give the expected rows.
+  - The `base` scenario and the scenarios with bad values (M1-29) give the expected rows and
+    rejections.
   - Every type conversion, including bad values.
   - Required fields that are missing.
   - Unknown codes that aren't in a value map, and a `bool` value in neither list.
@@ -466,7 +511,7 @@ the other IDs do not change.
   - A workbook with a `DOCTYPE` and an external entity in a sheet is rejected.
   - A file that is not a valid `.xlsx` (for example a renamed text file) is rejected.
 - **Acceptance criteria:**
-  - The fixture parses with exactly the expected rows and rejections.
+  - The `base` scenario parses with exactly the expected rows and rejections.
   - Files above the limits and files with a `DOCTYPE` are rejected with a clear reason.
 
 ### M1-16 Replace stop rows for the date range of an upload
@@ -495,7 +540,7 @@ the other IDs do not change.
     - A last date before the first date is rejected. A range of one day is accepted.
     - The number of days, also across a month and a year.
   - **Integration (`StopRowReplacer`):**
-    - Importing the fixture inserts every row.
+    - Importing the `base` scenario (M1-29) inserts every row.
     - Importing it again gives the same rows, with the same row count.
     - A corrected file with one row less removes that row.
     - A date in the range with no rows in the file becomes empty. This includes the first and
@@ -530,7 +575,7 @@ the other IDs do not change.
   - Peak passengers 0, 1 and 2.
   - The empty distance sum.
   - A missing actual time.
-- **Acceptance criteria:** the route runs from the fixture match the totals worked out by hand.
+- **Acceptance criteria:** the route runs from the `base` scenario match its expected totals.
 
 ### M1-18 Aggregate daily stats
 
@@ -552,7 +597,7 @@ the other IDs do not change.
     - An assignment change moves the counts for the dates in its ranges only. Other dates do
       not change.
     - A failure part-way leaves the previous data untouched.
-- **Acceptance criteria:** the fixture's daily stats match the totals worked out by hand.
+- **Acceptance criteria:** the daily stats of the `base` scenario match its expected totals.
 
 ### M1-19 Upload page with preview and import command
 
@@ -585,7 +630,7 @@ the other IDs do not change.
     `--no-interaction` is given.
 - **Tests first:**
   - **Functional:**
-    - A user with `ROLE_UPLOAD_DRIVING_DATA` uploads the fixture and sees the preview. No data
+    - A user with `ROLE_UPLOAD_DRIVING_DATA` uploads the `base` file and sees the preview. No data
       changes before the confirmation.
     - After the confirmation, the result page shows the range and the counts.
     - The preview lists the dates in the range that have no rows in the file.
@@ -719,7 +764,7 @@ the other IDs do not change.
     - Known `DailyStats` and `DailyCount` rows give the expected `Kpis`.
     - The supplier filter applies to driving figures only.
     - Distinct citizens are counted over several days.
-- **Acceptance criteria:** the figures for the fixture day match the totals worked out by hand.
+- **Acceptance criteria:** the figures for the `base` scenario match its expected totals.
 
 ### M1-24 Tile, sparkline and panel components
 
@@ -749,8 +794,8 @@ the other IDs do not change.
   - The eight tiles, each with the current value, the delta and a 12-month sparkline.
   - Daily-count tiles say "whole office" when a supplier is selected.
 - **Tests first (functional):**
-  - With fixture data, each tile shows the expected value. Use `data-test` attributes, not
-    markup.
+  - With the `base` scenario imported, each tile shows the expected value. Use `data-test`
+    attributes, not markup.
   - The filters change the values, and invalid query values fall back to the defaults.
   - A user with `ROLE_VIEW_OVERVIEW` sees the page. Anonymous visitors are redirected.
 - **Acceptance criteria:**
@@ -779,15 +824,16 @@ the other IDs do not change.
 ### M1-27 Development fixtures
 
 - **Plan step:** 4 and 9. **Implements:** README "Fixtures".
-- **Depends on:** M1-19, M1-21
+- **Depends on:** M1-19, M1-21, M1-29
 - **Work:**
   - `AppFixtures` (no users; local sign-in uses the users of the `idp` mock service):
     - suppliers, routes and assignments, with one supplier change during the period
-    - an imported sample day (run through the real import service)
-    - daily counts
+    - the development dataset from `DevDatasetGenerator` (M1-29): 13 months, imported one month
+      at a time through the real import service
+    - daily counts for the same 13 months
   - `task fixtures:load`.
 - **Tests first (integration):** loading the fixtures gives the expected counts, and the overview
-  shows non-empty figures.
+  shows non-empty figures for the current month and the 12-month sparklines.
 - **Acceptance criteria:** `task fixtures:load` gives a usable local site in one command.
 
 ## F. Deployment

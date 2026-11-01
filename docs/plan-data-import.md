@@ -2,7 +2,7 @@
 
 This is the plan for the import of driving data in milestone 1. It is step 7 of the
 [plan](plan.md). The calculation rules and the master data (suppliers and routes) stay in the
-plan. The tasks are M1-14 to M1-20 in [tasks](tasks.md).
+plan. The tasks are M1-14 to M1-20 and M1-29 in [tasks](tasks.md).
 
 ## Upload flow
 
@@ -144,6 +144,48 @@ end flag joins that run with the next run. The block number gives each run direc
 - `prisprminut`, the price per minute, for the estimated cost of empty running.
 - `passengers`, the passengers after the stop before the cancellations are removed.
 
+## Test data
+
+The tests and the local site use generated extracts. No real extract is committed (task M1-29).
+
+- **The generator:** `ExtractWriter` writes an `.xlsx` with the layout of the `default` mapping:
+  the rows above the header, the column headers and the code values. The input uses the
+  application field names and values, for example `pickup` and `completed`. So a change of the
+  mapping changes the files, and the scenarios stay the same.
+- **Scenarios:** YAML files in `tests/fixtures/driving_data/`. Each scenario has an `expected`
+  section with the totals worked out by hand. The test compares the result of the import with
+  these totals.
+
+  ```yaml
+  # tests/fixtures/driving_data/base.yaml (shortened)
+  date: 2026-01-05
+  routes:
+    R-01:
+      runs:
+        1:
+          - { trip: 1, person: P-001, type: pickup, planned: '07:10', actual: '07:12', passengers_after: 1, km: 3.2, min: 8 }
+          - { trip: 1, person: P-001, type: drop_off, planned: '07:25', actual: '07:31', passengers_after: 0, km: 2.1, min: 5 }
+  expected:
+    stop_rows: 2
+    rejected_rows: 0
+    route_runs: 1
+    last_drop_offs: 1
+    trips: 1
+    citizens: 1
+    solo_runs: 1
+    driven_km: 5.3
+    empty_km: 2.1
+    on_time: 0
+  ```
+
+- **Bad data:** a stop can give a raw cell value, so that a scenario can hold a bad date, an
+  unknown code or text in a number column. A scenario can also leave out a column.
+- **Development dataset:** `DevDatasetGenerator` makes 13 months of data from a seed, one file
+  for each month. The routes and the suppliers are the same as in the development fixtures, so
+  the overview shows figures for each supplier.
+- **Files:** `task fixtures:extracts` writes all files to `var/fixtures/driving_data/`. Upload
+  them by hand to test the upload page.
+
 ## Open questions
 
 The table gives the owner, the date when the answer is needed and the task each question
@@ -161,7 +203,6 @@ the table. The other open questions of milestone 1 are in the
 | Booked trips | Product owner (transport office) | Before M1-13 | M1-13 |
 | Stops with no registration | Product owner (transport office) | Before M1-18 | M1-18, M1-23 |
 | Actual time | Product owner | Before M1-15 | Nothing. The mapping uses `StatusUpdateTime` until then. |
-| Test data | Product owner | Before M1-15 | M1-15, M1-27 |
 
 - **Whole days:** does each extract hold whole days? Re-upload replaces the date range of the
   upload, so a partial day removes the other rows of that day.
@@ -185,4 +226,3 @@ the table. The other open questions of milestone 1 are in the
   cancelled. A run whose last drop-off has no actual time is not counted for punctuality.
 - **Actual time:** is `StatusUpdateTime` the actual time of the stop? It is the time of the status
   registration by the driver.
-- **Test data:** we need an anonymised sample extract for the fixtures.
