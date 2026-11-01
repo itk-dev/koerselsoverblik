@@ -58,7 +58,8 @@ averages of daily percentages.
 
 - **Route:** a vehicle schedule in the planning system, assigned to a supplier for a date range.
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
-  until the vehicle is empty again. A route can have several runs a day.
+  until the vehicle is empty again. A route can have several runs a day. The planning system
+  gives each run of a route a block number.
 
 | Figure | Definition | Source |
 | --- | --- | --- |
@@ -222,15 +223,22 @@ change in an existing extract, add or edit a mapping. No code changes are needed
 
 A mapping defines:
 
-- **Sheet and header row:** where the data starts in the workbook.
+- **Sheet and header row:** where the data starts in the workbook. The rows above the header row
+  are skipped.
 - **Row id (optional):** the column, or columns, that identify a row. If a row id occurs more
   than once in a file, the second and later rows are rejected.
 - **Fields:** for each application field, the source column and how to read it:
-  - type: `string`, `int`, `float`, `bool`, `datetime`
-  - date format: for example an Excel serial date or a format string
-  - value maps for codes, for example which status values mean "completed" or which values mean
-    "yes"
+  - type: `string`, `int`, `float`, `bool`, `date`, `time`, `datetime`
+  - date format: for example an Excel serial date or a format string such as `Y-m-d`
+  - a `time` field is a time of day in an Excel time cell. It is added to `service_date`. It can
+    be 24:00 or more, for a time after midnight on the same service day.
+  - value maps for codes, for example which status values mean "completed"
+  - for a `bool` field: the values that mean true and the values that mean false
   - whether the field is required
+
+The import rejects a row with a value that the mapping does not know: a code that is not in a
+value map, or a `bool` value that is in neither list. The reason gives the row number and the
+field, and never the value.
 
 ```yaml
 # config/import/driving_data/<MAPPING_NAME>.yaml
@@ -238,18 +246,22 @@ sheet: 0
 header_row: 1
 row_id: [<ROW_ID_COLUMN>]   # optional
 fields:
-  route:            { column: <COLUMN_NAME>, type: string, required: true }
-  person_id:        { column: <COLUMN_NAME>, type: string, required: true }
-  stop_type:        { column: <COLUMN_NAME>, type: string, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
-  stop_status:      { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled } }
-  route_end:        { column: <COLUMN_NAME>, type: bool, true_values: [<YES_VALUE>] }
-  passengers_after: { column: <COLUMN_NAME>, type: int }
-  next_distance_km: { column: <COLUMN_NAME>, type: float }
+  route:             { column: <COLUMN_NAME>, type: string, required: true }
+  person_id:         { column: <COLUMN_NAME>, type: string, required: true }
+  service_date:      { column: <COLUMN_NAME>, type: date, format: Y-m-d, required: true }
+  run:               { column: <COLUMN_NAME>, type: int, required: true }
+  stop_type:         { column: <COLUMN_NAME>, type: string, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
+  stop_status:       { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
+  passengers_after:  { column: <COLUMN_NAME>, type: int }
+  next_distance_km:  { column: <COLUMN_NAME>, type: float }
   next_duration_min: { column: <COLUMN_NAME>, type: float }
-  planned_time:     { column: <COLUMN_NAME>, type: datetime, format: excel }
-  actual_time:      { column: <COLUMN_NAME>, type: datetime, format: excel }
-  planned_solo:     { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>] }
+  planned_time:      { column: <COLUMN_NAME>, type: time }
+  actual_time:       { column: <COLUMN_NAME>, type: datetime, format: excel }
+  planned_solo:      { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
 ```
+
+The `default` mapping reads the extract of the planning system. See
+[the data import plan](docs/plan-data-import.md#the-reference-extract).
 
 Validate a mapping against a sample file before using it:
 

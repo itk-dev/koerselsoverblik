@@ -117,6 +117,9 @@ Option 4:
 ### Follow-up Actions
 
 - [ ] Confirm with the transport office that each extract holds whole days.
+- [ ] Confirm that each extract holds all the routes of a day, not only one area or contract.
+  The import replaces all stop rows in the date range. If the extracts are per area, the
+  replacement must be limited to the routes or the area of the file.
 - [ ] Test what the planning system can export. Then evaluate the default of
       `APP_DRIVING_DATA_MAX_DAYS`.
 - [ ] Mapping format and loader (task M1-14).

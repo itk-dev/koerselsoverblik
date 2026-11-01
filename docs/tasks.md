@@ -398,17 +398,24 @@ the other IDs do not change.
     immutable `Mapping` value object:
     - the sheet and header row
     - an optional row key (one or more columns)
-    - for each field: the column, type, format, value map, true values and whether it is required
+    - for each field: the column, type, format, value map, true and false values, and whether
+      it is required
+    - the types `string`, `int`, `float`, `bool`, `date`, `time` and `datetime`
   - Validation runs when the container is built.
   - `APP_DRIVING_DATA_MAPPING`.
   - `app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE>`, which reports missing
     columns and unmapped values, and previews rows.
-  - A `default.yaml` with placeholder columns until a real extract is available.
+  - A `default.yaml` with the columns of the reference extract (see "The reference extract" in
+    the [data import plan](plan-data-import.md#the-reference-extract)). The code values in the
+    value maps and the bool lists come from a real extract. They are only in `default.yaml`, not
+    in the docs.
 - **Tests first:**
   - **Unit:**
     - A valid mapping loads into `Mapping`, with and without a row key.
     - The loader rejects each kind of invalid mapping: a missing required field, an unknown
-      type, a row key column that is not a field, and a value map on a non-string field.
+      type, a row key column that is not a field, a value map on a non-string field, a `bool`
+      field without `true_values` or `false_values`, and a `time` field when the mapping has no
+      `service_date`.
   - **Integration:** the validate command, using fixture files in `tests/fixtures/mappings/`.
 - **Acceptance criteria:**
   - An invalid mapping stops the application from starting, with a clear message.
@@ -422,9 +429,15 @@ the other IDs do not change.
   - `StopRowParser` reads an `.xlsx` with `openspout/openspout`, only through `Mapping`.
     OpenSpout streams the sheet one row at a time, so the memory use does not grow with the
     file size.
-  - It converts each field by type: string, int, float, bool with true values, and datetime
-    (a date cell, an Excel serial or a format string, in Europe/Copenhagen).
-  - It applies value maps.
+  - It converts each field by type, in Europe/Copenhagen:
+    - string, int and float
+    - bool with true and false values
+    - date (a date cell or a format string)
+    - time (an Excel time, added to `service_date`; 24:00 or more is a time after midnight)
+    - datetime (a date cell, an Excel serial or a format string)
+  - It applies value maps. It rejects a code that is not in a value map, and a `bool` value
+    that is in neither list.
+  - An empty optional number, for example a duration to the next stop, becomes no value, not 0.
   - The output is `StopRowData` value objects, or a `RejectedRow` with the row number and a
     reason. The reason never includes field values.
   - The person id is kept as it is in the extract (ADR 004). The parser removes the spaces at
@@ -442,7 +455,10 @@ the other IDs do not change.
   - The anonymised one-day fixture and small hand-made workbooks give the expected rows.
   - Every type conversion, including bad values.
   - Required fields that are missing.
-  - Unknown codes that aren't in a value map.
+  - Unknown codes that aren't in a value map, and a `bool` value in neither list.
+  - A `time` of 24:00 or more gives a time on the next calendar day, with the same
+    `service_date`.
+  - A row with a distance to the next stop and an empty duration.
   - Rejected-row reasons contain no values.
   - The person id is kept as it is, without the spaces at the start and the end.
   - A file with one row or one column more than the limit is rejected, and no rows are
@@ -498,9 +514,9 @@ the other IDs do not change.
 - **Plan step:** 7 ([data import plan](plan-data-import.md)). **Implements:** README "Key figures"
   (definitions), architecture "Pipeline".
 - **Depends on:** M1-16
-- **Work:** `RouteBuilder` replaces the `RouteRun` rows for the given date range. For each route and
-  date, it orders stops by planned time and splits them into runs at the end-of-route flag. Per
-  run it calculates:
+- **Work:** `RouteBuilder` replaces the `RouteRun` rows for the given date range. It groups the
+  stops by route, date and run (the block number in the extract), and orders the stops of each
+  run by planned time. Per run it calculates:
   - the last drop-off, planned and actual
   - the delay in minutes
   - the peak passengers
@@ -508,7 +524,7 @@ the other IDs do not change.
   - driven and empty km and minutes (empty means passengers after the stop = 0)
 - **Tests first (unit, with small in-memory stop lists):**
   - Several runs per route and day.
-  - A run with no end flag at the end of the day.
+  - The stops of one run are not next to each other in the file.
   - A fully cancelled run.
   - Delay: on time at exactly the tolerance, late at one minute more.
   - Peak passengers 0, 1 and 2.

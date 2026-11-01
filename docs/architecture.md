@@ -111,8 +111,8 @@ are added only when file sizes or integrations need them.
   administrator assigns it to a supplier for a date range. On a date with no assignment, it
   counts as "Unknown".
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
-  until the vehicle is empty again. A route can have several runs a day. Punctuality and solo
-  routes are measured per run.
+  until the vehicle is empty again. A route can have several runs a day. The extract gives each
+  run a block number. Punctuality and solo routes are measured per run.
 - **Trip:** one citizen's journey from pickup to drop-off.
 
 | Entity | Purpose |
@@ -189,8 +189,9 @@ holds the two dates. The import replaces exactly this range
    uploads can never count the same date twice. A row key that occurs more than once in the file
    is rejected after the first occurrence, and a unique index on `(mapping_name, row_key)` makes
    this sure. It returns the deleted and inserted counts.
-5. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the range. It orders each
-   route's stops by planned time and splits them into runs at the end-of-route flag.
+5. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the range. It groups the
+   stops by route, date and run (the block number in the extract), and orders the stops of each
+   run by planned time.
 6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
    supplier.
 7. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts
