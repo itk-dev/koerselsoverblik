@@ -34,16 +34,19 @@ The user interface is in Danish.
   - comparison: previous period, or the same period last year
   - supplier
   - The filters live in the URL, so a view can be shared as a link.
-- **Upload driving data:** upload a driving data extract (`.xlsx`).
-  - Each date in the file replaces all stored driving data for that date. Rows that are not in
-    a corrected file are removed.
-  - The figures for the replaced dates are recalculated.
-- **Clear driving data:** delete the driving data for a date range, for example after a wrong
-  upload.
-  - Columns are read through an [import mapping](#import-mappings), so another source can be
-    added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
-- **Suppliers and routes:** the suppliers, and which supplier drives each route from which date.
+- **Administration:**
+  - **Upload driving data:** upload a driving data extract (`.xlsx`) for a date range.
+    - The upload replaces all stored driving data in the date range. Rows that are not in a
+      corrected file are removed, and a date with no rows in the file becomes empty.
+    - A preview shows the changes. The data changes only when you confirm.
+    - The figures for the replaced dates are recalculated.
+    - The page lists the uploaded dates. You can clear the driving data for a date, for example
+      after a wrong upload.
+    - Columns are read through an [import mapping](#import-mappings), so another source can be
+      added with a new mapping file instead of code changes.
+  - **Suppliers and routes:** the suppliers, and which supplier drives each route from which
+    date.
 - **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
@@ -85,7 +88,7 @@ Each part of the application has its own permission role:
 | --- | --- |
 | `ROLE_VIEW_OVERVIEW` | View the overview |
 | `ROLE_UPLOAD_DRIVING_DATA` | Upload driving data |
-| `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
+| `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
 
@@ -109,8 +112,8 @@ Every page requires a permission role. Anonymous users are sent to the identity 
 1. Clone the repository:
 
    ```shell
-   git clone https://github.com/itk-dev/passenger-transport-performance.git
-   cd passenger-transport-performance
+   git clone https://github.com/itk-dev/koerselsoverblik.git
+   cd koerselsoverblik
    ```
 
 2. Create `.env.local` with the values from [Configuration](#configuration).
@@ -150,6 +153,7 @@ Set these in `.env.local`:
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
+| `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.
@@ -158,38 +162,54 @@ from the real identity provider.
 
 ### Upload driving data
 
-1. Go to **Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
-2. Choose a driving data extract (`.xlsx`) and upload it.
-3. The result page shows the replaced dates and how many rows were deleted, inserted and
-   rejected, with a reason for each rejected row.
+1. Go to **Administration → Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
+2. Choose a driving data extract (`.xlsx`).
+3. Enter the first and the last date of the export, and upload the file.
+4. Check the preview. It shows:
+   - the date range
+   - how many rows will be deleted, inserted and rejected, with a reason for each rejected row
+   - the dates in the range that have no rows in the file, and become empty
+5. Confirm, or cancel. Nothing changes before you confirm.
+6. The result page shows the replaced date range and how many rows were deleted, inserted and
+   rejected.
 
-Each date in the file replaces all stored driving data for that date. Uploading the same file
-again changes nothing. Uploading a corrected file gives exactly the rows of that file for its
-dates.
+The upload replaces all stored driving data in the date range. A date in the range with no rows
+in the file becomes empty. A row with a date outside the range is rejected. Uploading the same
+file again for the same range changes nothing. Uploading a corrected file gives exactly the rows
+of that file for the range.
 
-**CAUTION:** upload whole days only. A file that holds only part of a day removes the other rows
-of that day.
+The date range can be at most `APP_DRIVING_DATA_MAX_DAYS` days.
+
+**CAUTION:**
+
+- Enter the date range of the export. A range that is longer than the export empties the extra
+  dates.
+- Upload whole days only. A file that holds only part of a day removes the other rows of that
+  day.
 
 An upload cannot be undone. To correct a wrong upload, upload the correct file for the same
-dates, or [clear the driving data](#clear-driving-data) for the dates.
+range, or [clear the driving data](#clear-driving-data) for the dates.
 
 From the command line:
 
 ```shell
-task console -- app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]
+task console -- app:driving-data:import <PATH_TO_FILE> <FROM_DATE> <TO_DATE> [--mapping=<MAPPING_NAME>]
 ```
+
+The command shows the same preview, and asks for confirmation unless `--no-interaction` is
+given.
 
 ### Clear driving data
 
-1. Go to **Clear driving data** (requires `ROLE_CLEAR_DRIVING_DATA`).
-2. Select the first and the last date.
-3. Check the number of rows that will be deleted.
-4. Confirm.
+1. Go to **Administration → Upload driving data**.
+2. Find the date in the list of uploaded dates. Use the previous and next month links.
+3. Check the number of stop rows and route runs for the date.
+4. Select **Clear** (requires `ROLE_CLEAR_DRIVING_DATA`), and confirm.
 
-This deletes the uploaded driving data and the calculated figures for the dates. The daily
+This deletes the uploaded driving data and the calculated figures for the date. The daily
 counts of mails, complaints and phone calls do not change. You cannot undo this.
 
-From the command line:
+To clear a date range, use the command line:
 
 ```shell
 task console -- app:driving-data:clear <FROM_DATE> <TO_DATE>
@@ -246,7 +266,7 @@ starts.
 
 The driving data extract does not say which supplier drives a route. To assign them:
 
-1. Go to **Suppliers and routes** (requires `ROLE_MANAGE_SUPPLIERS`).
+1. Go to **Administration → Suppliers and routes** (requires `ROLE_MANAGE_SUPPLIERS`).
 2. Assign each route to a supplier from a start date. Leave the end date empty.
 
 When a route changes supplier:
@@ -283,7 +303,8 @@ administration.
   HMAC using `APP_PERSON_ID_SECRET`, and used only to count distinct citizens.
 - Names, addresses and other personal details in the extract are not imported.
 - Nothing is stored or shown at driver level.
-- Uploaded files are deleted once they have been processed.
+- Uploaded files are kept outside the public folder until you confirm or cancel the upload, and
+  for one hour at most. Then they are deleted.
 
 ### The pseudonymisation key
 

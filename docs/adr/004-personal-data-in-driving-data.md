@@ -18,7 +18,8 @@ still personal data for us. It is pseudonymised, not anonymised.
 
 The person id is needed for one thing only: **the Citizens figure**, the number of distinct people
 in a period. Every other figure works without it. The import does not need it, because a
-re-upload replaces whole dates ([ADR 003](003-driving-data-import-mapping-and-overwrite.md)).
+re-upload replaces the date range of the upload
+([ADR 003](003-driving-data-import-mapping-and-overwrite.md)).
 
 ### Drivers
 

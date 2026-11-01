@@ -28,8 +28,9 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 
 - **Correct figures first.** Every figure is calculated the same way for any period, from summed
   counts. A wrong number is the worst possible bug, so calculation code has the strictest tests.
-- **No duplicates.** Re-importing data replaces all stored data for the dates in the file. The
-  same data must never be counted twice, and rows that are not in a corrected file must not stay.
+- **No duplicates.** Re-importing data replaces all stored data in the date range of the upload.
+  The same data must never be counted twice, and rows that are not in a corrected file must not
+  stay.
 - **Source-independent import.** The column layout of an extract is described in a mapping file,
   not in code, so another source can be added without code changes.
 - **Minimal personal data.** No names, addresses or driver data are imported. How citizen
@@ -45,10 +46,10 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 **Users:**
 
 - **Viewers** read the overview.
-- **Data editors** export extracts from the planning system and upload them, and enter the daily
-  counts of mails, complaints and phone calls.
-- **Administrators** manage suppliers and which supplier drives each route in each period. The
-  identity provider manages the users.
+- **Data editors** enter the daily counts of mails, complaints and phone calls.
+- **Administrators** export extracts from the planning system and upload them, clear the
+  driving data for a date, and manage suppliers and which supplier drives each route in each
+  period. The identity provider manages the users.
 
 These are tasks, not roles. Each task has its own permission role (see
 [Authorization](#security)), so one user can do one task or many.
@@ -119,7 +120,7 @@ are added only when file sizes or integrations need them.
 | `Supplier` | A transport supplier |
 | `Route` | A route from the extract |
 | `RouteSupplierAssignment` | The supplier that drives a route from `valid_from` to `valid_to` (empty = no end date) |
-| `ImportBatch` | One upload: mapping, file name, who and when, the replaced dates, row counts, rejection reasons |
+| `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, rejection reasons |
 | `StopRow` | One stop from the extract, with an optional row key from the mapping. See [open decisions](#open-decisions) |
 | `RouteRun` | Derived: one route run with its last drop-off, delay, peak passengers and distances |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
@@ -158,46 +159,66 @@ so an invalid mapping stops the application from starting. It then produces an i
 refers to column names itself. `app:driving-data:mapping:validate` checks a sample file against
 a mapping before it is used.
 
+### Date range
+
+The user enters the first and the last date of the export, together with the file. `ImportRange`
+holds the two dates. The import replaces exactly this range
+([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)):
+
+- A date in the range with no rows in the file becomes empty. This includes the first and the
+  last date.
+- A row with a date outside the range is rejected. A wrong date in one row cannot change other
+  dates.
+- The range can be at most `APP_DRIVING_DATA_MAX_DAYS` days (default 31). A longer range is
+  rejected, and no data changes.
+
 ### Pipeline
 
-1. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
-   with their row number and a reason. Field values are never written to messages or logs. The
-   person id is pseudonymised before it leaves the parser.
-2. **Replace.** `StopRowReplacer` finds the import dates: the dates that have at least one valid
-   row. It deletes all `StopRow` rows for these dates, from all mappings, and then inserts the
-   rows of the file. Rows that are not in the new file are removed, and two uploads can never
-   count the same date twice. A row key that occurs more than once in the file is rejected after
-   the first occurrence, and a unique index on `(mapping_name, row_key)` makes this sure. It
-   returns the deleted and inserted counts and the import dates.
-3. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the import dates. It orders
-   each route's stops by planned time and splits them into runs at the end-of-route flag.
-4. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the import dates, one
-   per supplier.
-5. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts
-   and the import dates.
+1. **Preview.** The upload keeps the file in `var/` with a random name, and keeps its token in
+   the session. The parser reads the file, and the page shows the range, the rows to delete,
+   insert and reject, and the dates that become empty. No data changes.
+2. **Confirm.** The user confirms. The steps below parse the file again and import it. If the
+   user cancels, the file is deleted.
+3. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
+   with their row number and a reason. Rows outside the range are also rejected. Field values are
+   never written to messages or logs. The person id is pseudonymised before it leaves the parser.
+4. **Replace.** `StopRowReplacer` deletes all `StopRow` rows in the range, from all mappings, and
+   then inserts the rows of the file. Rows that are not in the new file are removed, and two
+   uploads can never count the same date twice. A row key that occurs more than once in the file
+   is rejected after the first occurrence, and a unique index on `(mapping_name, row_key)` makes
+   this sure. It returns the deleted and inserted counts.
+5. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the range. It orders each
+   route's stops by planned time and splits them into runs at the end-of-route flag.
+6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
+   supplier.
+7. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts
+   and the range.
 
-All steps for one upload run in one database transaction. A failed import leaves the data as it
-was.
+Steps 3 to 7 run in one database transaction. A failed import leaves the data as it was. A file
+that is not confirmed or cancelled is deleted at the next upload after one hour.
 
-**Whole days:** a file that holds only part of a day removes the other rows of that day. Users
-must upload whole days. The result page lists the replaced dates.
+**Whole days and the date range:** a file that holds only part of a day removes the other rows of
+that day. A range that is longer than the export empties the extra dates. Users must upload whole
+days and enter the range of the export. The preview lists the dates that become empty.
 
 **No rollback:** an `ImportBatch` cannot be undone. To correct a wrong upload, upload the correct
-file for the same dates, or clear the dates.
+file for the same range, or clear the dates.
 
 ### Clearing driving data
 
-Users with `ROLE_CLEAR_DRIVING_DATA` can delete the driving data for a date range, for example
-after a wrong upload:
+The upload page lists the uploaded dates, one month at a time. Each date shows the number of stop
+rows and route runs, and the last upload (file name, who, when). Users with
+`ROLE_CLEAR_DRIVING_DATA` can delete the driving data for a date, for example after a wrong
+upload:
 
-1. The user selects a date range. The page shows the number of stop rows and route runs in it.
+1. The user selects **Clear** for a date.
 2. The user confirms.
-3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the range in one
+3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the date in one
    transaction. `DailyCount` does not change.
-4. The application logs who cleared which range, and the deleted counts. The log has no field
+4. The application logs who cleared which date, and the deleted counts. The log has no field
    values.
 
-`app:driving-data:clear <FROM> <TO>` uses the same service.
+`app:driving-data:clear <FROM> <TO>` uses the same service to clear a date range.
 
 ## Calculating the figures
 
@@ -264,7 +285,7 @@ config file.
   | --- | --- |
   | `ROLE_VIEW_OVERVIEW` | The overview |
   | `ROLE_UPLOAD_DRIVING_DATA` | Upload of driving data |
-  | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date range |
+  | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date on the upload page |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, routes and route → supplier assignments |
 
@@ -291,7 +312,10 @@ config file.
 **Data protection:**
 
 - Forms use CSRF tokens.
-- Uploads are limited to `.xlsx` and a maximum size, and are deleted after processing.
+- Uploads are limited to `.xlsx` and a maximum size. The file is kept in `var/`, outside the
+  public folder, until the user confirms or cancels, and for one hour at most.
+- The confirmation uses a token from the user's session, so a user cannot confirm the upload of
+  another user.
 - The parser reads the extract with OpenSpout, which streams one row at a time. It has
   configurable limits for the number of rows and columns, and stops at the first row or column
   above a limit (ASVS V12.1.2).
@@ -342,6 +366,13 @@ not see. An item is visible only if its route exists and the user has its permis
 group is visible only if at least one child is visible. `MainMenu` already has the items for
 daily counts and suppliers, so each item shows when its task adds the route.
 
+The menu has these items:
+
+- Overview
+- Daily counts
+- Administration: Upload driving data, and Suppliers and routes. M1-13 adds the group, and M1-19
+  adds the upload item.
+
 **Language:** the UI is in Danish. Texts live in `translations/messages+intl-icu.da.yaml`, and
 `FormatExtension` formats numbers, percentages, percentage points, deltas and period labels.
 
@@ -389,8 +420,10 @@ testing and the diagram check on every pull request.
   - The data model above shows the current working assumption (rows with a pseudonymised key).
   - The product owner in the transport office decides, with the data protection adviser.
   - It must be decided before the extract parser is built (task M1-15).
-- **Whole days.** Does each extract hold whole days? The replacement of whole dates depends on
-  it.
+- **Whole days.** Does each extract hold whole days? The replacement of the date range depends
+  on it.
+- **Maximum range.** What can the planning system export? Evaluate the default of
+  `APP_DRIVING_DATA_MAX_DAYS` (31 days) after a test export.
 - **Role claim.** Which claim holds the roles, and which values does the identity provider
   send? Which group is assigned to the application? IT operations sets this up before go-live
   (task M1-28).
@@ -401,5 +434,5 @@ See [`adr/`](adr/README.md):
 
 - [001: Stack](adr/001-stack.md)
 - [002: OIDC authentication with roles from the identity provider](adr/002-oidc-authentication.md)
-- [003: Driving data import with mappings and replacement of whole dates](adr/003-driving-data-import-mapping-and-overwrite.md)
+- [003: Driving data import with mappings and replacement of the entered date range](adr/003-driving-data-import-mapping-and-overwrite.md)
 - [004: Personal data in driving data](adr/004-personal-data-in-driving-data.md)

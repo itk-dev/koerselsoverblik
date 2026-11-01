@@ -62,7 +62,7 @@ These rules apply to every step from step 4 onwards. Steps 1–3 are docs and pl
   - `FormatExtension`, `OidcRoleMapper`, value objects
 - **Integration** (`tests/Integration`, `KernelTestCase` + MariaDB test DB, isolated with `dama/doctrine-test-bundle`):
   - repositories and the SUM and distinct-count queries
-  - replacement of whole dates, and clearing a date range
+  - replacement of the date range of an upload, and clearing a date
   - console commands (`CommandTester`)
 - **Functional** (`tests/Functional`, `WebTestCase`):
   - every route × permission role (200/403/redirect)
@@ -181,8 +181,9 @@ helpers build up. This is an estimate, to be revisited after the first tasks.
   - OIDC login, with roles from the identity provider
   - base layout and menu
 - **Data in:**
-  - upload of driving data (each date in the file replaces the stored data for that date)
-  - clearing the driving data for a date range
+  - upload of driving data (the upload replaces the stored data in the date range that the user
+    enters)
+  - clearing the driving data for a date
   - manual entry of mails, complaints and phone calls per day
 - **Views:**
   - empty running (%)
@@ -203,7 +204,7 @@ Afterwards it is kept in sync whenever the implementation diverges.
 **Contents:**
 
 - **What it is:** the purpose, and the eight figures with short definitions
-- **Features:** login and roles, upload with replacement of whole dates, clearing dates, daily counts, filters
+- **Features:** login and roles, upload with replacement of the date range, clearing dates, daily counts, filters
 - **Getting started:** `task setup`, the first user, the local URL
 - **Configuration:** the OIDC settings, the pseudonymisation secret, the punctuality settings
 - **Usage:** upload, mapping routes to suppliers, daily counts, users
@@ -263,13 +264,13 @@ deliverable tasks in `docs/tasks.md`. Each task becomes one GitHub issue, one br
 - The branch is `feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>`, as in the ITK Dev
   conventions.
 - The PR title follows Conventional Commits and ends with the task ID, for example
-  `feat: replace stop rows for the dates in a file (M1-16)`. The description has
+  `feat: replace stop rows for the date range of an upload (M1-16)`. The description has
   `Closes #<ISSUE_NUMBER>`.
 - `.github/pull_request_template.md` has the definition of done as a checklist.
 
 **Each task has:**
 
-- **ID and title**, e.g. `M1-16 Replace stop rows for the dates in a file`
+- **ID and title**, e.g. `M1-16 Replace stop rows for the date range of an upload`
 - **Step:** the plan step, and the README or architecture section it implements
 - **Depends on:** the tasks that must be merged first
 - **Tests first:** the failing tests that define the task
@@ -406,10 +407,11 @@ The identity provider manages the users, so there is no role for user administra
 **Menu:**
 
 - Overview (`ROLE_VIEW_OVERVIEW`)
-- Upload driving data (`ROLE_UPLOAD_DRIVING_DATA`)
-- Clear driving data (`ROLE_CLEAR_DRIVING_DATA`)
 - Daily counts (`ROLE_EDIT_DAILY_COUNTS`)
-- Suppliers and routes (`ROLE_MANAGE_SUPPLIERS`)
+- Administration:
+  - Upload driving data (`ROLE_UPLOAD_DRIVING_DATA`). The page also lists the uploaded dates,
+    and clears a date (`ROLE_CLEAR_DRIVING_DATA`).
+  - Suppliers and routes (`ROLE_MANAGE_SUPPLIERS`)
 
 Menu items are shown with `is_granted()`.
 
@@ -421,14 +423,23 @@ Menu items are shown with `is_granted()`.
 
 ## 7. Upload of driving data
 
-**Upload flow** (`ROLE_UPLOAD_DRIVING_DATA`):
+**Upload flow** (Administration → Upload driving data, `ROLE_UPLOAD_DRIVING_DATA`):
 
-- An upload form creates an `ImportBatch`: file name, uploaded by, the replaced dates, row counts
-  (deleted/inserted/rejected), errors.
+- The upload form has the file, and the first and the last date of the export.
+- The range can be at most `APP_DRIVING_DATA_MAX_DAYS` days (default 31).
+- **Preview:** the page shows the range, the rows to delete, insert and reject, and the dates
+  that become empty. No data changes. The file is kept in `var/`, and its token in the session.
+- **Confirm:** the import runs, and creates an `ImportBatch`: file name, uploaded by, the
+  replaced date range, row counts (deleted/inserted/rejected), errors. **Cancel** deletes the
+  file.
 - The file is processed **synchronously** in the request, and the result page is shown.
   - Move to async processing only if file sizes require it (see "Later milestones").
-- CLI: `app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]`.
-- The uploaded file is deleted after processing.
+- CLI: `app:driving-data:import <PATH_TO_FILE> <FROM_DATE> <TO_DATE> [--mapping=<MAPPING_NAME>]`.
+  It shows the preview, and asks for confirmation unless `--no-interaction` is given.
+- The uploaded file is deleted after the import or the cancel. A file that is not confirmed is
+  deleted at the next upload after one hour.
+- **Uploaded dates:** the upload page lists the dates with driving data, one month at a time.
+  Each date shows the stop rows, the route runs and the last upload.
 
 **Import mapping:**
 
@@ -457,12 +468,14 @@ Menu items are shown with `is_granted()`.
 **Storage and replacement** (see [ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)):
 
 - `StopRow` holds one row per stop from the extract.
-- **Replace whole dates:** the import dates are the dates with at least one valid row.
-  `StopRowReplacer` deletes all `StopRow` rows for these dates, from all mappings, and then inserts
-  the rows of the file.
+- **Replace the date range:** `StopRowReplacer` deletes all `StopRow` rows in the date range that
+  the user entered, from all mappings, and then inserts the rows of the file.
   - Rows that are not in a corrected file are removed.
+  - A date in the range with no rows in the file becomes empty.
+  - A row with a date outside the range is rejected.
   - Two uploads can never count the same date twice.
-  - A file that holds only part of a day removes the other rows of that day. The result page lists the replaced dates.
+  - A file that holds only part of a day removes the other rows of that day. The preview lists
+    the dates that become empty.
 - If the mapping has a row id, a unique index on `(mapping_name, row_key)` stops duplicate rows in one file.
 - **No rollback:** an `ImportBatch` cannot be undone. Upload the correct file, or clear the dates.
 - Only the fields the calculations need are kept:
@@ -475,17 +488,17 @@ Menu items are shown with `is_granted()`.
 
 **Derived data:**
 
-- After an import, `RouteRun` and `DailyStats` are rebuilt for the **import dates**:
+- After an import, `RouteRun` and `DailyStats` are rebuilt for the **date range**:
   - **`RouteRun`** (one per route run): last drop-off planned and actual, delay, peak passengers, cancelled.
   - **`DailyStats`** (date × supplier): trips, completed, cancelled, route runs, last drop-offs, on
     time, solo runs, driven km, empty km, driven minutes, empty minutes.
 
 **Clear driving data** (`ROLE_CLEAR_DRIVING_DATA`):
 
-- A page where the user selects a date range. It shows the number of stop rows and route runs in the
-  range, and asks for confirmation.
-- `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the range in one
-  transaction. `DailyCount` does not change.
+- Each date in the list of uploaded dates has a **Clear** button. The user confirms before the
+  data is deleted. There is no separate page.
+- `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for a date range in one
+  transaction. The upload page clears one date. `DailyCount` does not change.
 - The action is logged: who, when, the range and the deleted counts. No field values.
 - CLI: `app:driving-data:clear <FROM_DATE> <TO_DATE>`, with the same service.
 
@@ -810,16 +823,16 @@ The PM confirms that milestone 1 can start without answers to these questions.
 
 ```text
 src/
-  Controller/            OverviewController, ImportController, ClearDrivingDataController,
-                         DailyCountController,
-                         SecurityController (logout), SupplierController, RouteController
+  Controller/            OverviewController, DailyCountController, SecurityController (logout)
+  Controller/Admin/      ImportController, ClearDrivingDataController, SupplierController,
+                         RouteController
   Entity/                User, Supplier, Route, RouteSupplierAssignment, ImportBatch, StopRow, RouteRun,
                          DailyStats, DailyCount
   Form/                  ImportType, DailyCountWeekType, SupplierType, RouteType,
                          RouteSupplierAssignmentType
   Report/                PeriodFilter, PeriodRangeFactory, KpiCalculator, Kpis, Delta, Tone
-  Import/DrivingData/    Mapping, MappingLoader, StopRowParser, StopRowReplacer, RouteBuilder,
-                         DailyStatsAggregator, DrivingDataClearer
+  Import/DrivingData/    Mapping, MappingLoader, ImportRange, StopRowParser, StopRowReplacer,
+                         RouteBuilder, DailyStatsAggregator, DrivingDataClearer
   Security/              OidcAuthenticator, OidcRoleMapper
   Twig/                  FormatExtension, Components/{Tile,Sparkline,LineChart,Panel}
   Command/               DrivingDataImportCommand, DrivingDataClearCommand,
@@ -838,6 +851,7 @@ the table.
 | Question | Owner | Needed by | Blocks |
 | --- | --- | --- | --- |
 | Whole days | Product owner (transport office) | Before M1-16 | M1-16 |
+| Maximum range | Developer, with the transport office | Before M1-28 (go-live) | Nothing. The default is 31 days until a test export shows what the planning system can export. |
 | Row id | Product owner, with a developer | Before M1-14 | M1-14 |
 | Actual time | Product owner | Before M1-14 | M1-14 |
 | Supplier mapping | Product owner | Before M1-28 (go-live) | Nothing. Administrators keep the assignments (M1-13) until a source is known. |
@@ -847,8 +861,10 @@ the table.
 | Staff data (was Q-M2-12) | Product owner, with the data protection adviser | Before M1-06 | M1-06 |
 | No PII in the database ([ADR 004](adr/004-personal-data-in-driving-data.md)) | Product owner, with the data protection adviser | Before M1-15 | M1-15 |
 
-- **Whole days:** does each extract hold whole days? Re-upload replaces whole dates, so a partial
-  day removes the other rows of that day.
+- **Whole days:** does each extract hold whole days? Re-upload replaces the date range of the
+  upload, so a partial day removes the other rows of that day.
+- **Maximum range:** what can the planning system export? Test an export. Then evaluate the
+  default of `APP_DRIVING_DATA_MAX_DAYS` (31 days), the maximum number of days in one upload.
 - **Row id:** is there a stable row id column in the extract? It is optional. If it exists, the
   import uses it to reject duplicate rows in one file.
 - **Actual time:** which column holds the actual time? It is set in the mapping until this is confirmed.
@@ -866,9 +882,9 @@ the table.
     anonymised), because it can be linked back through the source system.
   - **Hard requirements:** re-imports must replace earlier data, and the same data must never be
     counted twice. Duplicates would make every figure wrong.
-  - **Overwrite is the same for every option:** a re-upload replaces whole dates ([ADR
-    003](adr/003-driving-data-import-mapping-and-overwrite.md)). No option needs the person id for
-    that.
+  - **Overwrite is the same for every option:** a re-upload replaces the date range of the upload
+    ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)). No option needs the person
+    id for that.
   - **Options:**
     1. **Pseudonymised rows** (the current plan): exact distinct counts, and the derived data can be
        rebuilt from the rows. But the database holds personal data. Needs a DPIA, retention rules
@@ -966,8 +982,9 @@ Development can start without answers to them. The PM must accept this before st
     mapping with a missing column or an unknown value.
   - Re-importing the same file deletes and inserts the same number of rows, and the totals do not change.
   - Re-importing a file with one row removed removes that row from the totals.
-  - A file with a date that is not stored yet does not change the other dates.
-  - Clearing a date range removes its driving figures and keeps its daily counts.
+  - An upload does not change the dates outside its date range.
+  - A date in the range with no rows in the file becomes empty.
+  - Clearing a date removes its driving figures and keeps its daily counts.
 - **Daily counts:** saving a week, then editing a day, updates the existing rows.
 - **Overview:**
   - Unit tests for periods (weeks, partial periods, clamping), the KPI maths, `Delta` and `Tone`.
