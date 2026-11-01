@@ -37,3 +37,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   preview and a confirmation. `APP_DRIVING_DATA_MAX_DAYS` limits the range. The upload page lists
   the uploaded dates, and clears one date. The separate page that clears a date range is removed.
   The GitHub links use the new repository name.
+  ADR 004 is proposed: the stop rows keep the person id from the extract, with no HMAC, and
+  `APP_PERSON_ID_SECRET` is removed. The data import plan is in `docs/plan-data-import.md`. The
+  `default` mapping uses the columns of a reference extract, with the new `date` and `time`
+  types, a `run` field from the block number, and rejection of unknown values. The new task
+  M1-29 generates the test extracts and the development dataset from invented data.
