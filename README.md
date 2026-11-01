@@ -452,5 +452,5 @@ To set up a new server:
 
 - [Architecture](docs/architecture.md)
 - [Architecture decision records](docs/adr/)
-- [Plan](docs/plan.md) and [tasks](docs/tasks.md)
+- [Plan](docs/plan.md), [data import plan](docs/plan-data-import.md) and [tasks](docs/tasks.md)
 - [Changelog](CHANGELOG.md)

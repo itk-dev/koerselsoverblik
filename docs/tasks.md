@@ -390,7 +390,7 @@ the other IDs do not change.
 
 ### M1-14 Import mapping
 
-- **Plan step:** 7. **Implements:** README "Import mappings", ADR 003.
+- **Plan step:** 7 ([data import plan](plan-data-import.md)). **Implements:** README "Import mappings", ADR 003.
 - **Depends on:** M1-02
 - **Work:**
   - The YAML format in `config/import/driving_data/<MAPPING_NAME>.yaml`.
@@ -416,7 +416,7 @@ the other IDs do not change.
 
 ### M1-15 Extract parser
 
-- **Plan step:** 7. **Implements:** ADR 003, ADR 004 (proposed).
+- **Plan step:** 7 ([data import plan](plan-data-import.md)). **Implements:** ADR 003, ADR 004 (proposed).
 - **Depends on:** M1-14
 - **Work:**
   - `StopRowParser` reads an `.xlsx` with `openspout/openspout`, only through `Mapping`.
@@ -455,7 +455,7 @@ the other IDs do not change.
 
 ### M1-16 Replace stop rows for the date range of an upload
 
-- **Plan step:** 7. **Implements:** README "Upload driving data", ADR 003.
+- **Plan step:** 7 ([data import plan](plan-data-import.md)). **Implements:** README "Upload driving data", ADR 003.
 - **Depends on:** M1-13, M1-15
 - **Work:**
   - `StopRow` and `ImportBatch` entities and migrations. `StopRow` has an optional row key, with
@@ -495,7 +495,8 @@ the other IDs do not change.
 
 ### M1-17 Build route runs
 
-- **Plan step:** 7. **Implements:** README "Key figures" (definitions), architecture "Pipeline".
+- **Plan step:** 7 ([data import plan](plan-data-import.md)). **Implements:** README "Key figures"
+  (definitions), architecture "Pipeline".
 - **Depends on:** M1-16
 - **Work:** `RouteBuilder` replaces the `RouteRun` rows for the given date range. For each route and
   date, it orders stops by planned time and splits them into runs at the end-of-route flag. Per
@@ -517,7 +518,8 @@ the other IDs do not change.
 
 ### M1-18 Aggregate daily stats
 
-- **Plan step:** 7. **Implements:** architecture "Data model" (derived tables).
+- **Plan step:** 7 ([data import plan](plan-data-import.md)). **Implements:** architecture "Data
+  model" (derived tables).
 - **Depends on:** M1-17
 - **Work:**
   - The `DailyStats` entity and migration, with a unique index on `(service_date, supplier_id)`.
@@ -538,8 +540,8 @@ the other IDs do not change.
 
 ### M1-19 Upload page with preview and import command
 
-- **Plan step:** 7. **Implements:** README "Upload driving data", ADR 003, architecture
-  "Pipeline".
+- **Plan step:** 7 ([data import plan](plan-data-import.md)). **Implements:** README "Upload
+  driving data", ADR 003, architecture "Pipeline".
 - **Depends on:** M1-18
 - **Work:**
   - `Admin\ImportController` (`ROLE_UPLOAD_DRIVING_DATA`) at `/admin/import`, route
@@ -590,8 +592,8 @@ the other IDs do not change.
 
 ### M1-20 Uploaded dates and clear a date
 
-- **Plan step:** 7. **Implements:** README "Clear driving data", ADR 003, architecture "Clearing
-  driving data".
+- **Plan step:** 7 ([data import plan](plan-data-import.md)). **Implements:** README "Clear
+  driving data", ADR 003, architecture "Clearing driving data".
 - **Depends on:** M1-19
 - **Work:**
   - **Uploaded dates** on the upload page from M1-19:

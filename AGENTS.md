@@ -12,6 +12,7 @@ Read these documents before you start a task:
 
 - [README.md](README.md): the specification. The application must do what the README says.
 - [docs/plan.md](docs/plan.md): the plan and the development approach.
+- [docs/plan-data-import.md](docs/plan-data-import.md): the plan for the import of driving data.
 - [docs/tasks.md](docs/tasks.md): the tasks. Each task is one issue, one branch and one pull
   request.
 - [docs/architecture.md](docs/architecture.md): the design, the diagrams and the security rules.
