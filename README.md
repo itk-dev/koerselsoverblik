@@ -64,7 +64,7 @@ averages of daily percentages.
 | --- | --- | --- |
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
-| Citizens | Distinct citizens in the period, counted on the pseudonymised person id | Driving data |
+| Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
 | Solo routes | Route runs where no more than one citizen was in the vehicle at any time. Shown with the share of all route runs | Driving data |
 | Punctuality (%) | Share of completed route runs whose last drop-off was within the tolerance of the planned time. Cancelled runs are excluded | Driving data |
 | Complaints | Complaints received. Shown with complaints per 1,000 trips | Manual entry |
@@ -149,7 +149,6 @@ Set these in `.env.local`:
 | `OIDC_CLIENT_SECRET` | The client secret of the application in the identity provider | The local mock secret |
 | `OIDC_REDIRECT_URI` | The callback URL of the application, registered in the identity provider | The local callback URL |
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
-| `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
@@ -299,20 +298,14 @@ administration.
 
 ## Data and privacy
 
-- Person ids from the driving data are never stored in clear text. They are pseudonymised with
-  HMAC using `APP_PERSON_ID_SECRET`, and used only to count distinct citizens.
-- Names, addresses and other personal details in the extract are not imported.
+- The stop rows keep the person id of the planning system. It is used only to count distinct
+  citizens, and it is never shown. See
+  [ADR 004](docs/adr/004-personal-data-in-driving-data.md) (proposed).
+- Names, addresses and other personal details in the extract are not imported. The columns with
+  free text and labels are not imported either.
 - Nothing is stored or shown at driver level.
 - Uploaded files are kept outside the public folder until you confirm or cancel the upload, and
   for one hour at most. Then they are deleted.
-
-### The pseudonymisation key
-
-If one attacker gets both the database and `APP_PERSON_ID_SECRET`, the pseudonymisation does
-not protect the data. Keep the key apart from the database:
-
-- Set the key in `.env.local`.
-- Do not include `.env.local` in the backups of the database host.
 
 ## Development
 
@@ -449,7 +442,6 @@ To set up a new server:
 1. Set these in `.env.local` (staging included):
    - `APP_ENV=prod`
    - `APP_SECRET`
-   - `APP_PERSON_ID_SECRET`
    - the `OIDC_*` settings from the identity provider
    - the database settings
 2. Deploy.

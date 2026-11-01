@@ -72,7 +72,7 @@ split it and update this file.
 | M1-13 | Suppliers, routes and dated assignments | 10 |
 | **D** | **Data in** | |
 | M1-14 | Import mapping | 02 |
-| M1-15 | Extract parser | 14, ADR 004 |
+| M1-15 | Extract parser | 14 |
 | M1-16 | Replace stop rows for the date range of an upload | 13, 15 |
 | M1-17 | Build route runs | 16 |
 | M1-18 | Aggregate daily stats | 17 |
@@ -96,11 +96,11 @@ split it and update this file.
   are added.
 - There is a GitHub issue for each task.
 
-**Before M1-15:** [ADR 004](adr/004-personal-data-in-driving-data.md) (personal data) must be
-decided. Everything else can continue while it is open.
-
 **Before M1-16:** confirm with the transport office that each extract holds whole days (see
 [ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)).
+
+**Before M1-28:** [ADR 004](adr/004-personal-data-in-driving-data.md) (personal data) must be
+accepted. M1-15 implements the proposed decision.
 
 **Parallel work:** after M1-05, groups C, D and E can run in parallel.
 
@@ -416,8 +416,8 @@ the other IDs do not change.
 
 ### M1-15 Extract parser
 
-- **Plan step:** 7. **Implements:** ADR 003, ADR 004 (as decided).
-- **Depends on:** M1-14, and **ADR 004 decided**
+- **Plan step:** 7. **Implements:** ADR 003, ADR 004 (proposed).
+- **Depends on:** M1-14
 - **Work:**
   - `StopRowParser` reads an `.xlsx` with `openspout/openspout`, only through `Mapping`.
     OpenSpout streams the sheet one row at a time, so the memory use does not grow with the
@@ -427,7 +427,8 @@ the other IDs do not change.
   - It applies value maps.
   - The output is `StopRowData` value objects, or a `RejectedRow` with the row number and a
     reason. The reason never includes field values.
-  - Person id handling follows ADR 004, for example HMAC with `APP_PERSON_ID_SECRET`.
+  - The person id is kept as it is in the extract (ADR 004). The parser removes the spaces at
+    the start and the end.
   - Limits on untrusted files (ASVS V12.1.2, V5.5.2):
     - A maximum file size, number of rows and number of columns. They are configurable, with
       defaults well above the size of a normal extract.
@@ -443,8 +444,7 @@ the other IDs do not change.
   - Required fields that are missing.
   - Unknown codes that aren't in a value map.
   - Rejected-row reasons contain no values.
-  - The same person id with the same secret gives the same key. A different secret gives a
-    different key.
+  - The person id is kept as it is, without the spaces at the start and the end.
   - A file with one row or one column more than the limit is rejected, and no rows are
     returned.
   - A workbook with a `DOCTYPE` and an external entity in a sheet is rejected.
@@ -685,7 +685,7 @@ the other IDs do not change.
 - **Work:**
   - `KpiCalculator` runs one aggregate query over `DailyStats` and `DailyCount` per range, with
     an optional supplier.
-  - It counts distinct citizens as decided in ADR 004.
+  - It counts the distinct person ids in the stop rows (ADR 004).
   - The result is a `Kpis` value object with the eight figures and their secondary values: solo
     share, and complaints per 1,000 trips.
   - `Delta` gives the value, the percentage and the tone (better, worse or neutral, by

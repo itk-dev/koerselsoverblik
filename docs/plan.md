@@ -206,7 +206,7 @@ Afterwards it is kept in sync whenever the implementation diverges.
 - **What it is:** the purpose, and the eight figures with short definitions
 - **Features:** login and roles, upload with replacement of the date range, clearing dates, daily counts, filters
 - **Getting started:** `task setup`, the first user, the local URL
-- **Configuration:** the OIDC settings, the pseudonymisation secret, the punctuality settings
+- **Configuration:** the OIDC settings, the punctuality settings
 - **Usage:** upload, mapping routes to suppliers, daily counts, users
 - **Data and privacy**
 - **Development:** tests, coverage, mutation testing, coding standards, fixtures, diagrams
@@ -484,7 +484,8 @@ Menu items are shown with `is_granted()`.
   - distance and duration to the next stop
   - cancellation fields, planned solo
   - planned time, actual time
-- The person id is stored only **pseudonymised** (HMAC with `APP_PERSON_ID_SECRET`).
+- The person id is stored as it is in the extract, with no HMAC
+  ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed). It is never shown.
 
 **Derived data:**
 
@@ -512,7 +513,7 @@ Menu items are shown with `is_granted()`.
 - **Empty running %:** the distance to the next stop where no passengers are on board, divided by the total distance.
 - **Solo routes:** route runs whose peak number of simultaneous passengers is ≤ 1.
 - **Trips:** one per pickup/drop-off pair.
-- **Citizens:** a distinct count of the pseudonymised person id over the period.
+- **Citizens:** a distinct count of the person id over the period.
 - Dates are converted to local time (Europe/Copenhagen), using the format given in the mapping.
 
 **Master data** (`ROLE_MANAGE_SUPPLIERS`):
@@ -611,8 +612,8 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 
 **Server configuration:**
 
-- `.env.local` on every server, staging included, holds `APP_ENV=prod`, `APP_SECRET`,
-  `APP_PERSON_ID_SECRET`, the `OIDC_*` settings and `DATABASE_URL`.
+- `.env.local` on every server, staging included, holds `APP_ENV=prod`, `APP_SECRET`, the
+  `OIDC_*` settings and `DATABASE_URL`.
 - Do not include `.env.local` in the backups of the database host.
 - Woodpecker secrets hold the host, path, user and keys.
 
@@ -643,8 +644,8 @@ applies: README first, architecture and ADRs updated, then tasks.
 - **Security and data protection (decision needed, Q-M2-01):** are these part of Sølv?
   - security and audit logging: sign-ins, denied requests, changes to users and to the import mapping
   - retention rules for the stored data
-  - a DPIA. [ADR 004](adr/004-personal-data-in-driving-data.md) option 1 (pseudonymised rows)
-    requires one, and milestone 2 adds complaint and mail data.
+  - a DPIA. The proposal in [ADR 004](adr/004-personal-data-in-driving-data.md) (rows with the
+    person id) requires one, and milestone 2 adds complaint and mail data.
 
 ## M2.1 Dashboard and trends
 
@@ -859,7 +860,7 @@ the table.
 | Test data | Product owner | Before M1-15 | M1-15, M1-27 |
 | OIDC group and role claim (was Q-M2-10) | Product owner, with IT operations | Before M1-28 (go-live) | M1-28. The mock service is used until then. |
 | Staff data (was Q-M2-12) | Product owner, with the data protection adviser | Before M1-06 | M1-06 |
-| No PII in the database ([ADR 004](adr/004-personal-data-in-driving-data.md)) | Product owner, with the data protection adviser | Before M1-15 | M1-15 |
+| Personal data ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed) | Product owner, with the data protection adviser | Before M1-28 (go-live) | M1-28. M1-15 implements the proposal. |
 
 - **Whole days:** does each extract hold whole days? Re-upload replaces the date range of the
   upload, so a partial day removes the other rows of that day.
@@ -877,54 +878,19 @@ the table.
 - **Staff data:** what is stored about the users from the identity provider (see ADR 004, staff
   accounts)? Until it is decided, `User` keeps only the username, the roles and the last login
   time.
-- **No PII in the database (not decided yet).** The goal is to store no personal data about citizens.
-  - **Problem:** a hashed person id or row id is still personal data under GDPR (pseudonymised, not
-    anonymised), because it can be linked back through the source system.
-  - **Hard requirements:** re-imports must replace earlier data, and the same data must never be
-    counted twice. Duplicates would make every figure wrong.
-  - **Overwrite is the same for every option:** a re-upload replaces the date range of the upload
-    ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)). No option needs the person
-    id for that.
-  - **Options:**
-    1. **Pseudonymised rows** (the current plan): exact distinct counts, and the derived data can be
-       rebuilt from the rows. But the database holds personal data. Needs a DPIA, retention rules
-       and access control.
-    2. **Aggregates only:** store counts per route run and per day, with a HyperLogLog sketch per
-       day for distinct citizens (about 1 % error, no identifiers). A calculation fix needs a
-       re-upload of the affected dates.
-    3. **Rows for a correction window, then aggregates:** keep pseudonymised rows only for as long
-       as corrections can arrive (for example 60 days). After that, a purge job deletes them and
-       keeps the aggregates and sketches. Recent data can be rebuilt, and older data holds no
-       identifiers.
-  - **Applies to every option:**
-    - No names, addresses or other personal details are imported.
-    - Rejected-row messages and logs never contain field values.
-    - Uploaded files are deleted after processing.
-    - The HMAC key is not included in the backups of the database host.
-  - **About the person id:**
-    - It is an internal id of the planning system and means nothing outside it.
-    - That lowers the risk, but for us it is still personal data: the organisation has access to the
-      planning system and can look the id up.
-    - Hashing it with a secret means the database alone doesn't reveal the planning-system id. The
-      organisation can still re-identify through the planning system, so for us it remains
-      pseudonymised personal data.
-  - **What the person id is used for:**
-    - **The Citizens figure** (distinct people in a period). This is the only use. Trips, solo
-      routes, empty running and punctuality don't need it, and the import doesn't need it as a row
-      key.
-    - So the person id does not need to be stored. At most it is read during the import for the
-      Citizens count. The options for Citizens without storing it:
-      - drop the figure, or show it for single days only (an exact count per day, stored as a number at import)
-      - a HyperLogLog sketch per day, built during the import, after which the id is discarded.
-        Weeks, months and years are calculated by combining the sketches, with about 1 % error.
-      - take distinct counts per period from the source system, if it can provide them
-  - **Inputs to the decision (still undecided):**
-    - How late can corrections to an extract arrive? This sets the correction window in option 3.
-    - Is an approximate Citizens figure (about 1 % error) acceptable? Options 2 and 3 depend on it.
-  - **Staff accounts** (username, name) are also personal data. Decide what to store when this is settled.
-  - **Who decides:** the product owner in the transport office, with the data protection adviser.
-    See [ADR 004](adr/004-personal-data-in-driving-data.md).
-  - **Decide before task M1-15.** The parser and the `StopRow` design depend on it.
+- **Personal data (proposed, not accepted).** See
+  [ADR 004](adr/004-personal-data-in-driving-data.md) for the options.
+  - **The proposal:** `StopRow` keeps the person id as it is in the extract, with no HMAC. The id
+    is used only for the Citizens figure, and it is never shown.
+  - **Why no HMAC:** the person id is an internal id of the planning system. The organisation
+    can look it up there, so a hashed id is still personal data for us. The HMAC adds a key to
+    manage and gives little protection.
+  - **What it needs:** a DPIA, a retention period for the stop rows, access control, and
+    encryption at rest.
+  - **Who decides:** the product owner in the transport office, with the data protection
+    adviser.
+  - **Accept before go-live (task M1-28).** Task M1-15 implements the proposal. Real data is
+    imported only after go-live.
 
 ## Outside this plan (PM to place)
 

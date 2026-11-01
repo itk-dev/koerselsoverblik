@@ -25,7 +25,7 @@ sequenceDiagram
 
     Admin->>C: POST confirm (token from the session, CSRF)
     C->>P: parse(file, mapping)
-    P-->>C: rows (person id pseudonymised), rejected rows
+    P-->>C: rows, rejected rows
     C->>DB: begin transaction, create ImportBatch
     C->>U: replace(range, rows)
     U->>U: reject rows outside the range

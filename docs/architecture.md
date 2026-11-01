@@ -33,8 +33,9 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
   stay.
 - **Source-independent import.** The column layout of an extract is described in a mapping file,
   not in code, so another source can be added without code changes.
-- **Minimal personal data.** No names, addresses or driver data are imported. How citizen
-  identifiers are handled is an [open decision](#open-decisions).
+- **Minimal personal data.** No names, addresses, free text or driver data are imported. The
+  person id is kept only to count citizens. The decision is proposed, not accepted (see
+  [open decisions](#open-decisions)).
 - **Simple to run.** One Symfony application and one database. No queue workers, no separate
   frontend build, no client-side chart library.
 - **Every route requires a role.** Access is denied by default.
@@ -181,7 +182,8 @@ holds the two dates. The import replaces exactly this range
    user cancels, the file is deleted.
 3. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
    with their row number and a reason. Rows outside the range are also rejected. Field values are
-   never written to messages or logs. The person id is pseudonymised before it leaves the parser.
+   never written to messages or logs. The person id is kept as it is in the extract
+   ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed).
 4. **Replace.** `StopRowReplacer` deletes all `StopRow` rows in the range, from all mappings, and
    then inserts the rows of the file. Rows that are not in the new file are removed, and two
    uploads can never count the same date twice. A row key that occurs more than once in the file
@@ -241,7 +243,7 @@ object.
 | --- | --- |
 | Empty running (%) | `SUM(empty_km) / SUM(driven_km)` |
 | Trips | `SUM(trips)` |
-| Citizens | Distinct citizens in the range (depends on [ADR 004](adr/004-personal-data-in-driving-data.md)) |
+| Citizens | `COUNT(DISTINCT person_id)` over the `StopRow` rows in the range ([ADR 004](adr/004-personal-data-in-driving-data.md)) |
 | Solo routes | `SUM(solo_runs)`, shown with `SUM(solo_runs) / SUM(route_runs)` |
 | Punctuality (%) | `SUM(on_time) / SUM(last_drop_offs)` |
 | Complaints | `SUM(complaints)`, shown with `SUM(complaints) / SUM(trips) × 1000` |
@@ -414,12 +416,13 @@ testing and the diagram check on every pull request.
 
 ## Open decisions
 
-- **Personal data in driving data** ([ADR 004](adr/004-personal-data-in-driving-data.md), draft).
-  - This decides whether `StopRow` and the pseudonymised person key are stored, kept for a
-    correction window, or replaced by aggregates and distinct-count sketches.
-  - The data model above shows the current working assumption (rows with a pseudonymised key).
+- **Personal data in driving data** ([ADR 004](adr/004-personal-data-in-driving-data.md),
+  proposed).
+  - The proposal: `StopRow` keeps the person id from the extract, with no HMAC. The data model
+    above shows it.
   - The product owner in the transport office decides, with the data protection adviser.
-  - It must be decided before the extract parser is built (task M1-15).
+  - Task M1-15 implements the proposal. The decision must be accepted before go-live (task
+    M1-28).
 - **Whole days.** Does each extract hold whole days? The replacement of the date range depends
   on it.
 - **Maximum range.** What can the planning system export? Evaluate the default of
