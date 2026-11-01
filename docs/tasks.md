@@ -19,14 +19,15 @@ pull request to `develop`. The [README](../README.md) is the spec; the
 
 1. **Check dependencies.** Every task under **Depends on** is merged to `develop`.
 2. **Issue.** Each task has a GitHub issue. Its title is the task ID and title, for example
-   `M1-16 Replace stop rows for the dates in a file`. Its body links to the task in this file.
+   `M1-16 Replace stop rows for the date range of an upload`. Its body links to the task in this
+   file.
 3. **Branch.** Create `feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>` from `develop`, for
    example `feature/issue-42-replace-stop-rows`.
 4. **Tests first.** Write the tests listed under **Tests first** and see them fail.
 5. **Implement.** Write the minimal code to make them pass, then refactor.
 6. **Pull request.** Open a PR to `develop`:
    - The title follows Conventional Commits and ends with the task ID, for example
-     `feat: replace stop rows for the dates in a file (M1-16)`.
+     `feat: replace stop rows for the date range of an upload (M1-16)`.
    - The description has `Closes #<ISSUE_NUMBER>`.
    - Fill in the checklist from the pull request template (the definition of done).
 
@@ -72,11 +73,11 @@ split it and update this file.
 | **D** | **Data in** | |
 | M1-14 | Import mapping | 02 |
 | M1-15 | Extract parser | 14, ADR 004 |
-| M1-16 | Replace stop rows for the dates in a file | 13, 15 |
+| M1-16 | Replace stop rows for the date range of an upload | 13, 15 |
 | M1-17 | Build route runs | 16 |
 | M1-18 | Aggregate daily stats | 17 |
-| M1-19 | Upload page and import command | 18 |
-| M1-20 | Clear driving data for a date range | 10, 18 |
+| M1-19 | Upload page with preview and import command | 18 |
+| M1-20 | Uploaded dates and clear a date | 19 |
 | M1-21 | Daily counts | 10 |
 | **E** | **Overview** | |
 | M1-22 | Periods and filters | 02 |
@@ -312,10 +313,9 @@ change.
   - Port the prototype's stylesheet to `assets/styles/app.css`.
   - Danish translations in `translations/messages+intl-icu.da.yaml`.
   - `MenuBuilder`, a plain PHP class, shows an item only if its route exists and the user has
-    its permission role. The items are overview, daily counts, and suppliers and routes. All
-    users have the same role, so there is no "Administration" group. There is no upload item,
-    because the team considers to drop the manual upload (see M1-19). There is no item for clear
-    driving data (see M1-20).
+    its permission role. The items are overview, daily counts, and suppliers and routes. M1-13
+    moves suppliers and routes into an "Administration" group, and M1-19 adds the upload item to
+    the group.
   - No fonts from external hosts. The design system has no font files, so the layout uses the
     fallback fonts of `--itkaarhus-font-sans`.
 - **Tests first (unit, `MenuBuilder`):**
@@ -360,11 +360,14 @@ the other IDs do not change.
 - **Work:**
   - `Supplier`, `Route` and `RouteSupplierAssignment` entities and migrations. An assignment has
     a `valid_from` date and an optional `valid_to` date.
-  - All controllers have `#[IsGranted('ROLE_MANAGE_SUPPLIERS')]`.
-  - `SupplierController`: list (route `supplier_index`, the menu item from M1-10), create, edit
-    and delete. Deleting a supplier with assignments is blocked.
-  - `RouteController`: list with routes that have no current assignment first, and the
+  - All controllers are in `App\Controller\Admin`, under `/admin`. They have
+    `#[IsGranted('ROLE_MANAGE_SUPPLIERS')]`.
+  - `Admin\SupplierController`: list (`/admin/suppliers`, route `admin_supplier_index`), create,
+    edit and delete. Deleting a supplier with assignments is blocked.
+  - `Admin\RouteController`: list with routes that have no current assignment first, and the
     assignments of each route.
+  - `MainMenu`: add the "Administration" group (`menu.administration`), and move the suppliers
+    item from M1-10 into it, with the route `admin_supplier_index`.
   - `SupplierType`, `RouteType` and `RouteSupplierAssignmentType` forms. The assignments of one
     route must not overlap.
   - A `RouteSupplierChanged` event with the route and the old and new date ranges. It is
@@ -375,6 +378,8 @@ the other IDs do not change.
     without a current assignment first.
   - **Functional:**
     - CRUD with and without `ROLE_MANAGE_SUPPLIERS`.
+    - A user with `ROLE_MANAGE_SUPPLIERS` sees "Suppliers and routes" in the "Administration"
+      group of the menu.
     - An overlapping assignment is rejected.
     - A supplier with assignments cannot be deleted.
     - Adding, changing and deleting an assignment dispatches the event with the correct ranges.
@@ -448,40 +453,51 @@ the other IDs do not change.
   - The fixture parses with exactly the expected rows and rejections.
   - Files above the limits and files with a `DOCTYPE` are rejected with a clear reason.
 
-### M1-16 Replace stop rows for the dates in a file
+### M1-16 Replace stop rows for the date range of an upload
 
 - **Plan step:** 7. **Implements:** README "Upload driving data", ADR 003.
 - **Depends on:** M1-13, M1-15
 - **Work:**
   - `StopRow` and `ImportBatch` entities and migrations. `StopRow` has an optional row key, with
-    a unique index on `(mapping_name, row_key)`.
-  - `StopRowReplacer`:
-    - The import dates are the dates with at least one valid row in the file.
-    - For each import date, it deletes all `StopRow` rows, from all mappings, and then inserts
-      the rows of the file.
+    a unique index on `(mapping_name, row_key)`, and a reference to its `ImportBatch`.
+  - `ImportRange`, an immutable value object: the first and the last date that the user enters,
+    and the number of days. It rejects a last date before the first date, and a range longer
+    than `APP_DRIVING_DATA_MAX_DAYS` (default 31, in `.env`).
+  - `StopRowReplacer` gets the range and the rows of the file:
+    - It rejects a row with a date outside the range, with its row number and a reason.
+    - It deletes all `StopRow` rows in the range, from all mappings, and then inserts the rows
+      of the file. A date in the range with no rows in the file becomes empty.
     - If the mapping has a row key, a key that occurs more than once in the file is rejected
       after the first occurrence.
-    - It returns the import dates and the deleted, inserted and rejected counts.
-  - `ImportBatch` keeps the mapping, the file name, who and when, the import dates, the counts
-    and the rejection reasons.
+    - It returns the deleted, inserted and rejected counts.
+  - `ImportBatch` keeps the mapping, the file name, who and when, the range (`first_date` and
+    `last_date`), the counts and the rejection reasons.
   - Routes not seen before are created without an assignment ("Unknown").
-- **Tests first (integration):**
-  - Importing the fixture inserts every row.
-  - Importing it again gives the same rows, with the same row count.
-  - A corrected file with one row less removes that row.
-  - Rows on dates that are not in the file do not change.
-  - Rows from another mapping on an import date are deleted.
-  - A duplicate row key in one file is rejected after the first occurrence.
-  - New routes are created without an assignment.
-  - The import dates and the counts are correct.
-- **Acceptance criteria:** after an import, each import date holds exactly the rows of the file.
-  The same data can never be counted twice.
+- **Tests first:**
+  - **Unit (`ImportRange`):**
+    - A range of exactly `APP_DRIVING_DATA_MAX_DAYS` days is accepted. One day more is rejected.
+    - A last date before the first date is rejected. A range of one day is accepted.
+    - The number of days, also across a month and a year.
+  - **Integration (`StopRowReplacer`):**
+    - Importing the fixture inserts every row.
+    - Importing it again gives the same rows, with the same row count.
+    - A corrected file with one row less removes that row.
+    - A date in the range with no rows in the file becomes empty. This includes the first and
+      the last date.
+    - Rows on dates outside the range do not change.
+    - A row with a date outside the range is rejected, with its row number and no values.
+    - Rows from another mapping in the range are deleted.
+    - A duplicate row key in one file is rejected after the first occurrence.
+    - New routes are created without an assignment.
+    - The counts are correct.
+- **Acceptance criteria:** after an import, each date in the range holds exactly the rows of the
+  file. The same data can never be counted twice.
 
 ### M1-17 Build route runs
 
 - **Plan step:** 7. **Implements:** README "Key figures" (definitions), architecture "Pipeline".
 - **Depends on:** M1-16
-- **Work:** `RouteBuilder` replaces the `RouteRun` rows for the given dates. For each route and
+- **Work:** `RouteBuilder` replaces the `RouteRun` rows for the given date range. For each route and
   date, it orders stops by planned time and splits them into runs at the end-of-route flag. Per
   run it calculates:
   - the last drop-off, planned and actual
@@ -505,7 +521,7 @@ the other IDs do not change.
 - **Depends on:** M1-17
 - **Work:**
   - The `DailyStats` entity and migration, with a unique index on `(service_date, supplier_id)`.
-  - `DailyStatsAggregator` replaces the rows for the given dates. It finds the supplier for each
+  - `DailyStatsAggregator` replaces the rows for the given date range. It finds the supplier for each
     route and date from the assignments. Counters: trips, completed, cancelled, route runs,
     last drop-offs, on time, solo runs, and driven and empty km and minutes.
   - A listener on `RouteSupplierChanged` rebuilds only the dates in the old and the new range.
@@ -520,64 +536,98 @@ the other IDs do not change.
     - A failure part-way leaves the previous data untouched.
 - **Acceptance criteria:** the fixture's daily stats match the totals worked out by hand.
 
-### M1-19 Upload page and import command
+### M1-19 Upload page with preview and import command
 
-- **Plan step:** 7. **Implements:** README "Upload driving data".
+- **Plan step:** 7. **Implements:** README "Upload driving data", ADR 003, architecture
+  "Pipeline".
 - **Depends on:** M1-18
 - **Work:**
-  - The team considers to drop the manual upload. If the upload stays, add an upload item to
-    `MainMenu` with the route of `ImportController`.
-  - `ImportController` (`ROLE_UPLOAD_DRIVING_DATA`) with `ImportType`: `.xlsx` only, with the
-    size limit from M1-15. The form checks the MIME type and the extension.
+  - `Admin\ImportController` (`ROLE_UPLOAD_DRIVING_DATA`) at `/admin/import`, route
+    `admin_import`. Add the upload item to the "Administration" group in `MainMenu`.
+  - `ImportType`: the file, and the first and the last date of the export.
+    - The file is `.xlsx` only, with the size limit from M1-15. The form checks the MIME type and
+      the extension.
+    - The dates make an `ImportRange` (M1-16). The form shows its errors.
+  - **Preview:**
+    - The upload keeps the file in `var/` with a random name, and keeps its token in the
+      session.
+    - The page shows the range, the rows to delete, insert and reject (with the reasons), and
+      the dates in the range that become empty. No data changes.
+  - **Confirm** (CSRF): parse the file again, import it, and show the result page. The result
+    page shows the replaced range and the rows deleted, inserted and rejected, with the reasons.
+  - **Cancel** (CSRF): delete the file. No data changes.
+  - The file is deleted after the import, the cancel and a rejected file. The next upload
+    deletes pending files older than one hour.
   - The import runs synchronously in the request. This is accepted in milestone 1, because the
     limits from M1-15 keep the time and memory low, and only users with
     `ROLE_UPLOAD_DRIVING_DATA` can upload. If real extracts are too slow, a later task moves
     the import to Symfony Messenger.
-  - The result page shows the replaced dates and the rows deleted, inserted and rejected, with
-    the reasons.
-  - The uploaded file is deleted after processing.
-  - `app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]` uses the same service.
+  - `app:driving-data:import <PATH_TO_FILE> <FROM_DATE> <TO_DATE> [--mapping=<MAPPING_NAME>]`
+    uses the same services. It shows the preview, and asks for confirmation unless
+    `--no-interaction` is given.
 - **Tests first:**
   - **Functional:**
-    - A user with `ROLE_UPLOAD_DRIVING_DATA` uploads the fixture and sees the dates and counts.
-    - A user without it gets 403.
+    - A user with `ROLE_UPLOAD_DRIVING_DATA` uploads the fixture and sees the preview. No data
+      changes before the confirmation.
+    - After the confirmation, the result page shows the range and the counts.
+    - The preview lists the dates in the range that have no rows in the file.
+    - Cancel changes no data.
+    - A user without `ROLE_UPLOAD_DRIVING_DATA` gets 403.
     - A wrong file type and an oversized file are rejected.
+    - A range above `APP_DRIVING_DATA_MAX_DAYS` is rejected.
     - A file above the row limit is rejected, and no data changes.
-    - The temporary file is removed, also after a rejected file.
-  - **Integration:** the command imports, and prints the same dates and counts.
+    - A confirmation with a token from another session is rejected.
+    - A missing CSRF token is rejected.
+    - The temporary file is removed after the import, the cancel and a rejected file.
+    - A pending file older than one hour is removed at the next upload.
+  - **Integration:**
+    - The command shows the range and the counts, and imports when the user answers yes.
+    - The answer no changes no data.
+    - With `--no-interaction`, the command imports without a question.
 - **Acceptance criteria:**
   - The upload and the command behave as in the README.
-  - Uploading the same file twice gives the same data.
+  - Uploading the same file twice for the same range gives the same data.
 
-### M1-20 Clear driving data for a date range
+### M1-20 Uploaded dates and clear a date
 
 - **Plan step:** 7. **Implements:** README "Clear driving data", ADR 003, architecture "Clearing
   driving data".
-- **Depends on:** M1-10, M1-18
+- **Depends on:** M1-19
 - **Work:**
-  - Add an item for clear driving data to `MainMenu`, with the route of the clear page and
-    `ROLE_CLEAR_DRIVING_DATA`.
+  - **Uploaded dates** on the upload page from M1-19:
+    - One month at a time, from the `month` query value (`YYYY-MM`), with links to the previous
+      and the next month. An invalid value gives the current month.
+    - One row for each date with driving data: the date, the number of stop rows and route
+      runs, and the last upload (file name, who, when). `StopRow.importBatch` gives the last
+      upload.
   - `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for a date range, in one
     transaction. `DailyCount` does not change.
   - It logs who cleared which range, and the deleted counts. The log has no field values.
-  - `ClearDrivingDataController` (`ROLE_CLEAR_DRIVING_DATA`):
-    - The user selects the first and the last date.
-    - The page shows the number of stop rows and route runs in the range.
-    - The user confirms. The form has CSRF.
+  - `Admin\ClearDrivingDataController` (`ROLE_CLEAR_DRIVING_DATA`) has one POST action. It
+    clears one date, and redirects to the upload page for the month of the date.
+    - Each date has a **Clear** button. It shows only for users with `ROLE_CLEAR_DRIVING_DATA`.
+    - The button opens a native `popover` with the date, the counts and a confirm form with
+      CSRF. The popover needs no script.
+  - There is no separate page and no menu item for clearing.
   - `app:driving-data:clear <FROM_DATE> <TO_DATE>` uses the same service, and asks for
     confirmation unless `--no-interaction` is given.
 - **Tests first:**
+  - **Unit:** the month from the query value, the previous and next month, and invalid values.
   - **Integration:**
+    - The uploaded dates for a month: the counts and the last upload for each date.
     - The rows in the range are deleted. Rows before and after the range do not change.
     - `DailyCount` rows in the range do not change.
     - A failure part-way leaves the data untouched.
     - The command deletes the range and prints the counts.
+    - The command rejects a range with the last date before the first date.
   - **Functional:**
-    - The page shows the correct counts before confirmation.
-    - A user without `ROLE_CLEAR_DRIVING_DATA` gets 403.
+    - The upload page lists the dates of the month with the correct counts.
+    - The previous and next month links show the dates of those months.
+    - The **Clear** button shows only for users with `ROLE_CLEAR_DRIVING_DATA`.
+    - Clearing a date removes it from the list. The other dates do not change.
+    - A user without `ROLE_CLEAR_DRIVING_DATA` gets 403 on the clear action.
     - A missing CSRF token is rejected.
-    - A range with the last date before the first date is rejected.
-- **Acceptance criteria:** clearing behaves as in the README.
+- **Acceptance criteria:** the uploaded dates and clearing behave as in the README.
 
 ### M1-21 Daily counts
 
