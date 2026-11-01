@@ -235,17 +235,10 @@ Write `docs/architecture.md`, illustrated with Mermaid diagrams.
   `KpiCalculator` (current period, comparison period, 12 months) → Twig.
 - **Authentication:** a flowchart of the OIDC login and the role mapping.
 
-**Files and rendering:**
+**Files:**
 
-- Mermaid sources live in `docs/diagrams/*.mmd`. They are rendered to SVG with the mermaid-cli Docker image:
-
-  ```shell
-  docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/docs/diagrams:/data" \
-    minlag/mermaid-cli -i /data/<NAME>.mmd -o /data/<NAME>.svg
-  ```
-
-- `task docs:diagrams` renders every `.mmd`. CI re-renders them and fails if an SVG is out of date.
-- `docs/architecture.md` embeds the SVGs and links to the sources.
+- The diagrams are Mermaid code blocks in `docs/architecture.md`. GitHub renders them, so no
+  render step and no CI check are necessary (see #18).
 - Key decisions become ADRs in `docs/adr/`:
   - `001-stack.md`
   - `002-oidc-authentication.md`
@@ -326,7 +319,7 @@ dependencies, the tests to write first, and its acceptance criteria.
    - Write the Taskfile with the ITK Dev header (`dotenv: [".env.local", ".env"]` and the vars
      `DOCKER_COMPOSE`, `PHP`, `COMPOSER` and `CONSOLE`) and the tasks `setup`, `compose`,
      `composer`, `console`, `test*`, `code-analysis`, `prepare-code`, `coding-standards-*`,
-     `db:migrate`, `fixtures:load` and `docs:diagrams`.
+     `db:migrate` and `fixtures:load`.
    - The PR workflow also runs `composer audit`.
    - **Smoke test first:** a failing functional test that `/` redirects to the login route.
 6. Docs:
@@ -825,7 +818,7 @@ src/
                          DrivingDataMappingValidateCommand
 config/import/driving_data/   default.yaml (import mapping for the current source)
 templates/ assets/styles/ translations/ migrations/ tests/
-docs/                    architecture.md, plan.md, tasks.md, adr/, diagrams/
+docs/                    architecture.md, plan.md, tasks.md, adr/
 ```
 
 ## Open questions affecting milestone 1
@@ -945,7 +938,7 @@ Development can start without answers to them. The PM must accept this before st
 - **Docs:**
   - The README, architecture and task list are approved before step 4.
   - At the end of the milestone, everything in the README works as described.
-  - `task docs:diagrams` renders cleanly, and the diagrams match the code.
+  - The diagrams match the code.
 - **Quality gates** (required in CI before merge):
   - 100 % line coverage
   - the MSI thresholds

@@ -42,8 +42,7 @@ also the checklist in `.github/pull_request_template.md`):
 - [ ] The mutation thresholds are met on changed lines: 100 % covered MSI in `src/Report` and
       `src/Import`, and 80 % in the rest of the mutated code.
 - [ ] PHPStan (max level) and coding standards pass.
-- [ ] The README, architecture and diagrams are updated if behaviour or design changed, and
-      `task docs:diagrams:check` passes.
+- [ ] The README, architecture and diagrams are updated if behaviour or design changed.
 - [ ] `CHANGELOG.md` has an entry under "Unreleased".
 
 **Sizing:** a task should be reviewable in one sitting, roughly one day of work. If a task grows,
@@ -91,7 +90,7 @@ split it and update this file.
 **Before M1-01:**
 
 - `develop` is the default branch.
-- `develop` and `main` are protected. The checks from M1-02 to M1-04 become required as they
+- `develop` and `main` are protected. The checks from M1-02 and M1-03 become required as they
   are added.
 - There is a GitHub issue for each task.
 
@@ -184,14 +183,9 @@ decided. Everything else can continue while it is open.
 
 ### M1-04 Diagram check in CI
 
-- **Plan step:** 4. **Implements:** architecture "Diagrams".
-- **Depends on:** M1-02
-- **Work:** a CI job that runs `task docs:diagrams:check`. Install go-task in the job; Docker is
-  available on GitHub runners.
-- **Tests first:** none (CI configuration).
-- **Acceptance criteria:**
-  - The job fails when a `.mmd` is changed without re-rendering its SVG.
-  - It passes when the SVG is up to date.
+[#18](https://github.com/itk-dev/koerselsoverblik/issues/18) removed this check. The diagrams are
+now Mermaid code blocks in `docs/architecture.md`, and GitHub renders them. Thus no CI check is
+necessary.
 
 ## B. Security
 

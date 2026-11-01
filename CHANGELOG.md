@@ -26,3 +26,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a role hierarchy, a placeholder login, and a test that fails if a route has no permission role.
   The monolog bundle writes the test logs to a file, so that Infection can run. `task prepare-code`
   fixes the coding standards before it runs the checks.
+- [#18](https://github.com/itk-dev/koerselsoverblik/issues/18)
+  The architecture diagrams are Mermaid code blocks in `docs/architecture.md`. The SVG render
+  tasks, the diagram sources in `docs/diagrams/` and the Diagrams CI job are removed.

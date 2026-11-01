@@ -5,8 +5,8 @@ OIDC login, upload of driving data, manual entry of daily counts, and an overvie
 with eight key figures. See the [README](../README.md) for what the application does and
 [the plan](plan.md) for how it is built.
 
-The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to its source. Run
-`task docs:diagrams` after changing a source; CI fails if a rendered SVG is out of date.
+The diagrams are Mermaid code blocks in this document. GitHub renders them. Edit a block to change
+its diagram.
 
 ## Contents
 
@@ -40,7 +40,39 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 
 ## System context
 
-[![System context](diagrams/context.svg)](diagrams/context.mmd)
+```mermaid
+---
+title: System context
+---
+flowchart LR
+    user["Viewer<br/>(ROLE_VIEW_OVERVIEW)"]
+    editor["Data editor<br/>(ROLE_UPLOAD_DRIVING_DATA,<br/>ROLE_CLEAR_DRIVING_DATA,<br/>ROLE_EDIT_DAILY_COUNTS)"]
+    admin["Administrator<br/>(ROLE_MANAGE_SUPPLIERS,<br/>ROLE_MANAGE_USERS)"]
+
+    app["Passenger Transport Performance<br/>(Symfony web application)"]
+
+    planning[("Planning system<br/>driving data extract (.xlsx)")]
+    idp["Identity provider (OIDC)<br/>login and roles"]
+
+    subgraph later["Later milestones"]
+        telephony["Telephony system"]
+        mailbox["Mailbox"]
+        cases["Case management system /<br/>self-service forms"]
+    end
+
+    user -- "views overview" --> app
+    editor -- "uploads extracts,<br/>enters daily counts" --> app
+    admin -- "views users,<br/>manages suppliers and routes" --> app
+    planning -. "exported by an editor<br/>and uploaded" .-> editor
+    idp -- "login,<br/>role claim" --> app
+
+    telephony -. "call statistics" .-> app
+    mailbox -. "mail counts" .-> app
+    cases -. "complaints" .-> app
+
+    classDef future stroke-dasharray: 5 5
+    class telephony,mailbox,cases future
+```
 
 **Users:**
 
@@ -60,7 +92,31 @@ roles of each user.
 
 ## Containers
 
-[![Containers](diagrams/containers.svg)](diagrams/containers.mmd)
+```mermaid
+---
+title: Containers
+---
+flowchart LR
+    browser["Browser"]
+
+    subgraph server["Docker host (itkdev-docker-compose)"]
+        traefik["Traefik<br/>TLS and routing"]
+        nginx["nginx<br/>static assets, FastCGI"]
+        phpfpm["phpfpm<br/>Symfony 8 / PHP 8.4"]
+        mariadb[("MariaDB<br/>application data")]
+    end
+
+    console["Console<br/>bin/console app:*"]
+    idp["Identity provider (OIDC)<br/>idp mock service in local development"]
+
+    browser -- "HTTPS" --> traefik
+    browser -- "login redirect" --> idp
+    phpfpm -- "token request" --> idp
+    traefik -- "HTTP" --> nginx
+    nginx -- "FastCGI" --> phpfpm
+    phpfpm -- "Doctrine DBAL" --> mariadb
+    console -- "docker compose exec phpfpm" --> phpfpm
+```
 
 The application runs on the ITK Dev Docker setup (`symfony-8` template):
 
@@ -79,7 +135,63 @@ are added only when file sizes or integrations need them.
 
 ## Components
 
-[![Components](diagrams/components.svg)](diagrams/components.mmd)
+```mermaid
+---
+title: Components (milestone 1)
+---
+flowchart TB
+    subgraph web["Web layer"]
+        controllers["Controllers<br/>Overview, Import, ClearDrivingData,<br/>DailyCount, Security, Admin/*"]
+        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, Route"]
+        twig["Twig templates and components<br/>Tile, Sparkline, LineChart, Panel"]
+        format["FormatExtension"]
+    end
+
+    subgraph security["Security"]
+        authenticators["OidcAuthenticator<br/>OidcRoleMapper"]
+        guards["Role guards<br/>#[IsGranted], access_control"]
+    end
+
+    subgraph import["Import/DrivingData"]
+        mapping["MappingLoader → Mapping<br/>config/import/driving_data/*.yaml"]
+        parser["StopRowParser"]
+        replacer["StopRowReplacer"]
+        builder["RouteBuilder"]
+        aggregator["DailyStatsAggregator"]
+        clearer["DrivingDataClearer"]
+    end
+
+    subgraph report["Report"]
+        filter["PeriodFilter"]
+        periods["PeriodRangeFactory"]
+        kpi["KpiCalculator → Kpis"]
+        delta["Delta / Tone"]
+    end
+
+    commands["Console commands<br/>app:driving-data:*"]
+    repositories[("Doctrine entities<br/>and repositories")]
+
+    controllers --> forms
+    controllers --> twig
+    twig --> format
+    guards --> controllers
+    authenticators --> guards
+
+    controllers -- "upload" --> parser
+    commands --> parser
+    mapping --> parser
+    parser --> replacer --> builder --> aggregator
+    replacer --> repositories
+    controllers -- "clear dates" --> clearer
+    commands --> clearer
+    clearer --> repositories
+    builder --> repositories
+    aggregator --> repositories
+
+    controllers -- "overview" --> filter --> periods --> kpi
+    kpi --> repositories
+    kpi --> delta --> twig
+```
 
 | Namespace | Responsibility |
 | --- | --- |
@@ -101,7 +213,111 @@ are added only when file sizes or integrations need them.
 
 ## Data model
 
-[![Data model](diagrams/data-model.svg)](diagrams/data-model.mmd)
+```mermaid
+---
+title: Data model (milestone 1)
+---
+erDiagram
+    USER ||--o{ IMPORT_BATCH : "uploads"
+    USER ||--o{ DAILY_COUNT : "updates"
+    SUPPLIER ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "drives"
+    ROUTE ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "is assigned"
+    ROUTE ||--o{ ROUTE_RUN : "runs"
+    ROUTE ||--o{ STOP_ROW : "has"
+    IMPORT_BATCH ||--o{ STOP_ROW : "inserted"
+    SUPPLIER |o--o{ DAILY_STATS : "aggregated per"
+
+    USER {
+        int id PK
+        string username UK
+        json roles
+        datetime last_login_at
+    }
+    SUPPLIER {
+        int id PK
+        string name UK
+    }
+    ROUTE {
+        int id PK
+        string source_key UK "route name in the extract"
+    }
+    ROUTE_SUPPLIER_ASSIGNMENT {
+        int id PK
+        int route_id FK
+        int supplier_id FK
+        date valid_from
+        date valid_to "null = no end date"
+    }
+    IMPORT_BATCH {
+        int id PK
+        string mapping_name
+        string file_name
+        int uploaded_by FK
+        datetime uploaded_at
+        json import_dates "replaced dates"
+        int rows_deleted
+        int rows_inserted
+        int rows_rejected
+        json errors "no field values"
+    }
+    STOP_ROW {
+        int id PK
+        string mapping_name UK "unique with row_key"
+        string row_key UK "optional, from the mapping"
+        int route_id FK
+        date service_date
+        string stop_type "pickup or drop_off"
+        string stop_status
+        bool route_end
+        int passengers_after
+        float next_distance_km
+        float next_duration_min
+        datetime planned_time
+        datetime actual_time
+        bool planned_solo
+        string person_key "pending ADR 004"
+        int import_batch_id FK
+    }
+    ROUTE_RUN {
+        int id PK
+        int route_id FK
+        date service_date
+        int sequence
+        datetime last_drop_planned
+        datetime last_drop_actual
+        int delay_minutes
+        int peak_passengers
+        bool cancelled
+        float driven_km
+        float empty_km
+        float driven_min
+        float empty_min
+    }
+    DAILY_STATS {
+        int id PK
+        date service_date UK "unique with supplier_id"
+        int supplier_id FK "null = Unknown"
+        int trips
+        int trips_completed
+        int trips_cancelled
+        int route_runs
+        int last_drop_offs
+        int on_time
+        int solo_runs
+        float driven_km
+        float empty_km
+        float driven_min
+        float empty_min
+    }
+    DAILY_COUNT {
+        date day PK
+        int mails
+        int complaints
+        int phone_calls
+        int updated_by FK
+        datetime updated_at
+    }
+```
 
 **Terms:**
 
@@ -140,7 +356,46 @@ change. The derived tables hold no information that can't be recalculated.
 
 ## Importing driving data
 
-[![Upload sequence](diagrams/upload-sequence.svg)](diagrams/upload-sequence.mmd)
+```mermaid
+---
+title: Upload driving data
+---
+sequenceDiagram
+    autonumber
+    actor Editor
+    participant C as ImportController
+    participant P as StopRowParser
+    participant M as Mapping
+    participant U as StopRowReplacer
+    participant B as RouteBuilder
+    participant A as DailyStatsAggregator
+    participant DB as MariaDB
+
+    Editor->>C: POST /import (file)
+    C->>C: check ROLE_UPLOAD_DRIVING_DATA and CSRF
+    C->>DB: create ImportBatch
+    C->>P: parse(file, mapping)
+    P->>M: column, type and value map per field
+    loop each row
+        P->>P: read and convert fields
+        alt valid
+            P->>U: StopRowData (person id pseudonymised)
+        else invalid
+            P->>C: rejected row: row number and reason, no values
+        end
+    end
+    U->>DB: delete all StopRow rows for the import dates
+    U->>DB: insert the rows of the file
+    Note over U,DB: import dates = dates with a valid row. Old rows go, no duplicates
+    U-->>C: deleted, inserted, import dates
+    C->>B: rebuild(import dates)
+    B->>DB: replace RouteRun rows for those dates
+    C->>A: rebuild(import dates)
+    A->>DB: replace DailyStats rows for those dates
+    C->>C: delete uploaded file
+    C->>DB: update ImportBatch counts and import dates
+    C-->>Editor: result page
+```
 
 ### Import mappings
 
@@ -201,7 +456,36 @@ after a wrong upload:
 
 ## Calculating the figures
 
-[![Overview request](diagrams/overview-sequence.svg)](diagrams/overview-sequence.mmd)
+```mermaid
+---
+title: Overview request
+---
+sequenceDiagram
+    autonumber
+    actor User
+    participant FW as Firewall / authenticator
+    participant C as OverviewController
+    participant F as PeriodFilter
+    participant R as PeriodRangeFactory
+    participant K as KpiCalculator
+    participant DB as MariaDB
+    participant T as Twig
+
+    User->>FW: GET /?p=month&d=2026-09-18&c=previous&s=3
+    FW->>FW: user from the session (OIDC login)
+    FW->>C: IsGranted ROLE_VIEW_OVERVIEW
+    C->>F: map query string (invalid values fall back to defaults)
+    C->>R: current, comparison and 12 trailing months
+    R-->>C: date ranges (comparison cut to the same number of days if partial)
+    loop current, comparison, each month
+        C->>K: calculate(range, supplier)
+        K->>DB: SUM over DailyStats and DailyCount, distinct citizens
+        K-->>C: Kpis
+    end
+    C->>C: Delta and Tone per figure
+    C->>T: render tiles, chart and supplier table
+    T-->>User: HTML with inline SVG charts
+```
 
 **Filters:** `PeriodFilter` maps the query string (`p` period, `d` date, `c` comparison,
 `s` supplier). Invalid values fall back to the defaults, so a link always works.
@@ -239,7 +523,26 @@ config file.
 
 ## Security
 
-[![Authentication](diagrams/authentication.svg)](diagrams/authentication.mmd)
+```mermaid
+---
+title: Authentication (OIDC)
+---
+flowchart TD
+    request["Request"] --> public{"Public path?<br/>OIDC login and callback, assets"}
+    public -- yes --> serve["Serve"]
+    public -- no --> session{"Signed in?"}
+
+    session -- no --> idp["Redirect to the identity provider"]
+    idp --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
+    callback -- invalid --> fail["Login failed"]
+    callback -- valid --> mapper["OidcRoleMapper<br/>role claim → ROLE_ADMIN and permission roles"]
+    mapper --> user["Create or update User<br/>username, roles, last login"]
+    user --> guard
+
+    session -- yes --> guard{"#[IsGranted] role?"}
+    guard -- granted --> controller["Controller"]
+    guard -- denied --> forbidden["403"]
+```
 
 **Authentication:** OIDC is the only login method (see
 [ADR 002](adr/002-oidc-authentication.md)).
