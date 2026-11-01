@@ -26,3 +26,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a role hierarchy, a placeholder login, and a test that fails if a route has no permission role.
   The monolog bundle writes the test logs to a file, so that Infection can run. `task prepare-code`
   fixes the coding standards before it runs the checks.
+- [#29](https://github.com/itk-dev/koerselsoverblik/issues/29)
+  The plan (`docs/plan.md`) and the task list (`docs/tasks.md`) are no longer in the repository.
+  The GitHub issues hold the task specifications. The development rules are in the README.

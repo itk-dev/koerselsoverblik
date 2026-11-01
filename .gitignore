@@ -24,6 +24,10 @@
 /assets/vendor/
 ###< symfony/asset-mapper ###
 
+# Local planning notes. The GitHub issues hold the task specifications.
+/docs/plan.md
+/docs/tasks.md
+
 ###> phpunit/phpunit ###
 /phpunit.xml
 /.phpunit.cache/

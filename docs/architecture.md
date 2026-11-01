@@ -2,8 +2,7 @@
 
 This document describes the architecture of Passenger Transport Performance for milestone 1:
 OIDC login, upload of driving data, manual entry of daily counts, and an overview
-with eight key figures. See the [README](../README.md) for what the application does and
-[the plan](plan.md) for how it is built.
+with eight key figures. See the [README](../README.md) for what the application does.
 
 The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to its source. Run
 `task docs:diagrams` after changing a source; CI fails if a rendered SVG is out of date.
@@ -343,8 +342,8 @@ response. The configuration is in the repository, and a functional test checks i
 
 ## Testing
 
-The project is developed test first, with 100 % line coverage and mutation testing. See the
-[plan](plan.md#development-approach-test-driven-100--coverage-mutation-testing) for the full rules.
+The project is developed test first, with 100 % line coverage and mutation testing. See
+[Tests](../README.md#tests) in the README for the full rules.
 
 | Layer | What | Tools |
 | --- | --- | --- |
