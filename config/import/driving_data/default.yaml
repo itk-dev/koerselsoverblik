@@ -1,0 +1,30 @@
+# The extract of the planning system: one sheet, a title in row 1 and the column headers in row 3.
+# See "Import mappings" in the README.
+sheet: 0
+header_row: 3
+row_id: [RouteStopID]
+fields:
+    route: { column: RouteName, type: string, required: true }
+    person_id: { column: PersonID, type: string, required: true }
+    service_date: { column: Date, type: date, format: Y-m-d, required: true }
+    # The block number identifies the route run.
+    run: { column: blocknumber, type: int, required: true }
+    stop_type: { column: StopType, type: string, required: true, map: { IN: pickup, OUT: drop_off } }
+    stop_status:
+        column: Status
+        type: string
+        required: true
+        map: { Served: completed, Cancelled: cancelled, Pending: pending }
+    passengers_after: { column: passengersaftercancel, type: int, required: true }
+    next_distance_km: { column: ToNextDistance, type: float }
+    next_duration_min: { column: ToNextDuration, type: float }
+    # An Excel time. It can be 24:00 or more for a time after midnight on the same service day.
+    planned_time: { column: PlannedArrival, type: time, required: true }
+    # Empty when the stop has no registration.
+    actual_time: { column: StatusUpdateTime, type: datetime, format: excel }
+    planned_solo:
+        column: kørselstype
+        type: bool
+        required: true
+        true_values: [Solo]
+        false_values: [Samkørsel]
