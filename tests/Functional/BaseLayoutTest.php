@@ -33,6 +33,10 @@ final class BaseLayoutTest extends WebTestCase
         self::assertSame('Overblik', trim($items->text()));
     }
 
+    /**
+     * Only the overview route exists now. tests/Integration/Menu/MainMenuTest.php checks the
+     * admin menu with all routes.
+     */
     public function testAdminSeesEveryItemWithARoute(): void
     {
         $client = static::createClient();
@@ -40,8 +44,8 @@ final class BaseLayoutTest extends WebTestCase
 
         $crawler = $client->request('GET', '/');
 
-        // Only the overview route exists now. The later tasks add the other routes.
-        self::assertCount(1, $crawler->filter('[data-test="menu-item"]'));
+        $labels = $crawler->filter('[data-test="menu-item"]')->each(static fn ($item): string => trim($item->text()));
+        self::assertSame(['Overblik'], $labels);
     }
 
     public function testActiveMenuItemIsMarked(): void
