@@ -16,7 +16,9 @@ final class ValidateMappingsPass implements CompilerPassInterface
     public function process(ContainerBuilder $container): void
     {
         $directory = $container->getParameterBag()->resolveValue($container->getParameter('app.driving_data_mapping_dir'));
-        \assert(\is_string($directory));
+        if (!\is_string($directory)) {
+            throw new \LogicException('The parameter "app.driving_data_mapping_dir" must be a string.');
+        }
 
         // Build the container again when a mapping changes.
         $container->addResource(new DirectoryResource($directory, '/\.yaml$/'));
