@@ -257,9 +257,11 @@ config file.
 - A failed login shows a page with a "Prøv igen" link (`OidcLoginFailureListener`): 403 when the
   identity provider refused, and 500 otherwise. It does not redirect, so a broken login cannot
   loop.
-- **Authentication log:** the bundle's audit trail records each successful and failed login,
-  with the IP address and the reason for a failure. `OidcLogin` adds a record with the email and
-  the roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
+- **Authentication log:** the bundle's audit trail records each successful login. It also
+  records each login that the identity provider approved but the application rejected, with the
+  IP address and the reason. A login that fails in the identity provider does not come back to
+  the application, so it is not in this log. `OidcLogin` adds a record with the email and the
+  roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
   `var/log/openid_connect_audit.<APP_ENV>.log`.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 

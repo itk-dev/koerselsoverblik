@@ -7,7 +7,8 @@ flowchart TD
     public -- no --> session{"Signed in?"}
 
     session -- no --> idp["Redirect to the identity provider"]
-    idp --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
+    idp -- "login fails in the identity provider" --> idpfail["No redirect back<br/>not in the authentication log"]
+    idp -- "user approved" --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
     callback -- invalid --> fail["Login failed<br/>written to the authentication log"]
     callback -- valid --> mapper["OidcRoleMapper<br/>role claim → ROLE_ADMIN and permission roles"]
     mapper --> user["Create or update User<br/>email, roles, last login"]

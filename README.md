@@ -296,7 +296,9 @@ Each login is written to `var/log/openid_connect_audit.<APP_ENV>.log`, for examp
 
 - A successful login, with the email, the roles and the time. For example:
   `user foobar@example.com logged in with roles [ROLE_ADMIN] at 2026-10-28T12:00:00+01:00`.
-- A failed login, with the IP address and the reason.
+- A login that the identity provider approved but the application rejected, with the IP address
+  and the reason. A login that fails in the identity provider does not come back to the
+  application, so it is not in this log.
 
 The log holds personal data (emails and IP addresses). Its retention follows the staff data
 decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).

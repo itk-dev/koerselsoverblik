@@ -264,8 +264,10 @@ decided. Everything else can continue while it is open.
   - `OidcLoginFailureListener` shows a failed login as a page with a "Prøv igen" link, not as the
     default error page.
   - The authentication log:
-    - Turn on the bundle's audit trail (`audit_options`). It records each successful and failed
-      login, with the IP address and the reason for a failure.
+    - Turn on the bundle's audit trail (`audit_options`). It records each successful login, and
+      each login that the identity provider approved but the application rejected, with the IP
+      address and the reason. A login that fails in the identity provider does not come back to
+      the application, so it is not logged.
     - At each login, `OidcLogin` writes a record with the email, the roles and the time,
       for example `user foobar@example.com logged in with roles [ROLE_ADMIN]`.
     - Both go to the `openid_connect_audit` channel, which Monolog writes to its own file.
@@ -281,7 +283,7 @@ decided. Everything else can continue while it is open.
   - The first login creates the user with the roles from the claim, and redirects to `/`.
   - The next login updates the roles and the login time. It does not create a second user.
   - A login writes the email, the roles and the time to the `openid_connect_audit` channel.
-  - A failed login is written to the `openid_connect_audit` channel.
+  - A login that the application rejects is written to the `openid_connect_audit` channel.
   - A callback with an invalid state is rejected.
   - A user with no known role can sign in, but gets 403 on `/`.
   - Logout ends the session.

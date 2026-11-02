@@ -370,10 +370,12 @@ dependencies, the tests to write first, and its acceptance criteria.
   `SecurityController`.
 - `User` entity: email (the `upn` claim), roles, last login time. No password. Doctrine entity
   provider. The user is created at the first login and updated at each login.
-- **Authentication log:** the bundle's audit trail records each successful and failed login.
-  `OidcLogin` adds a record with the email, the roles and the time, for example
-  `user foobar@example.com logged in with roles [ROLE_ADMIN]`. Both go to the `openid_connect_audit`
-  channel and its own log file.
+- **Authentication log:** the bundle's audit trail records each successful login, and each login
+  that the identity provider approved but the application rejected. A login that fails in the
+  identity provider does not come back to the application, so it is not logged. `OidcLogin` adds
+  a record with the email, the roles and the time, for example
+  `user foobar@example.com logged in with roles [ROLE_ADMIN]`. Both go to the
+  `openid_connect_audit` channel and its own log file.
 - No user list in the application, and no `ROLE_MANAGE_USERS`.
 - **Roles from a claim:**
   - `OidcRoleMapper` reads the claim `OIDC_ROLE_CLAIM`. It keeps the values that are

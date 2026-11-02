@@ -47,8 +47,10 @@ Option 1:
 - **Users:** the `User` entity is created at the first login and updated at each login. It keeps
   the email (the `upn` claim), the roles and the time of the last login. It has no password.
   There is no user list in the application.
-- **Authentication log:** the bundle's audit trail records each successful and failed login.
-  `OidcLogin` adds a record with the email, the roles and the time of each login. Both go
+- **Authentication log:** the bundle's audit trail records each successful login, and each login
+  that the identity provider approved but the application rejected. A login that fails in the
+  identity provider does not come back to the application, so the identity provider's own log
+  holds it. `OidcLogin` adds a record with the email, the roles and the time of each login. Both go
   to the `openid_connect_audit` channel and its own log file.
 - **Roles from a claim:**
   - The identity provider sends the roles in the claim `OIDC_ROLE_CLAIM`.
