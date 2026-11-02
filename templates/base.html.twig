@@ -11,7 +11,7 @@
             <link rel="stylesheet" href="{{ asset('itkaarhus-ds/components.css') }}">
         {% endblock %}
         {% block javascripts %}
-            {{ importmap('app') }}
+            {{ importmap('app', {nonce: csp_nonce('script')}) }}
         {% endblock %}
     </head>
     <body>

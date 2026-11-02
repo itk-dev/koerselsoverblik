@@ -5,6 +5,8 @@ framework:
             assets/: ''
             vendor/itk-dev/itkaarhus-design-system/assets/: itkaarhus-ds
         missing_import_mode: strict
+        # All supported browsers have import maps. The polyfill is an inline script from a CDN.
+        importmap_polyfill: false
 
 when@prod:
     framework:

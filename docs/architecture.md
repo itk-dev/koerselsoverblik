@@ -307,21 +307,34 @@ passwords. The identity provider applies its password rules and multi-factor aut
 option for a later milestone.
 
 **HTTP security headers** (ASVS V14.4): `nelmio/security-bundle` adds these headers to every
-response. The configuration is in the repository, and a functional test checks it.
+response. The configuration is in `config/packages/nelmio_security.yaml`, and
+`tests/Functional/SecurityHeadersTest.php` checks it.
 
 | Header | Value |
 | --- | --- |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` (in `prod` only) |
-| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'strict-dynamic' 'nonce-…'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `same-origin` |
+
+- There is no `style-src`, because `default-src 'self'` gives the same rule.
+- A redirect has no content, so it gets only `Referrer-Policy`.
+- In debug mode, Symfony removes the policy from its exception page.
+
+`Strict-Transport-Security` is not sent yet. Nelmio sends it only when Symfony sees HTTPS. Behind
+Traefik, that needs trusted proxies, and a wrong configuration causes a redirect loop. A separate
+issue adds the header.
 
 **Effects of the Content Security Policy:**
 
 - Templates have no inline scripts, no inline event handlers and no `style` attributes.
+- The only inline scripts are the import map and its entry point. `importmap()` writes them, and
+  they get the nonce from `csp_nonce('script')`. A later inline script also uses the nonce.
+- `'strict-dynamic'` lets the scripts with the nonce load the modules. The AssetMapper
+  documentation recommends it, because the import map has a `data:` entry for each CSS import.
+- The es-module-shims polyfill is off (`importmap_polyfill: false`). It is an inline script that
+  loads a file from a CDN, and all supported browsers have import maps.
 - The server-rendered SVG charts use classes and SVG presentation attributes for styling.
 - The `popover` help texts need no script.
-- If a page needs an inline script later, it uses a nonce from the bundle.
 
 ## User interface
 
