@@ -66,4 +66,17 @@ if (aboutOpen && aboutDialog) {
     aboutOpen.addEventListener("click", () => {
         aboutDialog.showModal();
     });
+
+    // A click on the backdrop closes the dialog. The form fills the dialog box, so only a click
+    // outside the box has the dialog itself as its target. The press must also start there, so
+    // that a text selection that ends outside the box does not close the dialog.
+    let pressOnBackdrop = false;
+    aboutDialog.addEventListener("pointerdown", (event) => {
+        pressOnBackdrop = event.target === aboutDialog;
+    });
+    aboutDialog.addEventListener("click", (event) => {
+        if (pressOnBackdrop && event.target === aboutDialog) {
+            aboutDialog.close();
+        }
+    });
 }
