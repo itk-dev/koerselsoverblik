@@ -329,6 +329,8 @@ task test:mutation:full
   `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
   components are not mutated; the functional tests cover them. The HTML report is written to
   `var/infection/`.
+- **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
+  Each mutant has 30 seconds.
 - **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
   full run over the whole code base runs on `release/*` and `hotfix/*` branches and is required
   before a release is merged to `main`.
