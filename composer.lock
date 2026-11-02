@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4f7d5157b68e9b978e87c371156cffd4",
+    "content-hash": "7c1a10c3694c8cc91a90f539bb2bb770",
     "packages": [
         {
             "name": "composer/semver",
@@ -1894,16 +1894,16 @@
         },
         {
             "name": "symfony/config",
-            "version": "v8.1.5",
+            "version": "v8.1.10",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/config.git",
-                "reference": "ec711a6c14ae287d9618fbd2c9de4e223a1a4b02"
+                "reference": "4a0e7dd1645b9213c71bf8bac205b7cdc30ce0ec"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/config/zipball/ec711a6c14ae287d9618fbd2c9de4e223a1a4b02",
-                "reference": "ec711a6c14ae287d9618fbd2c9de4e223a1a4b02",
+                "url": "https://api.github.com/repos/symfony/config/zipball/4a0e7dd1645b9213c71bf8bac205b7cdc30ce0ec",
+                "reference": "4a0e7dd1645b9213c71bf8bac205b7cdc30ce0ec",
                 "shasum": ""
             },
             "require": {
@@ -1948,7 +1948,7 @@
             "description": "Helps you find, load, combine, autofill and validate configuration values of any kind",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/config/tree/v8.1.5"
+                "source": "https://github.com/symfony/config/tree/v8.1.10"
             },
             "funding": [
                 {
@@ -1968,7 +1968,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-08-20T09:59:12+00:00"
+            "time": "2026-10-25T14:40:25+00:00"
         },
         {
             "name": "symfony/console",
