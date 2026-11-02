@@ -72,6 +72,11 @@ tasks:
         vars:
           CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
 
+  fixtures:extracts:
+    desc: 'Write the test scenarios and 13 months of invented driving data to var/fixtures/driving_data/ — `task fixtures:extracts -- --seed=2`'
+    cmds:
+      - '{{ .CONSOLE }} app:fixtures:driving-data {{ .CLI_ARGS }}'
+
   # --------------------------------------------------------------- Tests ---
 
   test:db:setup:
