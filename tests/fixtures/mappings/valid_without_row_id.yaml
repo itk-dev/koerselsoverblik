@@ -12,4 +12,8 @@ fields:
   next_duration_min: { column: Minutes, type: float }
   planned_time: { column: Planned, type: time }
   actual_time: { column: Actual, type: datetime }
-  planned_solo: { column: Solo, type: bool, true_values: [Y], false_values: [N] }
+  planned_solo:
+    column: Solo
+    type: bool
+    true_values: [Y]
+    false_values: [N]

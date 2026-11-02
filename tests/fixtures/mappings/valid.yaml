@@ -8,10 +8,17 @@ fields:
   service_date: { column: Day, type: date, format: Y-m-d, required: true }
   run: { column: Run, type: int, required: true }
   stop_type: { column: Kind, type: string, map: { P: pickup, D: drop_off } }
-  stop_status: { column: State, type: string, map: { C: completed, X: cancelled, N: pending } }
+  stop_status:
+    column: State
+    type: string
+    map: { C: completed, X: cancelled, N: pending }
   passengers_after: { column: Load, type: int }
   next_distance_km: { column: Km, type: float }
   next_duration_min: { column: Minutes, type: float }
   planned_time: { column: Planned, type: time }
   actual_time: { column: Actual, type: datetime, format: excel }
-  planned_solo: { column: Solo, type: bool, true_values: [Y], false_values: [N, '-'] }
+  planned_solo:
+    column: Solo
+    type: bool
+    true_values: [Y]
+    false_values: [N, "-"]

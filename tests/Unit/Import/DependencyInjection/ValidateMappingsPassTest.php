@@ -15,6 +15,8 @@ final class ValidateMappingsPassTest extends TestCase
 {
     private const string FIXTURES = __DIR__.'/../../../fixtures/mappings';
 
+    private const string INVALID_YAML = "header_row: [1\n";
+
     private string $directory = '';
 
     protected function setUp(): void
@@ -36,7 +38,7 @@ final class ValidateMappingsPassTest extends TestCase
         copy(self::FIXTURES.'/valid.yaml', $this->directory.'/first.yaml');
         copy(self::FIXTURES.'/valid_without_row_id.yaml', $this->directory.'/second.yaml');
         // Only the YAML files are mappings.
-        copy(self::FIXTURES.'/invalid_syntax.yaml', $this->directory.'/notes.txt');
+        file_put_contents($this->directory.'/notes.txt', self::INVALID_YAML);
         $container = $this->container();
 
         (new ValidateMappingsPass())->process($container);
@@ -47,12 +49,23 @@ final class ValidateMappingsPassTest extends TestCase
     public function testInvalidMappingStopsTheBuild(): void
     {
         copy(self::FIXTURES.'/valid.yaml', $this->directory.'/first.yaml');
-        copy(self::FIXTURES.'/invalid_syntax.yaml', $this->directory.'/second.yaml');
+        file_put_contents($this->directory.'/second.yaml', self::INVALID_YAML);
 
         $this->expectException(InvalidMappingException::class);
         $this->expectExceptionMessageMatches('/second\.yaml/');
 
         (new ValidateMappingsPass())->process($this->container());
+    }
+
+    public function testDirectoryThatIsNotAStringStopsTheBuild(): void
+    {
+        $container = $this->container();
+        $container->setParameter('app.driving_data_mapping_dir', [$this->directory]);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The parameter "app.driving_data_mapping_dir" must be a string.');
+
+        (new ValidateMappingsPass())->process($container);
     }
 
     /**

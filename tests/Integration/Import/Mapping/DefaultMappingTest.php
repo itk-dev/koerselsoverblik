@@ -20,7 +20,6 @@ final class DefaultMappingTest extends KernelTestCase
     {
         self::bootKernel();
         $directory = self::getContainer()->getParameter('app.driving_data_mapping_dir');
-        self::assertIsString($directory);
         $name = $_SERVER['APP_DRIVING_DATA_MAPPING'] ?? null;
         self::assertIsString($name);
 

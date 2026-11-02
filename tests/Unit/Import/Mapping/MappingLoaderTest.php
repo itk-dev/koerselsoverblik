@@ -230,9 +230,9 @@ final class MappingLoaderTest extends TestCase
     public function testFileThatIsNotValidYamlIsRejected(): void
     {
         $this->expectException(InvalidMappingException::class);
-        $this->expectExceptionMessageMatches('/The import mapping ".*invalid_syntax\.yaml" is not valid: /');
+        $this->expectExceptionMessageMatches('/The import mapping ".*test_mapping_.*\.yaml" is not valid: /');
 
-        (new MappingLoader())->load(self::FIXTURES.'/invalid_syntax.yaml');
+        (new MappingLoader())->load($this->writeFile("header_row: [1\n"));
     }
 
     public function testFileThatIsNotAMapIsRejected(): void
@@ -258,10 +258,19 @@ final class MappingLoaderTest extends TestCase
      */
     private function loadArray(array $raw): Mapping
     {
-        $this->temporaryFile = sys_get_temp_dir().'/'.uniqid('test_mapping_', true).'.yaml';
-        file_put_contents($this->temporaryFile, Yaml::dump($raw, 4));
+        return (new MappingLoader())->load($this->writeFile(Yaml::dump($raw, 4)));
+    }
 
-        return (new MappingLoader())->load($this->temporaryFile);
+    /**
+     * Writes a temporary mapping file. Invalid YAML is not in a fixture file, because the YAML
+     * coding standards check would reject it.
+     */
+    private function writeFile(string $content): string
+    {
+        $this->temporaryFile = sys_get_temp_dir().'/'.uniqid('test_mapping_', true).'.yaml';
+        file_put_contents($this->temporaryFile, $content);
+
+        return $this->temporaryFile;
     }
 
     /**
