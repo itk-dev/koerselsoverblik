@@ -31,7 +31,7 @@ final class ScenarioLoader
             $runs = self::map($path, self::map($path, $routeData, 'route')['runs'] ?? [], 'runs');
             foreach ($runs as $run => $stops) {
                 foreach (self::map($path, $stops, 'stops') as $stop) {
-                    $rows[] = self::row($path, (string) $route, (int) $run, $date, self::map($path, $stop, 'stop'));
+                    $rows[] = self::row($path, $route, $run, $date, self::map($path, $stop, 'stop'));
                 }
             }
         }
@@ -58,17 +58,18 @@ final class ScenarioLoader
     /**
      * @param array<array-key, mixed> $stop
      */
-    private static function row(string $path, string $route, int $run, \DateTimeImmutable $date, array $stop): ExtractRow
+    private static function row(string $path, int|string $route, int|string $run, \DateTimeImmutable $date, array $stop): ExtractRow
     {
         $serviceDate = \array_key_exists('date', $stop) ? self::date($path, $stop['date'], 'date') : $date;
         $actual = $stop['actual'] ?? null;
 
         return new ExtractRow(
             values: [
-                'route' => $route,
+                // A route name such as 101 is a number key in a PHP array.
+                'route' => (string) $route,
                 'person_id' => self::string($path, $stop['person'] ?? null, 'person'),
                 'service_date' => $serviceDate,
-                'run' => $run,
+                'run' => \is_int($run) ? $run : self::invalid($path, 'A run must be a whole number.'),
                 'stop_type' => self::string($path, $stop['type'] ?? null, 'type'),
                 'stop_status' => self::string($path, $stop['status'] ?? 'completed', 'status'),
                 'passengers_after' => self::optionalInt($path, $stop['passengers_after'] ?? null, 'passengers_after'),
