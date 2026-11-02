@@ -2,16 +2,17 @@
 title: Authentication (OIDC)
 ---
 flowchart TD
-    request["Request"] --> public{"Public path?<br/>OIDC login and callback, assets"}
+    request["Request"] --> public{"Public path?<br/>/openidconnect/*, /openid-connect/generic, assets"}
     public -- yes --> serve["Serve"]
     public -- no --> session{"Signed in?"}
 
     session -- no --> idp["Redirect to the identity provider"]
     idp --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
-    callback -- invalid --> fail["Login failed"]
+    callback -- invalid --> fail["Login failed<br/>written to the authentication log"]
     callback -- valid --> mapper["OidcRoleMapper<br/>role claim → ROLE_ADMIN and permission roles"]
-    mapper --> user["Create or update User<br/>username, roles, last login"]
-    user --> guard
+    mapper --> user["Create or update User<br/>email, roles, last login"]
+    user --> log["Authentication log<br/>email, roles, time"]
+    log --> guard
 
     session -- yes --> guard{"#[IsGranted] role?"}
     guard -- granted --> controller["Controller"]
