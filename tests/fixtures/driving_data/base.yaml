@@ -1,0 +1,133 @@
+# One day of invented driving data. The expected totals are worked out by hand:
+#
+# - route_runs: R-01 has two runs, R-02 and BOOKED have one run each.
+# - trips: the pickups, also the cancelled pickup (P-006) and the pickup with no
+#   registration (P-005).
+# - citizens: the distinct person ids P-001 to P-007.
+# - solo_runs: the runs with at most one passenger at a time (R-01 run 2 and BOOKED).
+# - last_drop_offs: the runs that are not fully cancelled.
+# - on_time: the last drop-off is at most 5 minutes late. R-01 run 1 is 4 minutes
+#   late, R-01 run 2 is 11 minutes late, R-02 is 3 minutes late, BOOKED is on time.
+# - driven_km: the sum of the distances to the next stop.
+# - empty_km: the distances after a stop with no passengers (4.0 + 2.5 + 3.5).
+date: 2026-01-05
+routes:
+  R-01:
+    runs:
+      1:
+        - person: P-001
+          type: pickup
+          planned: "07:00"
+          actual: "07:02"
+          passengers_after: 1
+          km: 2.0
+          min: 5
+        - person: P-002
+          type: pickup
+          planned: "07:10"
+          actual: "07:12"
+          passengers_after: 2
+          km: 3.0
+          min: 8
+        - person: P-001
+          type: drop_off
+          planned: "07:25"
+          actual: "07:27"
+          passengers_after: 1
+          km: 1.5
+          min: 4
+        - person: P-002
+          type: drop_off
+          planned: "07:35"
+          actual: "07:39"
+          passengers_after: 0
+          km: 4.0
+          min: 10
+      2:
+        - person: P-003
+          type: pickup
+          planned: "09:00"
+          actual: "09:05"
+          passengers_after: 1
+          km: 5.0
+          min: 12
+          solo: true
+        - person: P-003
+          type: drop_off
+          planned: "09:20"
+          actual: "09:31"
+          passengers_after: 0
+          km: 2.5
+          min: 6
+          solo: true
+  # A run that ends after midnight, with a cancelled trip (P-006) and a pickup
+  # with no registration from the driver (P-005).
+  R-02:
+    runs:
+      1:
+        - person: P-004
+          type: pickup
+          planned: "23:40"
+          actual: "23:41"
+          passengers_after: 1
+          km: 6.0
+          min: 14
+        - person: P-005
+          type: pickup
+          status: pending
+          planned: "23:55"
+          passengers_after: 2
+          km: 3.0
+          min: 7
+        - person: P-006
+          type: pickup
+          status: cancelled
+          planned: "24:05"
+          passengers_after: 2
+        - person: P-004
+          type: drop_off
+          planned: "24:20"
+          actual: "24:22"
+          passengers_after: 1
+          km: 1.0
+          min: 3
+        - person: P-006
+          type: drop_off
+          status: cancelled
+          planned: "24:25"
+          passengers_after: 1
+        - person: P-005
+          type: drop_off
+          planned: "24:30"
+          actual: "24:33"
+          passengers_after: 0
+          km: 3.5
+          min: 9
+  # A trip that is booked outside the fixed routes. The last stop has no
+  # distance and no duration.
+  BOOKED:
+    runs:
+      1:
+        - person: P-007
+          type: pickup
+          planned: "13:00"
+          actual: "13:03"
+          passengers_after: 1
+          km: 8.0
+          min: 15
+        - person: P-007
+          type: drop_off
+          planned: "13:30"
+          actual: "13:30"
+          passengers_after: 0
+expected:
+  stop_rows: 14
+  rejected_rows: 0
+  route_runs: 4
+  trips: 7
+  citizens: 7
+  solo_runs: 2
+  last_drop_offs: 4
+  on_time: 3
+  driven_km: 39.5
+  empty_km: 10.0
