@@ -16,19 +16,20 @@ sequenceDiagram
     C->>C: check ROLE_UPLOAD_DRIVING_DATA and CSRF
     C->>C: ImportRange(first, last), at most APP_DRIVING_DATA_MAX_DAYS
     C->>C: keep the file in var/, and its token in the session
-    C->>P: parse(file, mapping)
+    C->>P: parse(file, mapping, range)
     P->>M: column, type and value map per field
+    P->>P: reject rows outside the range (ImportRange::contains)
     P-->>C: rows, and rejected rows: row number and reason, no values
     C->>DB: count the stored rows in the range
     C-->>Admin: preview: range, rows to delete, insert and reject, dates that become empty
     Note over Admin,C: no data changes before the confirmation
 
     Admin->>C: POST confirm (token from the session, CSRF)
-    C->>P: parse(file, mapping)
+    C->>C: remove the token from the session (one time only)
+    C->>P: parse(file, mapping, range)
     P-->>C: rows, rejected rows
     C->>DB: begin transaction, create ImportBatch
     C->>U: replace(range, rows)
-    U->>U: reject rows outside the range
     U->>DB: delete all StopRow rows in the range
     U->>DB: insert the rows of the file
     Note over U,DB: each date in the range holds only the rows of the file

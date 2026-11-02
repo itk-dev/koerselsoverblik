@@ -43,8 +43,8 @@ The user interface is in Danish.
     - The figures for the replaced dates are recalculated.
     - The page lists the uploaded dates. You can clear the driving data for a date, for example
       after a wrong upload.
-    - Columns are read through an [import mapping](#import-mappings), so another source can be
-      added with a new mapping file instead of code changes.
+    - Columns are read through an [import mapping](#import-mappings), so a changed column name,
+      code or format needs no code change.
   - **Suppliers and routes:** the suppliers, and which supplier drives each route from which
     date.
 - **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
@@ -89,7 +89,7 @@ Each part of the application has its own permission role:
 | --- | --- |
 | `ROLE_VIEW_OVERVIEW` | View the overview |
 | `ROLE_UPLOAD_DRIVING_DATA` | Upload driving data |
-| `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date |
+| `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date. Also needs `ROLE_UPLOAD_DRIVING_DATA`, because the dates are on the upload page |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
 
@@ -201,10 +201,12 @@ given.
 
 ### Clear driving data
 
-1. Go to **Administration → Upload driving data**.
+1. Go to **Administration → Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
 2. Find the date in the list of uploaded dates. Use the previous and next month links.
 3. Check the number of stop rows and route runs for the date.
 4. Select **Clear** (requires `ROLE_CLEAR_DRIVING_DATA`), and confirm.
+
+To clear a date, a user needs both roles. `ROLE_ADMIN` gives both.
 
 This deletes the uploaded driving data and the calculated figures for the date. The daily
 counts of mails, complaints and phone calls do not change. You cannot undo this.
@@ -218,21 +220,33 @@ task console -- app:driving-data:clear <FROM_DATE> <TO_DATE>
 ### Import mappings
 
 An import mapping describes how a source's extract maps to the fields the application uses.
-Mappings live in `config/import/driving_data/<MAPPING_NAME>.yaml`. To support a new source, or a
-change in an existing extract, add or edit a mapping. No code changes are needed.
+Mappings live in `config/import/driving_data/<MAPPING_NAME>.yaml`.
+
+A mapping can change the column names, the code values and the formats of the fixed application
+fields. For these changes in an extract, edit the mapping, or add a mapping for a new source.
+These changes need code:
+
+- a field that the extract does not have
+- a field that is made from more than one column, or a column that holds more than one field
+- a new application field
 
 A mapping defines:
 
 - **Sheet and header row:** where the data starts in the workbook. The rows above the header row
   are skipped.
-- **Row id (optional):** the column, or columns, that identify a row. If a row id occurs more
-  than once in a file, the second and later rows are rejected.
-- **Fields:** for each application field, the source column and how to read it:
+- **Row id (optional):** the source column, or columns, that identify a row. If a row id occurs
+  more than once in a file, the second and later rows are rejected.
+- **Fields:** each application field must have a source column. For each field, the mapping
+  gives the column and how to read it:
   - type: `string`, `int`, `float`, `bool`, `date`, `time`, `datetime`
-  - date format: for example an Excel serial date or a format string such as `Y-m-d`
-  - a `time` field is a time of day in an Excel time cell. It is added to `service_date`. It can
-    be 24:00 or more, for a time after midnight on the same service day.
-  - value maps for codes, for example which status values mean "completed"
+  - date format, only for a `date` or `datetime` field: for example an Excel serial date or a
+    format string such as `Y-m-d`
+  - a `time` field is a time of day in an Excel time cell. It is a wall-clock time on
+    `service_date`. A time of 24:00 or more is on the next day: 25:10 is 01:10 on the day after
+    `service_date`. Times are stored with no time zone, so a change to or from daylight saving
+    time does not move them. See [Times](docs/architecture.md#times).
+  - value maps for codes, only for a `string` field, for example which status values mean
+    "completed"
   - for a `bool` field: the values that mean true and the values that mean false
   - whether the field is required
 
@@ -261,7 +275,7 @@ fields:
 ```
 
 The `default` mapping reads the extract of the planning system. See
-[the data import plan](docs/plan-data-import.md#the-reference-extract).
+[the reference extract](docs/architecture.md#the-reference-extract).
 
 Validate a mapping against a sample file before using it:
 
@@ -316,8 +330,9 @@ administration.
 - Names, addresses and other personal details in the extract are not imported. The columns with
   free text and labels are not imported either.
 - Nothing is stored or shown at driver level.
-- Uploaded files are kept outside the public folder until you confirm or cancel the upload, and
-  for one hour at most. Then they are deleted.
+- Uploaded files are kept outside the public folder until you confirm or cancel the upload. A
+  scheduled job deletes the files that are older than one hour. An upload that is not confirmed
+  in that time expires.
 
 ## Development
 
@@ -398,6 +413,9 @@ task fixtures:extracts
 This writes the test scenarios and one file for each of the 13 months to
 `var/fixtures/driving_data/`. The data is invented.
 
+Each month file has at most 31 days. If `APP_DRIVING_DATA_MAX_DAYS` is less than 31, the upload
+rejects these files.
+
 ### Diagrams
 
 The architecture diagrams are Mermaid files in `docs/diagrams/`. Render them to SVG with:
@@ -467,12 +485,18 @@ To set up a new server:
    - the `OIDC_*` settings from the identity provider
    - the database settings
 2. Deploy.
-3. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
-4. Make sure that the administrator can sign in.
+3. Add a cron job that deletes the upload files that nobody confirmed. Run it every 15 minutes:
+
+   ```shell
+   */15 * * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:purge-uploads --quiet
+   ```
+
+4. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
+5. Make sure that the administrator can sign in.
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
 - [Architecture decision records](docs/adr/)
-- [Plan](docs/plan.md), [data import plan](docs/plan-data-import.md) and [tasks](docs/tasks.md)
+- [Plan](docs/plan.md) and [tasks](docs/tasks.md)
 - [Changelog](CHANGELOG.md)

@@ -6,7 +6,7 @@
 | **Date** | 2026-10-10 |
 | **Decision Maker** | Troels Ugilt Jensen |
 | **Stakeholders** | ITK Dev developers; the transport office (users who upload) |
-| **Status** | Draft |
+| **Status** | Proposed |
 
 ## Context
 
@@ -24,7 +24,7 @@ may appear later.
   - The same data must never be counted twice. Duplicates would make every figure wrong.
   - A wrong date in one row must not change the data of other dates.
   - It must be possible to remove the data of a wrong upload.
-  - It must be possible to support another source or a changed layout.
+  - A changed column name, code value or format in an extract must not need a code change.
 - **Non-functional:** imports are traceable (who, when, what changed), failed imports leave no
   partial data, and the calculations are reproducible from stored data.
 
@@ -66,14 +66,15 @@ Option 4:
   - The import deletes all `StopRow` rows in the range, from all mappings, and then inserts the
     rows of the file. Two sources can then never count the same date twice.
   - A date in the range with no rows in the file becomes empty.
-  - A row with a date outside the range is rejected, with its row number and a reason.
+  - A row with a date outside the range is rejected, with its row number and a reason. The
+    parser does this check, so the preview shows these rows.
   - The result page and the `ImportBatch` show the replaced range and the numbers of deleted,
     inserted and rejected rows.
 - **Maximum range:** `APP_DRIVING_DATA_MAX_DAYS` (default 31) limits the length of the range. A
   longer range is rejected, and no data changes.
 - **Preview and confirm:** the upload first shows a preview: the range, the rows to delete,
   insert and reject, and the dates that become empty. The import runs only when the user
-  confirms.
+  confirms. The confirmation token works one time only.
 - **Row key:** if the mapping has a row key, a key that occurs more than once in one file is
   rejected for each occurrence after the first. The unique index on `(mapping_name, row_key)`
   makes this sure at database level.
@@ -81,8 +82,8 @@ Option 4:
   correct file for the same range, or clear the driving data for the dates (see below).
 - **Clear driving data:** the upload page lists the uploaded dates. Users with
   `ROLE_CLEAR_DRIVING_DATA` can clear one date from the list: `StopRow`, `RouteRun` and
-  `DailyStats`. Manually entered daily counts do not change. A console command clears a date
-  range.
+  `DailyStats`. They also need `ROLE_UPLOAD_DRIVING_DATA` to open the upload page. Manually
+  entered daily counts do not change. A console command clears a date range.
 - **Derived data:** `RouteRun` and `DailyStats` are rebuilt for the replaced range, or deleted for
   the cleared dates.
 - **Transactions:** each import, and each clear, runs in one transaction.
@@ -98,7 +99,8 @@ Option 4:
   rejected.
 - The import does not depend on a stable row key in the extract.
 - A wrong upload can be removed in the user interface without help from a developer.
-- A new source or layout change needs only a new mapping file.
+- A changed column name, code value or format needs only a mapping change. A missing column, a
+  combined or split column, or a new application field still needs code.
 - Derived tables can be rebuilt at any time, so a calculation fix needs no re-upload.
 
 ### Negative / Trade-offs
@@ -108,7 +110,8 @@ Option 4:
 - A file that holds only part of a day removes the other rows of that day. Users must upload
   whole days.
 - The upload takes two steps: the preview, then the confirmation. The file is kept until the user
-  confirms or cancels.
+  confirms or cancels. A scheduled command deletes a file that is older than one hour, so the
+  server needs a cron job.
 - There is no history of earlier uploads for a date. The `ImportBatch` keeps who uploaded what and
   when, but not the old rows.
 - Clearing data cannot be undone. The user confirms before the data is deleted.
