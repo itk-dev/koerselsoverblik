@@ -1,4 +1,3 @@
-{% import '_icons.html.twig' as icons %}
 {% set menu = main_menu() %}
 {# The brand goes to the first page that the user can see. Without such a page, it is not a link. #}
 {% set home = menu|first %}
@@ -43,7 +42,7 @@
             <div class="main">
                 <header class="topbar">
                     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="rail" data-nav-toggle>
-                        {{ icons.icon('menu', 20) }}
+                        {{ ux_icon('lucide:menu', {height: 20, width: 20}) }}
                         <span class="sr-only">{{ 'layout.show_menu'|trans }}</span>
                     </button>
                     <div class="topbar__controls">
@@ -51,7 +50,7 @@
                     </div>
                     {% if app.user %}
                         <div class="user-menu" data-test="user-menu">
-                            {{ icons.icon('user') }}
+                            {{ ux_icon('lucide:user') }}
                             <span class="user-menu__name">{{ app.user.userIdentifier }}</span>
                         </div>
                     {% endif %}
@@ -68,7 +67,7 @@
                 <header class="about__head">
                     <h2 id="about-title">{{ 'about.title'|trans }}</h2>
                     <button class="about__close" value="close" aria-label="{{ 'about.close'|trans }}">
-                        {{ icons.icon('x') }}
+                        {{ ux_icon('lucide:x') }}
                     </button>
                 </header>
                 <div class="about__body">

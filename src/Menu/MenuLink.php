@@ -10,7 +10,7 @@ final readonly class MenuLink
     /**
      * @param string $label the translation key
      * @param string $route the route name, to find the active item
-     * @param string $icon  the icon name in templates/_icons.html.twig
+     * @param string $icon  the UX Icons name, for example lucide:car
      */
     public function __construct(
         public string $label,

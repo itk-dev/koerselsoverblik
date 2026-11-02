@@ -33,4 +33,4 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   list (M1-12) are removed, because the identity provider manages all users. The menu has no
   "Administration" group, because all users have the same role. `nelmio/security-bundle` sends
   the Content Security Policy with a nonce for `importmap()`, `X-Content-Type-Options` and
-  `Referrer-Policy`.
+  `Referrer-Policy`. Symfony UX Icons gives the Lucide icons, from SVG files in `assets/icons/`.

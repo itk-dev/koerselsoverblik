@@ -346,6 +346,9 @@ issue adds the header.
 - Charts are Twig components that render inline SVG on the server. Each chart includes a hidden
   data table for screen readers. No chart JavaScript is used.
 - Help texts (**?**) use the native HTML `popover` attribute.
+- Icons are Lucide icons with Symfony UX Icons (`ux_icon('lucide:car')`). The SVG files are in
+  `assets/icons/` and in git, so the application makes no calls to the Iconify API. To add an
+  icon, run `task console -- ux:icons:import lucide:<NAME>`.
 - The page loads no file from an external host. The design system has no font files, so the
   layout uses the fallback fonts of `--itkaarhus-font-sans` (Helvetica Neue, Arial). Inter has
   the SIL Open Font License, so a later task can add it to `assets/fonts`.

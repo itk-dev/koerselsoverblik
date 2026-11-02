@@ -46,14 +46,8 @@ body {
     top: var(--itkaarhus-space-4);
 }
 
-/* The sprite has only the geometry. The stroke comes from this rule. */
-.icon,
-.nav__icon {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+/* The Lucide SVG files in assets/icons/ set the stroke. ux_icon() adds the class "icon". */
+.icon {
     flex: none;
 }
 

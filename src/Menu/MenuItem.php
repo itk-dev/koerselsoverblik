@@ -10,7 +10,7 @@ final readonly class MenuItem
     /**
      * @param string $label the translation key
      * @param string $role  the permission role that the user must have
-     * @param string $icon  the icon name in templates/_icons.html.twig
+     * @param string $icon  the UX Icons name, for example lucide:car
      */
     public function __construct(
         public string $label,
