@@ -6,7 +6,15 @@
     source: {
         directories: ['src'],
         // The functional tests cover this glue. Mutants in it are mostly equivalent.
-        excludes: ['Controller', 'Form', 'Twig/Components', 'Kernel.php'],
+        // The fixture code makes invented test data. Its mutants change only the data.
+        excludes: [
+            'Controller',
+            'Form',
+            'Twig/Components',
+            'Kernel.php',
+            'DataFixtures',
+            'Command/DrivingDataFixturesCommand.php',
+        ],
     },
     tmpDir: 'var/infection/tmp',
     logs: {

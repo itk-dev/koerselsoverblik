@@ -327,8 +327,9 @@ task test:mutation:full
 - **Fixture files:** these are in `tests/fixtures/` and are anonymised. Never commit real extracts.
 - **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
   `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
-  components are not mutated; the functional tests cover them. The HTML report is written to
-  `var/infection/`.
+  components are not mutated; the functional tests cover them. The fixture code (`src/DataFixtures`
+  and the fixtures command) is not mutated, because its mutants change only invented test data.
+  The HTML report is written to `var/infection/`.
 - **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
   Each mutant has 30 seconds.
 - **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
