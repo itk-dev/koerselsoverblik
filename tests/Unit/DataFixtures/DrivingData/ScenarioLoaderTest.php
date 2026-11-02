@@ -190,6 +190,73 @@ final class ScenarioLoaderTest extends TestCase
     }
 
     /**
+     * A key such as 101 or "2" is a number in a PHP array.
+     */
+    public function testRouteIsTextAndRunIsANumber(): void
+    {
+        $scenario = $this->load(<<<'YAML'
+            date: 2026-01-05
+            routes:
+              101:
+                runs:
+                  "2":
+                    - { person: P-001, type: pickup, planned: '07:10' }
+            expected: { stop_rows: 1 }
+            YAML);
+
+        self::assertSame('101', $scenario->rows[0]->values['route']);
+        self::assertSame(2, $scenario->rows[0]->values['run']);
+    }
+
+    public function testRunThatIsNotANumberIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('A run must be a whole number.');
+
+        $this->load(<<<'YAML'
+            date: 2026-01-05
+            routes:
+              R-01:
+                runs:
+                  first:
+                    - { person: P-001, type: pickup, planned: '07:10' }
+            expected: { stop_rows: 1 }
+            YAML);
+    }
+
+    public function testNumberFieldWithTextIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('"km" must be a number.');
+
+        $this->load(<<<'YAML'
+            date: 2026-01-05
+            routes:
+              R-01:
+                runs:
+                  1:
+                    - { person: P-001, type: pickup, planned: '07:10', km: far }
+            expected: { stop_rows: 1 }
+            YAML);
+    }
+
+    public function testRawValueThatIsNotTextOrANumberIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('"raw" must have text or numbers.');
+
+        $this->load(<<<'YAML'
+            date: 2026-01-05
+            routes:
+              R-01:
+                runs:
+                  1:
+                    - { person: P-001, type: pickup, planned: '07:10', raw: { run: [1, 2] } }
+            expected: { stop_rows: 1 }
+            YAML);
+    }
+
+    /**
      * The scenario files that the tests and the local site use.
      */
     #[DataProvider('scenarioFiles')]
