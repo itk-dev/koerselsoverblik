@@ -70,7 +70,7 @@ The application runs on the ITK Dev Docker setup (`symfony-8` template):
 | nginx | Serves static assets and passes PHP requests to phpfpm |
 | phpfpm | The Symfony 8 application on PHP 8.4 |
 | MariaDB | All application data |
-| idp | Local development only: an OIDC mock service (`ghcr.io/soluto/oidc-server-mock`) with test users |
+| idp | Local development only: an OIDC mock service (`ghcr.io/geigerzaehler/oidc-provider-mock`) with test users |
 
 Console commands (`app:driving-data:*`) run in the phpfpm container.
 
@@ -115,7 +115,7 @@ are added only when file sizes or integrations need them.
 
 | Entity | Purpose |
 | --- | --- |
-| `User` | An account from the identity provider: username, roles from the last login, time of the last login. No password |
+| `User` | An account from the identity provider: email (the `upn` claim), roles from the last login, time of the last login. No password |
 | `Supplier` | A transport supplier |
 | `Route` | A route from the extract |
 | `RouteSupplierAssignment` | The supplier that drives a route from `valid_from` to `valid_to` (empty = no end date) |
@@ -246,14 +246,19 @@ config file.
 
 - There is one firewall with `OidcAuthenticator`. It extends `OpenIdLoginAuthenticator` from
   `itk-dev/openid-connect-bundle`.
-- An anonymous user is sent to the identity provider. After the login, the identity provider
-  sends the user back to the callback route.
+- An anonymous user is sent to the bundle's login route under `/openidconnect`, and from there
+  to the identity provider. After the login, the
+  identity provider sends the user back to the callback route, `/openid-connect/generic`.
 - At each login, `OidcRoleMapper` reads the role claim (`OIDC_ROLE_CLAIM`). It keeps the values
   that are `ROLE_ADMIN` or a permission role, and ignores the rest. The `User` is created or
   updated with these roles.
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
+- **Authentication log:** the bundle's audit trail records each successful and failed login,
+  with the IP address and the reason for a failure. `OidcAuthenticator` adds a record with the
+  email and the roles at each login. Both go to the `openid_connect_audit` channel, which Monolog
+  writes to `var/log/openid_connect_audit.log`.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**
@@ -283,8 +288,8 @@ config file.
 
 - Every signed-in user also has `ROLE_USER`. It grants nothing alone.
 - Every controller has a class-level `#[IsGranted]` with a permission role.
-- `access_control` denies everything to anonymous users except the OIDC login and callback
-  routes and the assets.
+- `access_control` denies everything to anonymous users except the OIDC routes
+  (`/openidconnect/*` and `/openid-connect/generic`) and the assets.
 - A test walks the router. It fails if an application route has no `IsGranted`, or if it checks
   `ROLE_ADMIN` or `ROLE_USER`.
 

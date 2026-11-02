@@ -26,11 +26,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a role hierarchy, a placeholder login, and a test that fails if a route has no permission role.
   The monolog bundle writes the test logs to a file, so that Infection can run. `task prepare-code`
   fixes the coding standards before it runs the checks.
+- [#17](https://github.com/itk-dev/passenger-transport-performance/issues/17)
+  OIDC plan: fixed OIDC routes, the `oidc-provider-mock` service for local development, the user
+  is identified by email (the `upn` claim), and an authentication log records each login with the
+  roles. The user list and `ROLE_MANAGE_USERS` are removed.
 - [#24](https://github.com/itk-dev/koerselsoverblik/issues/24)
   M1-10 Base layout, design system and menu: the prototype's shell in Twig with the itkaarhus
   design system, a menu that shows an item only if its route exists and the user has its role,
-  and Danish translations. No fonts load from external hosts. `ROLE_MANAGE_USERS` and the user
-  list (M1-12) are removed, because the identity provider manages all users. The menu has no
-  "Administration" group, because all users have the same role. `nelmio/security-bundle` sends
-  the Content Security Policy with a nonce for `importmap()`, `X-Content-Type-Options` and
+  and Danish translations. No fonts load from external hosts. The menu has no "Administration"
+  group, because all users have the same role. `nelmio/security-bundle` sends the Content
+  Security Policy with a nonce for `importmap()`, `X-Content-Type-Options` and
   `Referrer-Policy`. Symfony UX Icons gives the Lucide icons, from SVG files in `assets/icons/`.
