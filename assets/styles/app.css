@@ -60,7 +60,6 @@ body {
 :focus-visible {
     outline: none;
     box-shadow: var(--itkaarhus-focus);
-    border-radius: var(--itkaarhus-radius-1);
 }
 
 /* ----------------------------------------------------------------- shell */
@@ -293,11 +292,19 @@ body {
         width: var(--rail-w);
         z-index: 30;
         transform: translateX(-100%);
-        transition: transform 0.18s ease;
+        /* A closed drawer takes no focus and screen readers skip it. The delay lets it slide out first. */
+        visibility: hidden;
+        transition:
+            transform 0.18s ease,
+            visibility 0s linear 0.18s;
         box-shadow: var(--itkaarhus-shadow-3);
     }
     .shell.is-nav-open .rail {
         transform: translateX(0);
+        visibility: visible;
+        transition:
+            transform 0.18s ease,
+            visibility 0s;
     }
     /* The backdrop is below the rail. A click on it closes the drawer (see app.js). */
     .shell.is-nav-open::after {
