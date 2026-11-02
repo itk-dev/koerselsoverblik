@@ -1,6 +1,6 @@
 {% import '_icons.html.twig' as icons %}
 
-{% for item in main_menu() %}
+{% for item in items %}
     {% set active = item.route == app.current_route %}
     <a class="nav__item{{ active ? ' is-active' }}" href="{{ item.url }}" data-test="menu-item"{% if active %} aria-current="page"{% endif %}>
         {{ icons.icon(item.icon, 18, 'icon nav__icon') }}

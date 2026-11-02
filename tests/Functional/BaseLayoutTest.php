@@ -48,6 +48,16 @@ final class BaseLayoutTest extends WebTestCase
         self::assertSame(['Overblik'], $labels);
     }
 
+    public function testBrandLinksToTheFirstMenuItem(): void
+    {
+        $client = static::createClient();
+        $this->loginAs($client, 'viewer');
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertSame('/', $crawler->filter('a[data-test="brand"]')->attr('href'));
+    }
+
     public function testActiveMenuItemIsMarked(): void
     {
         $client = static::createClient();

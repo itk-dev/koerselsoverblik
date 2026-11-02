@@ -1,4 +1,8 @@
 {% import '_icons.html.twig' as icons %}
+{% set menu = main_menu() %}
+{# The brand goes to the first page that the user can see. Without such a page, it is not a link. #}
+{% set home = menu|first %}
+{% set brand_tag = home ? 'a' : 'span' %}
 <!DOCTYPE html>
 <html lang="{{ app.request.locale }}">
     <head>
@@ -19,16 +23,16 @@
 
         <div class="shell" data-shell>
             <aside class="rail" id="rail">
-                <a class="brand" href="{{ path('overview') }}">
+                <{{ brand_tag }} class="brand"{% if home %} href="{{ home.url }}"{% endif %} data-test="brand">
                     <img class="brand__mark" src="{{ asset('itkaarhus-ds/logos/aak-emblem.svg') }}" alt="">
                     <span class="brand__text">
                         <b>{{ 'app.name'|trans }}</b>
                         <small>{{ 'app.owner'|trans }}</small>
                     </span>
-                </a>
+                </{{ brand_tag }}>
 
                 <nav class="nav" aria-label="{{ 'menu.label'|trans }}" data-nav>
-                    {{ include('_menu.html.twig') }}
+                    {{ include('_menu.html.twig', {items: menu}) }}
                 </nav>
 
                 <div class="rail__foot">
