@@ -42,7 +42,15 @@ final readonly class DrivingDataFixturesCommand
         int $seed = 1,
         #[Option('The last month of the development dataset, as YYYY-MM. The default is the current month')]
         ?string $lastMonth = null,
+        #[Option('The number of months in the development dataset')]
+        int $months = self::MONTHS,
     ): int {
+        if ($months < 1) {
+            $io->error('The number of months must be at least 1.');
+
+            return Command::INVALID;
+        }
+
         $last = null === $lastMonth
             ? new \DateTimeImmutable('first day of this month')
             : \DateTimeImmutable::createFromFormat('!Y-m', $lastMonth);
@@ -66,7 +74,7 @@ final readonly class DrivingDataFixturesCommand
         foreach (glob($this->outputDirectory.'/dev-*.xlsx') ?: [] as $earlier) {
             unlink($earlier);
         }
-        for ($month = $last->modify(\sprintf('-%d months', self::MONTHS - 1)); $month <= $last; $month = $month->modify('+1 month')) {
+        for ($month = $last->modify(\sprintf('-%d months', $months - 1)); $month <= $last; $month = $month->modify('+1 month')) {
             $this->writer->write($this->outputDirectory.'/dev-'.$month->format('Y-m').'.xlsx', $mapping, $this->generator->month($seed, $month));
             ++$files;
         }
