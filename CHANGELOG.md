@@ -36,9 +36,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   "Administration" section. An upload replaces the date range that the user enters, after a
   preview and a confirmation. `APP_DRIVING_DATA_MAX_DAYS` limits the range. The upload page lists
   the uploaded dates, and clears one date. The separate page that clears a date range is removed.
-  The GitHub links use the new repository name.
   ADR 004 is proposed: the stop rows keep the person id from the extract, with no HMAC, and
-  `APP_PERSON_ID_SECRET` is removed. The data import plan is in `docs/plan-data-import.md`. The
-  `default` mapping uses the columns of a reference extract, with the new `date` and `time`
-  types, a `run` field from the block number, and rejection of unknown values. The new task
-  M1-29 generates the test extracts and the development dataset from invented data.
+  `APP_PERSON_ID_SECRET` is removed. The `default` mapping uses the columns of a reference
+  extract, with the new `date` and `time` types, a `run` field from the block number, and
+  rejection of unknown values. A generator makes the test extracts and the development dataset
+  from invented data.
+  After the review: ADR 003 is proposed. A mapping changes only column names, code values and
+  formats. The parser rejects rows outside the range, so the preview shows them. The
+  confirmation token works one time only. `app:driving-data:purge-uploads` deletes unconfirmed
+  upload files after one hour. Times are wall-clock times with no time zone. Clearing a date
+  also needs `ROLE_UPLOAD_DRIVING_DATA`. The reference extract, the test data and the open
+  questions of the import are in `docs/architecture.md`.
+- The GitHub links use the new repository name, `itk-dev/koerselsoverblik`.
