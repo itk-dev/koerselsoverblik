@@ -361,8 +361,8 @@ dependencies, the tests to write first, and its acceptance criteria.
 
 - OIDC is the only login method. There is no password login and no "no login" mode.
 - `itk-dev/openid-connect-bundle` with one provider. The settings are `OIDC_METADATA_URL`,
-  `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`, `OIDC_ROLE_CLAIM` and
-  `OIDC_ALLOW_HTTP`.
+  `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_CLIENT_SECRET_EXPIRES_AT`, `OIDC_REDIRECT_URI`,
+  `OIDC_ROLE_CLAIM` and `OIDC_ALLOW_HTTP`.
 - One firewall with `OidcAuthenticator`, which extends the bundle's `OpenIdLoginAuthenticator`.
   Anonymous users are sent to the identity provider. Logout ends the session in the application.
   A failed login shows a page with a "Prøv igen" link (`OidcLoginFailureListener`).

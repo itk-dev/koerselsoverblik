@@ -155,6 +155,7 @@ Set these in `.env.local`:
 | `OIDC_METADATA_URL` | The identity provider's discovery URL (`.well-known/openid-configuration`) | The local mock service |
 | `OIDC_CLIENT_ID` | The client id of the application in the identity provider | The local mock client |
 | `OIDC_CLIENT_SECRET` | The client secret of the application in the identity provider | The local mock secret |
+| `OIDC_CLIENT_SECRET_EXPIRES_AT` | The date the client secret expires, for example `2027-01-31`. A login logs a warning 30 days before, and a critical error after the date. Empty means not monitored, and each login logs an error | Empty |
 | `OIDC_REDIRECT_URI` | The callback URL of the application, `https://<HOST>/openid-connect/generic`, registered in the identity provider | The local callback URL |
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
 | `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |

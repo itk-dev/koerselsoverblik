@@ -14,5 +14,6 @@ itkdev_openid_connect:
                 metadata_url: '%env(string:OIDC_METADATA_URL)%'
                 client_id: '%env(OIDC_CLIENT_ID)%'
                 client_secret: '%env(OIDC_CLIENT_SECRET)%'
+                client_secret_expires_at: '%env(string:OIDC_CLIENT_SECRET_EXPIRES_AT)%'
                 redirect_uri: '%env(string:OIDC_REDIRECT_URI)%'
                 allow_http: '%env(bool:OIDC_ALLOW_HTTP)%'
