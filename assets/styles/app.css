@@ -146,15 +146,6 @@ body {
 .nav__item.is-active .nav__icon {
     color: var(--itkaarhus-primary);
 }
-.nav__group {
-    margin: var(--itkaarhus-space-4) 0 var(--itkaarhus-space-1);
-    padding: 0 var(--itkaarhus-space-3);
-    font-size: var(--itkaarhus-text-xs);
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--itkaarhus-gray-500);
-}
 
 .rail__foot {
     border-top: var(--hairline);

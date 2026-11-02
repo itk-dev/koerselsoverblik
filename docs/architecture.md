@@ -351,9 +351,10 @@ issue adds the header.
   the SIL Open Font License, so a later task can add it to `assets/fonts`.
 
 **Menu:** `MainMenu` defines the items, and `MenuBuilder` removes the items that the user must
-not see. An item is visible only if its route exists and the user has its permission role. A
-group is visible only if at least one child is visible. `MainMenu` already has the items for
-daily counts and suppliers, so each item shows when its task adds the route.
+not see. An item is visible only if the user has its permission role and its route exists.
+`MenuBuilder` generates each URL one time and gives `MenuLink` objects to the template. A menu
+route takes no parameters. `MainMenu` already has the items for daily counts and suppliers, so
+each item shows when its task adds the route.
 
 **Language:** the UI is in Danish. Texts live in `translations/messages+intl-icu.da.yaml`, and
 `FormatExtension` formats numbers, percentages, percentage points, deltas and period labels.
