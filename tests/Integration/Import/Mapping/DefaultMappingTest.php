@@ -17,8 +17,7 @@ final class DefaultMappingTest extends KernelTestCase
 {
     public function testApplicationSelectsTheDefaultMapping(): void
     {
-        // PHPStan reads the dev container. The provider is public only in the test container.
-        $provider = self::getContainer()->get(MappingProvider::class); // @phpstan-ignore symfonyContainer.serviceNotFound
+        $provider = self::getContainer()->get(MappingProvider::class);
         self::assertInstanceOf(MappingProvider::class, $provider);
 
         $mapping = $provider->default();
