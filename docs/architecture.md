@@ -151,7 +151,7 @@ flowchart TB
     end
 
     subgraph import["Import/DrivingData"]
-        mapping["MappingLoader → Mapping<br/>config/import/driving_data/*.yaml"]
+        mapping["MappingLoader → MappingDto<br/>config/import/driving_data/*.yaml"]
         parser["StopRowParser"]
         replacer["StopRowReplacer"]
         builder["RouteBuilder"]
@@ -363,7 +363,7 @@ sequenceDiagram
     actor Editor
     participant C as ImportController
     participant P as StopRowParser
-    participant M as Mapping
+    participant M as MappingDto
     participant U as StopRowReplacer
     participant B as RouteBuilder
     participant A as DailyStatsAggregator
@@ -407,7 +407,7 @@ A mapping file, `config/import/driving_data/<MAPPING_NAME>.yaml`, describes one 
 
 `MappingLoader` validates the file with the Symfony Config component when the container is built,
 so an invalid mapping stops the application from starting. It then produces an immutable
-`Mapping` value object. `StopRowParser` reads the workbook only through `Mapping` and never
+`MappingDto` value object. `StopRowParser` reads the workbook only through `MappingDto` and never
 refers to column names itself. `app:driving-data:mapping:validate` checks a sample file against
 a mapping before it is used.
 

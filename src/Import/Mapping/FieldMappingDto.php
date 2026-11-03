@@ -5,7 +5,7 @@ namespace App\Import\Mapping;
 /**
  * The source column of one application field, and how to read it.
  */
-final readonly class FieldMapping
+final readonly class FieldMappingDto
 {
     /**
      * @param array<string, string> $valueMap    source code to application value

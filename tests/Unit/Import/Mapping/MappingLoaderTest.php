@@ -5,7 +5,7 @@ namespace App\Tests\Unit\Import\Mapping;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\FieldType;
 use App\Import\Mapping\InvalidMappingException;
-use App\Import\Mapping\Mapping;
+use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingLoader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -256,7 +256,7 @@ final class MappingLoaderTest extends TestCase
     /**
      * @param array<array-key, mixed> $raw
      */
-    private function loadArray(array $raw): Mapping
+    private function loadArray(array $raw): MappingDto
     {
         return (new MappingLoader())->load($this->writeFile(Yaml::dump($raw, 4)));
     }

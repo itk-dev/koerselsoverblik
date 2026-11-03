@@ -38,7 +38,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The GitHub issues hold the task specifications. The development rules are in the README.
 - [#31](https://github.com/itk-dev/koerselsoverblik/issues/31)
   Import mapping: the YAML format for import mappings in `config/import/driving_data/`, a loader
-  that validates a mapping and builds a `Mapping` value object, and the `default` mapping for the
+  that validates a mapping and builds a `MappingDto` value object, and the `default` mapping for the
   extract of the planning system. `APP_DRIVING_DATA_MAPPING` selects the mapping for uploads. An
   invalid mapping stops the application when the container is built. A mutant that times out
   now fails the mutation run, and each mutant has 30 seconds.
