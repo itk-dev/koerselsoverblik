@@ -46,21 +46,14 @@ body {
     top: var(--itkaarhus-space-4);
 }
 
-/* The sprite has only the geometry. The stroke comes from this rule. */
-.icon,
-.nav__icon {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+/* The Lucide SVG files in assets/icons/ set the stroke. ux_icon() adds the class "icon". */
+.icon {
     flex: none;
 }
 
 :focus-visible {
     outline: none;
     box-shadow: var(--itkaarhus-focus);
-    border-radius: var(--itkaarhus-radius-1);
 }
 
 /* ----------------------------------------------------------------- shell */
@@ -145,15 +138,6 @@ body {
 }
 .nav__item.is-active .nav__icon {
     color: var(--itkaarhus-primary);
-}
-.nav__group {
-    margin: var(--itkaarhus-space-4) 0 var(--itkaarhus-space-1);
-    padding: 0 var(--itkaarhus-space-3);
-    font-size: var(--itkaarhus-text-xs);
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--itkaarhus-gray-500);
 }
 
 .rail__foot {
@@ -302,11 +286,31 @@ body {
         width: var(--rail-w);
         z-index: 30;
         transform: translateX(-100%);
-        transition: transform 0.18s ease;
+        /* A closed drawer takes no focus and screen readers skip it. The delay lets it slide out first. */
+        visibility: hidden;
+        transition:
+            transform 0.18s ease,
+            visibility 0s linear 0.18s;
         box-shadow: var(--itkaarhus-shadow-3);
     }
     .shell.is-nav-open .rail {
         transform: translateX(0);
+        visibility: visible;
+        transition:
+            transform 0.18s ease,
+            visibility 0s;
+    }
+    /* The backdrop is below the rail. A click on it closes the drawer (see app.js). */
+    .shell.is-nav-open::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 25;
+        background: color-mix(
+            in srgb,
+            var(--itkaarhus-gray-900) 45%,
+            transparent
+        );
     }
     .nav-toggle {
         display: inline-flex;

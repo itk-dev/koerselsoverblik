@@ -3,21 +3,20 @@
 namespace App\Menu;
 
 /**
- * An item in the menu. A link has a route and a permission role. A group has children only.
+ * The definition of an item in the menu. The route takes no parameters.
  */
 final readonly class MenuItem
 {
     /**
-     * @param string         $label    the translation key
-     * @param list<MenuItem> $children
-     * @param string|null    $icon     the icon name in templates/_icons.html.twig
+     * @param string $label the translation key
+     * @param string $role  the permission role that the user must have
+     * @param string $icon  the UX Icons name, for example lucide:car
      */
     public function __construct(
         public string $label,
-        public ?string $route = null,
-        public ?string $role = null,
-        public array $children = [],
-        public ?string $icon = null,
+        public string $route,
+        public string $role,
+        public string $icon,
     ) {
     }
 }

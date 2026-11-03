@@ -73,7 +73,7 @@ The application runs on the ITK Dev Docker setup (`symfony-8` template):
 | nginx | Serves static assets and passes PHP requests to phpfpm |
 | phpfpm | The Symfony 8 application on PHP 8.4 |
 | MariaDB | All application data |
-| idp | Local development only: an OIDC mock service (`ghcr.io/soluto/oidc-server-mock`) with test users |
+| idp | Local development only: an OIDC mock service (`ghcr.io/geigerzaehler/oidc-provider-mock`) with test users |
 
 Console commands (`app:driving-data:*`) run in the phpfpm container.
 
@@ -118,7 +118,7 @@ are added only when file sizes or integrations need them.
 
 | Entity | Purpose |
 | --- | --- |
-| `User` | An account from the identity provider: username, roles from the last login, time of the last login. No password |
+| `User` | An account from the identity provider: email (the `upn` claim), roles from the last login, time of the last login. No password |
 | `Supplier` | A transport supplier |
 | `Route` | A route from the extract |
 | `RouteSupplierAssignment` | The supplier that drives a route from `valid_from` to `valid_to` (empty = no end date) |
@@ -349,14 +349,19 @@ config file.
 
 - There is one firewall with `OidcAuthenticator`. It extends `OpenIdLoginAuthenticator` from
   `itk-dev/openid-connect-bundle`.
-- An anonymous user is sent to the identity provider. After the login, the identity provider
-  sends the user back to the callback route.
+- An anonymous user is sent to the bundle's login route under `/openidconnect`, and from there
+  to the identity provider. After the login, the
+  identity provider sends the user back to the callback route, `/openid-connect/generic`.
 - At each login, `OidcRoleMapper` reads the role claim (`OIDC_ROLE_CLAIM`). It keeps the values
   that are `ROLE_ADMIN` or a permission role, and ignores the rest. The `User` is created or
   updated with these roles.
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
+- **Authentication log:** the bundle's audit trail records each successful and failed login,
+  with the IP address and the reason for a failure. `OidcAuthenticator` adds a record with the
+  email and the roles at each login. Both go to the `openid_connect_audit` channel, which Monolog
+  writes to `var/log/openid_connect_audit.log`.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**
@@ -386,8 +391,8 @@ config file.
 
 - Every signed-in user also has `ROLE_USER`. It grants nothing alone.
 - Every controller has a class-level `#[IsGranted]` with a permission role.
-- `access_control` denies everything to anonymous users except the OIDC login and callback
-  routes and the assets.
+- `access_control` denies everything to anonymous users except the OIDC routes
+  (`/openidconnect/*` and `/openid-connect/generic`) and the assets.
 - A test walks the router. It fails if an application route has no `IsGranted`, or if it checks
   `ROLE_ADMIN` or `ROLE_USER`.
 
@@ -416,21 +421,34 @@ passwords. The identity provider applies its password rules and multi-factor aut
 option for a later milestone.
 
 **HTTP security headers** (ASVS V14.4): `nelmio/security-bundle` adds these headers to every
-response. The configuration is in the repository, and a functional test checks it.
+response. The configuration is in `config/packages/nelmio_security.yaml`, and
+`tests/Functional/SecurityHeadersTest.php` checks it.
 
 | Header | Value |
 | --- | --- |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` (in `prod` only) |
-| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'strict-dynamic' 'nonce-…'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `same-origin` |
+
+- There is no `style-src`, because `default-src 'self'` gives the same rule.
+- A redirect has no content, so it gets only `Referrer-Policy`.
+- In debug mode, Symfony removes the policy from its exception page.
+
+`Strict-Transport-Security` is not sent yet. Nelmio sends it only when Symfony sees HTTPS. Behind
+Traefik, that needs trusted proxies, and a wrong configuration causes a redirect loop. A separate
+issue adds the header.
 
 **Effects of the Content Security Policy:**
 
 - Templates have no inline scripts, no inline event handlers and no `style` attributes.
+- The only inline scripts are the import map and its entry point. `importmap()` writes them, and
+  they get the nonce from `csp_nonce('script')`. A later inline script also uses the nonce.
+- `'strict-dynamic'` lets the scripts with the nonce load the modules. The AssetMapper
+  documentation recommends it, because the import map has a `data:` entry for each CSS import.
+- The es-module-shims polyfill is off (`importmap_polyfill: false`). It is an inline script that
+  loads a file from a CDN, and all supported browsers have import maps.
 - The server-rendered SVG charts use classes and SVG presentation attributes for styling.
 - The `popover` help texts need no script.
-- If a page needs an inline script later, it uses a nonce from the bundle.
 
 ## User interface
 
@@ -442,21 +460,25 @@ response. The configuration is in the repository, and a functional test checks i
 - Charts are Twig components that render inline SVG on the server. Each chart includes a hidden
   data table for screen readers. No chart JavaScript is used.
 - Help texts (**?**) use the native HTML `popover` attribute.
+- Icons are Lucide icons with Symfony UX Icons (`ux_icon('lucide:car')`). The SVG files are in
+  `assets/icons/` and in git, so the application makes no calls to the Iconify API. To add an
+  icon, run `task console -- ux:icons:import lucide:<NAME>`.
 - The page loads no file from an external host. The design system has no font files, so the
   layout uses the fallback fonts of `--itkaarhus-font-sans` (Helvetica Neue, Arial). Inter has
   the SIL Open Font License, so a later task can add it to `assets/fonts`.
 
 **Menu:** `MainMenu` defines the items, and `MenuBuilder` removes the items that the user must
-not see. An item is visible only if its route exists and the user has its permission role. A
-group is visible only if at least one child is visible. `MainMenu` already has the items for
-daily counts and suppliers, so each item shows when its task adds the route.
+not see. An item is visible only if the user has its permission role and its route exists.
+`MenuBuilder` generates each URL one time and gives `MenuLink` objects to the template. A menu
+route takes no parameters. `MainMenu` already has the items for daily counts and suppliers, so
+each item shows when its task adds the route.
 
 The menu has these items:
 
 - Overview
 - Daily counts
-- Administration: Upload driving data, and Suppliers and routes. M1-13 adds the group, and M1-19
-  adds the upload item.
+- Administration: Upload driving data, and Suppliers and routes. `MenuBuilder` has no groups
+  now. The first page in the group adds the group again.
 
 **Language:** the UI is in Danish. Texts live in `translations/messages+intl-icu.da.yaml`, and
 `FormatExtension` formats numbers, percentages, percentage points, deltas and period labels.

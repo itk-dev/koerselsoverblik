@@ -356,8 +356,8 @@ The identity provider manages the users, so there is no role for user administra
 **Guarding:**
 
 - Every controller has a class-level `#[IsGranted]` with a permission role, with stricter rules per action where needed.
-- `access_control` denies by default (`^/` → `ROLE_USER`). Only the OIDC login and callback
-  routes and the assets are public.
+- `access_control` denies by default (`^/` → `ROLE_USER`). Only the OIDC routes
+  (`/openidconnect/*` and `/openid-connect/generic`) and the assets are public.
 - A test walks the router. It fails if any application route lacks `IsGranted`, or if it checks
   `ROLE_ADMIN` or `ROLE_USER`.
 
@@ -365,11 +365,19 @@ The identity provider manages the users, so there is no role for user administra
 
 - OIDC is the only login method. There is no password login and no "no login" mode.
 - `itk-dev/openid-connect-bundle` with one provider. The settings are `OIDC_METADATA_URL`,
-  `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI` and `OIDC_ROLE_CLAIM`.
+  `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`, `OIDC_ROLE_CLAIM` and
+  `OIDC_ALLOW_HTTP`.
 - One firewall with `OidcAuthenticator`, which extends the bundle's `OpenIdLoginAuthenticator`.
   Anonymous users are sent to the identity provider. Logout ends the session in the application.
-- `User` entity: username, roles, last login time. No password. Doctrine entity provider. The
-  user is created at the first login and updated at each login.
+- Routes: the bundle routes under `/openidconnect`, and the callback `/openid-connect/generic` in
+  `SecurityController`.
+- `User` entity: email (the `upn` claim), roles, last login time. No password. Doctrine entity
+  provider. The user is created at the first login and updated at each login.
+- **Authentication log:** the bundle's audit trail records each successful and failed login.
+  `OidcAuthenticator` adds a record with the email, the roles and the time, for example
+  `user foobar@example.com logged in with roles [ROLE_ADMIN]`. Both go to the `openid_connect_audit`
+  channel and its own log file.
+- No user list in the application, and no `ROLE_MANAGE_USERS`.
 - **Roles from a claim:**
   - `OidcRoleMapper` reads the claim `OIDC_ROLE_CLAIM`. It keeps the values that are
     `ROLE_ADMIN` or a permission role, and ignores the rest.
@@ -377,8 +385,9 @@ The identity provider manages the users, so there is no role for user administra
   - The application does not edit roles. A role change in the identity provider applies at the
     next login.
 - **Local development:** the `idp` service in `docker-compose.dev.yml` runs an OIDC mock
-  (`ghcr.io/soluto/oidc-server-mock`). It has one test user with `ROLE_ADMIN` and one test user
-  for each permission role. The `OIDC_*` defaults in `.env` point to it.
+  (`ghcr.io/geigerzaehler/oidc-provider-mock`). It has one test user with `ROLE_ADMIN` and one
+  test user for each permission role. The `OIDC_*` defaults in `.env` point to it, and `.env.dev`
+  sets `OIDC_ALLOW_HTTP=true`.
 - **Tests:** functional tests sign in with `loginUser()`. The tests of the OIDC flow replace the
   identity provider with a stub, so there are no calls to the mock service in CI.
 - **Passwords and multi-factor authentication** are the identity provider's job (ASVS V2.1,
@@ -749,7 +758,7 @@ The PM confirms that milestone 1 can start without answers to these questions.
 
 ```text
 src/
-  Controller/            OverviewController, DailyCountController, SecurityController (logout)
+  Controller/            OverviewController, DailyCountController, SecurityController (callback, logout)
   Controller/Admin/      ImportController, ClearDrivingDataController, SupplierController,
                          RouteController
   Entity/                User, Supplier, Route, RouteSupplierAssignment, ImportBatch, StopRow, RouteRun,
@@ -787,8 +796,9 @@ the table. The questions about the data import are in the
   holds the roles, and which values does the identity provider send? Only a named group is
   assigned, not the whole organisation.
 - **Staff data:** what is stored about the users from the identity provider (see ADR 004, staff
-  accounts)? Until it is decided, `User` keeps only the username, the roles and the last login
-  time.
+  accounts)? Until it is decided, `User` keeps only the email, the roles and the last login time.
+  The decision also sets the retention of the authentication log, which holds emails and IP
+  addresses.
 - **Personal data (proposed, not accepted).** See
   [ADR 004](adr/004-personal-data-in-driving-data.md) for the options.
   - **The proposal:** `StopRow` keeps the person id as it is in the extract, with no HMAC. The id

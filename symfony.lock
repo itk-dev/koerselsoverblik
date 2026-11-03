@@ -62,6 +62,18 @@
             ".php-cs-fixer.dist.php"
         ]
     },
+    "nelmio/security-bundle": {
+        "version": "3.9",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "2.4",
+            "ref": "71045833e4f882ad9de8c95fe47efb99a1eec2f7"
+        },
+        "files": [
+            "config/packages/nelmio_security.yaml"
+        ]
+    },
     "phpstan/phpstan": {
         "version": "2.3.1"
     },
@@ -215,6 +227,19 @@
         "files": [
             "config/packages/twig.yaml",
             "templates/base.html.twig"
+        ]
+    },
+    "symfony/ux-icons": {
+        "version": "3.6",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "3.4",
+            "ref": "16a3114526e46593b494471d1654dfa46831beb5"
+        },
+        "files": [
+            "assets/icons/symfony.svg",
+            "config/packages/ux_icons.yaml"
         ]
     },
     "vincentlanglet/twig-cs-fixer": {

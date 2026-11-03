@@ -7,10 +7,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
- * Removes the menu items that the current user must not see.
+ * Removes the menu items that the current user must not see, and generates the URLs.
  *
- * A link is visible only if its route exists and the user has its permission role. A group is
- * visible only if at least one child is visible.
+ * An item is visible only if the user has its permission role and its route exists.
  */
 final readonly class MenuBuilder
 {
@@ -23,46 +22,34 @@ final readonly class MenuBuilder
     /**
      * @param list<MenuItem> $items
      *
-     * @return list<MenuItem>
+     * @return list<MenuLink>
      */
     public function build(array $items): array
     {
-        $visible = [];
+        $links = [];
         foreach ($items as $item) {
-            $item = $this->visible($item);
-            if (null !== $item) {
-                $visible[] = $item;
+            $link = $this->link($item);
+            if (null !== $link) {
+                $links[] = $link;
             }
         }
 
-        return $visible;
+        return $links;
     }
 
-    private function visible(MenuItem $item): ?MenuItem
+    private function link(MenuItem $item): ?MenuLink
     {
-        if ([] !== $item->children) {
-            $children = $this->build($item->children);
-
-            return [] === $children
-                ? null
-                : new MenuItem($item->label, $item->route, $item->role, $children, $item->icon);
-        }
-
-        if (null === $item->route || null === $item->role || !$this->routeExists($item->route)) {
+        if (!$this->authorizationChecker->isGranted($item->role)) {
             return null;
         }
 
-        return $this->authorizationChecker->isGranted($item->role) ? $item : null;
-    }
-
-    private function routeExists(string $route): bool
-    {
+        // A later task adds the route. Other routing errors are bugs, so they are not caught.
         try {
-            $this->urlGenerator->generate($route);
+            $url = $this->urlGenerator->generate($item->route);
         } catch (RouteNotFoundException) {
-            return false;
+            return null;
         }
 
-        return true;
+        return new MenuLink($item->label, $item->route, $url, $item->icon);
     }
 }

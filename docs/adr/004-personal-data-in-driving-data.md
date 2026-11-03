@@ -98,4 +98,5 @@ data is imported only then. If the decision changes, the parser and the data mod
 - [ ] Get the data protection adviser's view.
 - [ ] Get the decision accepted, or changed, before go-live.
 - [ ] Decide the retention period of the stop rows.
-- [ ] Decide what staff account data is stored (username, display name).
+- [ ] Decide what staff account data is stored (email, display name), and how long the
+      authentication log is kept.

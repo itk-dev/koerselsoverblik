@@ -15,9 +15,9 @@ final class MainMenu
     public static function items(): array
     {
         return [
-            new MenuItem('menu.overview', 'overview', 'ROLE_VIEW_OVERVIEW', icon: 'dashboard'),
-            new MenuItem('menu.daily_counts', 'daily_counts', 'ROLE_EDIT_DAILY_COUNTS', icon: 'calendar'),
-            new MenuItem('menu.suppliers', 'supplier_index', 'ROLE_MANAGE_SUPPLIERS', icon: 'car'),
+            new MenuItem('menu.overview', 'overview', 'ROLE_VIEW_OVERVIEW', 'lucide:layout-dashboard'),
+            new MenuItem('menu.daily_counts', 'daily_counts', 'ROLE_EDIT_DAILY_COUNTS', 'lucide:calendar'),
+            new MenuItem('menu.suppliers', 'supplier_index', 'ROLE_MANAGE_SUPPLIERS', 'lucide:car'),
         ];
     }
 }
