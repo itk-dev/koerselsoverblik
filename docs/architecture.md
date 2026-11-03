@@ -413,7 +413,9 @@ a mapping before it is used.
 
 ### Pipeline
 
-1. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
+1. **Parse.** Before the first row, `ExtractInspector` checks the whole file against the
+   `ExtractLimitsDto` limits. See "Data protection" in [Security](#security). Then
+   `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
    with their row number and a reason. A row with a date that `ImportRangeDto::contains()` does
    not accept is also rejected. The reason is a `RejectionReason` code, so field values are never
    written to messages or logs. The person id is kept as it is in the extract
@@ -601,11 +603,15 @@ flowchart TD
 
 - Forms use CSRF tokens.
 - Uploads are limited to `.xlsx` and a maximum size, and are deleted after processing.
-- The parser reads the extract with OpenSpout, which streams one row at a time. It has
-  configurable limits for the number of rows and columns, and stops at the first row or column
-  above a limit (ASVS V12.1.2).
-- The parser rejects XML with a `DOCTYPE`, so an extract cannot use external entities (XXE,
-  ASVS V5.5.2).
+- The parser reads the extract with OpenSpout, which streams one row at a time. Before OpenSpout
+  opens the file, `ExtractInspector` checks the file size and the total uncompressed size of the
+  xlsx archive. Then it reads each XML file in the archive one node at a time, and checks the
+  row numbers and the columns against configurable limits (ASVS V12.1.2). A file above a limit
+  gives no rows. The inspector reads every XML file, because OpenSpout does not check the
+  `spans` of a row: a small file can make one row use all the memory.
+- The inspector rejects XML with a `DOCTYPE`, so an extract cannot use external entities (XXE,
+  ASVS V5.5.2). OpenSpout does not read an external entity, but it ignores a cell with one. The
+  tests keep this protection if a new version of OpenSpout changes.
 - The import runs synchronously in the request. The limits above keep it short.
 - Rejection reasons and logs never contain field values from the extract.
 

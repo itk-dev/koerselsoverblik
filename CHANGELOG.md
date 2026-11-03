@@ -54,3 +54,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a row with a date outside the `ImportRangeDto` of the upload. `APP_DRIVING_DATA_MAX_DAYS`
   limits the range to 31 days. A mapping must now give each field an allowed type, and must make
   `route`, `service_date`, `run`, `stop_type`, `stop_status` and `planned_time` required.
+- [#38](https://github.com/itk-dev/koerselsoverblik/issues/38)
+  Extract limits: before the first row, `ExtractInspector` checks the file size, the uncompressed
+  size, the row numbers and the columns of an extract against the `APP_DRIVING_DATA_MAX_*` limits.
+  It rejects a file with a `DOCTYPE`. A file that OpenSpout cannot read gives an
+  `InvalidExtractException`.

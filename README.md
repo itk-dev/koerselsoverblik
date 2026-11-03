@@ -162,6 +162,10 @@ Set these in `.env.local`:
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 | `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
+| `APP_DRIVING_DATA_MAX_FILE_SIZE` | The maximum size in bytes of an extract | `20971520` (20 MiB) |
+| `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE` | The maximum total size in bytes of the files in the xlsx archive, when they are not compressed | `104857600` (100 MiB) |
+| `APP_DRIVING_DATA_MAX_ROWS` | The maximum row number in the sheet of an extract | `50000` |
+| `APP_DRIVING_DATA_MAX_COLUMNS` | The maximum number of columns in a row of an extract | `200` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.
@@ -276,6 +280,10 @@ The parser reads the rows of an extract through the mapping. It rejects a row wi
 does not agree with the mapping, with the row number and a reason. The reason never contains a
 value from the extract. It rejects the whole file if the sheet, the header row or a column is
 missing.
+
+Before the first row, the parser checks the whole file. It rejects a file above one of the
+`APP_DRIVING_DATA_MAX_*` limits in [Configuration](#configuration), and a file with a `DOCTYPE`.
+Then it gives no rows.
 
 Validate a mapping against a sample file before using it:
 
