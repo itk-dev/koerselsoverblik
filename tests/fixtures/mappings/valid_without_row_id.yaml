@@ -5,8 +5,8 @@ fields:
   person_id: { column: Person, type: string }
   service_date: { column: Day, type: date }
   run: { column: Run, type: int }
-  stop_type: { column: Kind, type: string }
-  stop_status: { column: State, type: string }
+  stop_type: { column: Kind, type: string, map: { P: pickup } }
+  stop_status: { column: State, type: string, map: { C: completed } }
   passengers_after: { column: Load, type: int }
   next_distance_km: { column: Km, type: float }
   next_duration_min: { column: Minutes, type: float }

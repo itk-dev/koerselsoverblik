@@ -224,6 +224,10 @@ A mapping defines:
     "yes"
   - whether the field is required
 
+`stop_type` and `stop_status` must have a value map. The values of the map must be application
+values: `pickup` or `drop_off` for `stop_type`, and `completed`, `cancelled` or `pending` for
+`stop_status`.
+
 ```yaml
 # config/import/driving_data/<MAPPING_NAME>.yaml
 sheet: 0
@@ -233,7 +237,7 @@ fields:
   route:            { column: <COLUMN_NAME>, type: string, required: true }
   person_id:        { column: <COLUMN_NAME>, type: string, required: true }
   stop_type:        { column: <COLUMN_NAME>, type: string, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
-  stop_status:      { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled } }
+  stop_status:      { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
   route_end:        { column: <COLUMN_NAME>, type: bool, true_values: [<YES_VALUE>] }
   passengers_after: { column: <COLUMN_NAME>, type: int }
   next_distance_km: { column: <COLUMN_NAME>, type: float }

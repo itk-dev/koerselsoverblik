@@ -93,6 +93,23 @@ final class MappingConfiguration implements ConfigurationInterface
             ->ifTrue(self::valueInBothLists(...))
             ->thenInvalid('A value cannot be in "true_values" and in "false_values".');
 
+        $enum = $name->valueEnum();
+        if (null !== $enum) {
+            // A wrong value in the map would make the reports skip the rows without an error.
+            $allowed = array_map(static fn (StopType|StopStatus $case): string => $case->value, $enum::cases());
+
+            $node->validate()
+                ->ifTrue(self::withoutMap(...))
+                ->thenInvalid(\sprintf('A "%s" field must have a "map".', $name->value));
+
+            $node->validate()
+                ->ifTrue(static function (array $field) use ($allowed): bool {
+                    /** @var FieldConfig $field */
+                    return self::mapValueNotAllowed($field, $allowed);
+                })
+                ->thenInvalid(\sprintf('The "map" of "%s" can only have the values "%s".', $name->value, implode('", "', $allowed)));
+        }
+
         return $node;
     }
 
@@ -147,5 +164,22 @@ final class MappingConfiguration implements ConfigurationInterface
     private static function valueInBothLists(array $field): bool
     {
         return [] !== array_intersect($field['true_values'], $field['false_values']);
+    }
+
+    /**
+     * @param FieldConfig $field
+     */
+    private static function withoutMap(array $field): bool
+    {
+        return [] === $field['map'];
+    }
+
+    /**
+     * @param FieldConfig  $field
+     * @param list<string> $allowed
+     */
+    private static function mapValueNotAllowed(array $field, array $allowed): bool
+    {
+        return [] !== array_diff($field['map'], $allowed);
     }
 }
