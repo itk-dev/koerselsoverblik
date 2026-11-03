@@ -7,21 +7,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- [#5](https://github.com/itk-dev/passenger-transport-performance/issues/5)
+- [#5](https://github.com/itk-dev/koerselsoverblik/issues/5)
   M1-01 Project skeleton: Symfony 8 on the ITK Dev `symfony-8` template, Doctrine ORM with
   MariaDB, Taskfile tasks, coding standards and PHPStan.
-- [#7](https://github.com/itk-dev/passenger-transport-performance/issues/7)
+- [#7](https://github.com/itk-dev/koerselsoverblik/issues/7)
   M1-02 Test tooling: PHPUnit with unit, integration and functional suites, Foundry, a MariaDB
   test database, a 100 % line coverage gate and a tests workflow.
-- [#9](https://github.com/itk-dev/passenger-transport-performance/issues/9)
+- [#9](https://github.com/itk-dev/koerselsoverblik/issues/9)
   M1-03 Mutation testing: Infection with a covered MSI gate of 100 % in `src/Report` and
   `src/Import` and 80 % in the remaining code, a changed-lines job for PRs and a full run for
   releases.
-- [#11](https://github.com/itk-dev/passenger-transport-performance/issues/11)
+- [#11](https://github.com/itk-dev/koerselsoverblik/issues/11)
   M1-04 Diagram check in CI: a workflow that fails if a rendered diagram SVG is out of date.
 - OIDC is the only login method in the plan, the tasks and the docs. The identity provider gives
   the roles in a claim. The password login and the `none` mode are removed from the plan.
-- [#14](https://github.com/itk-dev/passenger-transport-performance/issues/14)
+- [#14](https://github.com/itk-dev/koerselsoverblik/issues/14)
   M1-05 Permission roles and deny by default: the security bundle with the permission roles and
   a role hierarchy, a placeholder login, and a test that fails if a route has no permission role.
   The monolog bundle writes the test logs to a file, so that Infection can run. `task prepare-code`
@@ -36,3 +36,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#29](https://github.com/itk-dev/koerselsoverblik/issues/29)
   The plan (`docs/plan.md`) and the task list (`docs/tasks.md`) are no longer in the repository.
   The GitHub issues hold the task specifications. The development rules are in the README.
+- [#23](https://github.com/itk-dev/koerselsoverblik/issues/23)
+  The project name is Kørselsoverblik. The compose project, the local domain, the Composer package
+  and the GitHub links use `koerselsoverblik`.
