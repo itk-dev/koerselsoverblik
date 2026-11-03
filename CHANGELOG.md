@@ -26,13 +26,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a role hierarchy, a placeholder login, and a test that fails if a route has no permission role.
   The monolog bundle writes the test logs to a file, so that Infection can run. `task prepare-code`
   fixes the coding standards before it runs the checks.
+- [#17](https://github.com/itk-dev/koerselsoverblik/issues/17)
+  OIDC plan: fixed OIDC routes, the `oidc-provider-mock` service for local development, the user
+  is identified by email (the `upn` claim), and an authentication log records each login with the
+  roles. The user list and `ROLE_MANAGE_USERS` are removed.
+- [#18](https://github.com/itk-dev/koerselsoverblik/issues/18)
+  The architecture diagrams are Mermaid code blocks in `docs/architecture.md`. The SVG render
+  tasks, the diagram sources in `docs/diagrams/` and the Diagrams CI job are removed.
+- [#29](https://github.com/itk-dev/koerselsoverblik/issues/29)
+  The plan (`docs/plan.md`) and the task list (`docs/tasks.md`) are no longer in the repository.
+  The GitHub issues hold the task specifications. The development rules are in the README.
 - [#31](https://github.com/itk-dev/koerselsoverblik/issues/31)
   Import mapping: the YAML format for import mappings in `config/import/driving_data/`, a loader
   that validates a mapping and builds a `Mapping` value object, and the `default` mapping for the
   extract of the planning system. `APP_DRIVING_DATA_MAPPING` selects the mapping for uploads. An
   invalid mapping stops the application when the container is built. A mutant that times out
   now fails the mutation run, and each mutant has 30 seconds.
-- [#17](https://github.com/itk-dev/passenger-transport-performance/issues/17)
-  OIDC plan: fixed OIDC routes, the `oidc-provider-mock` service for local development, the user
-  is identified by email (the `upn` claim), and an authentication log records each login with the
-  roles. The user list and `ROLE_MANAGE_USERS` are removed.

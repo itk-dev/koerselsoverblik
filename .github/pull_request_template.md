@@ -3,7 +3,7 @@
 
 Closes #<ISSUE_NUMBER>
 
-<!-- Give the task ID and title from docs/tasks.md, for example "M1-16 Replace stop rows for the dates in a file". -->
+<!-- Give the task ID and title from the GitHub issue, for example "M1-16 Replace stop rows for the dates in a file". -->
 
 ## Changes
 
@@ -15,6 +15,5 @@ Closes #<ISSUE_NUMBER>
 - [ ] The mutation thresholds are met on changed lines: 100 % covered MSI in `src/Report` and
       `src/Import`, and 80 % in the rest of the mutated code.
 - [ ] PHPStan (max level) and coding standards pass.
-- [ ] The README, architecture and diagrams are updated if behaviour or design changed, and
-      `task docs:diagrams:check` passes.
+- [ ] The README, architecture and diagrams are updated if behaviour or design changed.
 - [ ] `CHANGELOG.md` has an entry under "Unreleased".

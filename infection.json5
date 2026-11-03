@@ -1,5 +1,5 @@
 {
-    // Mutation testing for all mutated code. See "Mutation testing" in docs/plan.md.
+    // Mutation testing for all mutated code. See "Tests" in README.md.
     // bin/mutation-core-check.php reads the JSON log and sets the 100 % gate for src/Report and
     // src/Import. Keep the json log.
     $schema: 'vendor/infection/infection/resources/schema.json',
