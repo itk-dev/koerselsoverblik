@@ -30,7 +30,6 @@ task db:migrate                # Run the database migrations
 task coding-standards-check    # Check all coding standards
 task coding-standards-apply    # Fix the coding standards
 task code-analysis             # PHPStan at max level
-task docs:diagrams             # Render the Mermaid diagrams to SVG
 ```
 
 `.env` holds defaults only. Put secrets and local values in `.env.local`. Do not commit

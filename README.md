@@ -385,13 +385,8 @@ The fixtures do not create users. Sign in with the test users of the local mock 
 
 ### Diagrams
 
-The architecture diagrams are Mermaid files in `docs/diagrams/`. Render them to SVG with:
-
-```shell
-task docs:diagrams
-```
-
-This uses the `minlag/mermaid-cli` Docker image. CI fails if a rendered SVG is out of date.
+The architecture diagrams are Mermaid code blocks in [`docs/architecture.md`](docs/architecture.md).
+GitHub renders them. No render step is necessary.
 
 ### Branching and releases
 
