@@ -4,7 +4,6 @@ namespace App\Tests\Integration\Import\Mapping;
 
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\FieldType;
-use App\Import\Mapping\MappingLoader;
 use App\Import\Mapping\MappingProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -18,12 +17,10 @@ final class DefaultMappingTest extends KernelTestCase
 {
     public function testApplicationSelectsTheDefaultMapping(): void
     {
-        self::bootKernel();
-        $directory = self::getContainer()->getParameter('app.driving_data_mapping_dir');
-        $name = $_SERVER['APP_DRIVING_DATA_MAPPING'] ?? null;
-        self::assertIsString($name);
+        $provider = self::getContainer()->get(MappingProvider::class);
+        self::assertInstanceOf(MappingProvider::class, $provider);
 
-        $mapping = (new MappingProvider(new MappingLoader(), $directory, $name))->default();
+        $mapping = $provider->default();
 
         self::assertSame('default', $mapping->name);
         self::assertSame(0, $mapping->sheet);

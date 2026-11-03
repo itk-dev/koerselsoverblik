@@ -2,10 +2,10 @@
 
 namespace App\DataFixtures\DrivingData;
 
-use App\Import\Mapping\FieldMapping;
+use App\Import\Mapping\FieldMappingDto;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\FieldType;
-use App\Import\Mapping\Mapping;
+use App\Import\Mapping\MappingDto;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\DateIntervalCell;
 use OpenSpout\Common\Entity\Cell\DateTimeCell;
@@ -44,7 +44,7 @@ final class ExtractWriter
      *
      * @throws \InvalidArgumentException if a value does not agree with the mapping
      */
-    public function write(string $path, Mapping $mapping, iterable $rows, array $omittedFields = []): void
+    public function write(string $path, MappingDto $mapping, iterable $rows, array $omittedFields = []): void
     {
         $fields = array_values(array_filter(
             FieldName::cases(),
@@ -80,7 +80,7 @@ final class ExtractWriter
         $writer->close();
     }
 
-    private function cell(FieldName $name, FieldMapping $field, mixed $value): Cell
+    private function cell(FieldName $name, FieldMappingDto $field, mixed $value): Cell
     {
         if (null === $value) {
             return new EmptyCell(null);
@@ -101,7 +101,7 @@ final class ExtractWriter
     /**
      * Gives the source code of an application value, if the field has a value map.
      */
-    private static function code(FieldName $name, FieldMapping $field, string $value): string
+    private static function code(FieldName $name, FieldMappingDto $field, string $value): string
     {
         if ([] === $field->valueMap) {
             return $value;
@@ -118,9 +118,9 @@ final class ExtractWriter
     /**
      * A date with a format string is text in the extract. Other dates are date cells.
      */
-    private function dateCell(FieldMapping $field, \DateTimeInterface $value, Style $style): Cell
+    private function dateCell(FieldMappingDto $field, \DateTimeInterface $value, Style $style): Cell
     {
-        if (null !== $field->format && FieldMapping::EXCEL_FORMAT !== $field->format) {
+        if (null !== $field->format && FieldMappingDto::EXCEL_FORMAT !== $field->format) {
             return new StringCell($value->format($field->format));
         }
 

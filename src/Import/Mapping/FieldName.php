@@ -19,4 +19,19 @@ enum FieldName: string
     case PlannedTime = 'planned_time';
     case ActualTime = 'actual_time';
     case PlannedSolo = 'planned_solo';
+
+    /**
+     * Gives the enum of the values that the map of this field can give, or null if any value is
+     * allowed.
+     *
+     * @return class-string<StopType|StopStatus>|null
+     */
+    public function valueEnum(): ?string
+    {
+        return match ($this) {
+            self::StopType => StopType::class,
+            self::StopStatus => StopStatus::class,
+            default => null,
+        };
+    }
 }

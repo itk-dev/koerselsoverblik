@@ -224,6 +224,10 @@ A mapping defines:
     "yes"
   - whether the field is required
 
+`stop_type` and `stop_status` must have a value map. The values of the map must be application
+values: `pickup` or `drop_off` for `stop_type`, and `completed`, `cancelled` or `pending` for
+`stop_status`.
+
 ```yaml
 # config/import/driving_data/<MAPPING_NAME>.yaml
 sheet: 0
@@ -233,7 +237,7 @@ fields:
   route:            { column: <COLUMN_NAME>, type: string, required: true }
   person_id:        { column: <COLUMN_NAME>, type: string, required: true }
   stop_type:        { column: <COLUMN_NAME>, type: string, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
-  stop_status:      { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled } }
+  stop_status:      { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
   route_end:        { column: <COLUMN_NAME>, type: bool, true_values: [<YES_VALUE>] }
   passengers_after: { column: <COLUMN_NAME>, type: int }
   next_distance_km: { column: <COLUMN_NAME>, type: float }
@@ -344,11 +348,20 @@ task test:mutation:full
 - **Database:** integration and functional tests run against a MariaDB test database. Each test runs
   in a transaction that is rolled back.
 - **Fixture files:** these are in `tests/fixtures/` and are anonymised. Never commit real extracts.
+- **Functional tests:** they assert behaviour, not markup. Use text and `data-test` attributes, so
+  that a layout change does not break them.
+- **Coverage:** PHPUnit measures coverage with Xdebug, because the phpfpm image has no pcov. Do
+  not use `@codeCoverageIgnore`. The only exclusions are `src/Kernel.php` and `migrations/`.
 - **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
   `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
   components are not mutated; the functional tests cover them. The fixture code (`src/DataFixtures`
   and the fixtures command) is not mutated, because its mutants change only invented test data.
   The HTML report is written to `var/infection/`.
+- **How the two thresholds work:** Infection has one threshold for each run, so
+  `infection.json5` sets 80 % for all mutated code. Then `bin/mutation-core-check.php` reads the
+  JSON log and fails if a mutant escaped in `src/Report` or `src/Import`.
+- **Equivalent mutants:** list each one with a reason in `infection.json5`. The pull request
+  review checks the reason.
 - **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
   Each mutant has 30 seconds.
 - **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
@@ -388,13 +401,8 @@ The fixtures do not create users. Sign in with the test users of the local mock 
 
 ### Diagrams
 
-The architecture diagrams are Mermaid files in `docs/diagrams/`. Render them to SVG with:
-
-```shell
-task docs:diagrams
-```
-
-This uses the `minlag/mermaid-cli` Docker image. CI fails if a rendered SVG is out of date.
+The architecture diagrams are Mermaid code blocks in [`docs/architecture.md`](docs/architecture.md).
+GitHub renders them. No render step is necessary.
 
 ### Branching and releases
 
@@ -463,5 +471,4 @@ To set up a new server:
 
 - [Architecture](docs/architecture.md)
 - [Architecture decision records](docs/adr/)
-- [Plan](docs/plan.md) and [tasks](docs/tasks.md)
 - [Changelog](CHANGELOG.md)

@@ -17,7 +17,7 @@ final class MappingLoader
     /**
      * @throws InvalidMappingException if the file is missing or not valid
      */
-    public function load(string $path): Mapping
+    public function load(string $path): MappingDto
     {
         try {
             /** @var MappingConfig $config */
@@ -28,7 +28,7 @@ final class MappingLoader
 
         $fields = [];
         foreach ($config['fields'] as $name => $field) {
-            $fields[$name] = new FieldMapping(
+            $fields[$name] = new FieldMappingDto(
                 column: $field['column'],
                 type: $field['type'],
                 required: $field['required'],
@@ -39,7 +39,7 @@ final class MappingLoader
             );
         }
 
-        return new Mapping(
+        return new MappingDto(
             name: basename($path, '.yaml'),
             sheet: $config['sheet'],
             headerRow: $config['header_row'],

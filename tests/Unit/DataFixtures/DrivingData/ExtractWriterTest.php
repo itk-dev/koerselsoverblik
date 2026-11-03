@@ -5,7 +5,7 @@ namespace App\Tests\Unit\DataFixtures\DrivingData;
 use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\Import\Mapping\FieldName;
-use App\Import\Mapping\Mapping;
+use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingLoader;
 use OpenSpout\Reader\XLSX\Options;
 use OpenSpout\Reader\XLSX\Reader;
@@ -86,7 +86,10 @@ final class ExtractWriterTest extends TestCase
 
     public function testDateWithoutFormatIsADateCell(): void
     {
-        (new ExtractWriter())->write($this->path, self::mapping('valid_without_row_id'), [new ExtractRow(self::values())]);
+        $values = self::values();
+        $values['stop_status'] = 'completed';
+
+        (new ExtractWriter())->write($this->path, self::mapping('valid_without_row_id'), [new ExtractRow($values)]);
 
         $day = $this->readSheet(0)[1][2];
 
@@ -191,7 +194,7 @@ final class ExtractWriterTest extends TestCase
         ];
     }
 
-    private static function mapping(string $name): Mapping
+    private static function mapping(string $name): MappingDto
     {
         return (new MappingLoader())->load(self::MAPPINGS.'/'.$name.'.yaml');
     }

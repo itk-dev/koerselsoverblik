@@ -5,7 +5,7 @@ namespace App\Tests\Unit\Import\Mapping;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\FieldType;
 use App\Import\Mapping\InvalidMappingException;
-use App\Import\Mapping\Mapping;
+use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingLoader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -114,6 +114,19 @@ final class MappingLoaderTest extends TestCase
         self::assertSame(['P-1' => 'pickup', 'D-1' => 'drop_off'], $mapping->field(FieldName::StopType)->valueMap);
     }
 
+    public function testFieldWithoutFixedValuesAcceptsAnyMapValue(): void
+    {
+        $raw = self::withField(self::validMapping(), 'route', [
+            'column' => 'Route',
+            'type' => 'string',
+            'map' => ['R1' => 'route-one'],
+        ]);
+
+        $mapping = $this->loadArray($raw);
+
+        self::assertSame(['R1' => 'route-one'], $mapping->field(FieldName::Route)->valueMap);
+    }
+
     public function testServiceDateCanHaveAnotherTypeWithoutTimeField(): void
     {
         $raw = self::withField(self::validMapping(), 'service_date', ['column' => 'Day', 'type' => 'string']);
@@ -213,6 +226,22 @@ final class MappingLoaderTest extends TestCase
             static fn (array $raw): array => self::withField($raw, 'planned_solo', ['column' => 'Solo', 'type' => 'bool', 'true_values' => ['Y'], 'false_values' => ['N', 'Y']]),
             'A value cannot be in "true_values" and in "false_values".',
         ];
+        yield 'stop type without map' => [
+            static fn (array $raw): array => self::withField($raw, 'stop_type', ['column' => 'Kind', 'type' => 'string']),
+            'A "stop_type" field must have a "map".',
+        ];
+        yield 'stop status without map' => [
+            static fn (array $raw): array => self::withField($raw, 'stop_status', ['column' => 'State', 'type' => 'string']),
+            'A "stop_status" field must have a "map".',
+        ];
+        yield 'unknown stop type value' => [
+            static fn (array $raw): array => self::withField($raw, 'stop_type', ['column' => 'Kind', 'type' => 'string', 'map' => ['P' => 'pickup', 'D' => 'dropoff']]),
+            'The "map" of "stop_type" can only have the values "pickup", "drop_off".',
+        ];
+        yield 'unknown stop status value' => [
+            static fn (array $raw): array => self::withField($raw, 'stop_status', ['column' => 'State', 'type' => 'string', 'map' => ['C' => 'completd']]),
+            'The "map" of "stop_status" can only have the values "completed", "cancelled", "pending".',
+        ];
         yield 'time field when service date is not a date' => [
             static fn (array $raw): array => self::withField($raw, 'service_date', ['column' => 'Day', 'type' => 'string']),
             'A "time" field needs a "service_date" field with the type "date".',
@@ -256,7 +285,7 @@ final class MappingLoaderTest extends TestCase
     /**
      * @param array<array-key, mixed> $raw
      */
-    private function loadArray(array $raw): Mapping
+    private function loadArray(array $raw): MappingDto
     {
         return (new MappingLoader())->load($this->writeFile(Yaml::dump($raw, 4)));
     }

@@ -7,13 +7,13 @@ namespace App\Import\Mapping;
  *
  * The parser reads an extract only through this object.
  */
-final readonly class Mapping
+final readonly class MappingDto
 {
     /**
-     * @param int                         $sheet     0-based index of the sheet
-     * @param int                         $headerRow 1-based row number of the column headers
-     * @param list<string>                $rowId     the columns that identify a row, or none
-     * @param array<string, FieldMapping> $fields    keyed by the FieldName value
+     * @param int                            $sheet     0-based index of the sheet
+     * @param int                            $headerRow 1-based row number of the column headers
+     * @param list<string>                   $rowId     the columns that identify a row, or none
+     * @param array<string, FieldMappingDto> $fields    keyed by the FieldName value
      */
     public function __construct(
         public string $name,
@@ -24,7 +24,7 @@ final readonly class Mapping
     ) {
     }
 
-    public function field(FieldName $name): FieldMapping
+    public function field(FieldName $name): FieldMappingDto
     {
         return $this->fields[$name->value];
     }

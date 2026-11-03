@@ -8,7 +8,7 @@ declare(strict_types=1);
  *
  * Infection has one threshold for each run. This script adds a covered MSI gate of 100 % for
  * the directories below. Infection counts timed-out and errored mutants as detected, so the
- * covered MSI is 100 % when no mutant escaped. See "Mutation testing" in docs/plan.md.
+ * covered MSI is 100 % when no mutant escaped. See "Tests" in README.md.
  *
  * Usage: bin/mutation-core-check.php <INFECTION_JSON_LOG>
  */

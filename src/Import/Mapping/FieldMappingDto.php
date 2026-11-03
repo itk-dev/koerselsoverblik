@@ -5,7 +5,7 @@ namespace App\Import\Mapping;
 /**
  * The source column of one application field, and how to read it.
  */
-final readonly class FieldMapping
+final readonly class FieldMappingDto
 {
     /**
      * The format of a date or datetime field that is a date cell or an Excel serial number.

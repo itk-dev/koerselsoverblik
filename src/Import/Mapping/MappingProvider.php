@@ -21,7 +21,7 @@ final readonly class MappingProvider
     /**
      * @throws InvalidMappingException if the name is not valid, or the mapping is missing or not valid
      */
-    public function get(string $name): Mapping
+    public function get(string $name): MappingDto
     {
         // The name can come from the command line. It must not select a file outside the directory.
         if (1 !== preg_match('/^[a-z0-9_-]+$/', $name)) {
@@ -36,7 +36,7 @@ final readonly class MappingProvider
      *
      * @throws InvalidMappingException if the name is not valid, or the mapping is missing or not valid
      */
-    public function default(): Mapping
+    public function default(): MappingDto
     {
         return $this->get($this->defaultName);
     }
