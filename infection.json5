@@ -29,6 +29,21 @@
     },
     mutators: {
         '@default': true,
+        // Equivalent: PHP changes an int to a string for a "string" return type and for trim().
+        CastString: {
+            ignore: [
+                'App\\Import\\Extract\\CellConverter::text',
+                'App\\Import\\Extract\\StopRowParser::text',
+            ],
+        },
+        // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
+        // the temporary files of OpenSpout, so it is necessary.
+        UnwrapFinally: {
+            ignore: ['App\\Import\\Extract\\StopRowParser::parse'],
+        },
+        MethodCallRemoval: {
+            ignoreSourceCodeByRegex: ['\\$reader->close\\(\\);'],
+        },
     },
     minCoveredMsi: 80,
     // The default of 10 seconds is too short when all threads run. The Taskfile fails the run on
