@@ -386,10 +386,19 @@ task test:mutation:full
   in a transaction that is rolled back.
 - **Fixture files:** the test extracts are made from YAML scenarios in `tests/fixtures/driving_data/`.
   The data is invented. Never commit real extracts.
+- **Functional tests:** they assert behaviour, not markup. Use text and `data-test` attributes, so
+  that a layout change does not break them.
+- **Coverage:** PHPUnit measures coverage with Xdebug, because the phpfpm image has no pcov. Do
+  not use `@codeCoverageIgnore`. The only exclusions are `src/Kernel.php` and `migrations/`.
 - **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
   `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
   components are not mutated; the functional tests cover them. The HTML report is written to
   `var/infection/`.
+- **How the two thresholds work:** Infection has one threshold for each run, so
+  `infection.json5` sets 80 % for all mutated code. Then `bin/mutation-core-check.php` reads the
+  JSON log and fails if a mutant escaped in `src/Report` or `src/Import`.
+- **Equivalent mutants:** list each one with a reason in `infection.json5`. The pull request
+  review checks the reason.
 - **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
   full run over the whole code base runs on `release/*` and `hotfix/*` branches and is required
   before a release is merged to `main`.
@@ -439,13 +448,8 @@ rejects these files.
 
 ### Diagrams
 
-The architecture diagrams are Mermaid files in `docs/diagrams/`. Render them to SVG with:
-
-```shell
-task docs:diagrams
-```
-
-This uses the `minlag/mermaid-cli` Docker image. CI fails if a rendered SVG is out of date.
+The architecture diagrams are Mermaid code blocks in [`docs/architecture.md`](docs/architecture.md).
+GitHub renders them. No render step is necessary.
 
 ### Branching and releases
 
@@ -519,5 +523,4 @@ To set up a new server:
 
 - [Architecture](docs/architecture.md)
 - [Architecture decision records](docs/adr/)
-- [Plan](docs/plan.md) and [tasks](docs/tasks.md)
 - [Changelog](CHANGELOG.md)

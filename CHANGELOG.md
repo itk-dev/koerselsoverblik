@@ -54,3 +54,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   also needs `ROLE_UPLOAD_DRIVING_DATA`. The reference extract, the test data and the open
   questions of the import are in `docs/architecture.md`.
 - The GitHub links use the new repository name, `itk-dev/koerselsoverblik`.
+- [#18](https://github.com/itk-dev/koerselsoverblik/issues/18)
+  The architecture diagrams are Mermaid code blocks in `docs/architecture.md`. The SVG render
+  tasks, the diagram sources in `docs/diagrams/` and the Diagrams CI job are removed.
+- [#29](https://github.com/itk-dev/koerselsoverblik/issues/29)
+  The plan (`docs/plan.md`) and the task list (`docs/tasks.md`) are no longer in the repository.
+  The GitHub issues hold the task specifications. The development rules are in the README.
