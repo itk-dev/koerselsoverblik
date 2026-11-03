@@ -22,9 +22,6 @@ vars:
   # The changed-lines run compares with this git reference.
   MUTATION_BASE: '{{ .TASK_MUTATION_BASE | default "origin/develop" }}'
 
-  MERMAID_CLI_IMAGE: '{{ .TASK_MERMAID_CLI_IMAGE | default "minlag/mermaid-cli:12.0.0" }}'
-  DIAGRAMS_DIR: docs/diagrams
-
 tasks:
   default:
     desc: List all tasks
@@ -250,35 +247,3 @@ tasks:
     desc: Apply the YAML coding standards
     cmds:
       - "{{ .DOCKER_COMPOSE }} run --rm prettier '**/*.{yml,yaml}' --write"
-
-  # ---------------------------------------------------------------- Docs ---
-
-  docs:diagrams:
-    desc: Render every Mermaid diagram in docs/diagrams/ to SVG.
-    sources:
-      - '{{ .DIAGRAMS_DIR }}/*.mmd'
-      - '{{ .DIAGRAMS_DIR }}/mermaid.json'
-    generates:
-      - '{{ .DIAGRAMS_DIR }}/*.svg'
-    cmds:
-      - for: { var: DIAGRAMS, split: "\n" }
-        task: docs:diagram
-        vars:
-          NAME: '{{ .ITEM }}'
-    vars:
-      DIAGRAMS:
-        sh: find {{ .DIAGRAMS_DIR }} -name '*.mmd' -exec basename {} .mmd \; | sort
-
-  docs:diagram:
-    desc: 'Render a single Mermaid diagram — `task docs:diagram NAME=context`.'
-    requires:
-      vars: [NAME]
-    cmds:
-      - docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD/{{ .DIAGRAMS_DIR }}:/data" {{ .MERMAID_CLI_IMAGE }} --configFile /data/mermaid.json --input "/data/{{ .NAME }}.mmd" --output "/data/{{ .NAME }}.svg"
-
-  docs:diagrams:check:
-    desc: Fail if any rendered SVG in docs/diagrams/ is out of date (used in CI).
-    cmds:
-      - task docs:diagrams --force
-      - git diff --exit-code -- '{{ .DIAGRAMS_DIR }}/*.svg'
-      - test -z "$(git ls-files --others --exclude-standard -- '{{ .DIAGRAMS_DIR }}/*.svg')"
