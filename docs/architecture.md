@@ -47,7 +47,7 @@ title: System context
 flowchart LR
     user["Viewer<br/>(ROLE_VIEW_OVERVIEW)"]
     editor["Data editor<br/>(ROLE_UPLOAD_DRIVING_DATA,<br/>ROLE_CLEAR_DRIVING_DATA,<br/>ROLE_EDIT_DAILY_COUNTS)"]
-    admin["Administrator<br/>(ROLE_MANAGE_SUPPLIERS,<br/>ROLE_MANAGE_USERS)"]
+    admin["Administrator<br/>(ROLE_MANAGE_SUPPLIERS)"]
 
     app["Passenger Transport Performance<br/>(Symfony web application)"]
 
@@ -62,7 +62,7 @@ flowchart LR
 
     user -- "views overview" --> app
     editor -- "uploads extracts,<br/>enters daily counts" --> app
-    admin -- "views users,<br/>manages suppliers and routes" --> app
+    admin -- "manages suppliers<br/>and routes" --> app
     planning -. "exported by an editor<br/>and uploaded" .-> editor
     idp -- "login,<br/>role claim" --> app
 
@@ -79,8 +79,7 @@ flowchart LR
 - **Viewers** read the overview.
 - **Data editors** export extracts from the planning system and upload them, and enter the daily
   counts of mails, complaints and phone calls.
-- **Administrators** see the list of users, and manage suppliers and which supplier drives each
-  route in each period.
+- **Administrators** manage suppliers and which supplier drives each route in each period.
 
 These are tasks, not roles. Each task has its own permission role (see
 [Authorization](#security)), so one user can do one task or many.
@@ -126,7 +125,7 @@ The application runs on the ITK Dev Docker setup (`symfony-8` template):
 | nginx | Serves static assets and passes PHP requests to phpfpm |
 | phpfpm | The Symfony 8 application on PHP 8.4 |
 | MariaDB | All application data |
-| idp | Local development only: an OIDC mock service (`ghcr.io/soluto/oidc-server-mock`) with test users |
+| idp | Local development only: an OIDC mock service (`ghcr.io/geigerzaehler/oidc-provider-mock`) with test users |
 
 Console commands (`app:driving-data:*`) run in the phpfpm container.
 
@@ -229,7 +228,7 @@ erDiagram
 
     USER {
         int id PK
-        string username UK
+        string email UK
         json roles
         datetime last_login_at
     }
@@ -331,7 +330,7 @@ erDiagram
 
 | Entity | Purpose |
 | --- | --- |
-| `User` | An account from the identity provider: username, roles from the last login, time of the last login. No password |
+| `User` | An account from the identity provider: email (the `upn` claim), roles from the last login, time of the last login. No password |
 | `Supplier` | A transport supplier |
 | `Route` | A route from the extract |
 | `RouteSupplierAssignment` | The supplier that drives a route from `valid_from` to `valid_to` (empty = no end date) |
@@ -528,16 +527,17 @@ config file.
 title: Authentication (OIDC)
 ---
 flowchart TD
-    request["Request"] --> public{"Public path?<br/>OIDC login and callback, assets"}
+    request["Request"] --> public{"Public path?<br/>/openidconnect/*, /openid-connect/generic, assets"}
     public -- yes --> serve["Serve"]
     public -- no --> session{"Signed in?"}
 
     session -- no --> idp["Redirect to the identity provider"]
     idp --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
-    callback -- invalid --> fail["Login failed"]
+    callback -- invalid --> fail["Login failed<br/>written to the authentication log"]
     callback -- valid --> mapper["OidcRoleMapper<br/>role claim → ROLE_ADMIN and permission roles"]
-    mapper --> user["Create or update User<br/>username, roles, last login"]
-    user --> guard
+    mapper --> user["Create or update User<br/>email, roles, last login"]
+    user --> log["Authentication log<br/>email, roles, time"]
+    log --> guard
 
     session -- yes --> guard{"#[IsGranted] role?"}
     guard -- granted --> controller["Controller"]
@@ -549,14 +549,19 @@ flowchart TD
 
 - There is one firewall with `OidcAuthenticator`. It extends `OpenIdLoginAuthenticator` from
   `itk-dev/openid-connect-bundle`.
-- An anonymous user is sent to the identity provider. After the login, the identity provider
-  sends the user back to the callback route.
+- An anonymous user is sent to the bundle's login route under `/openidconnect`, and from there
+  to the identity provider. After the login, the
+  identity provider sends the user back to the callback route, `/openid-connect/generic`.
 - At each login, `OidcRoleMapper` reads the role claim (`OIDC_ROLE_CLAIM`). It keeps the values
   that are `ROLE_ADMIN` or a permission role, and ignores the rest. The `User` is created or
   updated with these roles.
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
+- **Authentication log:** the bundle's audit trail records each successful and failed login,
+  with the IP address and the reason for a failure. `OidcAuthenticator` adds a record with the
+  email and the roles at each login. Both go to the `openid_connect_audit` channel, which Monolog
+  writes to `var/log/openid_connect_audit.log`.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**
@@ -570,7 +575,6 @@ flowchart TD
   | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date range |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, routes and route → supplier assignments |
-  | `ROLE_MANAGE_USERS` | Users |
 
 - `ROLE_ADMIN` gives all permission roles. At first, users get `ROLE_ADMIN` only. Narrower
   access later needs only other values in the role claim, or a new bundle in `role_hierarchy`.
@@ -583,13 +587,12 @@ flowchart TD
       - ROLE_CLEAR_DRIVING_DATA
       - ROLE_EDIT_DAILY_COUNTS
       - ROLE_MANAGE_SUPPLIERS
-      - ROLE_MANAGE_USERS
   ```
 
 - Every signed-in user also has `ROLE_USER`. It grants nothing alone.
 - Every controller has a class-level `#[IsGranted]` with a permission role.
-- `access_control` denies everything to anonymous users except the OIDC login and callback
-  routes and the assets.
+- `access_control` denies everything to anonymous users except the OIDC routes
+  (`/openidconnect/*` and `/openid-connect/generic`) and the assets.
 - A test walks the router. It fails if an application route has no `IsGranted`, or if it checks
   `ROLE_ADMIN` or `ROLE_USER`.
 
