@@ -11,8 +11,7 @@ application on PHP 8.4, with Doctrine ORM and MariaDB. It runs in Docker with th
 Read these documents before you start a task:
 
 - [README.md](README.md): the specification. The application must do what the README says.
-- [docs/plan.md](docs/plan.md): the plan and the development approach.
-- [docs/tasks.md](docs/tasks.md): the tasks. Each task is one issue, one branch and one pull
+- The GitHub issue: the task specification. Each task is one issue, one branch and one pull
   request.
 - [docs/architecture.md](docs/architecture.md): the design, the diagrams and the security rules.
 - [docs/adr/](docs/adr/): the architecture decisions.
@@ -37,8 +36,7 @@ task code-analysis             # PHPStan at max level
 
 ## Development approach
 
-The project uses test-driven development. See "Development approach" in
-[docs/plan.md](docs/plan.md).
+The project uses test-driven development. See "Development" in [README.md](README.md#development).
 
 - Write a failing test first. Then write the minimal code that makes it pass. Then refactor.
 - Do not write production code without a test that requires it.
@@ -48,8 +46,7 @@ The project uses test-driven development. See "Development approach" in
 - Put logic in plain PHP classes. Keep controllers, form types, commands and authenticators
   thin, so that most tests are fast unit tests.
 - Functional tests assert behaviour, not markup. Use text and `data-test` attributes.
-- Tests are in `tests/Unit`, `tests/Integration` and `tests/Functional`. The test tasks come in
-  task M1-02.
+- Tests are in `tests/Unit`, `tests/Integration` and `tests/Functional`.
 
 ## Rules for the code
 

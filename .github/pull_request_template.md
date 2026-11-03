@@ -3,7 +3,7 @@
 
 Closes #<ISSUE_NUMBER>
 
-<!-- Give the task ID and title from docs/tasks.md, for example "M1-16 Replace stop rows for the dates in a file". -->
+<!-- Give the task ID and title from the GitHub issue, for example "M1-16 Replace stop rows for the dates in a file". -->
 
 ## Changes
 
