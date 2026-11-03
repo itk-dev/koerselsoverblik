@@ -13,9 +13,9 @@ final readonly class FieldMappingDto
     public const string EXCEL_FORMAT = 'excel';
 
     /**
-     * @param array<string, string> $valueMap    source code to application value
-     * @param list<string>          $trueValues
-     * @param list<string>          $falseValues
+     * @param array<array-key, string> $valueMap    source code to application value. A code that is a whole number has an int key
+     * @param list<string>             $trueValues
+     * @param list<string>             $falseValues
      */
     public function __construct(
         public string $column,

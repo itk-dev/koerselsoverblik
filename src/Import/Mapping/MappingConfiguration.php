@@ -73,6 +73,15 @@ final class MappingConfiguration implements ConfigurationInterface
             ->arrayNode('false_values')->stringPrototype()->end()->end()
             ->booleanNode('required')->defaultFalse()->end();
 
+        $types = $name->allowedTypes();
+        $node->validate()
+            ->ifTrue(static fn (array $field): bool => !\in_array($field['type'], $types, true))
+            ->thenInvalid(\sprintf(
+                'The type of "%s" must be "%s".',
+                $name->value,
+                implode('" or "', array_map(static fn (FieldType $type): string => $type->value, $types)),
+            ));
+
         $node->validate()
             ->ifTrue(self::mapOnOtherType(...))
             ->thenInvalid('Only a "string" field can have a "map".');
@@ -105,6 +114,12 @@ final class MappingConfiguration implements ConfigurationInterface
             $node->validate()
                 ->ifTrue(static fn (array $field): bool => self::mapValueNotAllowed($field, $allowed))
                 ->thenInvalid(\sprintf('The "map" of "%s" can only have the values "%s".', $name->value, implode('", "', $allowed)));
+        }
+
+        if ($name->mustBeRequired()) {
+            $node->validate()
+                ->ifTrue(static fn (array $field): bool => !$field['required'])
+                ->thenInvalid(\sprintf('The "%s" field must be required.', $name->value));
         }
 
         return $node;
