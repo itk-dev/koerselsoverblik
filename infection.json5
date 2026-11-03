@@ -41,6 +41,9 @@
         UnwrapFinally: {
             ignore: ['App\\Import\\Extract\\StopRowParser::parse'],
         },
+        Finally_: {
+            ignore: ['App\\Import\\Extract\\StopRowParser::parse'],
+        },
         MethodCallRemoval: {
             ignoreSourceCodeByRegex: ['\\$reader->close\\(\\);'],
         },
