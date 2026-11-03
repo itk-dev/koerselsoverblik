@@ -103,10 +103,7 @@ final class MappingConfiguration implements ConfigurationInterface
                 ->thenInvalid(\sprintf('A "%s" field must have a "map".', $name->value));
 
             $node->validate()
-                ->ifTrue(static function (array $field) use ($allowed): bool {
-                    /** @var FieldConfig $field */
-                    return self::mapValueNotAllowed($field, $allowed);
-                })
+                ->ifTrue(static fn (array $field): bool => self::mapValueNotAllowed($field, $allowed))
                 ->thenInvalid(\sprintf('The "map" of "%s" can only have the values "%s".', $name->value, implode('", "', $allowed)));
         }
 
@@ -175,11 +172,16 @@ final class MappingConfiguration implements ConfigurationInterface
     }
 
     /**
-     * @param FieldConfig  $field
-     * @param list<string> $allowed
+     * The field is not typed as FieldConfig, because a closure calls this method.
+     *
+     * @param array<array-key, mixed> $field
+     * @param list<string>            $allowed
      */
     private static function mapValueNotAllowed(array $field, array $allowed): bool
     {
-        return [] !== array_diff($field['map'], $allowed);
+        /** @var array<string, string> $map */
+        $map = $field['map'];
+
+        return [] !== array_diff($map, $allowed);
     }
 }
