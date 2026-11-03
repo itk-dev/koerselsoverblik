@@ -11,6 +11,11 @@ parameters:
     app.driving_data_mapping_dir: '%kernel.project_dir%/config/import/driving_data'
     # The maximum number of days in one upload. See "Configuration" in the README.
     app.driving_data_max_days: '%env(int:APP_DRIVING_DATA_MAX_DAYS)%'
+    # The limits for one extract. See "Configuration" in the README.
+    app.driving_data_max_file_size: '%env(int:APP_DRIVING_DATA_MAX_FILE_SIZE)%'
+    app.driving_data_max_uncompressed_size: '%env(int:APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE)%'
+    app.driving_data_max_rows: '%env(int:APP_DRIVING_DATA_MAX_ROWS)%'
+    app.driving_data_max_columns: '%env(int:APP_DRIVING_DATA_MAX_COLUMNS)%'
 
 services:
     # default configuration for services in *this* file
