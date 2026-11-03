@@ -414,8 +414,10 @@ a mapping before it is used.
 ### Pipeline
 
 1. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
-   with their row number and a reason. Field values are never written to messages or logs. The
-   person id is pseudonymised before it leaves the parser.
+   with their row number and a reason. A row with a date that `ImportRangeDto::contains()` does
+   not accept is also rejected. The reason is a `RejectionReason` code, so field values are never
+   written to messages or logs. The person id is kept as it is in the extract
+   ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed).
 2. **Replace.** `StopRowReplacer` finds the import dates: the dates that have at least one valid
    row. It deletes all `StopRow` rows for these dates, from all mappings, and then inserts the
    rows of the file. Rows that are not in the new file are removed, and two uploads can never

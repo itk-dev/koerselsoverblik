@@ -161,6 +161,7 @@ Set these in `.env.local`:
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
+| `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.
@@ -218,11 +219,34 @@ A mapping defines:
 - **Row id (optional):** the column, or columns, that identify a row. If a row id occurs more
   than once in a file, the second and later rows are rejected.
 - **Fields:** for each application field, the source column and how to read it:
-  - type: `string`, `int`, `float`, `bool`, `datetime`
-  - date format: for example an Excel serial date or a format string
-  - value maps for codes, for example which status values mean "completed" or which values mean
-    "yes"
+  - type: `string`, `int`, `float`, `bool`, `date`, `time`, `datetime`
+  - date format: `excel` (or no format) for a date cell or an Excel serial number, or a
+    [format string](https://www.php.net/manual/en/datetimeimmutable.createfromformat.php) for
+    text
+  - value maps for codes, for example which status values mean "completed"
+  - the true and the false values of a `bool` field
   - whether the field is required
+
+Each field has a fixed type, because the calculations use the values. Some fields must be
+required, because each stop row needs them:
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `route` | `string` | Yes |
+| `person_id` | `string` | Optional |
+| `service_date` | `date` or `datetime` | Yes |
+| `run` | `int` | Yes |
+| `stop_type` | `string`, with a value map | Yes |
+| `stop_status` | `string`, with a value map | Yes |
+| `passengers_after` | `int` | Optional |
+| `next_distance_km` | `float` | Optional |
+| `next_duration_min` | `float` | Optional |
+| `planned_time` | `time` or `datetime` | Yes |
+| `actual_time` | `time` or `datetime` | Optional |
+| `planned_solo` | `bool` | Optional |
+
+A `time` field is an Excel time on the `service_date` of the row. A time of 24:00 or more is on
+the next day. A mapping with a `time` field must have a `service_date` with the type `date`.
 
 `stop_type` and `stop_status` must have a value map. The values of the map must be application
 values: `pickup` or `drop_off` for `stop_type`, and `completed`, `cancelled` or `pending` for
@@ -235,17 +259,23 @@ header_row: 1
 row_id: [<ROW_ID_COLUMN>]   # optional
 fields:
   route:            { column: <COLUMN_NAME>, type: string, required: true }
-  person_id:        { column: <COLUMN_NAME>, type: string, required: true }
-  stop_type:        { column: <COLUMN_NAME>, type: string, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
-  stop_status:      { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
-  route_end:        { column: <COLUMN_NAME>, type: bool, true_values: [<YES_VALUE>] }
+  person_id:        { column: <COLUMN_NAME>, type: string }
+  service_date:     { column: <COLUMN_NAME>, type: date, format: Y-m-d, required: true }
+  run:              { column: <COLUMN_NAME>, type: int, required: true }
+  stop_type:        { column: <COLUMN_NAME>, type: string, required: true, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
+  stop_status:      { column: <COLUMN_NAME>, type: string, required: true, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
   passengers_after: { column: <COLUMN_NAME>, type: int }
   next_distance_km: { column: <COLUMN_NAME>, type: float }
   next_duration_min: { column: <COLUMN_NAME>, type: float }
-  planned_time:     { column: <COLUMN_NAME>, type: datetime, format: excel }
+  planned_time:     { column: <COLUMN_NAME>, type: time, required: true }
   actual_time:      { column: <COLUMN_NAME>, type: datetime, format: excel }
-  planned_solo:     { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>] }
+  planned_solo:     { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
 ```
+
+The parser reads the rows of an extract through the mapping. It rejects a row with a value that
+does not agree with the mapping, with the row number and a reason. The reason never contains a
+value from the extract. It rejects the whole file if the sheet, the header row or a column is
+missing.
 
 Validate a mapping against a sample file before using it:
 
