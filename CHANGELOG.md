@@ -37,3 +37,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   test scenarios with totals worked out by hand, and a generator for 13 months of invented
   development data. `task fixtures:extracts` writes the files to `var/fixtures/driving_data/`.
   Infection does not mutate the fixture code.
+- [#17](https://github.com/itk-dev/passenger-transport-performance/issues/17)
+  OIDC plan: fixed OIDC routes, the `oidc-provider-mock` service for local development, the user
+  is identified by email (the `upn` claim), and an authentication log records each login with the
+  roles. The user list and `ROLE_MANAGE_USERS` are removed.
