@@ -1,4 +1,4 @@
-# 003: Driving data import with mappings and replacement of whole dates
+# 003: Driving data import with mappings and replacement of the entered date range
 
 | Field | Value |
 | --- | --- |
@@ -6,7 +6,7 @@
 | **Date** | 2026-10-10 |
 | **Decision Maker** | Troels Ugilt Jensen |
 | **Stakeholders** | ITK Dev developers; the transport office (users who upload) |
-| **Status** | Draft |
+| **Status** | Proposed |
 
 ## Context
 
@@ -20,9 +20,11 @@ may appear later.
 - **Functional:**
   - Re-uploading must overwrite earlier data.
   - A row that is not in a corrected re-export must not count any more.
+  - A day with no trips in a corrected re-export must become empty.
   - The same data must never be counted twice. Duplicates would make every figure wrong.
+  - A wrong date in one row must not change the data of other dates.
   - It must be possible to remove the data of a wrong upload.
-  - It must be possible to support another source or a changed layout.
+  - A changed column name, code value or format in an extract must not need a code change.
 - **Non-functional:** imports are traceable (who, when, what changed), failed imports leave no
   partial data, and the calculations are reproducible from stored data.
 
@@ -32,19 +34,26 @@ may appear later.
    unique index on `(mapping_name, row_key)` makes duplicates impossible. But an upsert never
    deletes. A row that is not in a corrected re-export stays and keeps counting. It also needs a
    stable row key in the extract.
-2. **A mapping file per source, replace whole dates**: the import deletes all stored rows for each
-   date in the file, then inserts the rows of the file. Rows that are not in the new file are
-   removed. A file that holds only part of a day removes the other rows of that day.
-3. **A mapping file per source, replace the dates per route**: as option 2, but only for the
+2. **A mapping file per source, replace the dates with rows**: the import deletes all stored rows
+   for each date that has a row in the file, then inserts the rows of the file. Rows that are not
+   in the new file are removed. But a day with no trips in a corrected file keeps its old data.
+3. **A mapping file per source, replace the range from the first to the last date in the
+   file**: as option 2, but a day in the range with no rows becomes empty. Empty days at the
+   start or the end of an export still keep their old data. One row with a wrong date makes the
+   range very long, and the import deletes all data in it.
+4. **A mapping file per source, replace the date range that the user enters**: the user enters
+   the first and the last date of the export. The import deletes all stored rows in that range,
+   then inserts the rows of the file. A row outside the range is rejected.
+5. **A mapping file per source, replace the dates per route**: as option 2, but only for the
    routes in the file. A partial day keeps the other routes. But a route that is removed from a
    re-export keeps its old rows.
-4. **Column names in code**: every new source needs a code change.
-5. **Append-only import with de-duplication at query time**: keeps history, but every query must
+6. **Column names in code**: every new source needs a code change.
+7. **Append-only import with de-duplication at query time**: keeps history, but every query must
    de-duplicate, which is easy to get wrong in aggregate SQL.
 
 ## Decision
 
-Option 2:
+Option 4:
 
 - **Mapping files:**
   - Each source has a mapping in `config/import/driving_data/<MAPPING_NAME>.yaml`: the sheet and
@@ -52,21 +61,30 @@ Option 2:
     maps and whether it is required.
   - Mappings are validated when the container is built.
   - `app:driving-data:mapping:validate` checks a sample file.
-- **Replace whole dates:**
-  - The import dates are the dates that have at least one valid row in the file.
-  - For each import date, the import deletes all `StopRow` rows, from all mappings, and then
-    inserts the rows of the file. Two sources can then never count the same date twice.
-  - The result page and the `ImportBatch` show the replaced dates and the numbers of deleted,
+- **Replace the entered date range:**
+  - The user enters the first and the last date of the export, together with the file.
+  - The import deletes all `StopRow` rows in the range, from all mappings, and then inserts the
+    rows of the file. Two sources can then never count the same date twice.
+  - A date in the range with no rows in the file becomes empty.
+  - A row with a date outside the range is rejected, with its row number and a reason. The
+    parser does this check, so the preview shows these rows.
+  - The result page and the `ImportBatch` show the replaced range and the numbers of deleted,
     inserted and rejected rows.
+- **Maximum range:** `APP_DRIVING_DATA_MAX_DAYS` (default 31) limits the length of the range. A
+  longer range is rejected, and no data changes.
+- **Preview and confirm:** the upload first shows a preview: the range, the rows to delete,
+  insert and reject, and the dates that become empty. The import runs only when the user
+  confirms. The confirmation token works one time only.
 - **Row key:** if the mapping has a row key, a key that occurs more than once in one file is
   rejected for each occurrence after the first. The unique index on `(mapping_name, row_key)`
   makes this sure at database level.
 - **No rollback:** an `ImportBatch` cannot be undone. To correct a wrong upload, upload the
-  correct file for the same dates, or clear the driving data for the dates (see below).
-- **Clear driving data:** users with `ROLE_CLEAR_DRIVING_DATA` can delete the driving data for a
-  date range: `StopRow`, `RouteRun` and `DailyStats`. Manually entered daily counts do not
-  change. A console command does the same.
-- **Derived data:** `RouteRun` and `DailyStats` are rebuilt for the import dates, or deleted for
+  correct file for the same range, or clear the driving data for the dates (see below).
+- **Clear driving data:** the upload page lists the uploaded dates. Users with
+  `ROLE_CLEAR_DRIVING_DATA` can clear one date from the list: `StopRow`, `RouteRun` and
+  `DailyStats`. They also need `ROLE_UPLOAD_DRIVING_DATA` to open the upload page. Manually
+  entered daily counts do not change. A console command clears a date range.
+- **Derived data:** `RouteRun` and `DailyStats` are rebuilt for the replaced range, or deleted for
   the cleared dates.
 - **Transactions:** each import, and each clear, runs in one transaction.
 
@@ -74,26 +92,40 @@ Option 2:
 
 ### Positive
 
-- A corrected re-export gives exactly the rows of the new file for its dates. No old rows stay.
+- Every date in the range holds exactly the rows of the new file. This includes an empty date at
+  the start or the end of the range. No old rows stay.
 - Duplicates are impossible: each date holds the rows of one upload only.
+- A wrong date in one row cannot change other dates. The row is outside the range, so it is
+  rejected.
 - The import does not depend on a stable row key in the extract.
 - A wrong upload can be removed in the user interface without help from a developer.
-- A new source or layout change needs only a new mapping file.
+- A changed column name, code value or format needs only a mapping change. A missing column, a
+  combined or split column, or a new application field still needs code.
 - Derived tables can be rebuilt at any time, so a calculation fix needs no re-upload.
 
 ### Negative / Trade-offs
 
+- The user must enter the range of the export. A wrong range empties dates. The preview lists the
+  dates that become empty, so a wrong range is easy to see before the data changes.
 - A file that holds only part of a day removes the other rows of that day. Users must upload
-  whole days. The result page shows the replaced dates, so a wrong upload is easy to see.
+  whole days.
+- The upload takes two steps: the preview, then the confirmation. The file is kept until the user
+  confirms or cancels. A scheduled command deletes a file that is older than one hour, so the
+  server needs a cron job.
 - There is no history of earlier uploads for a date. The `ImportBatch` keeps who uploaded what and
   when, but not the old rows.
-- Clearing data cannot be undone. The page shows the number of rows to delete and asks for
-  confirmation.
+- Clearing data cannot be undone. The user confirms before the data is deleted.
 - Storing stop rows keeps more data than storing only aggregates.
 
 ### Follow-up Actions
 
 - [ ] Confirm with the transport office that each extract holds whole days.
+- [ ] Confirm that each extract holds all the routes of a day, not only one area or contract.
+  The import replaces all stop rows in the date range. If the extracts are per area, the
+  replacement must be limited to the routes or the area of the file.
+- [ ] Test what the planning system can export. Then evaluate the default of
+      `APP_DRIVING_DATA_MAX_DAYS`.
 - [ ] Mapping format and loader (task M1-14).
 - [ ] Parser, replacement and rebuild (tasks M1-15 to M1-18).
-- [ ] Clear driving data for a date range (task M1-20).
+- [ ] Upload page with preview, and the import command (task M1-19).
+- [ ] Uploaded dates and clear a date (task M1-20).

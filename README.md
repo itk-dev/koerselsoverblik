@@ -34,17 +34,19 @@ The user interface is in Danish.
   - comparison: previous period, or the same period last year
   - supplier
   - The filters live in the URL, so a view can be shared as a link.
-- **Upload driving data:** upload a driving data extract (`.xlsx`).
-  - Each date in the file replaces all stored driving data for that date. Rows that are not in
-    a corrected file are removed.
-  - The figures for the replaced dates are recalculated.
-- **Clear driving data:** delete the driving data for a date range, for example after a wrong
-  upload.
-  - Columns are read through an [import mapping](#import-mappings), so another source can be
-    added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
-- **Suppliers and sub-agreements:** the suppliers, and which supplier drives each sub-agreement
-  from which date.
+- **Administration:**
+  - **Upload driving data:** upload a driving data extract (`.xlsx`) for a date range.
+    - The upload replaces all stored driving data in the date range. Rows that are not in a
+      corrected file are removed, and a date with no rows in the file becomes empty.
+    - A preview shows the changes. The data changes only when you confirm.
+    - The figures for the replaced dates are recalculated.
+    - The page lists the uploaded dates. You can clear the driving data for a date, for example
+      after a wrong upload.
+    - Columns are read through an [import mapping](#import-mappings), so a changed column name,
+      code or format needs no code change.
+  - **Suppliers and sub-agreements:** the suppliers, and which supplier drives each
+    sub-agreement from which date.
 - **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
@@ -58,13 +60,14 @@ averages of daily percentages.
 - **Sub-agreement:** the part of a route name before the last number, for example `Ø4-VB`. It is
   assigned to a supplier for a date range.
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
-  until the vehicle is empty again. A route can have several runs a day.
+  until the vehicle is empty again. A route can have several runs a day. The planning system
+  gives each run of a route a block number.
 
 | Figure | Definition | Source |
 | --- | --- | --- |
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
-| Citizens | Distinct citizens in the period, counted on the pseudonymised person id | Driving data |
+| Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
 | Solo routes | Route runs where no more than one citizen was in the vehicle at any time. Shown with the share of all route runs | Driving data |
 | Punctuality (%) | Share of completed route runs whose last drop-off was within the tolerance of the planned time. Cancelled runs are excluded | Driving data |
 | Complaints | Complaints received. Shown with complaints per 1,000 trips | Manual entry |
@@ -88,7 +91,7 @@ Each part of the application has its own permission role:
 | --- | --- |
 | `ROLE_VIEW_OVERVIEW` | View the overview |
 | `ROLE_UPLOAD_DRIVING_DATA` | Upload driving data |
-| `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date range |
+| `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date. Also needs `ROLE_UPLOAD_DRIVING_DATA`, because the dates are on the upload page |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the sub-agreement → supplier assignments |
 
@@ -112,8 +115,8 @@ Every page requires a permission role. Anonymous users are sent to the identity 
 1. Clone the repository:
 
    ```shell
-   git clone https://github.com/itk-dev/passenger-transport-performance.git
-   cd passenger-transport-performance
+   git clone https://github.com/itk-dev/koerselsoverblik.git
+   cd koerselsoverblik
    ```
 
 2. Create `.env.local` with the values from [Configuration](#configuration).
@@ -160,10 +163,10 @@ Set these in `.env.local`:
 | `OIDC_REDIRECT_URI` | The callback URL of the application, `https://<HOST>/openid-connect/generic`, registered in the identity provider | The local callback URL |
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
 | `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |
-| `APP_PERSON_ID_SECRET` | Secret used to pseudonymise person ids. Keep it stable: changing it breaks distinct counts across old and new imports. See [Data and privacy](#data-and-privacy) | – (required) |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
+| `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.
@@ -172,38 +175,56 @@ from the real identity provider.
 
 ### Upload driving data
 
-1. Go to **Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
-2. Choose a driving data extract (`.xlsx`) and upload it.
-3. The result page shows the replaced dates and how many rows were deleted, inserted and
-   rejected, with a reason for each rejected row.
+1. Go to **Administration → Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
+2. Choose a driving data extract (`.xlsx`).
+3. Enter the first and the last date of the export, and upload the file.
+4. Check the preview. It shows:
+   - the date range
+   - how many rows will be deleted, inserted and rejected, with a reason for each rejected row
+   - the dates in the range that have no rows in the file, and become empty
+5. Confirm, or cancel. Nothing changes before you confirm.
+6. The result page shows the replaced date range and how many rows were deleted, inserted and
+   rejected.
 
-Each date in the file replaces all stored driving data for that date. Uploading the same file
-again changes nothing. Uploading a corrected file gives exactly the rows of that file for its
-dates.
+The upload replaces all stored driving data in the date range. A date in the range with no rows
+in the file becomes empty. A row with a date outside the range is rejected. Uploading the same
+file again for the same range changes nothing. Uploading a corrected file gives exactly the rows
+of that file for the range.
 
-**CAUTION:** upload whole days only. A file that holds only part of a day removes the other rows
-of that day.
+The date range can be at most `APP_DRIVING_DATA_MAX_DAYS` days.
+
+**CAUTION:**
+
+- Enter the date range of the export. A range that is longer than the export empties the extra
+  dates.
+- Upload whole days only. A file that holds only part of a day removes the other rows of that
+  day.
 
 An upload cannot be undone. To correct a wrong upload, upload the correct file for the same
-dates, or [clear the driving data](#clear-driving-data) for the dates.
+range, or [clear the driving data](#clear-driving-data) for the dates.
 
 From the command line:
 
 ```shell
-task console -- app:driving-data:import <PATH_TO_FILE> [--mapping=<MAPPING_NAME>]
+task console -- app:driving-data:import <PATH_TO_FILE> <FROM_DATE> <TO_DATE> [--mapping=<MAPPING_NAME>]
 ```
+
+The command shows the same preview, and asks for confirmation unless `--no-interaction` is
+given.
 
 ### Clear driving data
 
-1. Go to **Clear driving data** (requires `ROLE_CLEAR_DRIVING_DATA`).
-2. Select the first and the last date.
-3. Check the number of rows that will be deleted.
-4. Confirm.
+1. Go to **Administration → Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
+2. Find the date in the list of uploaded dates. Use the previous and next month links.
+3. Check the number of stop rows and route runs for the date.
+4. Select **Clear** (requires `ROLE_CLEAR_DRIVING_DATA`), and confirm.
 
-This deletes the uploaded driving data and the calculated figures for the dates. The daily
+To clear a date, a user needs both roles. `ROLE_ADMIN` gives both.
+
+This deletes the uploaded driving data and the calculated figures for the date. The daily
 counts of mails, complaints and phone calls do not change. You cannot undo this.
 
-From the command line:
+To clear a date range, use the command line:
 
 ```shell
 task console -- app:driving-data:clear <FROM_DATE> <TO_DATE>
@@ -212,20 +233,39 @@ task console -- app:driving-data:clear <FROM_DATE> <TO_DATE>
 ### Import mappings
 
 An import mapping describes how a source's extract maps to the fields the application uses.
-Mappings live in `config/import/driving_data/<MAPPING_NAME>.yaml`. To support a new source, or a
-change in an existing extract, add or edit a mapping. No code changes are needed.
+Mappings live in `config/import/driving_data/<MAPPING_NAME>.yaml`.
+
+A mapping can change the column names, the code values and the formats of the fixed application
+fields. For these changes in an extract, edit the mapping, or add a mapping for a new source.
+These changes need code:
+
+- a field that the extract does not have
+- a field that is made from more than one column, or a column that holds more than one field
+- a new application field
 
 A mapping defines:
 
-- **Sheet and header row:** where the data starts in the workbook.
-- **Row id (optional):** the column, or columns, that identify a row. If a row id occurs more
-  than once in a file, the second and later rows are rejected.
-- **Fields:** for each application field, the source column and how to read it:
-  - type: `string`, `int`, `float`, `bool`, `datetime`
-  - date format: for example an Excel serial date or a format string
-  - value maps for codes, for example which status values mean "completed" or which values mean
-    "yes"
+- **Sheet and header row:** where the data starts in the workbook. The rows above the header row
+  are skipped.
+- **Row id (optional):** the source column, or columns, that identify a row. If a row id occurs
+  more than once in a file, the second and later rows are rejected.
+- **Fields:** each application field must have a source column. For each field, the mapping
+  gives the column and how to read it:
+  - type: `string`, `int`, `float`, `bool`, `date`, `time`, `datetime`
+  - date format, only for a `date` or `datetime` field: for example an Excel serial date or a
+    format string such as `Y-m-d`
+  - a `time` field is a time of day in an Excel time cell. It is a wall-clock time on
+    `service_date`. A time of 24:00 or more is on the next day: 25:10 is 01:10 on the day after
+    `service_date`. Times are stored with no time zone, so a change to or from daylight saving
+    time does not move them. See [Times](docs/architecture.md#times).
+  - value maps for codes, only for a `string` field, for example which status values mean
+    "completed"
+  - for a `bool` field: the values that mean true and the values that mean false
   - whether the field is required
+
+The import rejects a row with a value that the mapping does not know: a code that is not in a
+value map, or a `bool` value that is in neither list. The reason gives the row number and the
+field, and never the value.
 
 ```yaml
 # config/import/driving_data/<MAPPING_NAME>.yaml
@@ -233,18 +273,22 @@ sheet: 0
 header_row: 1
 row_id: [<ROW_ID_COLUMN>]   # optional
 fields:
-  route:            { column: <COLUMN_NAME>, type: string, required: true }
-  person_id:        { column: <COLUMN_NAME>, type: string, required: true }
-  stop_type:        { column: <COLUMN_NAME>, type: string, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
-  stop_status:      { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled } }
-  route_end:        { column: <COLUMN_NAME>, type: bool, true_values: [<YES_VALUE>] }
-  passengers_after: { column: <COLUMN_NAME>, type: int }
-  next_distance_km: { column: <COLUMN_NAME>, type: float }
+  route:             { column: <COLUMN_NAME>, type: string, required: true }
+  person_id:         { column: <COLUMN_NAME>, type: string, required: true }
+  service_date:      { column: <COLUMN_NAME>, type: date, format: Y-m-d, required: true }
+  run:               { column: <COLUMN_NAME>, type: int, required: true }
+  stop_type:         { column: <COLUMN_NAME>, type: string, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
+  stop_status:       { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
+  passengers_after:  { column: <COLUMN_NAME>, type: int }
+  next_distance_km:  { column: <COLUMN_NAME>, type: float }
   next_duration_min: { column: <COLUMN_NAME>, type: float }
-  planned_time:     { column: <COLUMN_NAME>, type: datetime, format: excel }
-  actual_time:      { column: <COLUMN_NAME>, type: datetime, format: excel }
-  planned_solo:     { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>] }
+  planned_time:      { column: <COLUMN_NAME>, type: time }
+  actual_time:       { column: <COLUMN_NAME>, type: datetime, format: excel }
+  planned_solo:      { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
 ```
+
+The `default` mapping reads the extract of the planning system. See
+[the reference extract](docs/architecture.md#the-reference-extract).
 
 Validate a mapping against a sample file before using it:
 
@@ -311,19 +355,15 @@ decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
 
 ## Data and privacy
 
-- Person ids from the driving data are never stored in clear text. They are pseudonymised with
-  HMAC using `APP_PERSON_ID_SECRET`, and used only to count distinct citizens.
-- Names, addresses and other personal details in the extract are not imported.
+- The stop rows keep the person id of the planning system. It is used only to count distinct
+  citizens, and it is never shown. See
+  [ADR 004](docs/adr/004-personal-data-in-driving-data.md) (proposed).
+- Names, addresses and other personal details in the extract are not imported. The columns with
+  free text and labels are not imported either.
 - Nothing is stored or shown at driver level.
-- Uploaded files are deleted once they have been processed.
-
-### The pseudonymisation key
-
-If one attacker gets both the database and `APP_PERSON_ID_SECRET`, the pseudonymisation does
-not protect the data. Keep the key apart from the database:
-
-- Set the key in `.env.local`.
-- Do not include `.env.local` in the backups of the database host.
+- Uploaded files are kept outside the public folder until you confirm or cancel the upload. A
+  scheduled job deletes the files that are older than one hour. An upload that is not confirmed
+  in that time expires.
 
 ## Development
 
@@ -354,7 +394,8 @@ task test:mutation:full
 - **Test suites:** tests live in `tests/Unit`, `tests/Integration` and `tests/Functional`.
 - **Database:** integration and functional tests run against a MariaDB test database. Each test runs
   in a transaction that is rolled back.
-- **Fixture files:** these are in `tests/fixtures/` and are anonymised. Never commit real extracts.
+- **Fixture files:** the test extracts are made from YAML scenarios in `tests/fixtures/driving_data/`.
+  The data is invented. Never commit real extracts.
 - **Functional tests:** they assert behaviour, not markup. Use text and `data-test` attributes, so
   that a layout change does not break them.
 - **Coverage:** PHPUnit measures coverage with Xdebug, because the phpfpm image has no pcov. Do
@@ -398,10 +439,22 @@ task fixtures:load
 This loads:
 
 - suppliers, sub-agreements and routes
-- an imported sample day
+- 13 months of generated driving data, imported through the real import
 - daily counts
 
 The fixtures do not create users. Sign in with the test users of the local mock service.
+
+To get extract files that you can upload by hand:
+
+```shell
+task fixtures:extracts
+```
+
+This writes the test scenarios and one file for each of the 13 months to
+`var/fixtures/driving_data/`. The data is invented.
+
+Each month file has at most 31 days. If `APP_DRIVING_DATA_MAX_DAYS` is less than 31, the upload
+rejects these files.
 
 ### Diagrams
 
@@ -464,12 +517,17 @@ To set up a new server:
 1. Set these in `.env.local` (staging included):
    - `APP_ENV=prod`
    - `APP_SECRET`
-   - `APP_PERSON_ID_SECRET`
    - the `OIDC_*` settings from the identity provider
    - the database settings
 2. Deploy.
-3. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
-4. Make sure that the administrator can sign in.
+3. Add a cron job that deletes the upload files that nobody confirmed. Run it every 15 minutes:
+
+   ```shell
+   */15 * * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:purge-uploads --quiet
+   ```
+
+4. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
+5. Make sure that the administrator can sign in.
 
 ## Documentation
 
