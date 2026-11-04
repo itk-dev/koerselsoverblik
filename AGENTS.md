@@ -4,15 +4,13 @@ Instructions for coding agents in this project. Read them before you change code
 
 ## The project
 
-Passenger Transport Performance shows key figures for citizen transport. It is a Symfony 8
-application on PHP 8.4, with Doctrine ORM and MariaDB. It runs in Docker with the ITK Dev
-`symfony-8` template.
+Kørselsoverblik shows key figures for citizen transport. It is a Symfony 8 application on
+PHP 8.4, with Doctrine ORM and MariaDB. It runs in Docker with the ITK Dev `symfony-8` template.
 
 Read these documents before you start a task:
 
 - [README.md](README.md): the specification. The application must do what the README says.
-- [docs/plan.md](docs/plan.md): the plan and the development approach.
-- [docs/tasks.md](docs/tasks.md): the tasks. Each task is one issue, one branch and one pull
+- The GitHub issue: the task specification. Each task is one issue, one branch and one pull
   request.
 - [docs/architecture.md](docs/architecture.md): the design, the diagrams and the security rules.
 - [docs/adr/](docs/adr/): the architecture decisions.
@@ -30,7 +28,6 @@ task db:migrate                # Run the database migrations
 task coding-standards-check    # Check all coding standards
 task coding-standards-apply    # Fix the coding standards
 task code-analysis             # PHPStan at max level
-task docs:diagrams             # Render the Mermaid diagrams to SVG
 ```
 
 `.env` holds defaults only. Put secrets and local values in `.env.local`. Do not commit
@@ -38,8 +35,7 @@ task docs:diagrams             # Render the Mermaid diagrams to SVG
 
 ## Development approach
 
-The project uses test-driven development. See "Development approach" in
-[docs/plan.md](docs/plan.md).
+The project uses test-driven development. See "Development" in [README.md](README.md#development).
 
 - Write a failing test first. Then write the minimal code that makes it pass. Then refactor.
 - Do not write production code without a test that requires it.
@@ -49,8 +45,7 @@ The project uses test-driven development. See "Development approach" in
 - Put logic in plain PHP classes. Keep controllers, form types, commands and authenticators
   thin, so that most tests are fast unit tests.
 - Functional tests assert behaviour, not markup. Use text and `data-test` attributes.
-- Tests are in `tests/Unit`, `tests/Integration` and `tests/Functional`. The test tasks come in
-  task M1-02.
+- Tests are in `tests/Unit`, `tests/Integration` and `tests/Functional`.
 
 ## Rules for the code
 
@@ -58,7 +53,8 @@ The project uses test-driven development. See "Development approach" in
   `ROLE_ADMIN` or `ROLE_USER` in a controller. See "Security" in
   [docs/architecture.md](docs/architecture.md).
 - Templates have no inline scripts, no inline event handlers and no `style` attributes. The
-  Content Security Policy blocks them.
+  Content Security Policy blocks them. The only exception is a script with the nonce from
+  `csp_nonce('script')`, for example `importmap()`.
 - Logs and error messages never contain field values from the driving data.
 - Change the database schema only with Doctrine migrations. Do not use
   `doctrine:schema:update` or hand-written SQL.
@@ -100,7 +96,7 @@ To find how the project is configured, use these commands. Do not guess:
 - Create a branch `feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>` from `develop`.
 - Use Conventional Commits, for example `feat:`, `fix:`, `test:`, `docs:` and `chore:`.
 - Add the task ID to the pull request title, for example
-  `feat: replace stop rows for the dates in a file (M1-16)`.
+  `feat: replace stop rows for the date range of an upload (M1-16)`.
 - Add `Closes #<ISSUE_NUMBER>` to the pull request description.
 - Add an entry to `CHANGELOG.md` under "Unreleased".
 

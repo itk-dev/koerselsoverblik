@@ -2,9 +2,6 @@
 
 namespace App\Tests\Functional;
 
-use App\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -13,6 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class OverviewAccessTest extends WebTestCase
 {
+    use LoginTrait;
+
     public function testAnonymousUserIsSentToTheLogin(): void
     {
         $client = static::createClient();
@@ -25,17 +24,18 @@ final class OverviewAccessTest extends WebTestCase
     public function testUserWithTheOverviewRoleCanGetTheOverview(): void
     {
         $client = static::createClient();
-        $this->loginWithRoles($client, ['ROLE_VIEW_OVERVIEW']);
+        $this->loginAs($client, 'viewer');
 
         $client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Kørselsoverblik', (string) $client->getResponse()->getContent());
     }
 
     public function testUserWithNoPermissionRoleIsDenied(): void
     {
         $client = static::createClient();
-        $this->loginWithRoles($client, []);
+        $this->loginAs($client, 'user');
 
         $client->request('GET', '/');
 
@@ -45,27 +45,10 @@ final class OverviewAccessTest extends WebTestCase
     public function testAdminCanGetTheOverview(): void
     {
         $client = static::createClient();
-        $this->loginWithRoles($client, ['ROLE_ADMIN']);
+        $this->loginAs($client, 'admin');
 
         $client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-    }
-
-    /**
-     * Stores a user with the roles, so that the user is equal to the user at the refresh.
-     *
-     * @param list<string> $roles
-     */
-    private function loginWithRoles(KernelBrowser $client, array $roles): void
-    {
-        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
-        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
-        $user = new User('user@example.com');
-        $user->setRoles($roles);
-        $entityManager->persist($user);
-        $entityManager->flush();
-
-        $client->loginUser($user);
     }
 }

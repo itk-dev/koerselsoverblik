@@ -1,12 +1,11 @@
 # Architecture
 
-This document describes the architecture of Passenger Transport Performance for milestone 1:
+This document describes the architecture of Kørselsoverblik for milestone 1:
 OIDC login, upload of driving data, manual entry of daily counts, and an overview
-with eight key figures. See the [README](../README.md) for what the application does and
-[the plan](plan.md) for how it is built.
+with eight key figures. See the [README](../README.md) for what the application does.
 
-The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to its source. Run
-`task docs:diagrams` after changing a source; CI fails if a rendered SVG is out of date.
+The diagrams are Mermaid code blocks in this document. GitHub renders them. Edit a block to change
+its diagram.
 
 ## Contents
 
@@ -28,26 +27,62 @@ The diagrams are Mermaid files in [`diagrams/`](diagrams/). Each image links to 
 
 - **Correct figures first.** Every figure is calculated the same way for any period, from summed
   counts. A wrong number is the worst possible bug, so calculation code has the strictest tests.
-- **No duplicates.** Re-importing data replaces all stored data for the dates in the file. The
-  same data must never be counted twice, and rows that are not in a corrected file must not stay.
-- **Source-independent import.** The column layout of an extract is described in a mapping file,
-  not in code, so another source can be added without code changes.
-- **Minimal personal data.** No names, addresses or driver data are imported. How citizen
-  identifiers are handled is an [open decision](#open-decisions).
+- **No duplicates.** Re-importing data replaces all stored data in the date range of the upload.
+  The same data must never be counted twice, and rows that are not in a corrected file must not
+  stay.
+- **Configurable column layout.** A mapping file gives the column names, the code values and the
+  formats of an extract, so a change of these needs no code change. A new field needs code (see
+  [Import mappings](#import-mappings)).
+- **Minimal personal data.** No names, addresses, free text or driver data are imported. The
+  person id is kept only to count citizens. The decision is proposed, not accepted (see
+  [open decisions](#open-decisions)).
 - **Simple to run.** One Symfony application and one database. No queue workers, no separate
   frontend build, no client-side chart library.
 - **Every route requires a role.** Access is denied by default.
 
 ## System context
 
-[![System context](diagrams/context.svg)](diagrams/context.mmd)
+```mermaid
+---
+title: System context
+---
+flowchart LR
+    user["Viewer<br/>(ROLE_VIEW_OVERVIEW)"]
+    editor["Data editor<br/>(ROLE_EDIT_DAILY_COUNTS)"]
+    admin["Administrator<br/>(ROLE_UPLOAD_DRIVING_DATA,<br/>ROLE_CLEAR_DRIVING_DATA,<br/>ROLE_MANAGE_SUPPLIERS)"]
+
+    app["Kørselsoverblik<br/>(Symfony web application)"]
+
+    planning[("Planning system<br/>driving data extract (.xlsx)")]
+    idp["Identity provider (OIDC)<br/>login and roles"]
+
+    subgraph later["Later milestones"]
+        telephony["Telephony system"]
+        mailbox["Mailbox"]
+        cases["Case management system /<br/>self-service forms"]
+    end
+
+    user -- "views overview" --> app
+    editor -- "enters daily counts" --> app
+    admin -- "uploads extracts, clears dates,<br/>manages suppliers and routes" --> app
+    planning -. "exported by an administrator<br/>and uploaded" .-> admin
+    idp -- "login,<br/>role claim" --> app
+
+    telephony -. "call statistics" .-> app
+    mailbox -. "mail counts" .-> app
+    cases -. "complaints" .-> app
+
+    classDef future stroke-dasharray: 5 5
+    class telephony,mailbox,cases future
+```
 
 **Users:**
 
 - **Viewers** read the overview.
-- **Data editors** export extracts from the planning system and upload them, and enter the daily
-  counts of mails, complaints and phone calls.
-- **Administrators** manage suppliers and which supplier drives each route in each period.
+- **Data editors** enter the daily counts of mails, complaints and phone calls.
+- **Administrators** export extracts from the planning system and upload them, clear the
+  driving data for a date, and manage suppliers and which supplier drives each route in each
+  period. The identity provider manages the users.
 
 These are tasks, not roles. Each task has its own permission role (see
 [Authorization](#security)), so one user can do one task or many.
@@ -59,7 +94,31 @@ roles of each user.
 
 ## Containers
 
-[![Containers](diagrams/containers.svg)](diagrams/containers.mmd)
+```mermaid
+---
+title: Containers
+---
+flowchart LR
+    browser["Browser"]
+
+    subgraph server["Docker host (itkdev-docker-compose)"]
+        traefik["Traefik<br/>TLS and routing"]
+        nginx["nginx<br/>static assets, FastCGI"]
+        phpfpm["phpfpm<br/>Symfony 8 / PHP 8.4"]
+        mariadb[("MariaDB<br/>application data")]
+    end
+
+    console["Console<br/>bin/console app:*"]
+    idp["Identity provider (OIDC)<br/>idp mock service in local development"]
+
+    browser -- "HTTPS" --> traefik
+    browser -- "login redirect" --> idp
+    phpfpm -- "token request" --> idp
+    traefik -- "HTTP" --> nginx
+    nginx -- "FastCGI" --> phpfpm
+    phpfpm -- "Doctrine DBAL" --> mariadb
+    console -- "docker compose exec phpfpm" --> phpfpm
+```
 
 The application runs on the ITK Dev Docker setup (`symfony-8` template):
 
@@ -78,7 +137,65 @@ are added only when file sizes or integrations need them.
 
 ## Components
 
-[![Components](diagrams/components.svg)](diagrams/components.mmd)
+```mermaid
+---
+title: Components (milestone 1)
+---
+flowchart TB
+    subgraph web["Web layer"]
+        controllers["Controllers<br/>Overview, DailyCount, Security,<br/>Admin/Import, Admin/ClearDrivingData,<br/>Admin/Supplier, Admin/Route"]
+        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, Route"]
+        twig["Twig templates and components<br/>Tile, Sparkline, LineChart, Panel"]
+        format["FormatExtension"]
+    end
+
+    subgraph security["Security"]
+        authenticators["OidcAuthenticator<br/>OidcRoleMapper"]
+        guards["Role guards<br/>#[IsGranted], access_control"]
+    end
+
+    subgraph import["Import/DrivingData"]
+        mapping["MappingLoader → MappingDto<br/>config/import/driving_data/*.yaml"]
+        importrange["ImportRange<br/>max APP_DRIVING_DATA_MAX_DAYS"]
+        parser["StopRowParser"]
+        replacer["StopRowReplacer"]
+        builder["RouteBuilder"]
+        aggregator["DailyStatsAggregator"]
+        clearer["DrivingDataClearer"]
+    end
+
+    subgraph report["Report"]
+        filter["PeriodFilter"]
+        periods["PeriodRangeFactory"]
+        kpi["KpiCalculator → Kpis"]
+        delta["Delta / Tone"]
+    end
+
+    commands["Console commands<br/>app:driving-data:*"]
+    repositories[("Doctrine entities<br/>and repositories")]
+
+    controllers --> forms
+    controllers --> twig
+    twig --> format
+    guards --> controllers
+    authenticators --> guards
+
+    controllers -- "upload: preview, confirm" --> parser
+    commands --> parser
+    mapping --> parser
+    importrange --> replacer
+    parser --> replacer --> builder --> aggregator
+    replacer --> repositories
+    controllers -- "clear a date" --> clearer
+    commands --> clearer
+    clearer --> repositories
+    builder --> repositories
+    aggregator --> repositories
+
+    controllers -- "overview" --> filter --> periods --> kpi
+    kpi --> repositories
+    kpi --> delta --> twig
+```
 
 | Namespace | Responsibility |
 | --- | --- |
@@ -100,7 +217,112 @@ are added only when file sizes or integrations need them.
 
 ## Data model
 
-[![Data model](diagrams/data-model.svg)](diagrams/data-model.mmd)
+```mermaid
+---
+title: Data model (milestone 1)
+---
+erDiagram
+    USER ||--o{ IMPORT_BATCH : "uploads"
+    USER ||--o{ DAILY_COUNT : "updates"
+    SUPPLIER ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "drives"
+    ROUTE ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "is assigned"
+    ROUTE ||--o{ ROUTE_RUN : "runs"
+    ROUTE ||--o{ STOP_ROW : "has"
+    IMPORT_BATCH ||--o{ STOP_ROW : "inserted"
+    SUPPLIER |o--o{ DAILY_STATS : "aggregated per"
+
+    USER {
+        int id PK
+        string email UK
+        json roles
+        datetime last_login_at
+    }
+    SUPPLIER {
+        int id PK
+        string name UK
+    }
+    ROUTE {
+        int id PK
+        string source_key UK "route name in the extract"
+    }
+    ROUTE_SUPPLIER_ASSIGNMENT {
+        int id PK
+        int route_id FK
+        int supplier_id FK
+        date valid_from
+        date valid_to "null = no end date"
+    }
+    IMPORT_BATCH {
+        int id PK
+        string mapping_name
+        string file_name
+        int uploaded_by FK
+        datetime uploaded_at
+        date first_date "first date of the replaced range"
+        date last_date "last date of the replaced range"
+        int rows_deleted
+        int rows_inserted
+        int rows_rejected
+        json errors "no field values"
+    }
+    STOP_ROW {
+        int id PK
+        string mapping_name UK "unique with row_key"
+        string row_key UK "optional, from the mapping"
+        int route_id FK
+        date service_date
+        string stop_type "pickup or drop_off"
+        string stop_status
+        int run "block number in the extract"
+        int passengers_after
+        float next_distance_km
+        float next_duration_min
+        datetime planned_time
+        datetime actual_time
+        bool planned_solo
+        string person_id "from the extract (ADR 004)"
+        int import_batch_id FK
+    }
+    ROUTE_RUN {
+        int id PK
+        int route_id FK
+        date service_date
+        int run "block number in the extract"
+        datetime last_drop_planned
+        datetime last_drop_actual
+        int delay_minutes
+        int peak_passengers
+        bool cancelled
+        float driven_km
+        float empty_km
+        float driven_min
+        float empty_min
+    }
+    DAILY_STATS {
+        int id PK
+        date service_date UK "unique with supplier_id"
+        int supplier_id FK "null = Unknown"
+        int trips
+        int trips_completed
+        int trips_cancelled
+        int route_runs
+        int last_drop_offs
+        int on_time
+        int solo_runs
+        float driven_km
+        float empty_km
+        float driven_min
+        float empty_min
+    }
+    DAILY_COUNT {
+        date day PK
+        int mails
+        int complaints
+        int phone_calls
+        int updated_by FK
+        datetime updated_at
+    }
+```
 
 **Terms:**
 
@@ -108,8 +330,8 @@ are added only when file sizes or integrations need them.
   administrator assigns it to a supplier for a date range. On a date with no assignment, it
   counts as "Unknown".
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
-  until the vehicle is empty again. A route can have several runs a day. Punctuality and solo
-  routes are measured per run.
+  until the vehicle is empty again. A route can have several runs a day. The extract gives each
+  run a block number. Punctuality and solo routes are measured per run.
 - **Trip:** one citizen's journey from pickup to drop-off.
 
 | Entity | Purpose |
@@ -118,7 +340,7 @@ are added only when file sizes or integrations need them.
 | `Supplier` | A transport supplier |
 | `Route` | A route from the extract |
 | `RouteSupplierAssignment` | The supplier that drives a route from `valid_from` to `valid_to` (empty = no end date) |
-| `ImportBatch` | One upload: mapping, file name, who and when, the replaced dates, row counts, rejection reasons |
+| `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, rejection reasons |
 | `StopRow` | One stop from the extract, with an optional row key from the mapping. See [open decisions](#open-decisions) |
 | `RouteRun` | Derived: one route run with its last drop-off, delay, peak passengers and distances |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
@@ -139,68 +361,241 @@ change. The derived tables hold no information that can't be recalculated.
 
 ## Importing driving data
 
-[![Upload sequence](diagrams/upload-sequence.svg)](diagrams/upload-sequence.mmd)
+```mermaid
+---
+title: Upload driving data
+---
+sequenceDiagram
+    autonumber
+    actor Admin as Administrator
+    participant C as Admin\ImportController
+    participant P as StopRowParser
+    participant M as MappingDto
+    participant U as StopRowReplacer
+    participant B as RouteBuilder
+    participant A as DailyStatsAggregator
+    participant DB as MariaDB
+
+    Admin->>C: POST /admin/import (file, first date, last date)
+    C->>C: check ROLE_UPLOAD_DRIVING_DATA and CSRF
+    C->>C: ImportRange(first, last), at most APP_DRIVING_DATA_MAX_DAYS
+    C->>C: keep the file in var/, and its token in the session
+    C->>P: parse(file, mapping, range)
+    P->>M: column, type and value map per field
+    P->>P: reject rows outside the range (ImportRange::contains)
+    P-->>C: rows, and rejected rows: row number and reason, no values
+    C->>DB: count the stored rows in the range
+    C-->>Admin: preview: range, rows to delete, insert and reject, dates that become empty
+    Note over Admin,C: no data changes before the confirmation
+
+    Admin->>C: POST confirm (token from the session, CSRF)
+    C->>C: remove the token from the session (one time only)
+    C->>P: parse(file, mapping, range)
+    P-->>C: rows, rejected rows
+    C->>DB: begin transaction, create ImportBatch
+    C->>U: replace(range, rows)
+    U->>DB: delete all StopRow rows in the range
+    U->>DB: insert the rows of the file
+    Note over U,DB: each date in the range holds only the rows of the file
+    U-->>C: deleted, inserted, rejected
+    C->>B: rebuild(range)
+    B->>DB: replace RouteRun rows in the range
+    C->>A: rebuild(range)
+    A->>DB: replace DailyStats rows in the range
+    C->>DB: update ImportBatch counts, commit
+    C->>C: delete the file
+    C-->>Admin: result page
+```
 
 ### Import mappings
 
 A mapping file, `config/import/driving_data/<MAPPING_NAME>.yaml`, describes one source's extract:
 
 - the sheet and the header row
-- an optional **row key**: one or more columns that identify a row. It finds duplicate rows in
-  one file
+- an optional **row key**: one or more source columns that identify a row. It finds duplicate
+  rows in one file
 - for each application field: the source column, type, date format, value maps for codes, and
   whether it is required
 
 `MappingLoader` validates the file with the Symfony Config component when the container is built,
 so an invalid mapping stops the application from starting. It then produces an immutable
-`Mapping` value object. `StopRowParser` reads the workbook only through `Mapping` and never
+`MappingDto` value object. `StopRowParser` reads the workbook only through `MappingDto` and never
 refers to column names itself. `app:driving-data:mapping:validate` checks a sample file against
 a mapping before it is used.
 
+**What a mapping can change:** the column names, the code values and the formats of the fixed
+application fields. Each application field must have one source column. These changes need code:
+
+- a field that the extract does not have
+- a field that is made from more than one column, or a column that holds more than one field
+- a new application field
+
+### The reference extract
+
+A reference extract from the planning system gives the layout for the `default` mapping. The
+extract is not in Git, and the docs contain no values from it.
+
+**Layout:**
+
+- One sheet. Row 1 is a title, row 2 is empty, and row 3 has the column headers.
+- One row for each stop. Each trip has a pickup row and a drop-off row.
+- The extract holds one service day. The date is in its own column, and the times have no date.
+- The columns with names, addresses and places are empty in the reference extract.
+
+**Columns in the `default` mapping:**
+
+| Field | Column | Type in the extract | Note |
+| --- | --- | --- | --- |
+| row key | `RouteStopID` | text | Unique for each row. |
+| `route` | `RouteName` | text | To be confirmed: see "Route column" in [open decisions](#open-decisions). |
+| `person_id` | `PersonID` | text | [ADR 004](adr/004-personal-data-in-driving-data.md) |
+| `service_date` | `Date` | text, `Y-m-d` | The service day of all the times in the row. |
+| `run` | `blocknumber` | integer | The route run. A route run is the route, the date and the run. |
+| `stop_type` | `StopType` | text code | Two codes: pickup and drop-off. |
+| `stop_status` | `Status` | text code | Three codes: completed, cancelled, and no registration (`pending`). |
+| `passengers_after` | `passengersaftercancel` | integer | The passengers after the stop, when the cancellations are removed. |
+| `next_distance_km` | `ToNextDistance` | decimal | Kilometres. Can be empty. |
+| `next_duration_min` | `ToNextDuration` | decimal | Minutes. Can be empty when the distance is not. |
+| `planned_time` | `PlannedArrival` | Excel time, `[hh]:mm:ss` | A wall-clock time on `service_date`. Can be 24:00 or more (see [Times](#times)). |
+| `actual_time` | `StatusUpdateTime` | Excel date and time | Empty when the stop has no registration. |
+| `planned_solo` | `kørselstype` | text code | Two codes: solo and shared. |
+
+**Why the run comes from `blocknumber`:** the extract also has a column for the start and a column
+for the end of a block. In the reference extract, one run has a start but no end. A split on the
+end flag joins that run with the next run. The block number gives each run directly.
+
+**Columns that are not imported:**
+
+- Names, addresses, postcodes, towns and places. They are empty in the reference extract.
+- `Labels` and `Comment`. They can hold the needs of a citizen or free text, and that can be
+  health data ([ADR 004](adr/004-personal-data-in-driving-data.md)).
+- The ids of addresses, locations, places, trips and trip requests.
+- The other planning columns, for example the requested times, the service times and the paths.
+
+**Columns for milestone 2** (not imported in milestone 1):
+
+- The cancellation columns: the cancellation id, the time of the cancellation, the notice in
+  minutes (negative when the cancellation came after the planned time), and whether the notice
+  was in time.
+- `prisprminut`, the price per minute, for the estimated cost of empty running.
+- `passengers`, the passengers after the stop before the cancellations are removed.
+
+### Times
+
+A `time` field is a time of day in an Excel time cell. It is a wall-clock time on the
+`service_date` of the row:
+
+- A time of 24:00 or more is on the next day. For example, 25:10 is 01:10 on the day after
+  `service_date`.
+- The import does not convert times to UTC, and stores them with no time zone. A change to or
+  from daylight saving time in Europe/Copenhagen never moves a stored time.
+- The import does not correct a time that does not exist, or that exists two times, on the
+  night of a change.
+- Known limit: a delay across a change at night can be one hour wrong. Few runs drive at that
+  time.
+
+### Date range
+
+The user enters the first and the last date of the export, together with the file. `ImportRange`
+holds the two dates. The import replaces exactly this range
+([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)):
+
+- A date in the range with no rows in the file becomes empty. This includes the first and the
+  last date.
+- A row with a date outside the range is rejected. A wrong date in one row cannot change other
+  dates. `ImportRange::contains()` is the only check. `StopRowParser` calls it for each row, so
+  the preview and the import reject the same rows.
+- The range can be at most `APP_DRIVING_DATA_MAX_DAYS` days (default 31). A longer range is
+  rejected, and no data changes.
+
 ### Pipeline
 
-1. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
-   with their row number and a reason. Field values are never written to messages or logs. The
-   person id is pseudonymised before it leaves the parser.
-2. **Replace.** `StopRowReplacer` finds the import dates: the dates that have at least one valid
-   row. It deletes all `StopRow` rows for these dates, from all mappings, and then inserts the
-   rows of the file. Rows that are not in the new file are removed, and two uploads can never
-   count the same date twice. A row key that occurs more than once in the file is rejected after
-   the first occurrence, and a unique index on `(mapping_name, row_key)` makes this sure. It
-   returns the deleted and inserted counts and the import dates.
-3. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the import dates. It orders
-   each route's stops by planned time and splits them into runs at the end-of-route flag.
-4. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the import dates, one
-   per supplier.
-5. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts
-   and the import dates.
+1. **Preview.** The upload keeps the file in `var/` with a random name, and keeps its token in
+   the session. The parser reads the file, and the page shows the range, the rows to delete,
+   insert and reject, and the dates that become empty. No data changes.
+2. **Confirm.** The user confirms. The controller removes the token from the session before the
+   import, so the token works one time only. A second confirmation, for example after a double
+   click, finds no token. It shows a message and imports nothing. The steps below parse the file
+   again and import it. If the user cancels, the file is deleted.
+3. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
+   with their row number and a reason. A row with a date that `ImportRange::contains()` does not
+   accept is also rejected. Field values are never written to messages or logs. The person id is
+   kept as it is in the extract ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed).
+4. **Replace.** `StopRowReplacer` deletes all `StopRow` rows in the range, from all mappings, and
+   then inserts the parsed rows. It does not check the range again. Rows that are not in the new
+   file are removed, and two uploads can never count the same date twice. A row key that occurs
+   more than once in the file is rejected after the first occurrence, and a unique index on
+   `(mapping_name, row_key)` makes this sure. It returns the deleted and inserted counts.
+5. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the range. It groups the
+   stops by route, date and run (the block number in the extract), and orders the stops of each
+   run by planned time.
+6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
+   supplier.
+7. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts
+   and the range.
 
-All steps for one upload run in one database transaction. A failed import leaves the data as it
-was.
+Steps 3 to 7 run in one database transaction. A failed import leaves the data as it was.
 
-**Whole days:** a file that holds only part of a day removes the other rows of that day. Users
-must upload whole days. The result page lists the replaced dates.
+**Unconfirmed files:** `app:driving-data:purge-uploads` deletes the upload files that are older
+than one hour. A cron job on the server runs it every 15 minutes, and each new upload also runs
+it. A confirmation after the purge shows that the upload has expired, and imports nothing.
+
+**Whole days and the date range:** a file that holds only part of a day removes the other rows of
+that day. A range that is longer than the export empties the extra dates. Users must upload whole
+days and enter the range of the export. The preview lists the dates that become empty.
 
 **No rollback:** an `ImportBatch` cannot be undone. To correct a wrong upload, upload the correct
-file for the same dates, or clear the dates.
+file for the same range, or clear the dates.
 
 ### Clearing driving data
 
-Users with `ROLE_CLEAR_DRIVING_DATA` can delete the driving data for a date range, for example
-after a wrong upload:
+The upload page lists the uploaded dates, one month at a time. Each date shows the number of stop
+rows and route runs, and the last upload (file name, who, when). Users with
+`ROLE_CLEAR_DRIVING_DATA` can delete the driving data for a date, for example after a wrong
+upload. The list is on the upload page, so these users also need `ROLE_UPLOAD_DRIVING_DATA`.
+`ROLE_ADMIN` gives both roles.
 
-1. The user selects a date range. The page shows the number of stop rows and route runs in it.
+1. The user selects **Clear** for a date.
 2. The user confirms.
-3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the range in one
+3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the date in one
    transaction. `DailyCount` does not change.
-4. The application logs who cleared which range, and the deleted counts. The log has no field
+4. The application logs who cleared which date, and the deleted counts. The log has no field
    values.
 
-`app:driving-data:clear <FROM> <TO>` uses the same service.
+`app:driving-data:clear <FROM> <TO>` uses the same service to clear a date range.
 
 ## Calculating the figures
 
-[![Overview request](diagrams/overview-sequence.svg)](diagrams/overview-sequence.mmd)
+```mermaid
+---
+title: Overview request
+---
+sequenceDiagram
+    autonumber
+    actor User
+    participant FW as Firewall / authenticator
+    participant C as OverviewController
+    participant F as PeriodFilter
+    participant R as PeriodRangeFactory
+    participant K as KpiCalculator
+    participant DB as MariaDB
+    participant T as Twig
+
+    User->>FW: GET /?p=month&d=2026-09-18&c=previous&s=3
+    FW->>FW: user from the session (OIDC login)
+    FW->>C: IsGranted ROLE_VIEW_OVERVIEW
+    C->>F: map query string (invalid values fall back to defaults)
+    C->>R: current, comparison and 12 trailing months
+    R-->>C: date ranges (comparison cut to the same number of days if partial)
+    loop current, comparison, each month
+        C->>K: calculate(range, supplier)
+        K->>DB: SUM over DailyStats and DailyCount, distinct citizens
+        K-->>C: Kpis
+    end
+    C->>C: Delta and Tone per figure
+    C->>T: render tiles, chart and supplier table
+    T-->>User: HTML with inline SVG charts
+```
 
 **Filters:** `PeriodFilter` maps the query string (`p` period, `d` date, `c` comparison,
 `s` supplier). Invalid values fall back to the defaults, so a link always works.
@@ -219,7 +614,7 @@ object.
 | --- | --- |
 | Empty running (%) | `SUM(empty_km) / SUM(driven_km)` |
 | Trips | `SUM(trips)` |
-| Citizens | Distinct citizens in the range (depends on [ADR 004](adr/004-personal-data-in-driving-data.md)) |
+| Citizens | `COUNT(DISTINCT person_id)` over the `StopRow` rows in the range ([ADR 004](adr/004-personal-data-in-driving-data.md)) |
 | Solo routes | `SUM(solo_runs)`, shown with `SUM(solo_runs) / SUM(route_runs)` |
 | Punctuality (%) | `SUM(on_time) / SUM(last_drop_offs)` |
 | Complaints | `SUM(complaints)`, shown with `SUM(complaints) / SUM(trips) × 1000` |
@@ -238,7 +633,28 @@ config file.
 
 ## Security
 
-[![Authentication](diagrams/authentication.svg)](diagrams/authentication.mmd)
+```mermaid
+---
+title: Authentication (OIDC)
+---
+flowchart TD
+    request["Request"] --> public{"Public path?<br/>/openidconnect/*, /openid-connect/generic, assets"}
+    public -- yes --> serve["Serve"]
+    public -- no --> session{"Signed in?"}
+
+    session -- no --> idp["Redirect to the identity provider"]
+    idp -- "login fails in the identity provider" --> idpfail["No redirect back<br/>not in the authentication log"]
+    idp -- "user approved" --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
+    callback -- invalid --> fail["Login failed<br/>written to the authentication log"]
+    callback -- valid --> mapper["OidcRoleMapper<br/>role claim → ROLE_ADMIN and permission roles"]
+    mapper --> user["Create or update User<br/>email, roles, last login"]
+    user --> log["Authentication log<br/>email, roles, time"]
+    log --> guard
+
+    session -- yes --> guard{"#[IsGranted] role?"}
+    guard -- granted --> controller["Controller"]
+    guard -- denied --> forbidden["403"]
+```
 
 **Authentication:** OIDC is the only login method (see
 [ADR 002](adr/002-oidc-authentication.md)).
@@ -273,7 +689,7 @@ config file.
   | --- | --- |
   | `ROLE_VIEW_OVERVIEW` | The overview |
   | `ROLE_UPLOAD_DRIVING_DATA` | Upload of driving data |
-  | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date range |
+  | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date on the upload page. The user also needs `ROLE_UPLOAD_DRIVING_DATA` to open the page |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, routes and route → supplier assignments |
 
@@ -300,7 +716,13 @@ config file.
 **Data protection:**
 
 - Forms use CSRF tokens.
-- Uploads are limited to `.xlsx` and a maximum size, and are deleted after processing.
+- Uploads are limited to `.xlsx` and a maximum size. The file is kept in `var/`, outside the
+  public folder, until the user confirms or cancels. The scheduled purge deletes a file that is
+  older than one hour (see [Pipeline](#pipeline)). The extract can hold health data, so the file
+  must not stay.
+- The confirmation uses a token from the user's session, so a user cannot confirm the upload of
+  another user. The token works one time only, so a double click cannot import the file two
+  times.
 - The parser reads the extract with OpenSpout, which streams one row at a time. It has
   configurable limits for the number of rows and columns, and stops at the first row or column
   above a limit (ASVS V12.1.2).
@@ -316,21 +738,34 @@ passwords. The identity provider applies its password rules and multi-factor aut
 option for a later milestone.
 
 **HTTP security headers** (ASVS V14.4): `nelmio/security-bundle` adds these headers to every
-response. The configuration is in the repository, and a functional test checks it.
+response. The configuration is in `config/packages/nelmio_security.yaml`, and
+`tests/Functional/SecurityHeadersTest.php` checks it.
 
 | Header | Value |
 | --- | --- |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` (in `prod` only) |
-| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'strict-dynamic' 'nonce-…'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `same-origin` |
+
+- There is no `style-src`, because `default-src 'self'` gives the same rule.
+- A redirect has no content, so it gets only `Referrer-Policy`.
+- In debug mode, Symfony removes the policy from its exception page.
+
+`Strict-Transport-Security` is not sent yet. Nelmio sends it only when Symfony sees HTTPS. Behind
+Traefik, that needs trusted proxies, and a wrong configuration causes a redirect loop. A separate
+issue adds the header.
 
 **Effects of the Content Security Policy:**
 
 - Templates have no inline scripts, no inline event handlers and no `style` attributes.
+- The only inline scripts are the import map and its entry point. `importmap()` writes them, and
+  they get the nonce from `csp_nonce('script')`. A later inline script also uses the nonce.
+- `'strict-dynamic'` lets the scripts with the nonce load the modules. The AssetMapper
+  documentation recommends it, because the import map has a `data:` entry for each CSS import.
+- The es-module-shims polyfill is off (`importmap_polyfill: false`). It is an inline script that
+  loads a file from a CDN, and all supported browsers have import maps.
 - The server-rendered SVG charts use classes and SVG presentation attributes for styling.
 - The `popover` help texts need no script.
-- If a page needs an inline script later, it uses a nonce from the bundle.
 
 ## User interface
 
@@ -342,6 +777,25 @@ response. The configuration is in the repository, and a functional test checks i
 - Charts are Twig components that render inline SVG on the server. Each chart includes a hidden
   data table for screen readers. No chart JavaScript is used.
 - Help texts (**?**) use the native HTML `popover` attribute.
+- Icons are Lucide icons with Symfony UX Icons (`ux_icon('lucide:car')`). The SVG files are in
+  `assets/icons/` and in git, so the application makes no calls to the Iconify API. To add an
+  icon, run `task console -- ux:icons:import lucide:<NAME>`.
+- The page loads no file from an external host. The design system has no font files, so the
+  layout uses the fallback fonts of `--itkaarhus-font-sans` (Helvetica Neue, Arial). Inter has
+  the SIL Open Font License, so a later task can add it to `assets/fonts`.
+
+**Menu:** `MainMenu` defines the items, and `MenuBuilder` removes the items that the user must
+not see. An item is visible only if the user has its permission role and its route exists.
+`MenuBuilder` generates each URL one time and gives `MenuLink` objects to the template. A menu
+route takes no parameters. `MainMenu` already has the items for daily counts and suppliers, so
+each item shows when its task adds the route.
+
+The menu has these items:
+
+- Overview
+- Daily counts
+- Administration: Upload driving data, and Suppliers and routes. `MenuBuilder` has no groups
+  now. The first page in the group adds the group again.
 
 **Language:** the UI is in Danish. Texts live in `translations/messages+intl-icu.da.yaml`, and
 `FormatExtension` formats numbers, percentages, percentage points, deltas and period labels.
@@ -350,14 +804,14 @@ response. The configuration is in the repository, and a functional test checks i
 
 ## Testing
 
-The project is developed test first, with 100 % line coverage and mutation testing. See the
-[plan](plan.md#development-approach-test-driven-100--coverage-mutation-testing) for the full rules.
+The project is developed test first, with 100 % line coverage and mutation testing. See
+[Tests](../README.md#tests) in the README for the full rules.
 
 | Layer | What | Tools |
 | --- | --- | --- |
 | Unit | `Report`, `Import`, value objects, `FormatExtension` | PHPUnit |
 | Integration | Repositories and aggregate queries, replacement and clearing, commands | `KernelTestCase`, MariaDB, `dama/doctrine-test-bundle` |
-| Functional | Every route × role, forms, the OIDC login with a stubbed identity provider, upload end to end, the overview | `WebTestCase` |
+| Functional | Every route × role, forms, the OIDC login with a stubbed identity provider, upload end to end, a second confirmation of one upload, the overview | `WebTestCase` |
 
 **Mutation testing (Infection):**
 
@@ -365,6 +819,30 @@ The project is developed test first, with 100 % line coverage and mutation testi
   requires 80 %.
 - Controllers, form types and Twig components are not mutated.
 - Pull requests run it on changed lines. Release branches run it on the whole code base.
+
+### Test data
+
+The tests and the local site use generated extracts. No real extract is committed.
+
+- **The generator:** `ExtractWriter` writes an `.xlsx` with the layout of the `default` mapping:
+  the rows above the header, the column headers and the code values. The input uses the
+  application field names and values, for example `pickup` and `completed`. So a change of the
+  mapping changes the files, and the scenarios stay the same.
+- **Scenarios:** YAML files in `tests/fixtures/driving_data/`. Each scenario has an `expected`
+  section with the totals worked out by hand. The test compares the result of the import with
+  these totals.
+- **Bad data:** a stop can give a raw cell value, so that a scenario can hold a bad date, an
+  unknown code or text in a number column. A scenario can also leave out a column.
+- **Times:** the parser tests include times of 24:00 or more, and the spring and autumn dates of
+  the change to and from daylight saving time in Europe/Copenhagen (see [Times](#times)).
+- **Development dataset:** `DevDatasetGenerator` makes 13 months of data from a seed, one file
+  for each calendar month. The routes and the suppliers are the same as in the development
+  fixtures, so the overview shows figures for each supplier.
+- **Maximum range:** a development file holds one calendar month, so it has at most 31 days. This
+  is the default of `APP_DRIVING_DATA_MAX_DAYS`. If the setting is less than 31, the upload
+  rejects these files.
+- **Files:** `task fixtures:extracts` writes all files to `var/fixtures/driving_data/`. Upload
+  them by hand to test the upload page.
 
 ## Deployment
 
@@ -379,22 +857,51 @@ Doctrine migrations and `cache:clear` in the server's phpfpm container.
 **Configuration:** server configuration lives in `.env.local` on the server. Woodpecker secrets
 hold the connection details.
 
+**Cron:** a cron job on the server runs `app:driving-data:purge-uploads` every 15 minutes in the
+phpfpm container.
+
 **CI:** GitHub Actions runs coding standards, PHPStan, tests with the coverage gate, mutation
 testing and the diagram check on every pull request.
 
 ## Open decisions
 
-- **Personal data in driving data** ([ADR 004](adr/004-personal-data-in-driving-data.md), draft).
-  - This decides whether `StopRow` and the pseudonymised person key are stored, kept for a
-    correction window, or replaced by aggregates and distinct-count sketches.
-  - The data model above shows the current working assumption (rows with a pseudonymised key).
+- **Personal data in driving data** ([ADR 004](adr/004-personal-data-in-driving-data.md),
+  proposed).
+  - The proposal: `StopRow` keeps the person id from the extract, with no HMAC. The data model
+    above shows it.
   - The product owner in the transport office decides, with the data protection adviser.
-  - It must be decided before the extract parser is built (task M1-15).
-- **Whole days.** Does each extract hold whole days? The replacement of whole dates depends on
-  it.
+  - The parser implements the proposal. The decision must be accepted before go-live.
+- **Whole days.** Does each extract hold whole days? The replacement of the date range depends
+  on it. A partial day removes the other rows of that day. The product owner in the transport
+  office answers before the replacement is built.
+- **All routes in one extract.** Does one extract hold all the routes of a day, or only one area
+  or contract? The import replaces all stop rows in the date range. If the extracts are per
+  area, an upload for one area deletes the other areas. Then the replacement must be limited to
+  the routes or the area of the file ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)).
+  The product owner in the transport office answers before the replacement is built.
+- **Maximum range.** What can the planning system export? Evaluate the default of
+  `APP_DRIVING_DATA_MAX_DAYS` (31 days) after a test export. The developer answers this with the
+  transport office before go-live.
+- **Route column.** Which column identifies a route: the route name or the route id? The route id
+  can be an id for one day only. The `default` mapping uses the route name until this is
+  confirmed. The product owner in the transport office answers before the route administration
+  is built.
+- **Supplier mapping.** How do we know which company drives each route? For example, is there a
+  list from the transport office, a field in the planning system, or a part of the route name?
+  Administrators keep the assignments until a source is known. The product owner answers before
+  go-live.
+- **Booked trips.** Some trips are booked outside the fixed routes, and have a common route name.
+  Who drives them? Can more than one supplier drive them? With one route for all of them, they
+  get one supplier assignment. The product owner in the transport office answers before the
+  route administration is built.
+- **Stops with no registration.** How do the figures treat a stop that has no status
+  registration from the driver (`pending`)? The proposal: it counts as a trip, because it is not
+  cancelled. A run whose last drop-off has no actual time is not counted for punctuality. The
+  product owner in the transport office answers before the daily stats are built.
+- **Actual time.** Is `StatusUpdateTime` the actual time of the stop? It is the time of the
+  status registration by the driver. The mapping uses it until the product owner answers.
 - **Role claim.** Which claim holds the roles, and which values does the identity provider
-  send? Which group is assigned to the application? IT operations sets this up before go-live
-  (task M1-28).
+  send? Which group is assigned to the application? IT operations sets this up before go-live.
 
 ## Decision records
 
@@ -402,5 +909,5 @@ See [`adr/`](adr/README.md):
 
 - [001: Stack](adr/001-stack.md)
 - [002: OIDC authentication with roles from the identity provider](adr/002-oidc-authentication.md)
-- [003: Driving data import with mappings and replacement of whole dates](adr/003-driving-data-import-mapping-and-overwrite.md)
+- [003: Driving data import with mappings and replacement of the entered date range](adr/003-driving-data-import-mapping-and-overwrite.md)
 - [004: Personal data in driving data](adr/004-personal-data-in-driving-data.md)

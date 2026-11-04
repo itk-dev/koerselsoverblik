@@ -17,13 +17,14 @@ vars:
   # Xdebug collects the coverage, because the phpfpm image has no pcov.
   PHPUNIT_COVERAGE: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/phpunit'
   COVERAGE_DIR: var/coverage
-  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads=max --ignore-msi-with-no-mutations'
+  # A fixed number of threads gives the same result on all computers. With one thread for each
+  # core, the integration tests are slow on a computer with many cores, and mutants time out.
+  INFECTION_THREADS: '{{ .TASK_INFECTION_THREADS | default "4" }}'
+  # A timed-out mutant counts as killed in the MSI. "--max-timeouts=0" fails the run instead.
+  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations --max-timeouts=0'
   MUTATION_LOG: var/infection/infection.json
   # The changed-lines run compares with this git reference.
   MUTATION_BASE: '{{ .TASK_MUTATION_BASE | default "origin/develop" }}'
-
-  MERMAID_CLI_IMAGE: '{{ .TASK_MERMAID_CLI_IMAGE | default "minlag/mermaid-cli:12.0.0" }}'
-  DIAGRAMS_DIR: docs/diagrams
 
 tasks:
   default:
@@ -70,6 +71,11 @@ tasks:
       - task: console
         vars:
           CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+  fixtures:extracts:
+    desc: 'Write the test scenarios and 13 months of invented driving data to var/fixtures/driving_data/ — `task fixtures:extracts -- --seed=2`'
+    cmds:
+      - '{{ .CONSOLE }} app:fixtures:driving-data {{ .CLI_ARGS }}'
 
   # --------------------------------------------------------------- Tests ---
 
@@ -250,35 +256,3 @@ tasks:
     desc: Apply the YAML coding standards
     cmds:
       - "{{ .DOCKER_COMPOSE }} run --rm prettier '**/*.{yml,yaml}' --write"
-
-  # ---------------------------------------------------------------- Docs ---
-
-  docs:diagrams:
-    desc: Render every Mermaid diagram in docs/diagrams/ to SVG.
-    sources:
-      - '{{ .DIAGRAMS_DIR }}/*.mmd'
-      - '{{ .DIAGRAMS_DIR }}/mermaid.json'
-    generates:
-      - '{{ .DIAGRAMS_DIR }}/*.svg'
-    cmds:
-      - for: { var: DIAGRAMS, split: "\n" }
-        task: docs:diagram
-        vars:
-          NAME: '{{ .ITEM }}'
-    vars:
-      DIAGRAMS:
-        sh: find {{ .DIAGRAMS_DIR }} -name '*.mmd' -exec basename {} .mmd \; | sort
-
-  docs:diagram:
-    desc: 'Render a single Mermaid diagram — `task docs:diagram NAME=context`.'
-    requires:
-      vars: [NAME]
-    cmds:
-      - docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD/{{ .DIAGRAMS_DIR }}:/data" {{ .MERMAID_CLI_IMAGE }} --configFile /data/mermaid.json --input "/data/{{ .NAME }}.mmd" --output "/data/{{ .NAME }}.svg"
-
-  docs:diagrams:check:
-    desc: Fail if any rendered SVG in docs/diagrams/ is out of date (used in CI).
-    cmds:
-      - task docs:diagrams --force
-      - git diff --exit-code -- '{{ .DIAGRAMS_DIR }}/*.svg'
-      - test -z "$(git ls-files --others --exclude-standard -- '{{ .DIAGRAMS_DIR }}/*.svg')"

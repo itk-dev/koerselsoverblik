@@ -1,5 +1,5 @@
 {
-    "name": "itk-dev/passenger-transport-performance",
+    "name": "itk-dev/koerselsoverblik",
     "description": "Key figures for citizen transport",
     "license": "proprietary",
     "type": "project",
@@ -10,9 +10,14 @@
         "doctrine/doctrine-bundle": "^3.3",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.7",
+        "itk-dev/itkaarhus-design-system": "^0.5.0",
         "itk-dev/openid-connect-bundle": "^6.1",
+        "nelmio/security-bundle": "^3.9",
+        "openspout/openspout": "^5.13",
+        "symfony/asset": "~8.1.0",
         "symfony/asset-mapper": "~8.1.0",
         "symfony/clock": "~8.1.0",
+        "symfony/config": "~8.1.0",
         "symfony/console": "~8.1.0",
         "symfony/dotenv": "~8.1.0",
         "symfony/flex": "^2",
@@ -20,7 +25,9 @@
         "symfony/monolog-bundle": "^4.1",
         "symfony/runtime": "~8.1.0",
         "symfony/security-bundle": "~8.1.0",
+        "symfony/translation": "~8.1.0",
         "symfony/twig-bundle": "~8.1.0",
+        "symfony/ux-icons": "^3.6",
         "symfony/yaml": "~8.1.0"
     },
     "require-dev": {
@@ -55,6 +62,14 @@
     "conflict": {
         "symfony/symfony": "*"
     },
+    "repositories": [
+        {
+            "name": "itkaarhus-ds",
+            "type": "vcs",
+            "url": "https://github.com/itk-dev/itkaarhus-design-system",
+            "no-api": true
+        }
+    ],
     "minimum-stability": "stable",
     "prefer-stable": true,
     "autoload": {
