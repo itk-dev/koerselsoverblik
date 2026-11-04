@@ -20,7 +20,8 @@ vars:
   # A fixed number of threads gives the same result on all computers. With one thread for each
   # core, the integration tests are slow on a computer with many cores, and mutants time out.
   INFECTION_THREADS: '{{ .TASK_INFECTION_THREADS | default "4" }}'
-  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations'
+  # A timed-out mutant counts as killed in the MSI. "--max-timeouts=0" fails the run instead.
+  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations --max-timeouts=0'
   MUTATION_LOG: var/infection/infection.json
   # The changed-lines run compares with this git reference.
   MUTATION_BASE: '{{ .TASK_MUTATION_BASE | default "origin/develop" }}'
@@ -70,6 +71,11 @@ tasks:
       - task: console
         vars:
           CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+  fixtures:extracts:
+    desc: 'Write the test scenarios and 13 months of invented driving data to var/fixtures/driving_data/ — `task fixtures:extracts -- --seed=2`'
+    cmds:
+      - '{{ .CONSOLE }} app:fixtures:driving-data {{ .CLI_ARGS }}'
 
   # --------------------------------------------------------------- Tests ---
 
