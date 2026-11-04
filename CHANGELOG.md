@@ -36,3 +36,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#29](https://github.com/itk-dev/koerselsoverblik/issues/29)
   The plan (`docs/plan.md`) and the task list (`docs/tasks.md`) are no longer in the repository.
   The GitHub issues hold the task specifications. The development rules are in the README.
+- [#42](https://github.com/itk-dev/koerselsoverblik/issues/42)
+  Infection runs with 4 threads on all computers, so the mutation tests give the same result on a
+  computer with many cores. `TASK_INFECTION_THREADS` sets a different number.

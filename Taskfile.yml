@@ -17,7 +17,10 @@ vars:
   # Xdebug collects the coverage, because the phpfpm image has no pcov.
   PHPUNIT_COVERAGE: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/phpunit'
   COVERAGE_DIR: var/coverage
-  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads=max --ignore-msi-with-no-mutations'
+  # A fixed number of threads gives the same result on all computers. With one thread for each
+  # core, the integration tests are slow on a computer with many cores, and mutants time out.
+  INFECTION_THREADS: '{{ .TASK_INFECTION_THREADS | default "4" }}'
+  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations'
   MUTATION_LOG: var/infection/infection.json
   # The changed-lines run compares with this git reference.
   MUTATION_BASE: '{{ .TASK_MUTATION_BASE | default "origin/develop" }}'
