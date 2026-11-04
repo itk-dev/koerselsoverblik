@@ -36,3 +36,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#29](https://github.com/itk-dev/koerselsoverblik/issues/29)
   The plan (`docs/plan.md`) and the task list (`docs/tasks.md`) are no longer in the repository.
   The GitHub issues hold the task specifications. The development rules are in the README.
+- [#24](https://github.com/itk-dev/koerselsoverblik/issues/24)
+  Base layout, design system and menu: the prototype's shell in Twig with the itkaarhus
+  design system, a menu that shows an item only if its route exists and the user has its role,
+  and Danish translations. No fonts load from external hosts. The menu has no "Administration"
+  group, because all users have the same role. `nelmio/security-bundle` sends the Content
+  Security Policy with a nonce for `importmap()`, `X-Content-Type-Options` and
+  `Referrer-Policy`. Symfony UX Icons gives the Lucide icons, from SVG files in `assets/icons/`.

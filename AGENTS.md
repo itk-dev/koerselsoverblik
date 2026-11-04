@@ -54,7 +54,8 @@ The project uses test-driven development. See "Development" in [README.md](READM
   `ROLE_ADMIN` or `ROLE_USER` in a controller. See "Security" in
   [docs/architecture.md](docs/architecture.md).
 - Templates have no inline scripts, no inline event handlers and no `style` attributes. The
-  Content Security Policy blocks them.
+  Content Security Policy blocks them. The only exception is a script with the nonce from
+  `csp_nonce('script')`, for example `importmap()`.
 - Logs and error messages never contain field values from the driving data.
 - Change the database schema only with Doctrine migrations. Do not use
   `doctrine:schema:update` or hand-written SQL.

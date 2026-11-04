@@ -78,7 +78,8 @@ flowchart LR
 - **Viewers** read the overview.
 - **Data editors** export extracts from the planning system and upload them, and enter the daily
   counts of mails, complaints and phone calls.
-- **Administrators** manage suppliers and which supplier drives each route in each period.
+- **Administrators** manage suppliers and which supplier drives each route in each period. The
+  identity provider manages the users.
 
 These are tasks, not roles. Each task has its own permission role (see
 [Authorization](#security)), so one user can do one task or many.
@@ -139,7 +140,7 @@ title: Components (milestone 1)
 ---
 flowchart TB
     subgraph web["Web layer"]
-        controllers["Controllers<br/>Overview, Import, ClearDrivingData,<br/>DailyCount, Security, Admin/*"]
+        controllers["Controllers<br/>Overview, Import, ClearDrivingData,<br/>DailyCount, Security, Supplier, Route"]
         forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, Route"]
         twig["Twig templates and components<br/>Tile, Sparkline, LineChart, Panel"]
         format["FormatExtension"]
@@ -614,21 +615,34 @@ passwords. The identity provider applies its password rules and multi-factor aut
 option for a later milestone.
 
 **HTTP security headers** (ASVS V14.4): `nelmio/security-bundle` adds these headers to every
-response. The configuration is in the repository, and a functional test checks it.
+response. The configuration is in `config/packages/nelmio_security.yaml`, and
+`tests/Functional/SecurityHeadersTest.php` checks it.
 
 | Header | Value |
 | --- | --- |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` (in `prod` only) |
-| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'strict-dynamic' 'nonce-…'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `same-origin` |
+
+- There is no `style-src`, because `default-src 'self'` gives the same rule.
+- A redirect has no content, so it gets only `Referrer-Policy`.
+- In debug mode, Symfony removes the policy from its exception page.
+
+`Strict-Transport-Security` is not sent yet. Nelmio sends it only when Symfony sees HTTPS. Behind
+Traefik, that needs trusted proxies, and a wrong configuration causes a redirect loop. A separate
+issue adds the header.
 
 **Effects of the Content Security Policy:**
 
 - Templates have no inline scripts, no inline event handlers and no `style` attributes.
+- The only inline scripts are the import map and its entry point. `importmap()` writes them, and
+  they get the nonce from `csp_nonce('script')`. A later inline script also uses the nonce.
+- `'strict-dynamic'` lets the scripts with the nonce load the modules. The AssetMapper
+  documentation recommends it, because the import map has a `data:` entry for each CSS import.
+- The es-module-shims polyfill is off (`importmap_polyfill: false`). It is an inline script that
+  loads a file from a CDN, and all supported browsers have import maps.
 - The server-rendered SVG charts use classes and SVG presentation attributes for styling.
 - The `popover` help texts need no script.
-- If a page needs an inline script later, it uses a nonce from the bundle.
 
 ## User interface
 
@@ -640,6 +654,18 @@ response. The configuration is in the repository, and a functional test checks i
 - Charts are Twig components that render inline SVG on the server. Each chart includes a hidden
   data table for screen readers. No chart JavaScript is used.
 - Help texts (**?**) use the native HTML `popover` attribute.
+- Icons are Lucide icons with Symfony UX Icons (`ux_icon('lucide:car')`). The SVG files are in
+  `assets/icons/` and in git, so the application makes no calls to the Iconify API. To add an
+  icon, run `task console -- ux:icons:import lucide:<NAME>`.
+- The page loads no file from an external host. The design system has no font files, so the
+  layout uses the fallback fonts of `--itkaarhus-font-sans` (Helvetica Neue, Arial). Inter has
+  the SIL Open Font License, so a later task can add it to `assets/fonts`.
+
+**Menu:** `MainMenu` defines the items, and `MenuBuilder` removes the items that the user must
+not see. An item is visible only if the user has its permission role and its route exists.
+`MenuBuilder` generates each URL one time and gives `MenuLink` objects to the template. A menu
+route takes no parameters. `MainMenu` already has the items for daily counts and suppliers, so
+each item shows when its task adds the route.
 
 **Language:** the UI is in Danish. Texts live in `translations/messages+intl-icu.da.yaml`, and
 `FormatExtension` formats numbers, percentages, percentage points, deltas and period labels.

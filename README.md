@@ -43,7 +43,7 @@ The user interface is in Danish.
   - Columns are read through an [import mapping](#import-mappings), so another source can be
     added with a new mapping file instead of code changes.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
-- **Administration:** suppliers, and which supplier drives each route from which date.
+- **Suppliers and routes:** the suppliers, and which supplier drives each route from which date.
 - **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
@@ -257,7 +257,7 @@ starts.
 
 The driving data extract does not say which supplier drives a route. To assign them:
 
-1. Go to **Administration → Routes** (requires `ROLE_MANAGE_SUPPLIERS`).
+1. Go to **Suppliers and routes** (requires `ROLE_MANAGE_SUPPLIERS`).
 2. Assign each route to a supplier from a start date. Leave the end date empty.
 
 When a route changes supplier:
