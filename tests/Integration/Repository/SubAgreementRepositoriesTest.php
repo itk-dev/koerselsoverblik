@@ -1,0 +1,120 @@
+<?php
+
+namespace App\Tests\Integration\Repository;
+
+use App\Entity\SubAgreement;
+use App\Entity\SubAgreementSupplierAssignment;
+use App\Entity\Supplier;
+use App\Repository\SubAgreementRepository;
+use App\Repository\SubAgreementSupplierAssignmentRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+
+/**
+ * Checks the queries for sub-agreements and their supplier assignments. Each test runs in a
+ * transaction that is rolled back.
+ */
+final class SubAgreementRepositoriesTest extends KernelTestCase
+{
+    private EntityManagerInterface $entityManager;
+
+    protected function setUp(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
+        $this->entityManager = $entityManager;
+    }
+
+    public function testSupplierOnADateFollowsTheAssignments(): void
+    {
+        $subAgreement = $this->subAgreement('Ø4-VB');
+        $old = $this->supplier('Gammel Vognmand');
+        $new = $this->supplier('Ny Vognmand');
+        $this->assign($subAgreement, $old, '2026-01-01', '2026-03-31');
+        $this->assign($subAgreement, $new, '2026-04-01', null);
+        $this->entityManager->flush();
+
+        $repository = $this->assignments();
+        self::assertNull($repository->findSupplier($subAgreement, new \DateTimeImmutable('2025-12-31')));
+        self::assertSame($old, $repository->findSupplier($subAgreement, new \DateTimeImmutable('2026-01-01')));
+        self::assertSame($old, $repository->findSupplier($subAgreement, new \DateTimeImmutable('2026-03-31')));
+        self::assertSame($new, $repository->findSupplier($subAgreement, new \DateTimeImmutable('2026-04-01')));
+        self::assertSame($new, $repository->findSupplier($subAgreement, new \DateTimeImmutable('2030-01-01')));
+    }
+
+    public function testSupplierOfOneSubAgreementIsNotTheSupplierOfAnother(): void
+    {
+        $assigned = $this->subAgreement('Ø4-VB');
+        $other = $this->subAgreement('TEST');
+        $this->assign($assigned, $this->supplier('Vognmand'), '2026-01-01', null);
+        $this->entityManager->flush();
+
+        self::assertNull($this->assignments()->findSupplier($other, new \DateTimeImmutable('2026-06-01')));
+    }
+
+    public function testAssignmentsAreCountedForEachSupplier(): void
+    {
+        $subAgreement = $this->subAgreement('Ø4-VB');
+        $busy = $this->supplier('Travl Vognmand');
+        $idle = $this->supplier('Ledig Vognmand');
+        $this->assign($subAgreement, $busy, '2026-01-01', '2026-01-31');
+        $this->assign($subAgreement, $busy, '2026-03-01', null);
+        $this->entityManager->flush();
+
+        self::assertSame(2, $this->assignments()->countBySupplier($busy));
+        self::assertSame(0, $this->assignments()->countBySupplier($idle));
+    }
+
+    /**
+     * A sub-agreement without a current assignment needs the attention of an administrator, so it
+     * comes first. Each group is sorted by the reference.
+     */
+    public function testSubAgreementsWithoutACurrentAssignmentComeFirst(): void
+    {
+        $supplier = $this->supplier('Vognmand');
+        $this->assign($this->subAgreement('A-CURRENT'), $supplier, '2026-01-01', null);
+        $this->assign($this->subAgreement('B-ENDED'), $supplier, '2026-01-01', '2026-05-31');
+        $this->subAgreement('C-NONE');
+        $this->assign($this->subAgreement('D-LATER'), $supplier, '2026-07-01', null);
+        $this->assign($this->subAgreement('E-CURRENT'), $supplier, '2026-06-01', '2026-06-01');
+        $this->entityManager->flush();
+
+        $repository = self::getContainer()->get(SubAgreementRepository::class);
+        self::assertInstanceOf(SubAgreementRepository::class, $repository);
+        $references = array_map(
+            static fn (SubAgreement $subAgreement): string => $subAgreement->getReference(),
+            $repository->findAllWithoutCurrentAssignmentFirst(new \DateTimeImmutable('2026-06-01')),
+        );
+
+        self::assertSame(['B-ENDED', 'C-NONE', 'D-LATER', 'A-CURRENT', 'E-CURRENT'], $references);
+    }
+
+    private function assignments(): SubAgreementSupplierAssignmentRepository
+    {
+        $repository = self::getContainer()->get(SubAgreementSupplierAssignmentRepository::class);
+        self::assertInstanceOf(SubAgreementSupplierAssignmentRepository::class, $repository);
+
+        return $repository;
+    }
+
+    private function subAgreement(string $reference): SubAgreement
+    {
+        $subAgreement = (new SubAgreement())->setReference($reference);
+        $this->entityManager->persist($subAgreement);
+
+        return $subAgreement;
+    }
+
+    private function supplier(string $name): Supplier
+    {
+        $supplier = (new Supplier())->setName($name);
+        $this->entityManager->persist($supplier);
+
+        return $supplier;
+    }
+
+    private function assign(SubAgreement $subAgreement, Supplier $supplier, string $from, ?string $to): void
+    {
+        $this->entityManager->persist(new SubAgreementSupplierAssignment($subAgreement, $supplier, new \DateTimeImmutable($from), null === $to ? null : new \DateTimeImmutable($to)));
+    }
+}
