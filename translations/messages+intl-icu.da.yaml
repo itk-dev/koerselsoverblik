@@ -10,7 +10,7 @@ menu:
   label: Hovedmenu
   overview: Overblik
   daily_counts: Daglige tal
-  suppliers: Leverandører og ruter
+  suppliers: Leverandører og delaftaler
 
 about:
   title: Om tallene
@@ -20,3 +20,55 @@ about:
 overview:
   title: Overblik
   placeholder: Nøgletallene kommer her.
+
+common:
+  actions: Handlinger
+  edit: Redigér
+  delete: Slet
+  save: Gem
+  cancel: Annullér
+
+admin:
+  title: Leverandører og delaftaler
+  suppliers: Leverandører
+  sub_agreements: Delaftaler
+
+supplier:
+  name: Navn
+  new: Opret leverandør
+  new_title: Ny leverandør
+  edit_title: Redigér leverandør
+  none: Der er ingen leverandører endnu.
+  saved: Leverandøren er gemt.
+  deleted: Leverandøren er slettet.
+  delete_blocked: Leverandøren kan ikke slettes, fordi den har delaftaler. Slet først leverandørens perioder på delaftalerne.
+
+sub_agreement:
+  intro: En delaftale er den del af vognløbets navn, der kommer før det sidste nummer. Vognløbet "Ø4-VB-01" hører til delaftalen "Ø4-VB". Delaftaler uden en leverandør i dag står øverst.
+  reference: Delaftale
+  reference_help: For eksempel "Ø4-VB" for vognløbene "Ø4-VB-01" og "Ø4-VB-02".
+  new: Opret delaftale
+  new_title: Ny delaftale
+  show_title: Delaftale {reference}
+  back: Tilbage til delaftalerne
+  none: Der er ingen delaftaler endnu.
+  created: Delaftalen er oprettet.
+  current_supplier: Leverandør i dag
+  no_current_supplier: Ingen leverandør – vises som "Ukendt"
+  assignments: Leverandører
+  no_assignments: Delaftalen har ingen leverandør endnu. Turene vises som "Ukendt".
+  routes: Vognløb
+  no_routes: Der er ingen vognløb endnu. Importen af kørselsdata opretter dem.
+
+assignment:
+  supplier: Leverandør
+  choose_supplier: Vælg en leverandør
+  valid_from: Fra og med
+  valid_to: Til og med
+  valid_to_help: Lad feltet være tomt, hvis perioden ikke har en slutdato.
+  no_end: Ingen slutdato
+  new: Tilføj leverandør
+  new_title: Ny leverandør for {reference}
+  edit_title: Redigér leverandør for {reference}
+  saved: Leverandøren for delaftalen er gemt.
+  deleted: Leverandøren for delaftalen er slettet.

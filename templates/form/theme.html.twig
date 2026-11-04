@@ -1,0 +1,11 @@
+{% use 'form_div_layout.html.twig' %}
+
+{# Each field uses the field style of the design system. #}
+{% block form_row %}
+    <div class="itkaarhus-field">
+        {{ form_label(form) }}
+        {{ form_widget(form) }}
+        {{ form_help(form) }}
+        {{ form_errors(form) }}
+    </div>
+{% endblock %}

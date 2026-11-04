@@ -52,7 +52,7 @@ final class MenuBuilderTest extends TestCase
 
     public function testMainMenuShowsEveryItemWhenAllRoutesExistAndAllRolesAreGranted(): void
     {
-        $routes = ['overview', 'daily_counts', 'supplier_index'];
+        $routes = ['overview', 'daily_counts', 'admin_supplier_index'];
         $roles = ['ROLE_VIEW_OVERVIEW', 'ROLE_EDIT_DAILY_COUNTS', 'ROLE_MANAGE_SUPPLIERS'];
         $builder = $this->builder(routes: $routes, grantedRoles: $roles);
 
@@ -64,7 +64,7 @@ final class MenuBuilderTest extends TestCase
 
     public function testMainMenuShowsOnlyTheOverviewToAViewer(): void
     {
-        $routes = ['overview', 'daily_counts', 'supplier_index'];
+        $routes = ['overview', 'daily_counts', 'admin_supplier_index'];
         $builder = $this->builder(routes: $routes, grantedRoles: ['ROLE_VIEW_OVERVIEW']);
 
         self::assertSame(['menu.overview'], $this->labels($builder->build(MainMenu::items())));

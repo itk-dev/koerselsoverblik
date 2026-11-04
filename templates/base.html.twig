@@ -57,6 +57,11 @@
                 </header>
 
                 <main class="content" id="content" tabindex="-1">
+                    {% for type, messages in app.flashes(['success', 'error']) %}
+                        {% for message in messages %}
+                            <div class="itkaarhus-callout itkaarhus-callout--{{ type == 'error' ? 'warn' : 'success' }} flash" role="status" data-test="flash-{{ type }}">{{ message|trans }}</div>
+                        {% endfor %}
+                    {% endfor %}
                     {% block body %}{% endblock %}
                 </main>
             </div>
