@@ -46,10 +46,10 @@ final class ExtractWriter
      */
     public function write(string $path, MappingDto $mapping, iterable $rows, array $omittedFields = []): void
     {
-        $fields = array_values(array_filter(
+        $fields = array_filter(
             FieldName::cases(),
             static fn (FieldName $name): bool => !\in_array($name, $omittedFields, true),
-        ));
+        );
         $fieldColumns = array_map(static fn (FieldName $name): string => $mapping->field($name)->column, $fields);
         // A row id column can also be the column of a field. Then the field gives the value.
         $rowIdColumns = array_values(array_diff($mapping->rowId, $fieldColumns));
@@ -64,9 +64,13 @@ final class ExtractWriter
         }
         $writer->addRow(Row::fromValues([...$rowIdColumns, ...$fieldColumns]));
 
+        $names = array_column(FieldName::cases(), 'value');
         $index = 0;
         foreach ($rows as $row) {
             ++$index;
+            foreach (array_diff([...array_keys($row->values), ...array_keys($row->raw)], $names) as $unknown) {
+                throw new \InvalidArgumentException(\sprintf('The row has a value for "%s", which is not a field.', $unknown));
+            }
             $rowId = $row->rowId ?? (string) $index;
             $cells = array_map(static fn (): Cell => new StringCell($rowId), $rowIdColumns);
             foreach ($fields as $name) {
@@ -90,6 +94,7 @@ final class ExtractWriter
             FieldType::String === $field->type && \is_string($value) => new StringCell(self::code($name, $field, $value)),
             FieldType::Int === $field->type && \is_int($value),
             FieldType::Float === $field->type && (\is_int($value) || \is_float($value)) => new NumericCell($value),
+            // MappingConfiguration requires a non-empty list of true and false values for a bool field.
             FieldType::Bool === $field->type && \is_bool($value) => new StringCell($value ? $field->trueValues[0] : $field->falseValues[0]),
             FieldType::Time === $field->type && $value instanceof \DateInterval => new DateIntervalCell($value, $this->timeStyle),
             FieldType::Date === $field->type && $value instanceof \DateTimeInterface => $this->dateCell($field, $value, $this->dateStyle),

@@ -10,11 +10,11 @@ use App\Import\Mapping\FieldName;
 final readonly class Scenario
 {
     /**
-     * @param \DateTimeImmutable   $firstDate     the first date of the upload range
-     * @param \DateTimeImmutable   $lastDate      the last date of the upload range
-     * @param list<ExtractRow>     $rows
-     * @param list<FieldName>      $omittedFields the fields that get no column in the file
-     * @param array<string, mixed> $expected      the totals, worked out by hand
+     * @param \DateTimeImmutable      $firstDate     the first date of the upload range
+     * @param \DateTimeImmutable      $lastDate      the last date of the upload range
+     * @param list<ExtractRow>        $rows
+     * @param list<FieldName>         $omittedFields the fields that get no column in the file
+     * @param array<array-key, mixed> $expected      the totals, worked out by hand, keyed by name
      */
     public function __construct(
         public string $name,

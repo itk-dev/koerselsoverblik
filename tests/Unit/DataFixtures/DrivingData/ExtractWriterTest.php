@@ -119,6 +119,27 @@ final class ExtractWriterTest extends TestCase
         self::assertSame(['1', 'X-9', '3'], array_column(array_slice($this->readSheet(1), 2), 0));
     }
 
+    /**
+     * OpenSpout uses the array keys of the cells as the column positions.
+     */
+    public function testRowIdColumnAfterAFieldColumnIsTheFirstColumn(): void
+    {
+        $yaml = str_replace('row_id: [Id, Run]', 'row_id: [Run, Id]', (string) file_get_contents(self::MAPPINGS.'/valid.yaml'));
+        $mappingPath = sys_get_temp_dir().'/'.uniqid('mapping_', true).'.yaml';
+        file_put_contents($mappingPath, $yaml);
+        try {
+            $mapping = (new MappingLoader())->load($mappingPath);
+        } finally {
+            unlink($mappingPath);
+        }
+
+        (new ExtractWriter())->write($this->path, $mapping, [new ExtractRow(self::values())]);
+
+        $rows = $this->readSheet(1);
+        self::assertSame(self::HEADER, $rows[1]);
+        self::assertSame(['1', 'R-01', 'P-001'], array_slice($rows[2], 0, 3));
+    }
+
     public function testRawValueReplacesTheValue(): void
     {
         (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values(), raw: ['run' => 'abc'])]);
@@ -144,6 +165,28 @@ final class ExtractWriterTest extends TestCase
         $this->expectExceptionMessage('The value of "stop_type" is not in the mapping.');
 
         (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
+    }
+
+    /**
+     * A misspelt name would otherwise give an empty cell with no error.
+     */
+    public function testValueForANameThatIsNotAFieldIsRejected(): void
+    {
+        $values = self::values();
+        $values['persond_id'] = 'P-001';
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The row has a value for "persond_id", which is not a field.');
+
+        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
+    }
+
+    public function testRawValueForANameThatIsNotAFieldIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The row has a value for "rnu", which is not a field.');
+
+        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values(), raw: ['rnu' => 'abc'])]);
     }
 
     #[DataProvider('valuesWithTheWrongType')]
