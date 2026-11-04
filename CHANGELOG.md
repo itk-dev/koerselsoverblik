@@ -72,3 +72,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   test scenarios with totals worked out by hand, and a generator for 13 months of invented
   development data. `task fixtures:extracts` writes the files to `var/fixtures/driving_data/`.
   Infection does not mutate the generator and the fixtures command.
+- [#42](https://github.com/itk-dev/koerselsoverblik/issues/42)
+  Infection runs with 4 threads on all computers, so the mutation tests give the same result on a
+  computer with many cores. `TASK_INFECTION_THREADS` sets a different number.

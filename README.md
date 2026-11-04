@@ -403,6 +403,9 @@ task test:mutation:full
 - **How the two thresholds work:** Infection has one threshold for each run, so
   `infection.json5` sets 80 % for all mutated code. Then `bin/mutation-core-check.php` reads the
   JSON log and fails if a mutant escaped in `src/Report` or `src/Import`.
+- **Threads:** Infection runs 4 mutants at the same time on all computers, so the result does not
+  depend on the number of cores. To use a different number, set `TASK_INFECTION_THREADS`, for
+  example `TASK_INFECTION_THREADS=2 task test:mutation`.
 - **Equivalent mutants:** list each one with a reason in `infection.json5`. The pull request
   review checks the reason.
 - **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
