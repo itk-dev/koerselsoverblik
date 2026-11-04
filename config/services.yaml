@@ -30,11 +30,3 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
-
-when@test:
-    services:
-        # No production service uses the provider yet, so the container removes it. The integration
-        # test gets it from the container to check the autowiring of APP_DRIVING_DATA_MAPPING.
-        App\Import\Mapping\MappingProvider:
-            autowire: true
-            public: true
