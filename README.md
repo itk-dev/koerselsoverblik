@@ -396,8 +396,10 @@ task test:mutation:full
   not use `@codeCoverageIgnore`. The only exclusions are `src/Kernel.php` and `migrations/`.
 - **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
   `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
-  components are not mutated; the functional tests cover them. The HTML report is written to
-  `var/infection/`.
+  components are not mutated; the functional tests cover them. `DevDatasetGenerator` and the
+  fixtures command are not mutated, because their mutants change only invented data. The extract
+  writer and the scenario loader are mutated, because the parser tests trust their files.
+  The HTML report is written to `var/infection/`.
 - **How the two thresholds work:** Infection has one threshold for each run, so
   `infection.json5` sets 80 % for all mutated code. Then `bin/mutation-core-check.php` reads the
   JSON log and fails if a mutant escaped in `src/Report` or `src/Import`.

@@ -8,6 +8,11 @@ namespace App\Import\Mapping;
 final readonly class FieldMappingDto
 {
     /**
+     * The format of a date or datetime field that is a date cell or an Excel serial number.
+     */
+    public const string EXCEL_FORMAT = 'excel';
+
+    /**
      * @param array<string, string> $valueMap    source code to application value
      * @param list<string>          $trueValues
      * @param list<string>          $falseValues
