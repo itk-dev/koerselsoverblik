@@ -6,13 +6,15 @@
     source: {
         directories: ['src'],
         // The functional tests cover this glue. Mutants in it are mostly equivalent.
-        // The fixture code makes invented test data. Its mutants change only the data.
+        // The generator and the fixtures command make invented data. Their mutants change only
+        // the data. The extract writer and the scenario loader are mutated, because the parser
+        // tests trust their files.
         excludes: [
             'Controller',
             'Form',
             'Twig/Components',
             'Kernel.php',
-            'DataFixtures',
+            'DataFixtures/DrivingData/DevDatasetGenerator.php',
             'Command/DrivingDataFixturesCommand.php',
         ],
     },
@@ -29,6 +31,16 @@
     },
     mutators: {
         '@default': true,
+        CastString: {
+            // Equivalent mutants. The code does not use strict types, so PHP changes an int to a
+            // string when it goes to a string parameter or return type. PHP also changes a
+            // numeric array key to an int, with or without the cast. The casts are for PHPStan.
+            ignoreSourceCodeByRegex: [
+                '.*\\$row->rowId \\?\\? \\(string\\) \\$index.*',
+                '.*return \\(string\\) \\$code;.*',
+                '.*\\$raw\\[\\(string\\) \\$field\\].*',
+            ],
+        },
     },
     minCoveredMsi: 80,
     // The default of 10 seconds is too short when all threads run. The Taskfile fails the run on
