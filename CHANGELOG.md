@@ -43,3 +43,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   group, because all users have the same role. `nelmio/security-bundle` sends the Content
   Security Policy with a nonce for `importmap()`, `X-Content-Type-Options` and
   `Referrer-Policy`. Symfony UX Icons gives the Lucide icons, from SVG files in `assets/icons/`.
+- [#44](https://github.com/itk-dev/koerselsoverblik/issues/44)
+  Suppliers and sub-agreements: the first entities and migration. A route belongs to a
+  sub-agreement: the part of its name before the last `-nn` or `_nn`. An administrator creates
+  suppliers and sub-agreements, and assigns a sub-agreement to a supplier for a date range without
+  overlap. Each change dispatches `SubAgreementSupplierChanged` with the old and the new period.
+  Forms keep their CSRF tokens in the session.
