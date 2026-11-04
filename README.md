@@ -261,6 +261,10 @@ A mapping defines:
   - for a `bool` field: the values that mean true and the values that mean false
   - whether the field is required
 
+`stop_type` and `stop_status` must have a value map. The values of the map must be application
+values: `pickup` or `drop_off` for `stop_type`, and `completed`, `cancelled` or `pending` for
+`stop_status`.
+
 The import rejects a row with a value that the mapping does not know: a code that is not in a
 value map, or a `bool` value that is in neither list. The reason gives the row number and the
 field, and never the value.
@@ -399,6 +403,8 @@ task test:mutation:full
   JSON log and fails if a mutant escaped in `src/Report` or `src/Import`.
 - **Equivalent mutants:** list each one with a reason in `infection.json5`. The pull request
   review checks the reason.
+- **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
+  Each mutant has 30 seconds.
 - **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
   full run over the whole code base runs on `release/*` and `hotfix/*` branches and is required
   before a release is merged to `main`.

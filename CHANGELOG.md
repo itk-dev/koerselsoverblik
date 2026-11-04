@@ -60,3 +60,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   also needs `ROLE_UPLOAD_DRIVING_DATA`. The reference extract, the test data and the open
   questions of the import are in `docs/architecture.md`.
 - The GitHub links use the new repository name, `itk-dev/koerselsoverblik`.
+- [#31](https://github.com/itk-dev/koerselsoverblik/issues/31)
+  Import mapping: the YAML format for import mappings in `config/import/driving_data/`, a loader
+  that validates a mapping and builds a `MappingDto` value object, and the `default` mapping for the
+  extract of the planning system. The map values of `stop_type` and `stop_status` must be
+  application values. `APP_DRIVING_DATA_MAPPING` selects the mapping for uploads. An
+  invalid mapping stops the application when the container is built. A mutant that times out
+  now fails the mutation run, and each mutant has 30 seconds.
