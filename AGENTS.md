@@ -53,7 +53,8 @@ The project uses test-driven development. See "Development" in [README.md](READM
   `ROLE_ADMIN` or `ROLE_USER` in a controller. See "Security" in
   [docs/architecture.md](docs/architecture.md).
 - Templates have no inline scripts, no inline event handlers and no `style` attributes. The
-  Content Security Policy blocks them.
+  Content Security Policy blocks them. The only exception is a script with the nonce from
+  `csp_nonce('script')`, for example `importmap()`.
 - Logs and error messages never contain field values from the driving data.
 - Change the database schema only with Doctrine migrations. Do not use
   `doctrine:schema:update` or hand-written SQL.
@@ -95,7 +96,7 @@ To find how the project is configured, use these commands. Do not guess:
 - Create a branch `feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>` from `develop`.
 - Use Conventional Commits, for example `feat:`, `fix:`, `test:`, `docs:` and `chore:`.
 - Add the task ID to the pull request title, for example
-  `feat: replace stop rows for the dates in a file (M1-16)`.
+  `feat: replace stop rows for the date range of an upload (M1-16)`.
 - Add `Closes #<ISSUE_NUMBER>` to the pull request description.
 - Add an entry to `CHANGELOG.md` under "Unreleased".
 

@@ -1,0 +1,63 @@
+# One good row, and one row for each kind of bad value. The import rejects the
+# bad rows. "raw" writes the cell value as it is.
+date: 2026-01-05
+routes:
+  R-01:
+    runs:
+      1:
+        - person: P-001
+          type: pickup
+          planned: "08:00"
+          actual: "08:01"
+          passengers_after: 1
+        # A missing required field.
+        - person: P-002
+          type: pickup
+          planned: "08:05"
+          passengers_after: 1
+          raw: { route: "" }
+        # Text in an int field.
+        - person: P-003
+          type: pickup
+          planned: "08:10"
+          passengers_after: 1
+          raw: { run: abc }
+        # Text in a float field.
+        - person: P-004
+          type: pickup
+          planned: "08:15"
+          passengers_after: 1
+          raw: { next_distance_km: far }
+        # A bool value that is in neither list.
+        - person: P-005
+          type: pickup
+          planned: "08:20"
+          passengers_after: 1
+          raw: { planned_solo: maybe }
+        # Text that is not a date.
+        - person: P-006
+          type: pickup
+          planned: "08:25"
+          passengers_after: 1
+          raw: { service_date: not-a-date }
+        # Text that is not a time.
+        - person: P-007
+          type: pickup
+          planned: "08:30"
+          passengers_after: 1
+          raw: { planned_time: late }
+        # Text that is not a date and time.
+        - person: P-008
+          type: pickup
+          planned: "08:35"
+          passengers_after: 1
+          raw: { actual_time: soon }
+        # A code that is not in the value map.
+        - person: P-009
+          type: pickup
+          planned: "08:40"
+          passengers_after: 1
+          raw: { stop_type: UNKNOWN }
+expected:
+  stop_rows: 1
+  rejected_rows: 8
