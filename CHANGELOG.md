@@ -59,3 +59,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   size, the row numbers and the columns of an extract against the `APP_DRIVING_DATA_MAX_*` limits.
   It rejects a file with a `DOCTYPE`. A file that OpenSpout cannot read gives an
   `InvalidExtractException`.
+- [#40](https://github.com/itk-dev/koerselsoverblik/issues/40)
+  Validate command: `app:driving-data:mapping:validate` reads a sample file through a mapping and
+  shows the missing columns, the rejected rows by field and reason, the dates and a preview. The
+  person id is hidden, and no value of a rejected row is shown. The parser names all missing
+  columns in one `MissingColumnsException`, and it accepts all dates when it has no range.

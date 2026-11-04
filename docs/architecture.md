@@ -409,7 +409,9 @@ A mapping file, `config/import/driving_data/<MAPPING_NAME>.yaml`, describes one 
 so an invalid mapping stops the application from starting. It then produces an immutable
 `MappingDto` value object. `StopRowParser` reads the workbook only through `MappingDto` and never
 refers to column names itself. `app:driving-data:mapping:validate` checks a sample file against
-a mapping before it is used.
+a mapping before it is used. It uses the same parser without a date range, and
+`ExtractSummaryDto` counts the result. The output hides the person id and never shows a value of
+a rejected row.
 
 ### Pipeline
 

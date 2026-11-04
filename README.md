@@ -288,12 +288,26 @@ Then it gives no rows.
 Validate a mapping against a sample file before using it:
 
 ```shell
-task console -- app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE>
+task console -- app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE> [--rows=<NUMBER>]
 ```
 
-This reports missing columns, values that do not match the mapping, and a preview of the first
-rows as the application reads them. A mapping with errors is rejected when the application
-starts.
+The command changes no data. It shows:
+
+- the missing columns of the mapping, if there are any
+- the number of stop rows and rejected rows, the first and the last date in the file, and the
+  number of dates with stop rows
+- the rejected rows: the count and the first row numbers for each field and reason. It never
+  shows a value of a rejected row
+- a preview of the first stop rows as the application reads them. `--rows` sets the number of
+  rows (default 5). The person id shows as `(hidden)`
+
+The command does not check a date range. An upload checks the dates against the range that the
+user selects.
+
+The command exits with `0` when all rows are valid, and with `1` when a column is missing, a row
+is rejected, the file has no stop rows, or the file is not valid. It exits with `2` when the
+mapping is not valid or `--rows` is below 1. A mapping with errors is rejected when the
+application starts.
 
 ### Map routes to suppliers
 
