@@ -4,9 +4,8 @@ Instructions for coding agents in this project. Read them before you change code
 
 ## The project
 
-Passenger Transport Performance shows key figures for citizen transport. It is a Symfony 8
-application on PHP 8.4, with Doctrine ORM and MariaDB. It runs in Docker with the ITK Dev
-`symfony-8` template.
+Kørselsoverblik shows key figures for citizen transport. It is a Symfony 8 application on
+PHP 8.4, with Doctrine ORM and MariaDB. It runs in Docker with the ITK Dev `symfony-8` template.
 
 Read these documents before you start a task:
 

@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the architecture of Passenger Transport Performance for milestone 1:
+This document describes the architecture of Kørselsoverblik for milestone 1:
 OIDC login, upload of driving data, manual entry of daily counts, and an overview
 with eight key figures. See the [README](../README.md) for what the application does.
 
@@ -51,7 +51,7 @@ flowchart LR
     editor["Data editor<br/>(ROLE_EDIT_DAILY_COUNTS)"]
     admin["Administrator<br/>(ROLE_UPLOAD_DRIVING_DATA,<br/>ROLE_CLEAR_DRIVING_DATA,<br/>ROLE_MANAGE_SUPPLIERS)"]
 
-    app["Passenger Transport Performance<br/>(Symfony web application)"]
+    app["Kørselsoverblik<br/>(Symfony web application)"]
 
     planning[("Planning system<br/>driving data extract (.xlsx)")]
     idp["Identity provider (OIDC)<br/>login and roles"]

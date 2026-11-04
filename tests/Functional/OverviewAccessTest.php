@@ -38,6 +38,7 @@ final class OverviewAccessTest extends WebTestCase
         $client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Kørselsoverblik', (string) $client->getResponse()->getContent());
     }
 
     public function testUserWithNoPermissionRoleIsDenied(): void

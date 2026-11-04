@@ -75,3 +75,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#42](https://github.com/itk-dev/koerselsoverblik/issues/42)
   Infection runs with 4 threads on all computers, so the mutation tests give the same result on a
   computer with many cores. `TASK_INFECTION_THREADS` sets a different number.
+- [#23](https://github.com/itk-dev/koerselsoverblik/issues/23)
+  The project name is Kørselsoverblik. The compose project, the local domain, the Composer package
+  and the GitHub links use `koerselsoverblik`.

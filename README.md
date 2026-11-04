@@ -1,4 +1,4 @@
-# Passenger Transport Performance
+# Kørselsoverblik
 
 A web application that collects data about citizen transport and shows whether it is getting
 better or worse over time. All figures are calculated the same way every time, from the same
@@ -128,11 +128,11 @@ Every page requires a permission role. Anonymous users are sent to the identity 
 
    The stack includes `idp`, a local OIDC mock service
    ([`oidc-provider-mock`](https://github.com/geigerzaehler/oidc-provider-mock)) at
-   <http://idp.passenger-transport-performance.local.itkdev.dk>. It has one test user with
+   <http://idp.koerselsoverblik.local.itkdev.dk>. It has one test user with
    `ROLE_ADMIN` and one test user for each permission role. The users are in
    `docker-compose.dev.yml`.
 
-4. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
+4. Open the site at <https://koerselsoverblik.local.itkdev.dk>:
 
    ```shell
    itkdev-docker-compose open
