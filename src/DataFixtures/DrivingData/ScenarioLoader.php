@@ -128,13 +128,12 @@ final class ScenarioLoader
     }
 
     /**
-     * The YAML parser gives a date at midnight in UTC. Use the same calendar date in the default
-     * time zone.
+     * Gives the calendar date at 00:00 UTC. See ADR 005.
      */
     private static function date(string $path, mixed $value, string $name): \DateTimeImmutable
     {
         return $value instanceof \DateTimeInterface
-            ? new \DateTimeImmutable($value->format('Y-m-d'))
+            ? new \DateTimeImmutable($value->format('Y-m-d'), new \DateTimeZone('UTC'))
             : self::invalid($path, \sprintf('"%s" must be a date.', $name));
     }
 

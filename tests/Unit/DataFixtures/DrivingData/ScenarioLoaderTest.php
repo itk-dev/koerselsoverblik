@@ -119,6 +119,34 @@ final class ScenarioLoaderTest extends TestCase
         self::assertSame([FieldName::PlannedSolo], $scenario->omittedFields);
     }
 
+    /**
+     * A date is a calendar date at 00:00 UTC, also when the PHP default time zone is another time
+     * zone. See ADR 005.
+     */
+    public function testDatesAreCalendarDatesInUtc(): void
+    {
+        $defaultTimeZone = date_default_timezone_get();
+        date_default_timezone_set('Europe/Copenhagen');
+        try {
+            $scenario = $this->load(<<<'YAML'
+                date: 2026-01-05
+                routes:
+                  R-01:
+                    runs:
+                      1:
+                        - { person: P-001, type: pickup, planned: '07:10' }
+                expected: { stop_rows: 1 }
+                YAML);
+        } finally {
+            date_default_timezone_set($defaultTimeZone);
+        }
+
+        $serviceDate = $scenario->rows[0]->values['service_date'];
+        self::assertInstanceOf(\DateTimeImmutable::class, $serviceDate);
+        self::assertSame('2026-01-05 00:00:00 UTC', $serviceDate->format('Y-m-d H:i:s T'));
+        self::assertSame('2026-01-05 00:00:00 UTC', $scenario->firstDate->format('Y-m-d H:i:s T'));
+    }
+
     public function testRangeIsTheDateUnlessTheScenarioSetsOne(): void
     {
         $oneDay = $this->load(<<<'YAML'

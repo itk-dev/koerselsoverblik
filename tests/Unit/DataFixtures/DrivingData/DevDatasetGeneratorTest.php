@@ -58,6 +58,23 @@ final class DevDatasetGeneratorTest extends TestCase
         self::assertSame('2026-02-28', $days[27]);
     }
 
+    /**
+     * A service date is a calendar date at 00:00 UTC, also when the PHP default time zone is
+     * another time zone. See ADR 005.
+     */
+    public function testServiceDatesAreCalendarDatesInUtc(): void
+    {
+        $defaultTimeZone = date_default_timezone_get();
+        date_default_timezone_set('Europe/Copenhagen');
+        try {
+            $rows = (new DevDatasetGenerator())->month(7, new \DateTimeImmutable('2026-02-01'));
+        } finally {
+            date_default_timezone_set($defaultTimeZone);
+        }
+
+        self::assertSame('2026-02-01 00:00:00 UTC', self::date($rows[0], 'service_date')->format('Y-m-d H:i:s T'));
+    }
+
     public function testRowsUseTheRoutesOfTheDataset(): void
     {
         $rows = (new DevDatasetGenerator())->month(7, new \DateTimeImmutable('2026-02-01'));

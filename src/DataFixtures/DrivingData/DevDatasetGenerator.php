@@ -25,7 +25,7 @@ final class DevDatasetGenerator
      */
     public function month(int $seed, \DateTimeImmutable $month): array
     {
-        $day = new \DateTimeImmutable($month->format('Y-m-01'));
+        $day = new \DateTimeImmutable($month->format('Y-m-01'), new \DateTimeZone('UTC'));
         $random = new Randomizer(new Mt19937(crc32($seed.'-'.$day->format('Y-m'))));
 
         $rows = [];
