@@ -78,3 +78,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#23](https://github.com/itk-dev/koerselsoverblik/issues/23)
   The project name is Kørselsoverblik. The compose project, the local domain, the Composer package
   and the GitHub links use `koerselsoverblik`.
+- [#20](https://github.com/itk-dev/koerselsoverblik/issues/20)
+  M1-06 User entity and role mapping: the `User` entity (email, roles, last login) with a
+  migration, and `OidcRoleMapper`.
+- [#21](https://github.com/itk-dev/koerselsoverblik/issues/21)
+  M1-07 OIDC login and mock service: `itk-dev/openid-connect-bundle` with `OidcAuthenticator`,
+  the authentication log, trusted proxies, a page for a failed login, and the
+  `oidc-provider-mock` service in `docker-compose.override.yaml`. The placeholder login is
+  removed.

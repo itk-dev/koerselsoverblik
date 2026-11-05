@@ -643,7 +643,8 @@ flowchart TD
     public -- no --> session{"Signed in?"}
 
     session -- no --> idp["Redirect to the identity provider"]
-    idp --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
+    idp -- "login fails in the identity provider" --> idpfail["No redirect back<br/>not in the authentication log"]
+    idp -- "user approved" --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
     callback -- invalid --> fail["Login failed<br/>written to the authentication log"]
     callback -- valid --> mapper["OidcRoleMapper<br/>role claim → ROLE_ADMIN and permission roles"]
     mapper --> user["Create or update User<br/>email, roles, last login"]
@@ -669,10 +670,15 @@ flowchart TD
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
-- **Authentication log:** the bundle's audit trail records each successful and failed login,
-  with the IP address and the reason for a failure. `OidcAuthenticator` adds a record with the
-  email and the roles at each login. Both go to the `openid_connect_audit` channel, which Monolog
-  writes to `var/log/openid_connect_audit.log`.
+- A failed login shows a page with a "Prøv igen" link (`OidcLoginFailureListener`): 403 when the
+  identity provider refused, and 500 otherwise. It does not redirect, so a broken login cannot
+  loop.
+- **Authentication log:** the bundle's audit trail records each successful login. It also
+  records each login that the identity provider approved but the application rejected, with the
+  IP address and the reason. A login that fails in the identity provider does not come back to
+  the application, so it is not in this log. `OidcLogin` adds a record with the email and the
+  roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
+  `var/log/openid_connect_audit.<APP_ENV>.log`.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**

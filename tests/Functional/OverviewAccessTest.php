@@ -18,16 +18,7 @@ final class OverviewAccessTest extends WebTestCase
 
         $client->request('GET', '/');
 
-        self::assertResponseRedirects('/login');
-    }
-
-    public function testAnonymousUserCanGetTheLogin(): void
-    {
-        $client = static::createClient();
-
-        $client->request('GET', '/login');
-
-        self::assertResponseIsSuccessful();
+        self::assertResponseRedirects('/openidconnect/login/default');
     }
 
     public function testUserWithTheOverviewRoleCanGetTheOverview(): void
