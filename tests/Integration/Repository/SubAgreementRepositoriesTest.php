@@ -52,6 +52,24 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
         self::assertNull($this->assignments()->findSupplier($other, new \DateTimeImmutable('2026-06-01')));
     }
 
+    /**
+     * Only the validator prevents overlap, so a race can save two overlapping assignments. The
+     * figures must not fail because of that.
+     */
+    public function testOverlappingAssignmentsGiveTheSupplierWithTheLatestFirstDate(): void
+    {
+        $subAgreement = $this->subAgreement('Ø4-VB');
+        $earlier = $this->supplier('Tidlig Vognmand');
+        $later = $this->supplier('Sen Vognmand');
+        $this->assign($subAgreement, $later, '2026-02-01', null);
+        $this->assign($subAgreement, $earlier, '2026-01-01', null);
+        $this->entityManager->flush();
+
+        $repository = $this->assignments();
+        self::assertSame($earlier, $repository->findSupplier($subAgreement, new \DateTimeImmutable('2026-01-31')));
+        self::assertSame($later, $repository->findSupplier($subAgreement, new \DateTimeImmutable('2026-02-01')));
+    }
+
     public function testAssignmentsAreCountedForEachSupplier(): void
     {
         $subAgreement = $this->subAgreement('Ø4-VB');

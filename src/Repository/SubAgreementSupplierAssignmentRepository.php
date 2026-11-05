@@ -21,7 +21,8 @@ class SubAgreementSupplierAssignmentRepository extends ServiceEntityRepository
 
     /**
      * Gives the supplier of the sub-agreement on the date, or null if the date has no assignment.
-     * The figures show such trips as "Unknown".
+     * The figures show such trips as "Unknown". If assignments overlap, the latest first date wins,
+     * as in SubAgreement::getAssignmentOn().
      */
     public function findSupplier(SubAgreement $subAgreement, \DateTimeInterface $date): ?Supplier
     {
@@ -31,6 +32,8 @@ class SubAgreementSupplierAssignmentRepository extends ServiceEntityRepository
             ->andWhere('assignment.validTo IS NULL OR assignment.validTo >= :date')
             ->setParameter('subAgreement', $subAgreement)
             ->setParameter('date', \DateTimeImmutable::createFromInterface($date), Types::DATE_IMMUTABLE)
+            ->orderBy('assignment.validFrom', 'DESC')
+            ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
 

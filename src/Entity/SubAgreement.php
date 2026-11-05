@@ -82,16 +82,19 @@ class SubAgreement
     }
 
     /**
-     * Gives the assignment on the date, or null if the date has no assignment.
+     * Gives the assignment on the date, or null if the date has no assignment. If assignments
+     * overlap, the latest first date wins, as in SubAgreementSupplierAssignmentRepository::findSupplier().
+     * The collection is in the order of the first date, so the last match wins.
      */
     public function getAssignmentOn(\DateTimeInterface $date): ?SubAgreementSupplierAssignment
     {
+        $found = null;
         foreach ($this->assignments as $assignment) {
             if ($assignment->getPeriod()->contains($date)) {
-                return $assignment;
+                $found = $assignment;
             }
         }
 
-        return null;
+        return $found;
     }
 }
