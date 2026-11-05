@@ -526,7 +526,9 @@ The user enters the first and the last date of the export, together with the fil
    import, so the token works one time only. A second confirmation, for example after a double
    click, finds no token. It shows a message and imports nothing. The steps below parse the file
    again and import it. If the user cancels, the file is deleted.
-3. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
+3. **Parse.** Before the first row, `ExtractInspector` checks the whole file against the
+   `ExtractLimitsDto` limits. See "Data protection" in [Security](#security). Then
+   `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
    with their row number and a reason. A row with a date that `ImportRangeDto::contains()` does
    not accept is also rejected. The reason is a `RejectionReason` code, so field values are never
    written to messages or logs. The person id is kept as it is in the extract
@@ -733,11 +735,20 @@ flowchart TD
 - The confirmation uses a token from the user's session, so a user cannot confirm the upload of
   another user. The token works one time only, so a double click cannot import the file two
   times.
-- The parser reads the extract with OpenSpout, which streams one row at a time. It has
-  configurable limits for the number of rows and columns, and stops at the first row or column
-  above a limit (ASVS V12.1.2).
-- The parser rejects XML with a `DOCTYPE`, so an extract cannot use external entities (XXE,
-  ASVS V5.5.2).
+- The parser reads the extract with OpenSpout, which streams one row at a time. Before OpenSpout
+  opens the file, `ExtractInspector` checks the file size, and that the xlsx archive has at most
+  1000 files. Then it reads each XML file in the archive one node at a time, and checks the
+  row numbers and the columns against configurable limits (ASVS V12.1.2). A file above a limit
+  gives no rows. The inspector reads every XML file, because OpenSpout does not check the
+  `spans` of a row: a small file can make one row use all the memory.
+- The inspector counts the bytes that it reads from the archive, and stops one byte after the
+  uncompressed-size limit. It does not use the sizes in the archive, because libzip does not
+  check them: a zip bomb can give a false size. Thus the limit also controls the time of an
+  upload. A file in the archive that libzip cannot read, for example an encrypted file, is
+  rejected.
+- The inspector rejects XML with a `DOCTYPE`, so an extract cannot use external entities (XXE,
+  ASVS V5.5.2). OpenSpout does not read an external entity, but it ignores a cell with one. The
+  tests keep this protection if a new version of OpenSpout changes.
 - The import runs synchronously in the request. The limits above keep it short.
 - Rejection reasons and logs never contain field values from the extract.
 

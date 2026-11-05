@@ -7,6 +7,8 @@ use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\Scenario;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Import\Extract\CellConverter;
+use App\Import\Extract\ExtractInspector;
+use App\Import\Extract\ExtractLimitsDto;
 use App\Import\Extract\InvalidExtractException;
 use App\Import\Extract\RejectedRowDto;
 use App\Import\Extract\RejectionReason;
@@ -333,15 +335,46 @@ final class StopRowParserTest extends TestCase
     }
 
     /**
+     * The inspector checks the whole file before the first row, so the parser gives no rows.
+     */
+    public function testExtractAboveALimitGivesNoRows(): void
+    {
+        $this->writeRows([self::HEADER, self::ROW, self::ROW]);
+
+        $rows = [];
+        try {
+            foreach ($this->parser(new ExtractLimitsDto(1_000_000, 1_000_000, 2, 100))->parse($this->path, self::simpleMapping(), self::defaultRange()) as $row) {
+                $rows[] = $row;
+            }
+            self::fail('The parser accepted the extract.');
+        } catch (InvalidExtractException $exception) {
+            self::assertSame('The extract has more than 2 rows.', $exception->getMessage());
+        }
+
+        self::assertSame([], $rows);
+    }
+
+    public function testArchiveThatOpenSpoutCannotReadIsRejected(): void
+    {
+        $zip = new \ZipArchive();
+        $zip->open($this->path, \ZipArchive::CREATE);
+        $zip->addFromString('notes.txt', 'Not a workbook');
+        $zip->close();
+
+        $this->expectException(InvalidExtractException::class);
+        $this->expectExceptionMessage('The extract is not a valid xlsx file.');
+
+        $this->parse(self::simpleMapping());
+    }
+
+    /**
      * @return array{list<StopRowDto>, list<RejectedRowDto>}
      */
     private function parse(MappingDto $mapping, ?ImportRangeDto $range = null): array
     {
-        $range ??= ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31);
-
         $rows = [];
         $rejected = [];
-        foreach ((new StopRowParser(new CellConverter(), 'Europe/Copenhagen'))->parse($this->path, $mapping, $range) as $row) {
+        foreach ($this->parser()->parse($this->path, $mapping, $range ?? self::defaultRange()) as $row) {
             if ($row instanceof StopRowDto) {
                 $rows[] = $row;
             } else {
@@ -350,6 +383,16 @@ final class StopRowParserTest extends TestCase
         }
 
         return [$rows, $rejected];
+    }
+
+    private function parser(?ExtractLimitsDto $limits = null): StopRowParser
+    {
+        return new StopRowParser(new CellConverter(), new ExtractInspector($limits ?? new ExtractLimitsDto(1_000_000, 10_000_000, 1000, 100)), 'Europe/Copenhagen');
+    }
+
+    private static function defaultRange(): ImportRangeDto
+    {
+        return ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31);
     }
 
     private function writeScenario(string $name): Scenario

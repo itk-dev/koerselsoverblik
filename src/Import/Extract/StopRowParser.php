@@ -8,6 +8,7 @@ use App\Import\Mapping\MappingDto;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\EmptyCell;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Exception\OpenSpoutException;
 use OpenSpout\Reader\XLSX\Options;
 use OpenSpout\Reader\XLSX\Reader;
 use OpenSpout\Reader\XLSX\Sheet;
@@ -33,6 +34,7 @@ final readonly class StopRowParser
      */
     public function __construct(
         private CellConverter $converter,
+        private ExtractInspector $inspector,
         #[Autowire('%app.timezone%')]
         private string $timeZone,
     ) {
@@ -42,20 +44,22 @@ final readonly class StopRowParser
      * Gives the rows one at a time, so the memory use does not grow with the file size. The
      * parser skips the empty rows.
      *
-     * The parser opens the file when the caller asks for the first row. Then it can throw the
-     * exception.
+     * The parser checks and opens the file when the caller asks for the first row. Then it can
+     * throw the exception. A file above a limit gives no rows.
      *
      * @return \Generator<int, StopRowDto|RejectedRowDto>
      *
-     * @throws InvalidExtractException if the extract does not have the sheet, the header row or a column of the mapping
+     * @throws InvalidExtractException if the extract is above a limit, is not a valid xlsx file, or does not have the sheet, the header row or a column of the mapping
      */
     public function parse(string $path, MappingDto $mapping, ImportRangeDto $range): \Generator
     {
+        $this->inspector->inspect($path);
+
         // With the empty rows, the key of a row is its row number in the sheet.
         $reader = new Reader(new Options(SHOULD_PRESERVE_EMPTY_ROWS: true));
-        $reader->open($path);
 
         try {
+            $reader->open($path);
             // The columns are null until the header row. The rows above the header are not read.
             $columns = null;
             /** @var int $rowNumber RowIterator::key() gives the row number. */
@@ -70,6 +74,9 @@ final readonly class StopRowParser
             if (null === $columns) {
                 throw new InvalidExtractException(\sprintf('The extract has no header row %d.', $mapping->headerRow));
             }
+        } catch (OpenSpoutException) {
+            // The message of OpenSpout can contain text from the file, so it is not kept.
+            throw new InvalidExtractException('The extract is not a valid xlsx file.');
         } finally {
             $reader->close();
         }
