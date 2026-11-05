@@ -122,6 +122,7 @@ tasks:
     desc: Run mutation testing on the lines that changed since develop. The reports are in var/infection/.
     cmds:
       - task: test:db:setup
+      - task: test:cache:warmup
       - rm -f {{ .MUTATION_LOG }}
       - '{{ .INFECTION }} --git-diff-lines --git-diff-base={{ .MUTATION_BASE }} {{ .CLI_ARGS }}'
       - task: test:mutation:core-check
@@ -130,6 +131,7 @@ tasks:
     desc: Run mutation testing on all code. The reports are in var/infection/.
     cmds:
       - task: test:db:setup
+      - task: test:cache:warmup
       - rm -f {{ .MUTATION_LOG }}
       # The filter "src/" matches all source files. Infection fails on an unfiltered run with no
       # source files, but a filtered run with no files passes. This is necessary while src/ has no
@@ -137,6 +139,15 @@ tasks:
       # "--filter" is deprecated since Infection 0.34.
       - '{{ .INFECTION }} --filter=src/ {{ .CLI_ARGS }}'
       - task: test:mutation:core-check
+
+  test:cache:warmup:
+    internal: true
+    # The mutant processes run in parallel. If they fill a cold test cache at the same time, some
+    # of them take more than the Infection timeout. Fill the cache one time before the run.
+    cmds:
+      - task: console
+        vars:
+          CLI_ARGS: cache:warmup --env=test
 
   test:mutation:core-check:
     internal: true

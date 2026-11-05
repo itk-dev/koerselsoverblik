@@ -106,4 +106,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   person id is hidden, and no value of a rejected row is shown. The preview shows the times in
   `APP_TIMEZONE`, and hides the row key when a row id column is the person id column. The parser
   names all missing columns in one `MissingColumnsException`, and it accepts all dates when it has
-  no range.
+  no range. The mutation tasks fill the test cache before Infection starts, so that cold caches
+  give no timeouts.
