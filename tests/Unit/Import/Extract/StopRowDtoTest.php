@@ -150,6 +150,23 @@ final class StopRowDtoTest extends TestCase
     }
 
     /**
+     * The clocks go forward one hour on 29 March 2026. From 00:30 to 03:30 local time is then two
+     * hours, and the UTC values give that delay.
+     */
+    public function testADelayAcrossTheChangeToSummerTimeIsCorrect(): void
+    {
+        $values = self::values();
+        $values['service_date'] = new \DateTimeImmutable('2026-03-29');
+        $values['planned_time'] = new \DateInterval('PT0H30M');
+        $values['actual_time'] = new \DateTimeImmutable('2026-03-29 03:30');
+
+        $row = self::fromValues($values);
+
+        self::assertNotNull($row->actualTime);
+        self::assertSame(2 * 3600, $row->actualTime->getTimestamp() - $row->plannedTime->getTimestamp());
+    }
+
+    /**
      * The clocks go back from 03:00 to 02:00 on 25 October 2026, so 02:30 occurs two times. PHP
      * reads it as 02:30 winter time.
      */

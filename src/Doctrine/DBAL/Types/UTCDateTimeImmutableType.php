@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Doctrine\DBAL\Types;
+
+use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Types\DateTimeImmutableType;
+use Doctrine\DBAL\Types\Exception\InvalidFormat;
+
+/**
+ * Writes a date and time in UTC, and reads it back in UTC. The PHP default time zone has no
+ * effect. See ADR 005.
+ */
+final class UTCDateTimeImmutableType extends DateTimeImmutableType
+{
+    #[\Override]
+    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string
+    {
+        if ($value instanceof \DateTimeImmutable) {
+            $value = $value->setTimezone(new \DateTimeZone('UTC'));
+        }
+
+        return parent::convertToDatabaseValue($value, $platform);
+    }
+
+    #[\Override]
+    public function convertToPHPValue(mixed $value, AbstractPlatform $platform): ?\DateTimeImmutable
+    {
+        // The parent type gives null and an object as they are.
+        if (!\is_string($value)) {
+            return parent::convertToPHPValue($value, $platform);
+        }
+
+        $converted = \DateTimeImmutable::createFromFormat($platform->getDateTimeFormatString(), $value, new \DateTimeZone('UTC'));
+        if (false === $converted) {
+            throw InvalidFormat::new($value, static::class, $platform->getDateTimeFormatString());
+        }
+
+        return $converted;
+    }
+}

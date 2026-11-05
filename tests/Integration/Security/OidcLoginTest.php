@@ -23,8 +23,7 @@ final class OidcLoginTest extends KernelTestCase
 
     protected function setUp(): void
     {
-        // In the default timezone, as the native clock, so that the time survives the database.
-        $this->clock = new MockClock('2026-10-28 12:00:00', date_default_timezone_get());
+        $this->clock = new MockClock('2026-10-28 12:00:00', 'UTC');
         $this->log = new TestHandler();
 
         $this->login = new OidcLogin(
@@ -46,6 +45,20 @@ final class OidcLoginTest extends KernelTestCase
         self::assertSame($user->getId(), $stored->getId());
         self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $stored->getRoles());
         self::assertEquals($this->clock->now(), $stored->getLastLoginAt());
+    }
+
+    public function testTheLoginTimeIsStoredAndReadInUtc(): void
+    {
+        $this->login->login(['upn' => 'foobar@example.com']);
+
+        $this->entityManager()->clear();
+        self::assertSame(
+            '2026-10-28 12:00:00',
+            $this->entityManager()->getConnection()->fetchOne('SELECT last_login_at FROM `user`'),
+        );
+        $stored = $this->repository()->findOneByEmail('foobar@example.com')?->getLastLoginAt();
+        self::assertNotNull($stored);
+        self::assertSame('2026-10-28 12:00:00 UTC', $stored->format('Y-m-d H:i:s T'));
     }
 
     public function testTheNextLoginUpdatesTheRolesAndTheTime(): void
