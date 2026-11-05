@@ -97,13 +97,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#38](https://github.com/itk-dev/koerselsoverblik/issues/38)
   Extract limits: before the first row, `ExtractInspector` checks the file size, the uncompressed
   size, the row numbers and the columns of an extract against the `APP_DRIVING_DATA_MAX_*` limits.
-  It rejects a file with a `DOCTYPE`. A file that OpenSpout cannot read gives an
-  `InvalidExtractException`.
-- [#40](https://github.com/itk-dev/koerselsoverblik/issues/40)
-  Validate command: `app:driving-data:mapping:validate` reads a sample file through a mapping and
-  shows the missing columns, the rejected rows by field and reason, the dates and a preview. The
-  person id is hidden, and no value of a rejected row is shown. The parser names all missing
-  columns in one `MissingColumnsException`, and it accepts all dates when it has no range.
   It counts the uncompressed bytes that it reads, and does not use the sizes in the archive. It
   rejects an archive with more than 1000 files, a file in the archive that it cannot read, and a
   file with a `DOCTYPE`. A file that OpenSpout cannot read gives an `InvalidExtractException`.
+- [#40](https://github.com/itk-dev/koerselsoverblik/issues/40)
+  Validate command: `app:driving-data:mapping:validate` reads a sample file through a mapping and
+  shows the missing columns, the rejected rows by field and reason, the dates and a preview. The
+  person id is hidden, and no value of a rejected row is shown. The preview shows the times in
+  `APP_TIMEZONE`, and hides the row key when a row id column is the person id column. The parser
+  names all missing columns in one `MissingColumnsException`, and it accepts all dates when it has
+  no range.

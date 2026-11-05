@@ -423,7 +423,7 @@ so an invalid mapping stops the application from starting. It then produces an i
 refers to column names itself. `app:driving-data:mapping:validate` checks a sample file against
 a mapping before it is used. It uses the same parser without a date range, and
 `ExtractSummaryDto` counts the result. The output hides the person id and never shows a value of
-a rejected row.
+a rejected row. It also hides the row key when a row id column is the person id column.
 
 **What a mapping can change:** the column names, the code values and the formats of the fixed
 application fields. Each application field must have one source column. These changes need code:

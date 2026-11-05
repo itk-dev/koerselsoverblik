@@ -344,12 +344,14 @@ task console -- app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE> 
 The command changes no data. It shows:
 
 - the missing columns of the mapping, if there are any
-- the number of stop rows and rejected rows, the first and the last date in the file, and the
-  number of dates with stop rows
+- the number of stop rows and rejected rows, the first and the last date of the stop rows, and
+  the number of dates with stop rows
 - the rejected rows: the count and the first row numbers for each field and reason. It never
   shows a value of a rejected row
 - a preview of the first stop rows as the application reads them. `--rows` sets the number of
-  rows (default 5). The person id shows as `(hidden)`
+  rows (default 5). The times are in `APP_TIMEZONE`, as in the file. The person id shows as
+  `(hidden)`. The row key also shows as `(hidden)` when a `row_id` column is the `person_id`
+  column
 
 The command does not check a date range. An upload checks the dates against the range that the
 user selects.
