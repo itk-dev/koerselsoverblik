@@ -7,6 +7,7 @@ use App\Entity\SubAgreementSupplierAssignment;
 use App\Entity\Supplier;
 use App\Repository\SubAgreementRepository;
 use App\Repository\SubAgreementSupplierAssignmentRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -68,6 +69,21 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
         $repository = $this->assignments();
         self::assertSame($earlier, $repository->findSupplier($subAgreement, new \DateTimeImmutable('2026-01-31')));
         self::assertSame($later, $repository->findSupplier($subAgreement, new \DateTimeImmutable('2026-02-01')));
+    }
+
+    /**
+     * The database stops the most likely duplicate: the same form sent two times at once.
+     */
+    public function testTwoAssignmentsOfASubAgreementCannotHaveTheSameFirstDate(): void
+    {
+        $subAgreement = $this->subAgreement('Ø4-VB');
+        $supplier = $this->supplier('Vognmand');
+        $this->assign($subAgreement, $supplier, '2026-01-01', null);
+        $this->assign($subAgreement, $supplier, '2026-01-01', null);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+
+        $this->entityManager->flush();
     }
 
     public function testAssignmentsAreCountedForEachSupplier(): void

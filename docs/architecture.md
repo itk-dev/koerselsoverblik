@@ -364,7 +364,10 @@ supplier comparison must keep the past figures of each supplier, so:
 - An assignment has a `valid_from` date and an optional `valid_to` date. Both dates are part of
   the period.
 - The assignments of one sub-agreement must not overlap. `AssignmentDto` holds the form data, and
-  the `NoOverlappingAssignment` constraint compares it with the other assignments.
+  the `NoOverlappingAssignment` constraint compares it with the other assignments. The database
+  cannot prevent overlap. A unique index on `(sub_agreement_id, valid_from)` only rejects two
+  assignments with the same first date, for example the same form sent two times. If overlap
+  occurs anyway, the assignment with the latest first date wins.
 - To change supplier, end the current assignment and add a new one from the change date.
 - `AssignmentManager` saves or deletes an assignment, and dispatches `SubAgreementSupplierChanged`
   with the old and the new period.

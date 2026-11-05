@@ -10,10 +10,11 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * The supplier that drives the routes of a sub-agreement from the first date to the last date. An
  * empty last date means no end. The periods of one sub-agreement do not overlap. AssignmentDto
- * validates a new or changed assignment.
+ * validates a new or changed assignment. The database cannot prevent overlap. It only rejects two
+ * assignments of one sub-agreement with the same first date.
  */
 #[ORM\Entity(repositoryClass: SubAgreementSupplierAssignmentRepository::class)]
-#[ORM\Index(fields: ['validFrom', 'validTo'])]
+#[ORM\UniqueConstraint(columns: ['sub_agreement_id', 'valid_from'])]
 class SubAgreementSupplierAssignment
 {
     #[ORM\Id]
