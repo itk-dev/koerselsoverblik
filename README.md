@@ -56,8 +56,8 @@ averages of daily percentages.
 
 **Terms:**
 
-- **Route:** a vehicle schedule in the planning system, for example `Ø4-VB-01`.
-- **Sub-agreement:** the part of a route name before the last number, for example `Ø4-VB`. It is
+- **Route:** a vehicle schedule in the planning system, for example `AB-CD-01`.
+- **Sub-agreement:** the part of a route name before the last number, for example `AB-CD`. It is
   assigned to a supplier for a date range.
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day. The planning system
@@ -366,7 +366,7 @@ application starts.
 ### Map sub-agreements to suppliers
 
 The driving data extract does not say which supplier drives a route. A route name such as
-`Ø4-VB-01` or `TEST_01` starts with its sub-agreement (`Ø4-VB`, `TEST`): the part before the last
+`AB-CD-01` or `TEST_01` starts with its sub-agreement (`AB-CD`, `TEST`): the part before the last
 `-` or `_` and the digits after it. A supplier is assigned to a sub-agreement, and the assignment
 applies to all its routes.
 

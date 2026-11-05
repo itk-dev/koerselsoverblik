@@ -151,7 +151,7 @@ final class SupplierAdminTest extends WebTestCase
     public function testSupplierWithAssignmentsCannotBeDeleted(): void
     {
         $supplier = $this->supplier('Vognmand A');
-        $subAgreement = (new SubAgreement())->setReference('Ø4-VB');
+        $subAgreement = (new SubAgreement())->setReference('AB-CD');
         $this->entityManager()->persist($subAgreement);
         $this->entityManager()->persist(new SubAgreementSupplierAssignment($subAgreement, $supplier, new \DateTimeImmutable('2026-01-01'), null));
         $this->entityManager()->flush();

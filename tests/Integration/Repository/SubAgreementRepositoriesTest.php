@@ -28,7 +28,7 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
 
     public function testSupplierOnADateFollowsTheAssignments(): void
     {
-        $subAgreement = $this->subAgreement('Ø4-VB');
+        $subAgreement = $this->subAgreement('AB-CD');
         $old = $this->supplier('Gammel Vognmand');
         $new = $this->supplier('Ny Vognmand');
         $this->assign($subAgreement, $old, '2026-01-01', '2026-03-31');
@@ -45,7 +45,7 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
 
     public function testSupplierOfOneSubAgreementIsNotTheSupplierOfAnother(): void
     {
-        $assigned = $this->subAgreement('Ø4-VB');
+        $assigned = $this->subAgreement('AB-CD');
         $other = $this->subAgreement('TEST');
         $this->assign($assigned, $this->supplier('Vognmand'), '2026-01-01', null);
         $this->entityManager->flush();
@@ -59,7 +59,7 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
      */
     public function testOverlappingAssignmentsGiveTheSupplierWithTheLatestFirstDate(): void
     {
-        $subAgreement = $this->subAgreement('Ø4-VB');
+        $subAgreement = $this->subAgreement('AB-CD');
         $earlier = $this->supplier('Tidlig Vognmand');
         $later = $this->supplier('Sen Vognmand');
         $this->assign($subAgreement, $later, '2026-02-01', null);
@@ -76,7 +76,7 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
      */
     public function testTwoAssignmentsOfASubAgreementCannotHaveTheSameFirstDate(): void
     {
-        $subAgreement = $this->subAgreement('Ø4-VB');
+        $subAgreement = $this->subAgreement('AB-CD');
         $supplier = $this->supplier('Vognmand');
         $this->assign($subAgreement, $supplier, '2026-01-01', null);
         $this->assign($subAgreement, $supplier, '2026-01-01', null);

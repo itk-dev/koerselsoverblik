@@ -10,12 +10,12 @@ final class RouteTest extends TestCase
 {
     public function testRouteHasItsNameAndSubAgreement(): void
     {
-        $subAgreement = (new SubAgreement())->setReference('Ø4-VB');
+        $subAgreement = (new SubAgreement())->setReference('AB-CD');
 
-        $route = new Route('Ø4-VB-01', $subAgreement);
+        $route = new Route('AB-CD-01', $subAgreement);
 
         self::assertNull($route->getId());
-        self::assertSame('Ø4-VB-01', $route->getSourceKey());
+        self::assertSame('AB-CD-01', $route->getSourceKey());
         self::assertSame($subAgreement, $route->getSubAgreement());
     }
 }

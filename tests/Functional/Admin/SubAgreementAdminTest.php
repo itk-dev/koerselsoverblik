@@ -52,10 +52,10 @@ final class SubAgreementAdminTest extends WebTestCase
     public function testAdminCanCreateASubAgreement(): void
     {
         $this->client->request('GET', '/admin/sub-agreements/new');
-        $this->client->submitForm('Gem', ['sub_agreement[reference]' => ' Ø4-VB ']);
+        $this->client->submitForm('Gem', ['sub_agreement[reference]' => ' AB-CD ']);
         $this->client->followRedirect();
 
-        self::assertSelectorTextContains('h1', 'Delaftale Ø4-VB');
+        self::assertSelectorTextContains('h1', 'Delaftale AB-CD');
         self::assertSelectorTextContains('[data-test="flash-success"]', 'Delaftalen er oprettet.');
         self::assertSelectorExists('[data-test="assignment-none"]');
         self::assertSelectorExists('[data-test="route-none"]');
@@ -63,10 +63,10 @@ final class SubAgreementAdminTest extends WebTestCase
 
     public function testSubAgreementNeedsAUniqueReference(): void
     {
-        $this->subAgreement('Ø4-VB');
+        $this->subAgreement('AB-CD');
 
         $this->client->request('GET', '/admin/sub-agreements/new');
-        $this->client->submitForm('Gem', ['sub_agreement[reference]' => 'Ø4-VB']);
+        $this->client->submitForm('Gem', ['sub_agreement[reference]' => 'AB-CD']);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
         self::assertSelectorTextContains('.itkaarhus-field', 'Der findes allerede en delaftale med dette navn.');
@@ -94,20 +94,20 @@ final class SubAgreementAdminTest extends WebTestCase
 
     public function testPageShowsTheRoutesOfTheSubAgreement(): void
     {
-        $subAgreement = $this->subAgreement('Ø4-VB');
-        $this->entityManager()->persist(new Route('Ø4-VB-02', $subAgreement));
-        $this->entityManager()->persist(new Route('Ø4-VB-01', $subAgreement));
+        $subAgreement = $this->subAgreement('AB-CD');
+        $this->entityManager()->persist(new Route('AB-CD-02', $subAgreement));
+        $this->entityManager()->persist(new Route('AB-CD-01', $subAgreement));
         $this->entityManager()->flush();
         $this->entityManager()->clear();
 
         $crawler = $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId());
 
-        self::assertSame(['Ø4-VB-01', 'Ø4-VB-02'], $crawler->filter('[data-test="route-list"] li')->each(static fn ($item): string => $item->text()));
+        self::assertSame(['AB-CD-01', 'AB-CD-02'], $crawler->filter('[data-test="route-list"] li')->each(static fn ($item): string => $item->text()));
     }
 
     public function testAdminCanAssignASupplier(): void
     {
-        $subAgreement = $this->subAgreement('Ø4-VB');
+        $subAgreement = $this->subAgreement('AB-CD');
         $supplier = $this->supplier('Vognmand A');
         $this->entityManager()->flush();
 
@@ -130,7 +130,7 @@ final class SubAgreementAdminTest extends WebTestCase
 
     public function testChangedAssignmentDispatchesTheOldAndTheNewPeriod(): void
     {
-        $subAgreement = $this->subAgreement('Ø4-VB');
+        $subAgreement = $this->subAgreement('AB-CD');
         $assignment = $this->assign($subAgreement, $this->supplier('Vognmand A'), '2026-01-01', null);
         $this->entityManager()->flush();
         // The changed assignment is loaded from the database, and is not compared with itself.
@@ -148,7 +148,7 @@ final class SubAgreementAdminTest extends WebTestCase
 
     public function testDeletedAssignmentDispatchesTheOldPeriod(): void
     {
-        $subAgreement = $this->subAgreement('Ø4-VB');
+        $subAgreement = $this->subAgreement('AB-CD');
         $this->assign($subAgreement, $this->supplier('Vognmand A'), '2026-01-01', '2026-03-31');
         $this->entityManager()->flush();
 
@@ -165,7 +165,7 @@ final class SubAgreementAdminTest extends WebTestCase
 
     public function testOverlappingAssignmentIsRejected(): void
     {
-        $subAgreement = $this->subAgreement('Ø4-VB');
+        $subAgreement = $this->subAgreement('AB-CD');
         $supplier = $this->supplier('Vognmand A');
         $this->assign($subAgreement, $supplier, '2026-01-01', null);
         $this->entityManager()->flush();
@@ -185,7 +185,7 @@ final class SubAgreementAdminTest extends WebTestCase
 
     public function testLastDateBeforeTheFirstDateIsRejected(): void
     {
-        $subAgreement = $this->subAgreement('Ø4-VB');
+        $subAgreement = $this->subAgreement('AB-CD');
         $supplier = $this->supplier('Vognmand A');
         $this->entityManager()->flush();
 
@@ -202,7 +202,7 @@ final class SubAgreementAdminTest extends WebTestCase
 
     public function testDeleteWithoutAValidTokenIsDenied(): void
     {
-        $assignment = $this->assign($this->subAgreement('Ø4-VB'), $this->supplier('Vognmand A'), '2026-01-01', null);
+        $assignment = $this->assign($this->subAgreement('AB-CD'), $this->supplier('Vognmand A'), '2026-01-01', null);
         $this->entityManager()->flush();
 
         $this->client->request('POST', '/admin/assignments/'.$assignment->getId().'/delete', ['_token' => 'wrong']);

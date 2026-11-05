@@ -245,7 +245,7 @@ erDiagram
     }
     SUB_AGREEMENT {
         int id PK
-        string reference UK "for example Ø4-VB"
+        string reference UK "for example AB-CD"
     }
     ROUTE {
         int id PK
@@ -334,9 +334,9 @@ erDiagram
 **Terms:**
 
 - **Route (vognløb):** a vehicle schedule in the planning system, identified by its name in the
-  extract, for example `Ø4-VB-01`.
+  extract, for example `AB-CD-01`.
 - **Sub-agreement (delaftale):** the part of a route name before the last `-` or `_` and the
-  digits after it, for example `Ø4-VB` in `Ø4-VB-01`, or `TEST` in `TEST_01`. A name without such
+  digits after it, for example `AB-CD` in `AB-CD-01`, or `TEST` in `TEST_01`. A name without such
   an end is a sub-agreement as a whole. The application does not split the sub-agreement further,
   because not all names have the same format. A reference can itself end in a number, for example
   `TEST-2` from `TEST-2-01`. Thus the form does not apply the route name rule to a typed

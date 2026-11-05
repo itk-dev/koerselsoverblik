@@ -22,15 +22,15 @@ final class SubAgreementReferenceTest extends TestCase
      */
     public static function routeNames(): iterable
     {
-        yield 'hyphen' => ['Ø4-VB-01', 'Ø4-VB'];
+        yield 'hyphen' => ['AB-CD-01', 'AB-CD'];
         yield 'underscore' => ['TEST_01', 'TEST'];
-        yield 'long number' => ['Ø4-VB-123', 'Ø4-VB'];
-        yield 'only the last number' => ['Ø4-VB-01-02', 'Ø4-VB-01'];
+        yield 'long number' => ['AB-CD-123', 'AB-CD'];
+        yield 'only the last number' => ['AB-CD-01-02', 'AB-CD-01'];
         yield 'no number at the end' => ['TEST', 'TEST'];
-        yield 'letter after the number' => ['Ø4-VB-1A', 'Ø4-VB-1A'];
+        yield 'letter after the number' => ['AB-CD-1A', 'AB-CD-1A'];
         yield 'number without a separator' => ['R01', 'R01'];
-        yield 'spaces at the start and the end' => ['  Ø4-VB-01 ', 'Ø4-VB'];
+        yield 'spaces at the start and the end' => ['  AB-CD-01 ', 'AB-CD'];
         yield 'only a separator and a number' => ['-01', '-01'];
-        yield 'line break in the name' => ["Ø4\nVB-01", "Ø4\nVB"];
+        yield 'line break in the name' => ["AB\nCD-01", "AB\nCD"];
     }
 }

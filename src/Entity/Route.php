@@ -5,7 +5,7 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * A route (vognløb) from the extract, for example "Ø4-VB-01". The import of driving data creates
+ * A route (vognløb) from the extract, for example "AB-CD-01". The import of driving data creates
  * it. It is not created by hand.
  */
 #[ORM\Entity]

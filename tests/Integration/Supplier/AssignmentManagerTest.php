@@ -130,7 +130,7 @@ final class AssignmentManagerTest extends KernelTestCase
 
     private function newData(string $from, ?string $to): AssignmentDto
     {
-        $subAgreement = (new SubAgreement())->setReference('Ø4-VB');
+        $subAgreement = (new SubAgreement())->setReference('AB-CD');
         $supplier = (new Supplier())->setName('Vognmand');
         $this->entityManager->persist($subAgreement);
         $this->entityManager->persist($supplier);

@@ -10,7 +10,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * A sub-agreement (delaftale), for example "Ø4-VB". The routes of the sub-agreement have names that
+ * A sub-agreement (delaftale), for example "AB-CD". The routes of the sub-agreement have names that
  * start with the reference. An administrator assigns the sub-agreement to a supplier for a period.
  */
 #[ORM\Entity(repositoryClass: SubAgreementRepository::class)]
