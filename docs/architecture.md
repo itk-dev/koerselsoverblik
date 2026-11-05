@@ -482,17 +482,26 @@ end flag joins that run with the next run. The block number gives each run direc
 
 ### Times
 
-A `time` field is a time of day in an Excel time cell. It is a wall-clock time on the
-`service_date` of the row:
+A `time` field is an Excel cell with a duration format, such as `[hh]:mm:ss`. OpenSpout gives
+such a cell as a `DateInterval`. A cell with an ordinary time format, such as `hh:mm`, is
+rejected. The time is a wall-clock time on the `service_date` of the row. A time of 24:00 or
+more is on the next day. For example, 25:10 is 01:10 on the day after `service_date`.
 
-- A time of 24:00 or more is on the next day. For example, 25:10 is 01:10 on the day after
-  `service_date`.
-- The import does not convert times to UTC, and stores them with no time zone. A change to or
-  from daylight saving time in Europe/Copenhagen never moves a stored time.
-- The import does not correct a time that does not exist, or that exists two times, on the
-  night of a change.
-- Known limit: a delay across a change at night can be one hour wrong. Few runs drive at that
-  time.
+The times in the extract are wall-clock times in `APP_TIMEZONE` (default `Europe/Copenhagen`).
+The import stores all dates and times in UTC:
+
+- `CellConverter` reads a date and time as a wall-clock time. It uses UTC for the PHP object,
+  because UTC has no change to summer time.
+- `StopRowDto` reads the wall-clock time in `APP_TIMEZONE`, and converts it to UTC. A delay
+  across a change to or from summer time is then correct.
+- `service_date` and the dates of `ImportRangeDto` are calendar dates at 00:00 UTC. They are
+  not converted.
+- A time that does not exist moves one hour later. For example, 02:30 on the night of the change
+  to summer time is read as 03:30 summer time.
+- A time that occurs two times, on the night of the change to winter time, is read as winter
+  time (the second one).
+
+The browser shows the times in `APP_TIMEZONE`.
 
 ### Date range
 

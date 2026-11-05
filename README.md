@@ -168,6 +168,7 @@ Set these in `.env.local`:
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 | `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
+| `APP_TIMEZONE` | The time zone of the wall-clock times in an extract. The import stores the times in UTC | `Europe/Copenhagen` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.
@@ -253,14 +254,17 @@ A mapping defines:
 - **Fields:** each application field must have a source column. For each field, the mapping
   gives the column and how to read it:
   - type: `string`, `int`, `float`, `bool`, `date`, `time`, `datetime`
-  - date format, only for a `date` or `datetime` field: `excel` (or no format) for a date cell
-    or an Excel serial number, or a
+  - date format, only for a `date` or `datetime` field: `excel` (or no format) for an Excel
+    serial number, or a
     [format string](https://www.php.net/manual/en/datetimeimmutable.createfromformat.php) such
-    as `Y-m-d` for text
-  - a `time` field is a time of day in an Excel time cell. It is a wall-clock time on
+    as `Y-m-d` for text. A date cell is accepted with all formats, because Excel can change the
+    text of a date to a date cell when a user saves the file.
+  - a `time` field is an Excel cell with a duration format, such as `[hh]:mm:ss`. A cell with
+    an ordinary time format, such as `hh:mm`, is rejected. The time is a wall-clock time on
     `service_date`. A time of 24:00 or more is on the next day: 25:10 is 01:10 on the day after
-    `service_date`. Times are stored with no time zone, so a change to or from daylight saving
-    time does not move them. See [Times](docs/architecture.md#times).
+    `service_date`.
+  - all times are wall-clock times in `APP_TIMEZONE`. The import stores them in UTC. See
+    [Times](docs/architecture.md#times).
   - value maps for codes, only for a `string` field, for example which status values mean
     "completed"
   - for a `bool` field: the values that mean true and the values that mean false

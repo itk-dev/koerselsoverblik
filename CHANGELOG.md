@@ -92,3 +92,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a row with a date outside the `ImportRangeDto` of the upload. `APP_DRIVING_DATA_MAX_DAYS`
   limits the range to 31 days. A mapping must now give each field an allowed type, and must make
   `route`, `service_date`, `run`, `stop_type`, `stop_status` and `planned_time` required.
+  The parser reads the times in `APP_TIMEZONE` (default `Europe/Copenhagen`) and gives them in
+  UTC. A date cell is accepted also for a field with a format string.
