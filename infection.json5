@@ -57,6 +57,11 @@
         MethodCallRemoval: {
             ignoreSourceCodeByRegex: ['\\$reader->close\\(\\);'],
         },
+        // Equivalent: the inspector copies one byte more than the remaining size to find a file
+        // that is too large. Two bytes more find it too. Only the number of copied bytes changes.
+        IncrementInteger: {
+            ignoreSourceCodeByRegex: ['.*stream_copy_to_stream\\(\\$stream, \\$copy, \\$remaining \\+ 1\\).*'],
+        },
     },
     minCoveredMsi: 80,
     // The default of 10 seconds is too short when all threads run. The Taskfile fails the run on

@@ -35,7 +35,6 @@ final readonly class StopRowParser
     public function __construct(
         private CellConverter $converter,
         private ExtractInspector $inspector,
-        private ExtractLimitsDto $limits,
         #[Autowire('%app.timezone%')]
         private string $timeZone,
     ) {
@@ -54,7 +53,7 @@ final readonly class StopRowParser
      */
     public function parse(string $path, MappingDto $mapping, ImportRangeDto $range): \Generator
     {
-        $this->inspector->inspect($path, $this->limits);
+        $this->inspector->inspect($path);
 
         // With the empty rows, the key of a row is its row number in the sheet.
         $reader = new Reader(new Options(SHOULD_PRESERVE_EMPTY_ROWS: true));

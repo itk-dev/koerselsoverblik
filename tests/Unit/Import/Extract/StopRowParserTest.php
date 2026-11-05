@@ -387,7 +387,7 @@ final class StopRowParserTest extends TestCase
 
     private function parser(?ExtractLimitsDto $limits = null): StopRowParser
     {
-        return new StopRowParser(new CellConverter(), new ExtractInspector(), $limits ?? new ExtractLimitsDto(1_000_000, 10_000_000, 1000, 100), 'Europe/Copenhagen');
+        return new StopRowParser(new CellConverter(), new ExtractInspector($limits ?? new ExtractLimitsDto(1_000_000, 10_000_000, 1000, 100)), 'Europe/Copenhagen');
     }
 
     private static function defaultRange(): ImportRangeDto

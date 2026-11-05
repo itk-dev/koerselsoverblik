@@ -87,6 +87,81 @@ final class ExtractInspectorTest extends TestCase
     }
 
     /**
+     * libzip does not check the size that the archive gives for a file. The inspector counts the
+     * bytes that it reads, so a zip bomb with a false size is rejected.
+     */
+    public function testFileWithAFalseSizeIsRejected(): void
+    {
+        $this->addEntry('xl/z.xml', '<?xml version="1.0"?><x>'.str_repeat('a', 100_000).'</x>');
+        $this->declareSize('xl/z.xml', 10);
+        $size = $this->uncompressedSize();
+
+        $this->expectRejection(\sprintf('The extract is larger than %d bytes when it is not compressed.', $size));
+
+        $this->inspect(self::limits(maxUncompressedSize: $size));
+    }
+
+    /**
+     * An encrypted file gives no stream. A file with a compression method that libzip cannot
+     * read is the same.
+     */
+    public function testEncryptedFileIsRejected(): void
+    {
+        $zip = new \ZipArchive();
+        $zip->open($this->path);
+        $zip->addFromString('xl/z.xml', '<?xml version="1.0"?><x/>');
+        $zip->setEncryptionName('xl/z.xml', \ZipArchive::EM_AES_256, 'secret');
+        $zip->close();
+
+        $this->expectRejection('The extract has a file that cannot be read.');
+
+        $this->inspect(self::limits());
+    }
+
+    public function testFileWithBadCompressedDataIsRejected(): void
+    {
+        $this->addEntry('xl/z.xml', '<?xml version="1.0"?><x>'.str_repeat('abc', 10_000).'</x>');
+        $this->damageEntry('xl/z.xml');
+
+        $this->expectRejection('The extract has a file that cannot be read.');
+
+        $this->inspect(self::limits());
+    }
+
+    public function testArchiveWithTheMaximumNumberOfFilesIsAccepted(): void
+    {
+        $this->addFiles(ExtractInspector::MAX_FILES);
+
+        $this->expectNotToPerformAssertions();
+
+        $this->inspect(self::limits());
+    }
+
+    public function testArchiveWithMoreFilesIsRejected(): void
+    {
+        $this->addFiles(ExtractInspector::MAX_FILES + 1);
+
+        $this->expectRejection(\sprintf('The extract has more than %d files.', ExtractInspector::MAX_FILES));
+
+        $this->inspect(self::limits());
+    }
+
+    /**
+     * Some tools, but not Excel, write an entry for each folder. It has no content.
+     */
+    public function testFolderIsSkipped(): void
+    {
+        $zip = new \ZipArchive();
+        $zip->open($this->path);
+        $zip->addEmptyDir('xl/media');
+        $zip->close();
+
+        $this->expectNotToPerformAssertions();
+
+        $this->inspect(self::limits());
+    }
+
+    /**
      * OpenSpout reads all of these files, so a DOCTYPE in any of them is rejected.
      */
     #[DataProvider('xmlFiles')]
@@ -195,6 +270,40 @@ final class ExtractInspectorTest extends TestCase
         $this->expectRejection('The extract has more than 701 columns.');
 
         $this->inspect(self::limits(maxColumns: 701));
+    }
+
+    /**
+     * Excel has at most three letters in a column. OpenSpout rejects a reference with more.
+     */
+    #[DataProvider('longColumnReferences')]
+    public function testColumnWithMoreThanThreeLettersIsRejected(string $search, string $replace): void
+    {
+        $this->changeSheet(static fn (string $xml): string => str_replace($search, $replace, $xml));
+
+        $this->expectRejection('The extract has a cell reference that is not valid.');
+
+        $this->inspect(self::limits(maxColumns: 100_000));
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function longColumnReferences(): iterable
+    {
+        yield 'dimension' => ['ref="A1:C3"', 'ref="A1:AAAA3"'];
+        yield 'cell' => ['r="C2"', 'r="AAAA2"'];
+    }
+
+    public function testColumnWithThreeLettersIsAColumn(): void
+    {
+        $this->changeSheet(static fn (string $xml): string => str_replace('ref="A1:C3"', 'ref="A1:XFD3"', $xml));
+
+        // "XFD" is the last column of Excel, 16384.
+        $this->inspect(self::limits(maxColumns: 16_384));
+
+        $this->expectRejection('The extract has more than 16383 columns.');
+
+        $this->inspect(self::limits(maxColumns: 16_383));
     }
 
     public function testDimensionWithoutReferenceIsAccepted(): void
@@ -347,7 +456,7 @@ final class ExtractInspectorTest extends TestCase
 
     private function inspect(ExtractLimitsDto $limits): void
     {
-        (new ExtractInspector())->inspect($this->path, $limits);
+        (new ExtractInspector($limits))->inspect($this->path);
     }
 
     private function expectRejection(string $message): void
@@ -404,6 +513,70 @@ final class ExtractInspectorTest extends TestCase
         $zip->open($this->path);
         $zip->addFromString($entry, $content);
         $zip->close();
+    }
+
+    /**
+     * Adds empty files until the archive has $count files.
+     */
+    private function addFiles(int $count): void
+    {
+        $zip = new \ZipArchive();
+        $zip->open($this->path);
+        for ($index = $zip->numFiles; $index < $count; ++$index) {
+            $zip->addFromString(\sprintf('xl/empty/%d.xml', $index), '');
+        }
+        $zip->close();
+    }
+
+    /**
+     * Changes the uncompressed size of a file in the local header and in the central directory.
+     * The data does not change.
+     */
+    private function declareSize(string $entry, int $size): void
+    {
+        $data = (string) file_get_contents($this->path);
+        [$central, $local] = self::headers($data, $entry);
+        $data = substr_replace($data, pack('V', $size), $central + 24, 4);
+        $data = substr_replace($data, pack('V', $size), $local + 22, 4);
+        file_put_contents($this->path, $data);
+    }
+
+    /**
+     * Changes bytes in the compressed data of a file, so that the CRC of the file is wrong.
+     */
+    private function damageEntry(string $entry): void
+    {
+        $data = (string) file_get_contents($this->path);
+        [, $local] = self::headers($data, $entry);
+        // The local header has 30 bytes, then the name and the extra field.
+        /** @var array{name: int, extra: int} $lengths */
+        $lengths = unpack('vname/vextra', substr($data, $local + 26, 4));
+        $start = $local + 30 + $lengths['name'] + $lengths['extra'];
+        for ($index = $start; $index < $start + 50; ++$index) {
+            $data[$index] = \chr(\ord($data[$index]) ^ 0x55);
+        }
+        file_put_contents($this->path, $data);
+    }
+
+    /**
+     * Gives the offset of the header of a file in the central directory, and of its local header.
+     *
+     * @return array{int, int}
+     */
+    private static function headers(string $data, string $entry): array
+    {
+        // A header in the central directory has the offset of the local header at byte 42, and
+        // the name at byte 46.
+        $central = -1;
+        do {
+            $central = strpos($data, "PK\x01\x02", $central + 1);
+            self::assertIsInt($central, \sprintf('The archive has no file "%s".', $entry));
+        } while (substr($data, $central + 46, \strlen($entry)) !== $entry);
+
+        /** @var array{1: int} $local */
+        $local = unpack('V', substr($data, $central + 42, 4));
+
+        return [$central, $local[1]];
     }
 
     private static function withoutDimension(string $xml): string
