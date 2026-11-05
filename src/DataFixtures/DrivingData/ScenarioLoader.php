@@ -36,11 +36,6 @@ final class ScenarioLoader
             }
         }
 
-        $expected = [];
-        foreach (self::map($path, $data['expected'], 'expected') as $name => $value) {
-            $expected[(string) $name] = $value;
-        }
-
         return new Scenario(
             name: basename($path, '.yaml'),
             firstDate: self::date($path, $range['first'] ?? null, 'range first'),
@@ -51,7 +46,7 @@ final class ScenarioLoader
                     ?? self::invalid($path, '"omit" has a name that is not a field.'),
                 self::map($path, $data['omit'] ?? [], 'omit'),
             )),
-            expected: $expected,
+            expected: self::map($path, $data['expected'], 'expected'),
         );
     }
 
@@ -129,7 +124,7 @@ final class ScenarioLoader
             return null;
         }
 
-        return \is_int($value) || \is_float($value) ? (float) $value : self::invalid($path, \sprintf('"%s" must be a number.', $name));
+        return \is_int($value) || \is_float($value) ? $value : self::invalid($path, \sprintf('"%s" must be a number.', $name));
     }
 
     /**
@@ -148,8 +143,8 @@ final class ScenarioLoader
      */
     private static function time(string $path, mixed $value): \DateInterval
     {
-        return \is_string($value) && 1 === preg_match('/^(\d{1,2}):(\d{2})$/', $value, $match)
-            ? new \DateInterval(\sprintf('PT%dH%dM', $match[1], $match[2]))
+        return \is_string($value) && 1 === preg_match('/^(?<hours>\d{1,2}):(?<minutes>[0-5]\d)$/', $value, $match)
+            ? new \DateInterval(\sprintf('PT%dH%dM', $match['hours'], $match['minutes']))
             : self::invalid($path, \sprintf('The time "%s" must be hours and minutes, for example "07:30".', \is_string($value) ? $value : get_debug_type($value)));
     }
 

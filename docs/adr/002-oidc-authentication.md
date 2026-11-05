@@ -47,8 +47,10 @@ Option 1:
 - **Users:** the `User` entity is created at the first login and updated at each login. It keeps
   the email (the `upn` claim), the roles and the time of the last login. It has no password.
   There is no user list in the application.
-- **Authentication log:** the bundle's audit trail records each successful and failed login.
-  `OidcAuthenticator` adds a record with the email, the roles and the time of each login. Both go
+- **Authentication log:** the bundle's audit trail records each successful login, and each login
+  that the identity provider approved but the application rejected. A login that fails in the
+  identity provider does not come back to the application, so the identity provider's own log
+  holds it. `OidcLogin` adds a record with the email, the roles and the time of each login. Both go
   to the `openid_connect_audit` channel and its own log file.
 - **Roles from a claim:**
   - The identity provider sends the roles in the claim `OIDC_ROLE_CLAIM`.
@@ -62,7 +64,7 @@ Option 1:
     `ROLE_ADMIN` only.
   - Every controller has a class-level `#[IsGranted]`, and `access_control` denies by default.
   - A test fails if any route has no permission role, or if it checks `ROLE_ADMIN`.
-- **Local development:** the `idp` service in `docker-compose.dev.yml` runs an OIDC mock
+- **Local development:** the `idp` service in `docker-compose.override.yaml` runs an OIDC mock
   (`ghcr.io/geigerzaehler/oidc-provider-mock`). It has one test user with `ROLE_ADMIN` and one
   test user for each permission role.
 - **Tests:** functional tests sign in with `loginUser()`. The tests of the OIDC flow replace the

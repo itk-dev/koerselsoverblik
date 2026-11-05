@@ -68,6 +68,19 @@ final class DrivingDataFixturesCommandTest extends KernelTestCase
         );
     }
 
+    /**
+     * A scenario that is renamed or removed must not leave its old file.
+     */
+    public function testNextRunDeletesTheFileOfAScenarioThatIsGone(): void
+    {
+        self::runFixturesCommand(['--months' => '1']);
+        copy(self::directory().'/base.xlsx', self::directory().'/old_scenario.xlsx');
+
+        self::runFixturesCommand(['--months' => '1']);
+
+        self::assertFileDoesNotExist(self::directory().'/old_scenario.xlsx');
+    }
+
     public function testLastMonthIsTheCurrentMonthByDefault(): void
     {
         $result = self::runCommand('app:fixtures:driving-data', ['--months' => '1']);
