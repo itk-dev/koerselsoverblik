@@ -1,0 +1,14 @@
+{% use 'form_div_layout.html.twig' %}
+
+{#
+    Each field uses the field style of the design system. The form_row block of form_div_layout
+    sets aria-invalid and aria-describedby in widget_attr, so only the rendering changes here.
+#}
+{% block form_row_render %}
+    <div class="itkaarhus-field">
+        {{ form_label(form) }}
+        {{ form_widget(form, widget_attr) }}
+        {{ form_help(form) }}
+        {{ form_errors(form) }}
+    </div>
+{% endblock %}

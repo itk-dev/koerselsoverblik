@@ -60,6 +60,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   also needs `ROLE_UPLOAD_DRIVING_DATA`. The reference extract, the test data and the open
   questions of the import are in `docs/architecture.md`.
 - The GitHub links use the new repository name, `itk-dev/koerselsoverblik`.
+- [#44](https://github.com/itk-dev/koerselsoverblik/issues/44)
+  Suppliers and sub-agreements: the first entities and migration. A route belongs to a
+  sub-agreement: the part of its name before the last `-nn` or `_nn`. An administrator creates
+  suppliers and sub-agreements, and assigns a sub-agreement to a supplier for a date range without
+  overlap. Each change dispatches `SubAgreementSupplierChanged` with the old and the new period.
+  Forms keep their CSRF tokens in the session.
 - [#31](https://github.com/itk-dev/koerselsoverblik/issues/31)
   Import mapping: the YAML format for import mappings in `config/import/driving_data/`, a loader
   that validates a mapping and builds a `MappingDto` value object, and the `default` mapping for the

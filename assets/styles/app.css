@@ -347,3 +347,38 @@ body {
         background: var(--itkaarhus-white);
     }
 }
+
+/* -- Admin pages ---------------------------------------------- */
+.flash {
+    margin-bottom: var(--itkaarhus-space-4);
+}
+.admin-tabs {
+    display: flex;
+    gap: var(--itkaarhus-space-2);
+    margin-bottom: var(--itkaarhus-space-5);
+    border-bottom: var(--hairline);
+}
+.admin-tabs a {
+    padding: var(--itkaarhus-space-2) var(--itkaarhus-space-3);
+    color: var(--itkaarhus-gray-700);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+}
+.admin-tabs a[aria-current="page"] {
+    color: var(--itkaarhus-blue-700);
+    border-bottom-color: var(--itkaarhus-primary);
+    font-weight: 600;
+}
+.admin-form {
+    display: grid;
+    gap: var(--itkaarhus-space-4);
+}
+.admin-form__buttons,
+.actions {
+    display: flex;
+    gap: var(--itkaarhus-space-2);
+    align-items: center;
+}
+.actions {
+    justify-content: flex-end;
+}

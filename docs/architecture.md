@@ -203,6 +203,7 @@ flowchart TB
 | `Form` | Hand-built form types for upload, daily counts and administration |
 | `Security` | The OIDC authenticator, the mapping from the role claim to roles, and the role guards |
 | `Import\DrivingData` | Reads an extract through a mapping and turns it into stored data and aggregates |
+| `Supplier` | The periods of the supplier assignments, the overlap check, and the change event |
 | `Report` | Period handling and the calculation of every figure |
 | `Twig` | Formatting helpers and server-rendered components: tiles, sparklines, line charts, panels |
 | `Command` | Console commands for imports and clearing |
@@ -224,8 +225,9 @@ title: Data model (milestone 1)
 erDiagram
     USER ||--o{ IMPORT_BATCH : "uploads"
     USER ||--o{ DAILY_COUNT : "updates"
-    SUPPLIER ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "drives"
-    ROUTE ||--o{ ROUTE_SUPPLIER_ASSIGNMENT : "is assigned"
+    SUPPLIER ||--o{ SUB_AGREEMENT_SUPPLIER_ASSIGNMENT : "drives"
+    SUB_AGREEMENT ||--o{ SUB_AGREEMENT_SUPPLIER_ASSIGNMENT : "is assigned"
+    SUB_AGREEMENT ||--o{ ROUTE : "has"
     ROUTE ||--o{ ROUTE_RUN : "runs"
     ROUTE ||--o{ STOP_ROW : "has"
     IMPORT_BATCH ||--o{ STOP_ROW : "inserted"
@@ -241,13 +243,18 @@ erDiagram
         int id PK
         string name UK
     }
+    SUB_AGREEMENT {
+        int id PK
+        string reference UK "for example AB-CD"
+    }
     ROUTE {
         int id PK
         string source_key UK "route name in the extract"
+        int sub_agreement_id FK
     }
-    ROUTE_SUPPLIER_ASSIGNMENT {
+    SUB_AGREEMENT_SUPPLIER_ASSIGNMENT {
         int id PK
-        int route_id FK
+        int sub_agreement_id FK
         int supplier_id FK
         date valid_from
         date valid_to "null = no end date"
@@ -326,9 +333,15 @@ erDiagram
 
 **Terms:**
 
-- **Route:** a vehicle schedule in the planning system, identified by its name in the extract. An
-  administrator assigns it to a supplier for a date range. On a date with no assignment, it
-  counts as "Unknown".
+- **Route (vognløb):** a vehicle schedule in the planning system, identified by its name in the
+  extract, for example `AB-CD-01`.
+- **Sub-agreement (delaftale):** the part of a route name before the last `-` or `_` and the
+  digits after it, for example `AB-CD` in `AB-CD-01`, or `TEST` in `TEST_01`. A name without such
+  an end is a sub-agreement as a whole. The application does not split the sub-agreement further,
+  because not all names have the same format. A reference can itself end in a number, for example
+  `TEST-2` from `TEST-2-01`. Thus the form does not apply the route name rule to a typed
+  reference. An administrator assigns each sub-agreement to a supplier for a date range. On a date
+  with no assignment, its routes count as "Unknown".
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day. The extract gives each
   run a block number. Punctuality and solo routes are measured per run.
@@ -338,21 +351,30 @@ erDiagram
 | --- | --- |
 | `User` | An account from the identity provider: email (the `upn` claim), roles from the last login, time of the last login. No password |
 | `Supplier` | A transport supplier |
-| `Route` | A route from the extract |
-| `RouteSupplierAssignment` | The supplier that drives a route from `valid_from` to `valid_to` (empty = no end date) |
+| `SubAgreement` | A sub-agreement. `SubAgreementReference::fromRouteName()` finds it from a route name |
+| `Route` | A route from the extract, with its sub-agreement. The import creates it |
+| `SubAgreementSupplierAssignment` | The supplier that drives the routes of a sub-agreement from `valid_from` to `valid_to` (empty = no end date) |
 | `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, rejection reasons |
 | `StopRow` | One stop from the extract, with an optional row key from the mapping. See [open decisions](#open-decisions) |
 | `RouteRun` | Derived: one route run with its last drop-off, delay, peak passengers and distances |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
-**Supplier assignments have dates.** A route can change supplier, for example when a contract
-ends. The supplier comparison must keep the past figures of each supplier, so:
+**Supplier assignments have dates.** A sub-agreement can change supplier from a given date. The
+supplier comparison must keep the past figures of each supplier, so:
 
-- An assignment has a `valid_from` date and an optional `valid_to` date.
-- The assignments of one route must not overlap. The form validates this.
+- An assignment has a `valid_from` date and an optional `valid_to` date. Both dates are part of
+  the period.
+- The assignments of one sub-agreement must not overlap. `AssignmentDto` holds the form data, and
+  the `NoOverlappingAssignment` constraint compares it with the other assignments. The database
+  cannot prevent overlap. A unique index on `(sub_agreement_id, valid_from)` only rejects two
+  assignments with the same first date, for example the same form sent two times. If overlap
+  occurs anyway, the assignment with the latest first date wins.
 - To change supplier, end the current assignment and add a new one from the change date.
-- `DailyStatsAggregator` finds the supplier for each route and date from the assignments.
+- `AssignmentManager` saves or deletes an assignment, and dispatches `SubAgreementSupplierChanged`
+  with the old and the new period.
+- `DailyStatsAggregator` finds the supplier for each route and date through the sub-agreement of
+  the route.
 
 **Derived tables are always rebuildable.** `RouteRun` and `DailyStats` are rebuilt from `StopRow`
 for the dates an import touched. When an assignment is added, changed or deleted, `DailyStats` is
@@ -705,7 +727,7 @@ flowchart TD
   | `ROLE_UPLOAD_DRIVING_DATA` | Upload of driving data |
   | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date on the upload page. The user also needs `ROLE_UPLOAD_DRIVING_DATA` to open the page |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
-  | `ROLE_MANAGE_SUPPLIERS` | Suppliers, routes and route → supplier assignments |
+  | `ROLE_MANAGE_SUPPLIERS` | Suppliers, sub-agreements and sub-agreement → supplier assignments |
 
 - `ROLE_ADMIN` gives all permission roles. At first, users get `ROLE_ADMIN` only. Narrower
   access later needs only other values in the role claim, or a new bundle in `role_hierarchy`.
@@ -810,15 +832,17 @@ issue adds the header.
 **Menu:** `MainMenu` defines the items, and `MenuBuilder` removes the items that the user must
 not see. An item is visible only if the user has its permission role and its route exists.
 `MenuBuilder` generates each URL one time and gives `MenuLink` objects to the template. A menu
-route takes no parameters. `MainMenu` already has the items for daily counts and suppliers, so
-each item shows when its task adds the route.
+route takes no parameters. `MainMenu` already has the item for daily counts, so it shows when
+the route is added.
 
 The menu has these items:
 
 - Overview
 - Daily counts
-- Administration: Upload driving data, and Suppliers and routes. `MenuBuilder` has no groups
-  now. The first page in the group adds the group again.
+- Administration: Upload driving data, and Leverandører og delaftaler. `MenuBuilder` has no
+  groups now. The upload page adds the group, because the group then has two items. Until then,
+  "Leverandører og delaftaler" is an item at the top level, and it goes to
+  `admin_supplier_index`.
 
 **Language:** the UI is in Danish. Texts live in `translations/messages+intl-icu.da.yaml`, and
 `FormatExtension` formats numbers, percentages, percentage points, deltas and period labels.
@@ -909,10 +933,9 @@ testing and the diagram check on every pull request.
   can be an id for one day only. The `default` mapping uses the route name until this is
   confirmed. The product owner in the transport office answers before the route administration
   is built.
-- **Supplier mapping.** How do we know which company drives each route? For example, is there a
-  list from the transport office, a field in the planning system, or a part of the route name?
-  Administrators keep the assignments until a source is known. The product owner answers before
-  go-live.
+- **Supplier mapping (answered).** A route belongs to the sub-agreement in its name: the part
+  before the last `-nn` or `_nn`. An administrator assigns each sub-agreement to a supplier for a
+  date range. See the terms in [Data model](#data-model).
 - **Booked trips.** Some trips are booked outside the fixed routes, and have a common route name.
   Who drives them? Can more than one supplier drive them? With one route for all of them, they
   get one supplier assignment. The product owner in the transport office answers before the

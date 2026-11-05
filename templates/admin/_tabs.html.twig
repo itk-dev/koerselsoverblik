@@ -1,0 +1,4 @@
+<nav class="admin-tabs" aria-label="{{ 'admin.title'|trans }}">
+    <a href="{{ path('admin_supplier_index') }}"{% if current == 'suppliers' %} aria-current="page"{% endif %}>{{ 'admin.suppliers'|trans }}</a>
+    <a href="{{ path('admin_sub_agreement_index') }}"{% if current == 'sub_agreements' %} aria-current="page"{% endif %}>{{ 'admin.sub_agreements'|trans }}</a>
+</nav>

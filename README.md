@@ -45,8 +45,8 @@ The user interface is in Danish.
       after a wrong upload.
     - Columns are read through an [import mapping](#import-mappings), so a changed column name,
       code or format needs no code change.
-  - **Suppliers and routes:** the suppliers, and which supplier drives each route from which
-    date.
+  - **Suppliers and sub-agreements:** the suppliers, and which supplier drives each
+    sub-agreement from which date.
 - **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
@@ -56,7 +56,9 @@ averages of daily percentages.
 
 **Terms:**
 
-- **Route:** a vehicle schedule in the planning system, assigned to a supplier for a date range.
+- **Route:** a vehicle schedule in the planning system, for example `AB-CD-01`.
+- **Sub-agreement:** the part of a route name before the last number, for example `AB-CD`. It is
+  assigned to a supplier for a date range.
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day. The planning system
   gives each run of a route a block number.
@@ -91,7 +93,7 @@ Each part of the application has its own permission role:
 | `ROLE_UPLOAD_DRIVING_DATA` | Upload driving data |
 | `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date. Also needs `ROLE_UPLOAD_DRIVING_DATA`, because the dates are on the upload page |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
-| `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, routes and the route → supplier assignments |
+| `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the sub-agreement → supplier assignments |
 
 `ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
 permission roles let us give narrower access later without code changes.
@@ -361,23 +363,31 @@ is rejected, the file has no stop rows, or the file is not valid. It exits with 
 mapping is not valid or `--rows` is below 1. A mapping with errors is rejected when the
 application starts.
 
-### Map routes to suppliers
+### Map sub-agreements to suppliers
 
-The driving data extract does not say which supplier drives a route. To assign them:
+The driving data extract does not say which supplier drives a route. A route name such as
+`AB-CD-01` or `TEST_01` starts with its sub-agreement (`AB-CD`, `TEST`): the part before the last
+`-` or `_` and the digits after it. A supplier is assigned to a sub-agreement, and the assignment
+applies to all its routes.
 
-1. Go to **Administration → Suppliers and routes** (requires `ROLE_MANAGE_SUPPLIERS`).
-2. Assign each route to a supplier from a start date. Leave the end date empty.
+To assign them:
 
-When a route changes supplier:
+1. Go to **Leverandører og delaftaler** (requires `ROLE_MANAGE_SUPPLIERS`).
+2. Create the suppliers on the **Leverandører** tab.
+3. On the **Delaftaler** tab, open a sub-agreement, or create it.
+4. Add a supplier from a start date. Leave the end date empty.
+
+When a sub-agreement changes supplier:
 
 1. Set the end date of the current assignment to the last day with the old supplier.
 2. Add a new assignment with the new supplier from the next day.
 
-The assignments of one route cannot overlap. The figures for the old supplier before the change
-stay the same.
+The assignments of one sub-agreement cannot overlap. The figures for the old supplier before the
+change stay the same. A supplier with assignments cannot be deleted.
 
-On a date with no assignment, a route counts as "Unknown". Routes with no current assignment are
-listed at the top. When an assignment changes, the figures are recalculated for its dates only.
+On a date with no assignment, the routes of a sub-agreement count as "Unknown". Sub-agreements
+with no assignment today are listed at the top. When an assignment changes, the figures are
+recalculated for the dates of the old and the new period only.
 
 ### Enter daily counts
 
@@ -501,7 +511,7 @@ task fixtures:load
 
 This loads:
 
-- suppliers and routes
+- suppliers, sub-agreements and routes
 - 13 months of generated driving data, imported through the real import
 - daily counts
 

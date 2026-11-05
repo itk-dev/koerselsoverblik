@@ -34,7 +34,7 @@ final class BaseLayoutTest extends WebTestCase
     }
 
     /**
-     * Only the overview route exists now. tests/Integration/Menu/MainMenuTest.php checks the
+     * The daily counts route does not exist yet. tests/Integration/Menu/MainMenuTest.php checks the
      * admin menu with all routes.
      */
     public function testAdminSeesEveryItemWithARoute(): void
@@ -45,7 +45,7 @@ final class BaseLayoutTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         $labels = $crawler->filter('[data-test="menu-item"]')->each(static fn ($item): string => trim($item->text()));
-        self::assertSame(['Overblik'], $labels);
+        self::assertSame(['Overblik', 'Leverandører og delaftaler'], $labels);
     }
 
     public function testBrandLinksToTheFirstMenuItem(): void

@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'admin.sub_agreements'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'admin.title'|trans }}</h1>
+    {{ include('admin/_tabs.html.twig', {current: 'sub_agreements'}) }}
+
+    <p>{{ 'sub_agreement.intro'|trans }}</p>
+    <p><a class="itkaarhus-btn itkaarhus-btn--primary" href="{{ path('admin_sub_agreement_new') }}" data-test="sub-agreement-new">{{ 'sub_agreement.new'|trans }}</a></p>
+
+    {% if sub_agreements is empty %}
+        <p data-test="sub-agreement-none">{{ 'sub_agreement.none'|trans }}</p>
+    {% else %}
+        <table class="itkaarhus-table" data-test="sub-agreement-list">
+            <thead>
+                <tr>
+                    <th scope="col">{{ 'sub_agreement.reference'|trans }}</th>
+                    <th scope="col">{{ 'sub_agreement.current_supplier'|trans }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub_agreement in sub_agreements %}
+                    {% set current = sub_agreement.assignmentOn(today) %}
+                    <tr data-test="sub-agreement-row">
+                        <td><a class="itkaarhus-link" href="{{ path('admin_sub_agreement_show', {id: sub_agreement.id}) }}">{{ sub_agreement.reference }}</a></td>
+                        <td>
+                            {% if current %}
+                                {{ current.supplier.name }}
+                            {% else %}
+                                <span class="itkaarhus-tag itkaarhus-tag--warning" data-test="no-current-supplier">{{ 'sub_agreement.no_current_supplier'|trans }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}
