@@ -338,8 +338,10 @@ erDiagram
 - **Sub-agreement (delaftale):** the part of a route name before the last `-` or `_` and the
   digits after it, for example `Ø4-VB` in `Ø4-VB-01`, or `TEST` in `TEST_01`. A name without such
   an end is a sub-agreement as a whole. The application does not split the sub-agreement further,
-  because not all names have the same format. An administrator assigns each sub-agreement to a
-  supplier for a date range. On a date with no assignment, its routes count as "Unknown".
+  because not all names have the same format. A reference can itself end in a number, for example
+  `TEST-2` from `TEST-2-01`. Thus the form does not apply the route name rule to a typed
+  reference. An administrator assigns each sub-agreement to a supplier for a date range. On a date
+  with no assignment, its routes count as "Unknown".
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day. The extract gives each
   run a block number. Punctuality and solo routes are measured per run.
