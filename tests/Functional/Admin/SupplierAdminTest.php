@@ -129,6 +129,23 @@ final class SupplierAdminTest extends WebTestCase
     }
 
     /**
+     * A screen reader must announce that the field is not valid, and read the error with it.
+     */
+    public function testFieldWithAnErrorIsMarkedAndRefersToTheError(): void
+    {
+        $this->loginAs($this->client, 'admin');
+
+        $this->client->request('GET', '/admin/suppliers/new');
+        $crawler = $this->client->submitForm('Gem', ['supplier[name]' => '  ']);
+
+        $field = $crawler->filter('#supplier_name');
+        self::assertSame('true', $field->attr('aria-invalid'));
+        $errorId = (string) $field->attr('aria-describedby');
+        self::assertNotSame('', $errorId);
+        self::assertCount(1, $crawler->filter('.itkaarhus-field #'.$errorId));
+    }
+
+    /**
      * The old figures refer to the supplier, so it is not deleted.
      */
     public function testSupplierWithAssignmentsCannotBeDeleted(): void
