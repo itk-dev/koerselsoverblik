@@ -8,5 +8,8 @@ parameters:
         - tests/
     excludePaths:
         - config/reference.php
+    # Composer does not autoload the migrations. A test loads one of them.
+    scanDirectories:
+        - migrations/
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
