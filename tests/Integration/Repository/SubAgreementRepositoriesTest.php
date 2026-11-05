@@ -86,19 +86,6 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
         $this->entityManager->flush();
     }
 
-    public function testAssignmentsAreCountedForEachSupplier(): void
-    {
-        $subAgreement = $this->subAgreement('Ø4-VB');
-        $busy = $this->supplier('Travl Vognmand');
-        $idle = $this->supplier('Ledig Vognmand');
-        $this->assign($subAgreement, $busy, '2026-01-01', '2026-01-31');
-        $this->assign($subAgreement, $busy, '2026-03-01', null);
-        $this->entityManager->flush();
-
-        self::assertSame(2, $this->assignments()->countBySupplier($busy));
-        self::assertSame(0, $this->assignments()->countBySupplier($idle));
-    }
-
     /**
      * A sub-agreement without a current assignment needs the attention of an administrator, so it
      * comes first. Each group is sorted by the reference.

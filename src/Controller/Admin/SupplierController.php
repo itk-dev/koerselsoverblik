@@ -4,8 +4,8 @@ namespace App\Controller\Admin;
 
 use App\Entity\Supplier;
 use App\Form\SupplierType;
-use App\Repository\SubAgreementSupplierAssignmentRepository;
 use App\Repository\SupplierRepository;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -51,21 +51,23 @@ final class SupplierController extends AbstractController
     }
 
     /**
-     * A supplier with assignments is not deleted, because the old figures refer to it.
+     * A supplier with assignments is not deleted, because the old figures refer to it. The foreign
+     * key of the assignments blocks the delete. A count before the delete can miss an assignment
+     * that another administrator adds at the same time.
      */
     #[Route('/{id}/delete', name: 'admin_supplier_delete', methods: ['POST'])]
-    public function delete(Request $request, Supplier $supplier, EntityManagerInterface $entityManager, SubAgreementSupplierAssignmentRepository $assignments): Response
+    public function delete(Request $request, Supplier $supplier, EntityManagerInterface $entityManager): Response
     {
         if (!$this->isCsrfTokenValid('delete-supplier-'.$supplier->getId(), $request->getPayload()->getString('_token'))) {
             throw $this->createAccessDeniedException('The CSRF token is not valid.');
         }
 
-        if ($assignments->countBySupplier($supplier) > 0) {
-            $this->addFlash('error', 'supplier.delete_blocked');
-        } else {
+        try {
             $entityManager->remove($supplier);
             $entityManager->flush();
             $this->addFlash('success', 'supplier.deleted');
+        } catch (ForeignKeyConstraintViolationException) {
+            $this->addFlash('error', 'supplier.delete_blocked');
         }
 
         return $this->redirectToRoute('admin_supplier_index');

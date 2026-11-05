@@ -39,9 +39,4 @@ class SubAgreementSupplierAssignmentRepository extends ServiceEntityRepository
 
         return $assignment instanceof SubAgreementSupplierAssignment ? $assignment->getSupplier() : null;
     }
-
-    public function countBySupplier(Supplier $supplier): int
-    {
-        return $this->count(['supplier' => $supplier]);
-    }
 }
