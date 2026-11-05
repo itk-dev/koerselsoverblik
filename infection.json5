@@ -6,13 +6,15 @@
     source: {
         directories: ['src'],
         // The functional tests cover this glue. Mutants in it are mostly equivalent.
-        // The fixture code makes invented test data. Its mutants change only the data.
+        // The generator and the fixtures command make invented data. Their mutants change only
+        // the data. The extract writer and the scenario loader are mutated, because the parser
+        // tests trust their files.
         excludes: [
             'Controller',
             'Form',
             'Twig/Components',
             'Kernel.php',
-            'DataFixtures',
+            'DataFixtures/DrivingData/DevDatasetGenerator.php',
             'Command/DrivingDataFixturesCommand.php',
         ],
     },
@@ -29,11 +31,19 @@
     },
     mutators: {
         '@default': true,
-        // Equivalent: PHP changes an int to a string for a "string" return type and for trim().
         CastString: {
+            // Equivalent mutants. The code does not use strict types, so PHP changes an int to a
+            // string when it goes to a string parameter or return type, and for trim(). PHP also
+            // changes a numeric array key to an int, with or without the cast. The casts are for
+            // PHPStan.
             ignore: [
                 'App\\Import\\Extract\\CellConverter::text',
                 'App\\Import\\Extract\\StopRowParser::text',
+            ],
+            ignoreSourceCodeByRegex: [
+                '.*\\$row->rowId \\?\\? \\(string\\) \\$index.*',
+                '.*return \\(string\\) \\$code;.*',
+                '.*\\$raw\\[\\(string\\) \\$field\\].*',
             ],
         },
         // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes

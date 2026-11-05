@@ -76,26 +76,32 @@ final readonly class CellConverter
     }
 
     /**
-     * A field with a format string reads text. Other fields read a date cell or an Excel serial
-     * number.
+     * All fields read a date cell. Excel can change the text of a date to a date cell when a user
+     * saves the file. A field with a format string also reads text. Other fields also read an
+     * Excel serial number.
+     *
+     * The value is a wall-clock time. StopRowDto reads it in the time zone of the extract.
      */
     private static function dateTime(FieldMappingDto $field, mixed $value): ?\DateTimeImmutable
     {
+        if ($value instanceof \DateTimeInterface) {
+            return \DateTimeImmutable::createFromInterface($value);
+        }
+
         if (null !== $field->format && FieldMappingDto::EXCEL_FORMAT !== $field->format) {
             return \is_string($value) ? self::fromFormat($field->format, $value) : null;
         }
 
-        return match (true) {
-            $value instanceof \DateTimeInterface => \DateTimeImmutable::createFromInterface($value),
-            \is_int($value) || \is_float($value) => self::fromExcelSerial($value),
-            default => null,
-        };
+        return \is_int($value) || \is_float($value) ? self::fromExcelSerial($value) : null;
     }
 
+    /**
+     * UTC has no change to summer time, so each wall-clock time exists.
+     */
     private static function fromFormat(string $format, string $value): ?\DateTimeImmutable
     {
         // "!" sets the fields that the format does not give to 0, for example the time of a date.
-        $date = \DateTimeImmutable::createFromFormat('!'.$format, $value);
+        $date = \DateTimeImmutable::createFromFormat('!'.$format, $value, new \DateTimeZone('UTC'));
 
         // Text that does not agree with the format gives an error. A date that does not exist, for
         // example 30 February, gives a warning.
@@ -103,15 +109,18 @@ final readonly class CellConverter
     }
 
     /**
-     * The time in the extract is a wall-clock time. UTC has no change to summer time, so the
-     * conversion uses UTC, and then gives the same wall-clock time in the default time zone.
+     * Gives the wall-clock time in UTC. UTC has no change to summer time, so each wall-clock
+     * time exists.
+     *
+     * The serial number uses the 1900 date system. OpenSpout reads the 1904 date system of a
+     * workbook only for a cell with a date format, so a number with no format can be 4 years
+     * and 1 day wrong in such a workbook.
      */
     private static function fromExcelSerial(int|float $serial): \DateTimeImmutable
     {
         $seconds = round(($serial - self::EXCEL_UNIX_START) * self::SECONDS_IN_A_DAY);
-        $utc = new \DateTimeImmutable('@'.\sprintf('%d', $seconds));
 
-        return new \DateTimeImmutable($utc->format('Y-m-d H:i:s'));
+        return new \DateTimeImmutable('@'.\sprintf('%d', $seconds));
     }
 
     private static function reject(RejectionReason $reason): never

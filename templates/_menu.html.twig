@@ -1,0 +1,7 @@
+{% for item in items %}
+    {% set active = item.route == app.current_route %}
+    <a class="nav__item{{ active ? ' is-active' }}" href="{{ item.url }}" data-test="menu-item"{% if active %} aria-current="page"{% endif %}>
+        {{ ux_icon(item.icon, {class: 'icon nav__icon'}) }}
+        <span>{{ item.label|trans }}</span>
+    </a>
+{% endfor %}

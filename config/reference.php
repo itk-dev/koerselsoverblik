@@ -267,7 +267,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         formats?: array<string, Param|string|list<scalar|Param|null>>,
  *     },
  *     assets?: bool|array{ // Assets configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         strict_mode?: bool|Param, // Throw an exception if an entry is missing from the manifest.json. // Default: false
  *         version_strategy?: scalar|Param|null, // Default: null
  *         version?: scalar|Param|null, // Default: null
@@ -305,7 +305,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         },
  *     },
  *     translator?: bool|array{ // Translator configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         fallbacks?: Param|string|list<scalar|Param|null>,
  *         logging?: bool|Param, // Default: false
  *         formatter?: scalar|Param|null, // Default: "translator.formatter.default"
@@ -646,7 +646,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         }>,
  *     },
  *     uid?: bool|array{ // Uid configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         default_uuid_version?: 7|6|4|1|Param, // Default: 7
  *         name_based_uuid_version?: 5|3|Param, // Default: 5
  *         name_based_uuid_namespace?: scalar|Param|null,
@@ -1424,6 +1424,287 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         },
  *     }>,
  * }
+ * @psalm-type ItkdevOpenidConnectConfig = array{
+ *     cache_options?: array{
+ *         cache_pool?: scalar|Param|null, // Method for caching // Default: "cache.app"
+ *     },
+ *     cli_login_options?: array{
+ *         route?: scalar|Param|null, // Return route for CLI login
+ *     },
+ *     user_provider?: scalar|Param|null, // The User Provider to inject // Default: null
+ *     logging_options?: array{
+ *         logger?: scalar|Param|null, // Service id of the PSR-3 logger to receive this bundle's failure logs, e.g. "monolog.logger.openid_connect". Defaults to the application logger, which Symfony always provides. Set "itkdev_openid_connect.null_logger" to turn logging off. // Default: null
+ *     },
+ *     audit_options?: array{
+ *         enabled?: bool|Param, // Write an authentication audit trail (logins, failures, CLI token issuance). Off by default: audit records identify people, so an existing installation must opt in rather than start logging personal data on upgrade. // Default: false
+ *         logger?: scalar|Param|null, // Service id of the PSR-3 logger to receive audit records, e.g. "monolog.logger.openid_connect_audit". Defaults to the application logger. Keep this separate from logging_options.logger: an operational threshold of "error" would otherwise discard the whole trail. // Default: null
+ *         identifier?: "raw"|"hashed"|Param, // Record user identifiers as-is ("raw") or pseudonymised ("hashed"). Hashing is keyed with the application secret, so records still correlate. Cannot come from an environment variable; use environment-specific configuration instead. // Default: "raw"
+ *     },
+ *     secret_expiry_options?: array{
+ *         warning_days?: int|Param, // How many days before a client secret expires the bundle starts warning (default: 30) // Default: 30
+ *     },
+ *     openid_providers?: list<array{ // Default: []
+ *         options?: array{
+ *             metadata_url?: scalar|Param|null, // URL to OpenId Discovery Document
+ *             client_id?: scalar|Param|null, // Client ID assigned by authorizer
+ *             client_secret?: scalar|Param|null, // Client secret/password assigned by authorizer
+ *             client_secret_expires_at?: scalar|Param|null, // Optional. Date the client secret expires, e.g. "2027-01-31". Anything strtotime() understands, and usually an environment variable. Set it and the bundle warns before the secret expires; leave it unset and the provider reports "unknown" and is not monitored. Set it where the real secret lives — a date carried in a committed default is a date nobody maintains.
+ *             leeway?: int|Param, // Leeway in seconds to account for clock skew between server and provider // Default: 10
+ *             cache_duration?: int|Param, // Cache duration in seconds for the OIDC discovery document and JWKS (default: 86400 — 24 hours) // Default: 86400
+ *             scopes?: Param|string|list<scalar|Param|null>,
+ *             pkce?: bool|Param, // Send a PKCE challenge (RFC 7636, S256) with the authorization request // Default: true
+ *             redirect_uri?: scalar|Param|null, // Redirect URI registered at identity provider
+ *             redirect_route?: scalar|Param|null, // Redirect route registered at identity provider (must not be set if redirect_uri is set)
+ *             redirect_route_parameters?: array<mixed>,
+ *             callback_path?: scalar|Param|null, // Optional. The request path the callback arrives on, for a proxy that rewrites it without sending X-Forwarded-Prefix. Include any base path. Defaults to the path of redirect_uri, or of the generated redirect_route; a trusted X-Forwarded-Prefix or a subdirectory deployment is already accounted for without this.
+ *             allow_http?: bool|Param, // Whether to allow http or not (default: false) // Default: false
+ *             http_client_options?: array{ // Options forwarded to the underlying Guzzle HTTP client. league/oauth2-client only forwards: timeout, proxy, verify (verify is only consulted when proxy is set).
+ *                 timeout?: float|Param, // Total request timeout in seconds. Defaults to 30; set to 0 to wait indefinitely (Guzzle's own default). // Default: 30.0
+ *                 proxy?: scalar|Param|null, // HTTP proxy URI
+ *                 verify?: bool|Param, // Verify TLS certificates (only consulted by Guzzle when proxy is set)
+ *             },
+ *         },
+ *     }>,
+ * }
+ * @psalm-type TwigConfig = array{
+ *     form_themes?: list<scalar|Param|null>,
+ *     globals?: array<string, array{ // Default: []
+ *         id?: scalar|Param|null,
+ *         type?: scalar|Param|null,
+ *         value?: mixed,
+ *         ...<string, mixed>
+ *     }>,
+ *     autoescape_service?: scalar|Param|null, // Default: null
+ *     autoescape_service_method?: scalar|Param|null, // Default: null
+ *     cache?: scalar|Param|null, // Default: true
+ *     charset?: scalar|Param|null, // Default: "%kernel.charset%"
+ *     debug?: bool|Param, // Default: "%kernel.debug%"
+ *     strict_variables?: bool|Param, // Default: "%kernel.debug%"
+ *     auto_reload?: scalar|Param|null,
+ *     optimizations?: int|Param,
+ *     default_path?: scalar|Param|null, // The default path used to load templates. // Default: "%kernel.project_dir%/templates"
+ *     file_name_pattern?: Param|string|list<scalar|Param|null>,
+ *     paths?: array<string, mixed>,
+ *     date?: array{ // The default format options used by the date filter.
+ *         format?: scalar|Param|null, // Default: "F j, Y H:i"
+ *         interval_format?: scalar|Param|null, // Default: "%d days"
+ *         timezone?: scalar|Param|null, // The timezone used when formatting dates, when set to null, the timezone returned by date_default_timezone_get() is used. // Default: null
+ *     },
+ *     number_format?: array{ // The default format options for the number_format filter.
+ *         decimals?: int|Param, // Default: 0
+ *         decimal_point?: scalar|Param|null, // Default: "."
+ *         thousands_separator?: scalar|Param|null, // Default: ","
+ *     },
+ *     mailer?: array{
+ *         html_to_text_converter?: scalar|Param|null, // A service implementing the "Symfony\Component\Mime\HtmlToTextConverter\HtmlToTextConverterInterface". // Default: null
+ *     },
+ * }
+ * @psalm-type NelmioSecurityConfig = array{
+ *     signed_cookie?: array{
+ *         names?: list<scalar|Param|null>,
+ *         secret?: scalar|Param|null, // Default: "%kernel.secret%"
+ *         hash_algo?: scalar|Param|null,
+ *         legacy_hash_algo?: scalar|Param|null, // Fallback algorithm to allow for frictionless hash algorithm upgrades. Use with caution and as a temporary measure as it allows for downgrade attacks. // Default: null
+ *         separator?: scalar|Param|null, // Default: "."
+ *     },
+ *     clickjacking?: array{
+ *         hosts?: list<scalar|Param|null>,
+ *         paths?: array<string, array{ // Default: {"^/.*":{"header":"DENY"}}
+ *             header?: scalar|Param|null, // Default: "DENY"
+ *             ...<string, mixed>
+ *         }>,
+ *         content_types?: list<scalar|Param|null>,
+ *     },
+ *     external_redirects?: array{
+ *         abort?: bool|Param, // Default: false
+ *         override?: scalar|Param|null, // Default: null
+ *         forward_as?: scalar|Param|null, // Default: null
+ *         log?: bool|Param, // Default: false
+ *         allow_list?: list<scalar|Param|null>,
+ *     },
+ *     flexible_ssl?: bool|array{
+ *         enabled?: bool|Param, // Default: false
+ *         cookie_name?: scalar|Param|null, // Default: "auth"
+ *         unsecured_logout?: bool|Param, // Default: false
+ *     },
+ *     forced_ssl?: bool|array{
+ *         enabled?: bool|Param, // Default: false
+ *         hsts_max_age?: scalar|Param|null, // Default: null
+ *         hsts_subdomains?: bool|Param, // Default: false
+ *         hsts_preload?: bool|Param, // Default: false
+ *         allow_list?: list<scalar|Param|null>,
+ *         hosts?: list<scalar|Param|null>,
+ *         redirect_status_code?: scalar|Param|null, // Default: 302
+ *     },
+ *     content_type?: array{
+ *         nosniff?: bool|Param, // Default: false
+ *     },
+ *     xss_protection?: array{ // Deprecated: The "xss_protection" option is deprecated, use Content Security Policy without allowing "unsafe-inline" scripts instead.
+ *         enabled?: bool|Param, // Default: false
+ *         mode_block?: bool|Param, // Default: false
+ *         report_uri?: scalar|Param|null, // Default: null
+ *     },
+ *     csp?: bool|array{
+ *         enabled?: bool|Param, // Default: true
+ *         request_matcher?: scalar|Param|null, // Default: null
+ *         hosts?: list<scalar|Param|null>,
+ *         content_types?: list<scalar|Param|null>,
+ *         report_endpoint?: array{
+ *             log_channel?: scalar|Param|null, // Default: null
+ *             log_formatter?: scalar|Param|null, // Default: "nelmio_security.csp_report.log_formatter"
+ *             log_level?: "alert"|"critical"|"debug"|"emergency"|"error"|"info"|"notice"|"warning"|Param, // Default: "notice"
+ *             filters?: array{
+ *                 domains?: bool|Param, // Default: true
+ *                 schemes?: bool|Param, // Default: true
+ *                 browser_bugs?: bool|Param, // Default: true
+ *                 injected_scripts?: bool|Param, // Default: true
+ *             },
+ *             dismiss?: list<list<"default-src"|"base-uri"|"block-all-mixed-content"|"child-src"|"connect-src"|"font-src"|"form-action"|"frame-ancestors"|"frame-src"|"img-src"|"manifest-src"|"media-src"|"object-src"|"plugin-types"|"script-src"|"style-src"|"upgrade-insecure-requests"|"report-uri"|"worker-src"|"prefetch-src"|"report-to"|"*"|Param>>,
+ *         },
+ *         compat_headers?: bool|Param, // Default: true
+ *         report_logger_service?: scalar|Param|null, // Default: "logger"
+ *         hash?: array{
+ *             algorithm?: "sha256"|"sha384"|"sha512"|Param, // The algorithm to use for hashes // Default: "sha256"
+ *         },
+ *         report?: array{
+ *             level1_fallback?: bool|Param, // Provides CSP Level 1 fallback when using hash or nonce (CSP level 2) by adding 'unsafe-inline' source. See https://www.w3.org/TR/CSP2/#directive-script-src and https://www.w3.org/TR/CSP2/#directive-style-src // Default: true
+ *             browser_adaptive?: bool|array{ // Do not send directives that browser do not support
+ *                 enabled?: bool|Param, // Default: false
+ *                 parser?: scalar|Param|null, // Default: "nelmio_security.ua_parser.ua_php"
+ *             },
+ *             default-src?: list<scalar|Param|null>,
+ *             base-uri?: list<scalar|Param|null>,
+ *             block-all-mixed-content?: bool|Param, // Default: false
+ *             child-src?: list<scalar|Param|null>,
+ *             connect-src?: list<scalar|Param|null>,
+ *             font-src?: list<scalar|Param|null>,
+ *             form-action?: list<scalar|Param|null>,
+ *             frame-ancestors?: list<scalar|Param|null>,
+ *             frame-src?: list<scalar|Param|null>,
+ *             img-src?: list<scalar|Param|null>,
+ *             manifest-src?: list<scalar|Param|null>,
+ *             media-src?: list<scalar|Param|null>,
+ *             object-src?: list<scalar|Param|null>,
+ *             plugin-types?: list<scalar|Param|null>,
+ *             script-src?: list<scalar|Param|null>,
+ *             style-src?: list<scalar|Param|null>,
+ *             upgrade-insecure-requests?: bool|Param, // Default: false
+ *             report-uri?: Param|string|list<scalar|Param|null>,
+ *             worker-src?: list<scalar|Param|null>,
+ *             prefetch-src?: list<scalar|Param|null>,
+ *             report-to?: scalar|Param|null,
+ *         },
+ *         enforce?: array{
+ *             level1_fallback?: bool|Param, // Provides CSP Level 1 fallback when using hash or nonce (CSP level 2) by adding 'unsafe-inline' source. See https://www.w3.org/TR/CSP2/#directive-script-src and https://www.w3.org/TR/CSP2/#directive-style-src // Default: true
+ *             browser_adaptive?: bool|array{ // Do not send directives that browser do not support
+ *                 enabled?: bool|Param, // Default: false
+ *                 parser?: scalar|Param|null, // Default: "nelmio_security.ua_parser.ua_php"
+ *             },
+ *             default-src?: list<scalar|Param|null>,
+ *             base-uri?: list<scalar|Param|null>,
+ *             block-all-mixed-content?: bool|Param, // Default: false
+ *             child-src?: list<scalar|Param|null>,
+ *             connect-src?: list<scalar|Param|null>,
+ *             font-src?: list<scalar|Param|null>,
+ *             form-action?: list<scalar|Param|null>,
+ *             frame-ancestors?: list<scalar|Param|null>,
+ *             frame-src?: list<scalar|Param|null>,
+ *             img-src?: list<scalar|Param|null>,
+ *             manifest-src?: list<scalar|Param|null>,
+ *             media-src?: list<scalar|Param|null>,
+ *             object-src?: list<scalar|Param|null>,
+ *             plugin-types?: list<scalar|Param|null>,
+ *             script-src?: list<scalar|Param|null>,
+ *             style-src?: list<scalar|Param|null>,
+ *             upgrade-insecure-requests?: bool|Param, // Default: false
+ *             report-uri?: Param|string|list<scalar|Param|null>,
+ *             worker-src?: list<scalar|Param|null>,
+ *             prefetch-src?: list<scalar|Param|null>,
+ *             report-to?: scalar|Param|null,
+ *         },
+ *     },
+ *     referrer_policy?: bool|array{
+ *         enabled?: bool|Param, // Default: false
+ *         policies?: Param|string|list<scalar|Param|null>,
+ *     },
+ *     permissions_policy?: bool|array{
+ *         enabled?: bool|Param, // Default: false
+ *         policies?: array{
+ *             accelerometer?: mixed, // Default: null
+ *             ambient_light_sensor?: mixed, // Default: null
+ *             attribution_reporting?: mixed, // Default: null
+ *             autoplay?: mixed, // Default: null
+ *             bluetooth?: mixed, // Default: null
+ *             browsing_topics?: mixed, // Default: null
+ *             camera?: mixed, // Default: null
+ *             captured_surface_control?: mixed, // Default: null
+ *             compute_pressure?: mixed, // Default: null
+ *             cross_origin_isolated?: mixed, // Default: null
+ *             deferred_fetch?: mixed, // Default: null
+ *             deferred_fetch_minimal?: mixed, // Default: null
+ *             display_capture?: mixed, // Default: null
+ *             encrypted_media?: mixed, // Default: null
+ *             fullscreen?: mixed, // Default: null
+ *             gamepad?: mixed, // Default: null
+ *             geolocation?: mixed, // Default: null
+ *             gyroscope?: mixed, // Default: null
+ *             hid?: mixed, // Default: null
+ *             identity_credentials_get?: mixed, // Default: null
+ *             idle_detection?: mixed, // Default: null
+ *             interest_cohort?: mixed, // Default: null
+ *             language_detector?: mixed, // Default: null
+ *             local_fonts?: mixed, // Default: null
+ *             magnetometer?: mixed, // Default: null
+ *             microphone?: mixed, // Default: null
+ *             midi?: mixed, // Default: null
+ *             otp_credentials?: mixed, // Default: null
+ *             payment?: mixed, // Default: null
+ *             picture_in_picture?: mixed, // Default: null
+ *             publickey_credentials_create?: mixed, // Default: null
+ *             publickey_credentials_get?: mixed, // Default: null
+ *             screen_wake_lock?: mixed, // Default: null
+ *             serial?: mixed, // Default: null
+ *             speaker_selection?: mixed, // Default: null
+ *             storage_access?: mixed, // Default: null
+ *             summarizer?: mixed, // Default: null
+ *             translator?: mixed, // Default: null
+ *             usb?: mixed, // Default: null
+ *             web_share?: mixed, // Default: null
+ *             window_management?: mixed, // Default: null
+ *             xr_spatial_tracking?: mixed, // Default: null
+ *         },
+ *     },
+ *     cross_origin_isolation?: bool|array{
+ *         enabled?: bool|Param, // Default: false
+ *         paths?: array<string, array{ // Default: []
+ *             coep?: "unsafe-none"|"require-corp"|"credentialless"|Param, // Cross-Origin-Embedder-Policy (COEP) header value
+ *             coop?: "unsafe-none"|"same-origin-allow-popups"|"same-origin"|"noopener-allow-popups"|Param, // Cross-Origin-Opener-Policy (COOP) header value
+ *             corp?: "same-site"|"same-origin"|"cross-origin"|Param, // Cross-Origin-Resource-Policy (CORP) header value
+ *             report_only?: bool|Param, // Use Report-Only headers instead of enforcing (applies to COEP and COOP only) // Default: false
+ *             report_to?: scalar|Param|null, // Reporting endpoint name for violations (requires Reporting API configuration, applies to COEP and COOP only) // Default: null
+ *         }>,
+ *     },
+ * }
+ * @psalm-type UxIconsConfig = array{
+ *     icon_dir?: scalar|Param|null, // The local directory where icons are stored. // Default: "%kernel.project_dir%/assets/icons"
+ *     default_icon_attributes?: array<string, scalar|Param|null>,
+ *     icon_sets?: array<string, array{ // the icon set prefix (e.g. "acme") // Default: []
+ *         path?: scalar|Param|null, // The local icon set directory path. (cannot be used with 'alias')
+ *         alias?: scalar|Param|null, // The remote icon set identifier. (cannot be used with 'path')
+ *         icon_attributes?: array<string, scalar|Param|null>,
+ *         suffixes?: array<string, array{ // The suffix name (e.g. "solid", "20-solid") // Default: []
+ *             icon_attributes?: array<string, scalar|Param|null>,
+ *         }>,
+ *     }>,
+ *     aliases?: array<string, string|Param>,
+ *     iconify?: bool|array{ // Configuration for the remote icon service.
+ *         enabled?: bool|Param, // Default: true
+ *         on_demand?: bool|Param, // Whether to download icons "on demand". // Default: true
+ *         auto_lock?: bool|Param, // Persist "on demand" icons to the local icon directory (see "icon_dir"). Recommended in dev only. Requires "on_demand" to be enabled. // Default: false
+ *         endpoint?: scalar|Param|null, // The endpoint for the Iconify icons API. // Default: "https://api.iconify.design"
+ *     },
+ *     ignore_not_found?: bool|Param, // Ignore error when an icon is not found. Set to 'true' to fail silently. // Default: false
+ * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
@@ -1433,6 +1714,10 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     doctrine_migrations?: DoctrineMigrationsConfig,
  *     security?: SecurityConfig,
  *     monolog?: MonologConfig,
+ *     itkdev_openid_connect?: ItkdevOpenidConnectConfig,
+ *     twig?: TwigConfig,
+ *     nelmio_security?: NelmioSecurityConfig,
+ *     ux_icons?: UxIconsConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
@@ -1443,6 +1728,10 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         zenstruck_foundry?: ZenstruckFoundryConfig,
  *         security?: SecurityConfig,
  *         monolog?: MonologConfig,
+ *         itkdev_openid_connect?: ItkdevOpenidConnectConfig,
+ *         twig?: TwigConfig,
+ *         nelmio_security?: NelmioSecurityConfig,
+ *         ux_icons?: UxIconsConfig,
  *     },
  *     "when@prod"?: array{
  *         imports?: ImportsConfig,
@@ -1453,6 +1742,10 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         doctrine_migrations?: DoctrineMigrationsConfig,
  *         security?: SecurityConfig,
  *         monolog?: MonologConfig,
+ *         itkdev_openid_connect?: ItkdevOpenidConnectConfig,
+ *         twig?: TwigConfig,
+ *         nelmio_security?: NelmioSecurityConfig,
+ *         ux_icons?: UxIconsConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
@@ -1465,6 +1758,10 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         dama_doctrine_test?: DamaDoctrineTestConfig,
  *         security?: SecurityConfig,
  *         monolog?: MonologConfig,
+ *         itkdev_openid_connect?: ItkdevOpenidConnectConfig,
+ *         twig?: TwigConfig,
+ *         nelmio_security?: NelmioSecurityConfig,
+ *         ux_icons?: UxIconsConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,
