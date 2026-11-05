@@ -168,6 +168,7 @@ Set these in `.env.local`:
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 | `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
+| `APP_TIMEZONE` | The time zone of the wall-clock times in an extract. The import stores the times in UTC | `Europe/Copenhagen` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.
@@ -253,16 +254,41 @@ A mapping defines:
 - **Fields:** each application field must have a source column. For each field, the mapping
   gives the column and how to read it:
   - type: `string`, `int`, `float`, `bool`, `date`, `time`, `datetime`
-  - date format, only for a `date` or `datetime` field: for example an Excel serial date or a
-    format string such as `Y-m-d`
-  - a `time` field is a time of day in an Excel time cell. It is a wall-clock time on
+  - date format, only for a `date` or `datetime` field: `excel` (or no format) for an Excel
+    serial number, or a
+    [format string](https://www.php.net/manual/en/datetimeimmutable.createfromformat.php) such
+    as `Y-m-d` for text. A date cell is accepted with all formats, because Excel can change the
+    text of a date to a date cell when a user saves the file.
+  - a `time` field is an Excel cell with a duration format, such as `[hh]:mm:ss`. A cell with
+    an ordinary time format, such as `hh:mm`, is rejected. The time is a wall-clock time on
     `service_date`. A time of 24:00 or more is on the next day: 25:10 is 01:10 on the day after
-    `service_date`. Times are stored with no time zone, so a change to or from daylight saving
-    time does not move them. See [Times](docs/architecture.md#times).
+    `service_date`.
+  - all times are wall-clock times in `APP_TIMEZONE`. The import stores them in UTC. See
+    [Times](docs/architecture.md#times).
   - value maps for codes, only for a `string` field, for example which status values mean
     "completed"
   - for a `bool` field: the values that mean true and the values that mean false
   - whether the field is required
+
+Each field has a fixed type, because the calculations use the values. Some fields must be
+required, because each stop row needs them:
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `route` | `string` | Yes |
+| `person_id` | `string` | Optional |
+| `service_date` | `date` or `datetime` | Yes |
+| `run` | `int` | Yes |
+| `stop_type` | `string`, with a value map | Yes |
+| `stop_status` | `string`, with a value map | Yes |
+| `passengers_after` | `int` | Optional |
+| `next_distance_km` | `float` | Optional |
+| `next_duration_min` | `float` | Optional |
+| `planned_time` | `time` or `datetime` | Yes |
+| `actual_time` | `time` or `datetime` | Optional |
+| `planned_solo` | `bool` | Optional |
+
+A mapping with a `time` field must have a `service_date` with the type `date`.
 
 `stop_type` and `stop_status` must have a value map. The values of the map must be application
 values: `pickup` or `drop_off` for `stop_type`, and `completed`, `cancelled` or `pending` for
@@ -282,15 +308,20 @@ fields:
   person_id:         { column: <COLUMN_NAME>, type: string, required: true }
   service_date:      { column: <COLUMN_NAME>, type: date, format: Y-m-d, required: true }
   run:               { column: <COLUMN_NAME>, type: int, required: true }
-  stop_type:         { column: <COLUMN_NAME>, type: string, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
-  stop_status:       { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
+  stop_type:         { column: <COLUMN_NAME>, type: string, required: true, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
+  stop_status:       { column: <COLUMN_NAME>, type: string, required: true, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
   passengers_after:  { column: <COLUMN_NAME>, type: int }
   next_distance_km:  { column: <COLUMN_NAME>, type: float }
   next_duration_min: { column: <COLUMN_NAME>, type: float }
-  planned_time:      { column: <COLUMN_NAME>, type: time }
+  planned_time:      { column: <COLUMN_NAME>, type: time, required: true }
   actual_time:       { column: <COLUMN_NAME>, type: datetime, format: excel }
   planned_solo:      { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
 ```
+
+The parser reads the rows of an extract through the mapping. It rejects a row with a value that
+does not agree with the mapping, with the row number and a reason. The reason never contains a
+value from the extract. It rejects the whole file if the sheet, the header row or a column is
+missing.
 
 The `default` mapping reads the extract of the planning system. See
 [the reference extract](docs/architecture.md#the-reference-extract).

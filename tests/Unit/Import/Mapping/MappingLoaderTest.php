@@ -106,6 +106,7 @@ final class MappingLoaderTest extends TestCase
         $raw = self::withField(self::validMapping(), 'stop_type', [
             'column' => 'Kind',
             'type' => 'string',
+            'required' => true,
             'map' => ['P-1' => 'pickup', 'D-1' => 'drop_off'],
         ]);
 
@@ -119,6 +120,7 @@ final class MappingLoaderTest extends TestCase
         $raw = self::withField(self::validMapping(), 'route', [
             'column' => 'Route',
             'type' => 'string',
+            'required' => true,
             'map' => ['R1' => 'route-one'],
         ]);
 
@@ -127,14 +129,24 @@ final class MappingLoaderTest extends TestCase
         self::assertSame(['R1' => 'route-one'], $mapping->field(FieldName::Route)->valueMap);
     }
 
-    public function testServiceDateCanHaveAnotherTypeWithoutTimeField(): void
+    public function testServiceDateCanBeADateTimeWithoutTimeField(): void
     {
-        $raw = self::withField(self::validMapping(), 'service_date', ['column' => 'Day', 'type' => 'string']);
-        $raw = self::withField($raw, 'planned_time', ['column' => 'Planned', 'type' => 'datetime']);
+        $raw = self::withField(self::validMapping(), 'service_date', ['column' => 'Day', 'type' => 'datetime', 'required' => true]);
+        $raw = self::withField($raw, 'planned_time', ['column' => 'Planned', 'type' => 'datetime', 'required' => true]);
 
         $mapping = $this->loadArray($raw);
 
-        self::assertSame(FieldType::String, $mapping->field(FieldName::ServiceDate)->type);
+        self::assertSame(FieldType::DateTime, $mapping->field(FieldName::ServiceDate)->type);
+        self::assertSame(FieldType::DateTime, $mapping->field(FieldName::PlannedTime)->type);
+    }
+
+    public function testFieldThatCanBeEmptyCanBeRequired(): void
+    {
+        $raw = self::withField(self::validMapping(), 'passengers_after', ['column' => 'Load', 'type' => 'int', 'required' => true]);
+
+        $mapping = $this->loadArray($raw);
+
+        self::assertTrue($mapping->field(FieldName::PassengersAfter)->required);
     }
 
     /**
@@ -243,8 +255,52 @@ final class MappingLoaderTest extends TestCase
             'The "map" of "stop_status" can only have the values "completed", "cancelled", "pending".',
         ];
         yield 'time field when service date is not a date' => [
-            static fn (array $raw): array => self::withField($raw, 'service_date', ['column' => 'Day', 'type' => 'string']),
+            static fn (array $raw): array => self::withField($raw, 'service_date', ['column' => 'Day', 'type' => 'datetime', 'required' => true]),
             'A "time" field needs a "service_date" field with the type "date".',
+        ];
+        yield 'run that is text' => [
+            static fn (array $raw): array => self::withField($raw, 'run', ['column' => 'Run', 'type' => 'string', 'required' => true]),
+            'The type of "run" must be "int".',
+        ];
+        yield 'service date that is text' => [
+            static fn (array $raw): array => self::withField($raw, 'service_date', ['column' => 'Day', 'type' => 'string', 'required' => true]),
+            'The type of "service_date" must be "date" or "datetime".',
+        ];
+        yield 'planned time that is a date' => [
+            static fn (array $raw): array => self::withField($raw, 'planned_time', ['column' => 'Planned', 'type' => 'date', 'required' => true]),
+            'The type of "planned_time" must be "time" or "datetime".',
+        ];
+        yield 'distance that is a whole number' => [
+            static fn (array $raw): array => self::withField($raw, 'next_distance_km', ['column' => 'Km', 'type' => 'int']),
+            'The type of "next_distance_km" must be "float".',
+        ];
+        yield 'solo that is text' => [
+            static fn (array $raw): array => self::withField($raw, 'planned_solo', ['column' => 'Solo', 'type' => 'string']),
+            'The type of "planned_solo" must be "bool".',
+        ];
+        yield 'route that is not required' => [
+            static fn (array $raw): array => self::withField($raw, 'route', ['column' => 'Route', 'type' => 'string']),
+            'The "route" field must be required.',
+        ];
+        yield 'service date that is not required' => [
+            static fn (array $raw): array => self::withField($raw, 'service_date', ['column' => 'Day', 'type' => 'date']),
+            'The "service_date" field must be required.',
+        ];
+        yield 'run that is not required' => [
+            static fn (array $raw): array => self::withField($raw, 'run', ['column' => 'Run', 'type' => 'int']),
+            'The "run" field must be required.',
+        ];
+        yield 'stop type that is not required' => [
+            static fn (array $raw): array => self::withField($raw, 'stop_type', ['column' => 'Kind', 'type' => 'string', 'map' => ['P' => 'pickup']]),
+            'The "stop_type" field must be required.',
+        ];
+        yield 'stop status that is not required' => [
+            static fn (array $raw): array => self::withField($raw, 'stop_status', ['column' => 'State', 'type' => 'string', 'map' => ['C' => 'completed']]),
+            'The "stop_status" field must be required.',
+        ];
+        yield 'planned time that is not required' => [
+            static fn (array $raw): array => self::withField($raw, 'planned_time', ['column' => 'Planned', 'type' => 'time']),
+            'The "planned_time" field must be required.',
         ];
     }
 

@@ -33,13 +33,26 @@
         '@default': true,
         CastString: {
             // Equivalent mutants. The code does not use strict types, so PHP changes an int to a
-            // string when it goes to a string parameter or return type. PHP also changes a
-            // numeric array key to an int, with or without the cast. The casts are for PHPStan.
+            // string when it goes to a string parameter or return type, and for trim(). PHP also
+            // changes a numeric array key to an int, with or without the cast. The casts are for
+            // PHPStan.
+            ignore: [
+                'App\\Import\\Extract\\CellConverter::text',
+                'App\\Import\\Extract\\StopRowParser::text',
+            ],
             ignoreSourceCodeByRegex: [
                 '.*\\$row->rowId \\?\\? \\(string\\) \\$index.*',
                 '.*return \\(string\\) \\$code;.*',
                 '.*\\$raw\\[\\(string\\) \\$field\\].*',
             ],
+        },
+        // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
+        // the temporary files of OpenSpout, so it is necessary.
+        UnwrapFinally: {
+            ignore: ['App\\Import\\Extract\\StopRowParser::parse'],
+        },
+        MethodCallRemoval: {
+            ignoreSourceCodeByRegex: ['\\$reader->close\\(\\);'],
         },
     },
     minCoveredMsi: 80,

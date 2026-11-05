@@ -36,7 +36,7 @@ final class DefaultMappingTest extends KernelTestCase
     }
 
     /**
-     * @param array<string, string> $valueMap
+     * @param array<array-key, string> $valueMap
      *
      * @return list<string>
      */

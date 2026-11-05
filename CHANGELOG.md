@@ -86,3 +86,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the authentication log, trusted proxies, a page for a failed login, and the
   `oidc-provider-mock` service in `docker-compose.override.yaml`. The placeholder login is
   removed.
+- [#36](https://github.com/itk-dev/koerselsoverblik/issues/36)
+  Extract parser: `StopRowParser` reads the stop rows of an extract through an import mapping,
+  one row at a time. It rejects a bad row with the row number and a `RejectionReason` code, and
+  a row with a date outside the `ImportRangeDto` of the upload. `APP_DRIVING_DATA_MAX_DAYS`
+  limits the range to 31 days. A mapping must now give each field an allowed type, and must make
+  `route`, `service_date`, `run`, `stop_type`, `stop_status` and `planned_time` required.
+  The parser reads the times in `APP_TIMEZONE` (default `Europe/Copenhagen`) and gives them in
+  UTC. A date cell is accepted also for a field with a format string.

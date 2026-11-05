@@ -1,5 +1,6 @@
 # One good row, and one row for each kind of bad value. The import rejects the
-# bad rows. "raw" writes the cell value as it is.
+# bad rows. "raw" writes the cell value as it is. Each bad row has one bad value
+# only, so the reason of each rejection is known.
 date: 2026-01-05
 routes:
   R-01:

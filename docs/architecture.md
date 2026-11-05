@@ -156,7 +156,7 @@ flowchart TB
 
     subgraph import["Import/DrivingData"]
         mapping["MappingLoader → MappingDto<br/>config/import/driving_data/*.yaml"]
-        importrange["ImportRange<br/>max APP_DRIVING_DATA_MAX_DAYS"]
+        importrange["ImportRangeDto<br/>max APP_DRIVING_DATA_MAX_DAYS"]
         parser["StopRowParser"]
         replacer["StopRowReplacer"]
         builder["RouteBuilder"]
@@ -378,11 +378,11 @@ sequenceDiagram
 
     Admin->>C: POST /admin/import (file, first date, last date)
     C->>C: check ROLE_UPLOAD_DRIVING_DATA and CSRF
-    C->>C: ImportRange(first, last), at most APP_DRIVING_DATA_MAX_DAYS
+    C->>C: ImportRangeDto(first, last), at most APP_DRIVING_DATA_MAX_DAYS
     C->>C: keep the file in var/, and its token in the session
     C->>P: parse(file, mapping, range)
     P->>M: column, type and value map per field
-    P->>P: reject rows outside the range (ImportRange::contains)
+    P->>P: reject rows outside the range (ImportRangeDto::contains)
     P-->>C: rows, and rejected rows: row number and reason, no values
     C->>DB: count the stored rows in the range
     C-->>Admin: preview: range, rows to delete, insert and reject, dates that become empty
@@ -482,29 +482,38 @@ end flag joins that run with the next run. The block number gives each run direc
 
 ### Times
 
-A `time` field is a time of day in an Excel time cell. It is a wall-clock time on the
-`service_date` of the row:
+A `time` field is an Excel cell with a duration format, such as `[hh]:mm:ss`. OpenSpout gives
+such a cell as a `DateInterval`. A cell with an ordinary time format, such as `hh:mm`, is
+rejected. The time is a wall-clock time on the `service_date` of the row. A time of 24:00 or
+more is on the next day. For example, 25:10 is 01:10 on the day after `service_date`.
 
-- A time of 24:00 or more is on the next day. For example, 25:10 is 01:10 on the day after
-  `service_date`.
-- The import does not convert times to UTC, and stores them with no time zone. A change to or
-  from daylight saving time in Europe/Copenhagen never moves a stored time.
-- The import does not correct a time that does not exist, or that exists two times, on the
-  night of a change.
-- Known limit: a delay across a change at night can be one hour wrong. Few runs drive at that
-  time.
+The times in the extract are wall-clock times in `APP_TIMEZONE` (default `Europe/Copenhagen`).
+The import stores all dates and times in UTC:
+
+- `CellConverter` reads a date and time as a wall-clock time. It uses UTC for the PHP object,
+  because UTC has no change to summer time.
+- `StopRowDto` reads the wall-clock time in `APP_TIMEZONE`, and converts it to UTC. A delay
+  across a change to or from summer time is then correct.
+- `service_date` and the dates of `ImportRangeDto` are calendar dates at 00:00 UTC. They are
+  not converted.
+- A time that does not exist moves one hour later. For example, 02:30 on the night of the change
+  to summer time is read as 03:30 summer time.
+- A time that occurs two times, on the night of the change to winter time, is read as winter
+  time (the second one).
+
+The browser shows the times in `APP_TIMEZONE`.
 
 ### Date range
 
-The user enters the first and the last date of the export, together with the file. `ImportRange`
-holds the two dates. The import replaces exactly this range
+The user enters the first and the last date of the export, together with the file.
+`ImportRangeDto` holds the two dates. The import replaces exactly this range
 ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)):
 
 - A date in the range with no rows in the file becomes empty. This includes the first and the
   last date.
 - A row with a date outside the range is rejected. A wrong date in one row cannot change other
-  dates. `ImportRange::contains()` is the only check. `StopRowParser` calls it for each row, so
-  the preview and the import reject the same rows.
+  dates. `ImportRangeDto::contains()` is the only check. `StopRowParser` calls it for each row,
+  so the preview and the import reject the same rows.
 - The range can be at most `APP_DRIVING_DATA_MAX_DAYS` days (default 31). A longer range is
   rejected, and no data changes.
 
@@ -518,9 +527,10 @@ holds the two dates. The import replaces exactly this range
    click, finds no token. It shows a message and imports nothing. The steps below parse the file
    again and import it. If the user cancels, the file is deleted.
 3. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
-   with their row number and a reason. A row with a date that `ImportRange::contains()` does not
-   accept is also rejected. Field values are never written to messages or logs. The person id is
-   kept as it is in the extract ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed).
+   with their row number and a reason. A row with a date that `ImportRangeDto::contains()` does
+   not accept is also rejected. The reason is a `RejectionReason` code, so field values are never
+   written to messages or logs. The person id is kept as it is in the extract
+   ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed).
 4. **Replace.** `StopRowReplacer` deletes all `StopRow` rows in the range, from all mappings, and
    then inserts the parsed rows. It does not check the range again. Rows that are not in the new
    file are removed, and two uploads can never count the same date twice. A row key that occurs
