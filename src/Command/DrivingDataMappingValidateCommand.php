@@ -98,10 +98,12 @@ final readonly class DrivingDataMappingValidateCommand
         }
 
         if ([] !== $summary->preview) {
+            // A row id column can be the person id column. Then the row key has the person id.
+            $hideRowKey = \in_array($mapping->field(FieldName::PersonId)->column, $mapping->rowId, true);
             $io->section('Preview');
             $io->table(
                 ['row', 'row key', ...array_map(static fn (FieldName $name): string => $name->value, FieldName::cases())],
-                array_map($this->previewRow(...), $summary->preview),
+                array_map(fn (StopRowDto $row): array => $this->previewRow($row, $hideRowKey), $summary->preview),
             );
         }
 
@@ -125,15 +127,17 @@ final readonly class DrivingDataMappingValidateCommand
      * Gives the values of a stop row in the order of FieldName::cases(). The times are in
      * APP_TIMEZONE, so that they agree with the cells of the file.
      *
+     * @param bool $hideRowKey true if the row key has the person id
+     *
      * @return list<string|int|float|null>
      */
-    private function previewRow(StopRowDto $row): array
+    private function previewRow(StopRowDto $row, bool $hideRowKey): array
     {
         $timeZone = new \DateTimeZone($this->timeZone);
 
         return [
             $row->rowNumber,
-            $row->rowKey,
+            $hideRowKey ? self::HIDDEN : $row->rowKey,
             $row->route,
             null === $row->personId ? null : self::HIDDEN,
             $row->serviceDate->format('Y-m-d'),

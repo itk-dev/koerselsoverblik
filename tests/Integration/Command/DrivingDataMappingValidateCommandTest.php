@@ -2,14 +2,18 @@
 
 namespace App\Tests\Integration\Command;
 
+use App\Command\DrivingDataMappingValidateCommand;
 use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Import\Extract\StopRowParser;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
+use App\Import\Mapping\MappingLoader;
 use App\Import\Mapping\MappingProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Console\Application as ConsoleApplication;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -21,7 +25,11 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
 {
     private const string SCENARIOS = __DIR__.'/../../fixtures/driving_data';
 
+    private const string DEFAULT_MAPPING = __DIR__.'/../../../config/import/driving_data/default.yaml';
+
     private string $path = '';
+
+    private string $mappingDirectory = '';
 
     protected function setUp(): void
     {
@@ -32,6 +40,12 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     {
         if (is_file($this->path)) {
             unlink($this->path);
+        }
+        if (is_dir($this->mappingDirectory)) {
+            foreach (glob($this->mappingDirectory.'/*') ?: [] as $file) {
+                unlink($file);
+            }
+            rmdir($this->mappingDirectory);
         }
         parent::tearDown();
     }
@@ -74,6 +88,31 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
         // The planned time comes directly before the solo value, because the actual time is empty.
         self::assertMatchesRegularExpression('/2026-01-05 07:00:00\s+no\s*$/m', $result->getDisplay());
+    }
+
+    /**
+     * A row id column can be the person id column. Then the row key has the person id, and the
+     * preview hides the row key.
+     */
+    public function testRowKeyWithThePersonIdIsHidden(): void
+    {
+        $this->mappingDirectory = sys_get_temp_dir().'/'.uniqid('mapping_dir_', true);
+        mkdir($this->mappingDirectory);
+        $yaml = (string) file_get_contents(self::DEFAULT_MAPPING);
+        file_put_contents($this->mappingDirectory.'/person_key.yaml', str_replace('row_id: [RouteStopID]', 'row_id: [PersonID, Date]', $yaml));
+        $mappings = new MappingProvider(new MappingLoader(), $this->mappingDirectory, 'person_key');
+        (new ExtractWriter())->write($this->path, $mappings->default(), (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
+        $parser = self::getContainer()->get(StopRowParser::class);
+        self::assertInstanceOf(StopRowParser::class, $parser);
+        $application = new ConsoleApplication();
+        $application->addCommand(new DrivingDataMappingValidateCommand($mappings, $parser, 'Europe/Copenhagen'));
+        $tester = new CommandTester($application->find('app:driving-data:mapping:validate'));
+
+        $tester->execute(['mapping-name' => 'person_key', 'path-to-file' => $this->path]);
+
+        self::assertSame(Command::SUCCESS, $tester->getStatusCode(), $tester->getDisplay());
+        self::assertMatchesRegularExpression('/4\s+\(hidden\)\s+R-01\s+\(hidden\)\s+2026-01-05/', $tester->getDisplay());
+        self::assertStringNotContainsString('P-00', $tester->getDisplay());
     }
 
     public function testRejectedRowsAreCountedWithoutTheirValues(): void
