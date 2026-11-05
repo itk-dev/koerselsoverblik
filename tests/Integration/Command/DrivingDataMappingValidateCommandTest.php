@@ -144,6 +144,20 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         }
     }
 
+    /**
+     * A rejected row without a row id has no field. The table shows "(row id)" for it.
+     */
+    public function testRowWithoutRowIdIsRejected(): void
+    {
+        $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        (new ExtractWriter())->write($this->path, self::defaultMapping(), [new ExtractRow($values, '')]);
+
+        $result = $this->validate();
+
+        self::assertSame(Command::FAILURE, $result->getStatusCode());
+        self::assertMatchesRegularExpression('/\(row id\)\s+invalid_row_id\s+1\s+4/', $result->getDisplay());
+    }
+
     public function testAllMissingColumnsAreShown(): void
     {
         (new ExtractWriter())->write($this->path, self::defaultMapping(), (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows, [FieldName::Run, FieldName::StopType]);
