@@ -736,11 +736,16 @@ flowchart TD
   another user. The token works one time only, so a double click cannot import the file two
   times.
 - The parser reads the extract with OpenSpout, which streams one row at a time. Before OpenSpout
-  opens the file, `ExtractInspector` checks the file size and the total uncompressed size of the
-  xlsx archive. Then it reads each XML file in the archive one node at a time, and checks the
+  opens the file, `ExtractInspector` checks the file size, and that the xlsx archive has at most
+  1000 files. Then it reads each XML file in the archive one node at a time, and checks the
   row numbers and the columns against configurable limits (ASVS V12.1.2). A file above a limit
   gives no rows. The inspector reads every XML file, because OpenSpout does not check the
   `spans` of a row: a small file can make one row use all the memory.
+- The inspector counts the bytes that it reads from the archive, and stops one byte after the
+  uncompressed-size limit. It does not use the sizes in the archive, because libzip does not
+  check them: a zip bomb can give a false size. Thus the limit also controls the time of an
+  upload. A file in the archive that libzip cannot read, for example an encrypted file, is
+  rejected.
 - The inspector rejects XML with a `DOCTYPE`, so an extract cannot use external entities (XXE,
   ASVS V5.5.2). OpenSpout does not read an external entity, but it ignores a cell with one. The
   tests keep this protection if a new version of OpenSpout changes.

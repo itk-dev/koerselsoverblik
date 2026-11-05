@@ -97,5 +97,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#38](https://github.com/itk-dev/koerselsoverblik/issues/38)
   Extract limits: before the first row, `ExtractInspector` checks the file size, the uncompressed
   size, the row numbers and the columns of an extract against the `APP_DRIVING_DATA_MAX_*` limits.
-  It rejects a file with a `DOCTYPE`. A file that OpenSpout cannot read gives an
-  `InvalidExtractException`.
+  It counts the uncompressed bytes that it reads, and does not use the sizes in the archive. It
+  rejects an archive with more than 1000 files, a file in the archive that it cannot read, and a
+  file with a `DOCTYPE`. A file that OpenSpout cannot read gives an `InvalidExtractException`.

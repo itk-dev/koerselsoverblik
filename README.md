@@ -169,7 +169,7 @@ Set these in `.env.local`:
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 | `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
 | `APP_DRIVING_DATA_MAX_FILE_SIZE` | The maximum size in bytes of an extract | `20971520` (20 MiB) |
-| `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE` | The maximum total size in bytes of the files in the xlsx archive, when they are not compressed | `104857600` (100 MiB) |
+| `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE` | The maximum total size in bytes of the files in the xlsx archive, when they are not compressed. The parser reads all the files before the first row, so this limit also controls the time of an upload | `52428800` (50 MiB) |
 | `APP_DRIVING_DATA_MAX_ROWS` | The maximum row number in the sheet of an extract | `50000` |
 | `APP_DRIVING_DATA_MAX_COLUMNS` | The maximum number of columns in a row of an extract | `200` |
 | `APP_TIMEZONE` | The time zone of the wall-clock times in an extract. The import stores the times in UTC | `Europe/Copenhagen` |
@@ -328,8 +328,9 @@ value from the extract. It rejects the whole file if the sheet, the header row o
 missing.
 
 Before the first row, the parser checks the whole file. It rejects a file above one of the
-`APP_DRIVING_DATA_MAX_*` limits in [Configuration](#configuration), and a file with a `DOCTYPE`.
-Then it gives no rows.
+`APP_DRIVING_DATA_MAX_*` limits in [Configuration](#configuration). It also rejects a file with
+more than 1000 files in the archive, a file in the archive that it cannot read, and a file with a
+`DOCTYPE`. Then it gives no rows.
 
 The `default` mapping reads the extract of the planning system. See
 [the reference extract](docs/architecture.md#the-reference-extract).
