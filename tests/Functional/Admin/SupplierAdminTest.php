@@ -42,7 +42,7 @@ final class SupplierAdminTest extends WebTestCase
     {
         $this->client->request('GET', $url);
 
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects('/openidconnect/login/default');
     }
 
     #[DataProvider('adminPages')]
