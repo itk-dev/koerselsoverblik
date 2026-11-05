@@ -174,7 +174,7 @@ Set these in `.env.local`:
 | `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE` | The maximum total size in bytes of the files in the xlsx archive, when they are not compressed. The parser reads all the files before the first row, so this limit also controls the time of an upload | `52428800` (50 MiB) |
 | `APP_DRIVING_DATA_MAX_ROWS` | The maximum row number in the sheet of an extract | `50000` |
 | `APP_DRIVING_DATA_MAX_COLUMNS` | The maximum number of columns in a row of an extract | `200` |
-| `APP_TIMEZONE` | The time zone of the wall-clock times in an extract. The import stores the times in UTC | `Europe/Copenhagen` |
+| `APP_TIMEZONE` | The time zone of the wall-clock times in an extract, and of the times in the browser. The application stores all dates and times in UTC ([ADR 005](docs/adr/005-dates-and-times-in-utc.md)) | `Europe/Copenhagen` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.

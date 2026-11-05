@@ -525,7 +525,20 @@ The import stores all dates and times in UTC:
 - A time that occurs two times, on the night of the change to winter time, is read as winter
   time (the second one).
 
-The browser shows the times in `APP_TIMEZONE`.
+The application stores and calculates all dates and times in UTC
+([ADR 005](adr/005-dates-and-times-in-utc.md)). Only the browser shows local time:
+
+- The Doctrine types `datetime` and `datetime_immutable` are `UTCDateTimeType` and
+  `UTCDateTimeImmutableType`. They write a `DATETIME` column in UTC, and read it back in UTC.
+- `Kernel::boot()` sets the PHP default time zone to UTC, for the web and the console.
+- The Twig `date` filter shows a time in `APP_TIMEZONE`. A calendar date uses
+  `|date(format, false)`, so that it is not converted.
+- `TimeZoneTypeExtension` gives `DateTimeType` and `TimeType` the `model_timezone` UTC and the
+  `view_timezone` from `APP_TIMEZONE`. A `TimeType` field converts only with a
+  `reference_date`. A `DateType` field has no conversion.
+- The code gets the time from `ClockInterface`, not from `NOW()` or `CURRENT_TIMESTAMP` in SQL.
+- `LocalCalendar::today()` gives the current date in `APP_TIMEZONE`, as a calendar date at
+  00:00 UTC.
 
 ### Date range
 
@@ -957,3 +970,4 @@ See [`adr/`](adr/README.md):
 - [002: OIDC authentication with roles from the identity provider](adr/002-oidc-authentication.md)
 - [003: Driving data import with mappings and replacement of the entered date range](adr/003-driving-data-import-mapping-and-overwrite.md)
 - [004: Personal data in driving data](adr/004-personal-data-in-driving-data.md)
+- [005: Dates and times in UTC](adr/005-dates-and-times-in-utc.md)

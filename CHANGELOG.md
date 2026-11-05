@@ -114,3 +114,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   names all missing columns in one `MissingColumnsException`, and it accepts all dates when it has
   no range. The mutation tasks fill the test cache before Infection starts, so that cold caches
   give no timeouts.
+- [#47](https://github.com/itk-dev/koerselsoverblik/issues/47)
+  Dates and times in UTC (ADR 005): Doctrine types write and read the `datetime` and
+  `datetime_immutable` columns in UTC. The kernel and the tests use UTC as the PHP default time
+  zone. The Twig `date` filter shows the times in `APP_TIMEZONE`, and the assignment dates with
+  no conversion. A form extension gives the date and time fields UTC values and local display.
+  `LocalCalendar::today()` gives a calendar date at 00:00 UTC, and the fixtures command gets the
+  current month from it. A migration converts the stored login times from Copenhagen time to UTC.
+  The log times are in UTC.

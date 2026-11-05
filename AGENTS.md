@@ -58,6 +58,10 @@ The project uses test-driven development. See "Development" in [README.md](READM
 - Logs and error messages never contain field values from the driving data.
 - Change the database schema only with Doctrine migrations. Do not use
   `doctrine:schema:update` or hand-written SQL.
+- Store and calculate all dates and times in UTC. Get the time from `ClockInterface`, not from
+  `NOW()` or `CURRENT_TIMESTAMP` in SQL, or from `new \DateTimeImmutable('now')`. Show a calendar
+  date in Twig with `|date(format, false)`. Give a `TimeType` field a `reference_date` when it
+  must show local time. See [ADR 005](docs/adr/005-dates-and-times-in-utc.md).
 - The user interface is in Danish. Code, comments and documentation are in English.
 
 ## Symfony conventions
