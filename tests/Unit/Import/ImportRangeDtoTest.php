@@ -12,12 +12,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class ImportRangeDtoTest extends TestCase
 {
+    /**
+     * The dates are calendar dates at 00:00 UTC. The time zone of the input does not change them.
+     */
     public function testRangeHasTheDatesWithoutTime(): void
     {
-        $range = ImportRangeDto::create(new \DateTime('2026-01-05 13:45'), new \DateTimeImmutable('2026-01-07 08:00'), 31);
+        $copenhagen = new \DateTimeZone('Europe/Copenhagen');
+        $range = ImportRangeDto::create(new \DateTime('2026-01-05 00:30', $copenhagen), new \DateTimeImmutable('2026-01-07 08:00', $copenhagen), 31);
 
-        self::assertSame('2026-01-05 00:00:00', $range->firstDate->format('Y-m-d H:i:s'));
-        self::assertSame('2026-01-07 00:00:00', $range->lastDate->format('Y-m-d H:i:s'));
+        self::assertSame('2026-01-05 00:00:00 UTC', $range->firstDate->format('Y-m-d H:i:s e'));
+        self::assertSame('2026-01-07 00:00:00 UTC', $range->lastDate->format('Y-m-d H:i:s e'));
     }
 
     public function testRangeOfOneDayIsAccepted(): void

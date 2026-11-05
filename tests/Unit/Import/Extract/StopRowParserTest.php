@@ -87,9 +87,10 @@ final class StopRowParserTest extends TestCase
         self::assertSame(1, $first->passengersAfter);
         self::assertSame(2.0, $first->nextDistanceKm);
         self::assertSame(5.0, $first->nextDurationMin);
-        self::assertSame('2026-01-05 07:00:00', $first->plannedTime->format('Y-m-d H:i:s'));
+        // The extract has wall-clock times in Europe/Copenhagen. The stop row has them in UTC.
+        self::assertSame('2026-01-05 06:00:00 UTC', $first->plannedTime->format('Y-m-d H:i:s e'));
         self::assertNotNull($first->actualTime);
-        self::assertSame('2026-01-05 07:02:00', $first->actualTime->format('Y-m-d H:i:s'));
+        self::assertSame('2026-01-05 06:02:00 UTC', $first->actualTime->format('Y-m-d H:i:s e'));
         self::assertFalse($first->plannedSolo);
     }
 
@@ -101,9 +102,10 @@ final class StopRowParserTest extends TestCase
         $dropOff = self::find($rows, 'P-004', StopType::DropOff);
 
         self::assertSame('2026-01-05', $dropOff->serviceDate->format('Y-m-d'));
-        self::assertSame('2026-01-06 00:20:00', $dropOff->plannedTime->format('Y-m-d H:i:s'));
+        // 00:20 on 6 January in Copenhagen is 23:20 on 5 January in UTC.
+        self::assertSame('2026-01-05 23:20:00 UTC', $dropOff->plannedTime->format('Y-m-d H:i:s e'));
         self::assertNotNull($dropOff->actualTime);
-        self::assertSame('2026-01-06 00:22:00', $dropOff->actualTime->format('Y-m-d H:i:s'));
+        self::assertSame('2026-01-05 23:22:00 UTC', $dropOff->actualTime->format('Y-m-d H:i:s e'));
     }
 
     public function testStopWithNoRegistrationHasNoActualTime(): void
@@ -418,7 +420,7 @@ final class StopRowParserTest extends TestCase
 
     private function parser(?ExtractLimitsDto $limits = null): StopRowParser
     {
-        return new StopRowParser(new CellConverter(), new ExtractInspector(), $limits ?? new ExtractLimitsDto(1_000_000, 10_000_000, 1000, 100));
+        return new StopRowParser(new CellConverter(), new ExtractInspector($limits ?? new ExtractLimitsDto(1_000_000, 10_000_000, 1000, 100)), 'Europe/Copenhagen');
     }
 
     private static function defaultRange(): ImportRangeDto

@@ -13,7 +13,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  *     column: string,
  *     type: FieldType,
  *     format: ?string,
- *     map: array<string, string>,
+ *     map: array<array-key, string>,
  *     true_values: list<string>,
  *     false_values: list<string>,
  *     required: bool,

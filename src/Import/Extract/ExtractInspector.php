@@ -12,18 +12,33 @@ namespace App\Import\Extract;
  */
 final readonly class ExtractInspector
 {
+    /**
+     * The maximum number of files in the archive. A workbook from Excel has fewer than 100 files.
+     */
+    public const int MAX_FILES = 1000;
+
     private const string LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     /**
-     * @throws InvalidExtractException if the extract is above a limit, is not an xlsx file or has a DOCTYPE
+     * Excel has at most three letters in a column, "XFD". OpenSpout rejects a reference with more.
      */
-    public function inspect(string $path, ExtractLimitsDto $limits): void
+    private const int MAX_COLUMN_LETTERS = 3;
+
+    public function __construct(
+        private ExtractLimitsDto $limits,
+    ) {
+    }
+
+    /**
+     * @throws InvalidExtractException if the extract is above a limit, is not an xlsx file, has a file that cannot be read or has a DOCTYPE
+     */
+    public function inspect(string $path): void
     {
         if (!is_file($path)) {
             throw new InvalidExtractException('The extract is not a file.');
         }
-        if (filesize($path) > $limits->maxFileSize) {
-            throw new InvalidExtractException(\sprintf('The extract is larger than %d bytes.', $limits->maxFileSize));
+        if (filesize($path) > $this->limits->maxFileSize) {
+            throw new InvalidExtractException(\sprintf('The extract is larger than %d bytes.', $this->limits->maxFileSize));
         }
 
         // PHP closes the archive when it frees $zip at the end of the method.
@@ -31,28 +46,50 @@ final readonly class ExtractInspector
         if (true !== $zip->open($path, \ZipArchive::RDONLY)) {
             throw new InvalidExtractException('The extract is not an xlsx file.');
         }
-
-        $size = 0;
-        for ($index = 0; $index < $zip->numFiles; ++$index) {
-            /** @var array{size: int} $stat */
-            $stat = $zip->statIndex($index);
-            $size += $stat['size'];
-        }
-        if ($size > $limits->maxUncompressedSize) {
-            throw new InvalidExtractException(\sprintf('The extract is larger than %d bytes when it is not compressed.', $limits->maxUncompressedSize));
+        if ($zip->numFiles > self::MAX_FILES) {
+            throw new InvalidExtractException(\sprintf('The extract has more than %d files.', self::MAX_FILES));
         }
 
+        // libzip does not check the uncompressed size that the archive gives for a file. Thus the
+        // inspector counts the bytes that it reads.
+        $remaining = $this->limits->maxUncompressedSize;
         for ($index = 0; $index < $zip->numFiles; ++$index) {
-            /** @var resource $stream */
-            $stream = $zip->getStreamIndex($index);
-            self::inspectXml($stream, $limits);
+            $remaining -= $this->inspectFile($zip, $index, $remaining);
         }
+    }
+
+    /**
+     * Copies one file of the archive to a temporary stream, and then reads its XML.
+     *
+     * @return int the uncompressed size of the file
+     */
+    private function inspectFile(\ZipArchive $zip, int $index, int $remaining): int
+    {
+        // An encrypted file, or a file with a compression method that libzip cannot read, gives no
+        // stream.
+        $stream = $zip->getStreamIndex($index);
+        /** @var resource $copy PHP frees the stream at the end of the method. */
+        $copy = fopen('php://temp', 'w+b');
+        // One byte more than the remaining size shows that the file is too large. Bad compressed
+        // data gives a warning and false. The exception replaces the warning.
+        $size = false === $stream ? false : @stream_copy_to_stream($stream, $copy, $remaining + 1);
+        if (false === $size) {
+            throw new InvalidExtractException('The extract has a file that cannot be read.');
+        }
+        if ($size > $remaining) {
+            throw new InvalidExtractException(\sprintf('The extract is larger than %d bytes when it is not compressed.', $this->limits->maxUncompressedSize));
+        }
+
+        rewind($copy);
+        $this->inspectXml($copy);
+
+        return $size;
     }
 
     /**
      * @param resource $stream
      */
-    private static function inspectXml($stream, ExtractLimitsDto $limits): void
+    private function inspectXml($stream): void
     {
         $useInternalErrors = libxml_use_internal_errors(true);
         // Only the errors of this file count, not the errors of other code.
@@ -74,30 +111,32 @@ final readonly class ExtractInspector
                     continue;
                 }
 
-                // OpenSpout finds the nodes by the name without the prefix.
+                // OpenSpout finds the nodes by the name without the prefix. The inspector checks the
+                // nodes in all the XML files, also in the files that are not sheets, for example
+                // xl/calcChain.xml. That can reject a valid file, but it cannot accept a bad file.
                 switch ($reader->localName) {
                     case 'dimension':
                         // For example "A1:M13". OpenSpout makes each row as wide as the last column.
                         if (1 === preg_match('/:([A-Z]+)/', (string) $reader->getAttribute('ref'), $matches)) {
-                            self::checkColumn(self::columnNumber($matches[1]), $limits);
+                            $this->checkColumn(self::columnNumber($matches[1]));
                         }
                         break;
                     case 'row':
                         $number = $reader->getAttribute('r');
                         $row = null === $number ? $row + 1 : (int) $number;
-                        if ($row > $limits->maxRows) {
-                            throw new InvalidExtractException(\sprintf('The extract has more than %d rows.', $limits->maxRows));
+                        if ($row > $this->limits->maxRows) {
+                            throw new InvalidExtractException(\sprintf('The extract has more than %d rows.', $this->limits->maxRows));
                         }
                         $column = 0;
                         // For example "1:5". OpenSpout uses (int) on the value after the colon.
                         foreach (preg_split('/[:\s]+/', (string) $reader->getAttribute('spans')) ?: [] as $part) {
-                            self::checkColumn((int) $part, $limits);
+                            $this->checkColumn((int) $part);
                         }
                         break;
                     case 'c':
                         $reference = $reader->getAttribute('r');
                         $column = null === $reference ? $column + 1 : self::columnNumber($reference);
-                        self::checkColumn($column, $limits);
+                        $this->checkColumn($column);
                         break;
                 }
             }
@@ -112,10 +151,10 @@ final readonly class ExtractInspector
         }
     }
 
-    private static function checkColumn(int $column, ExtractLimitsDto $limits): void
+    private function checkColumn(int $column): void
     {
-        if ($column > $limits->maxColumns) {
-            throw new InvalidExtractException(\sprintf('The extract has more than %d columns.', $limits->maxColumns));
+        if ($column > $this->limits->maxColumns) {
+            throw new InvalidExtractException(\sprintf('The extract has more than %d columns.', $this->limits->maxColumns));
         }
     }
 
@@ -125,6 +164,9 @@ final readonly class ExtractInspector
     private static function columnNumber(string $reference): int
     {
         $letters = substr($reference, 0, strspn($reference, self::LETTERS));
+        if (\strlen($letters) > self::MAX_COLUMN_LETTERS) {
+            throw new InvalidExtractException('The extract has a cell reference that is not valid.');
+        }
 
         return array_reduce(
             str_split($letters),

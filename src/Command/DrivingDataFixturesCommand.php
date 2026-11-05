@@ -61,18 +61,19 @@ final readonly class DrivingDataFixturesCommand
         }
 
         $mapping = $this->mappings->default();
-        is_dir($this->outputDirectory) || mkdir($this->outputDirectory, 0o777, true);
+        // Load all scenarios first, so that a scenario that is not valid stops the command before it deletes files.
+        $scenarios = array_map($this->scenarios->load(...), glob($this->scenarioDirectory.'/*.yaml') ?: []);
 
-        $files = 0;
-        foreach (glob($this->scenarioDirectory.'/*.yaml') ?: [] as $path) {
-            $scenario = $this->scenarios->load($path);
-            $this->writer->write($this->outputDirectory.'/'.$scenario->name.'.xlsx', $mapping, $scenario->rows, $scenario->omittedFields);
-            ++$files;
+        // Delete the files of an earlier run, so that the directory holds only the files of this run.
+        is_dir($this->outputDirectory) || mkdir($this->outputDirectory, 0o777, true);
+        foreach (glob($this->outputDirectory.'/*.xlsx') ?: [] as $earlier) {
+            unlink($earlier);
         }
 
-        // Delete the months of an earlier run, so that the directory holds one dataset.
-        foreach (glob($this->outputDirectory.'/dev-*.xlsx') ?: [] as $earlier) {
-            unlink($earlier);
+        $files = 0;
+        foreach ($scenarios as $scenario) {
+            $this->writer->write($this->outputDirectory.'/'.$scenario->name.'.xlsx', $mapping, $scenario->rows, $scenario->omittedFields);
+            ++$files;
         }
         for ($month = $last->modify(\sprintf('-%d months', $months - 1)); $month <= $last; $month = $month->modify('+1 month')) {
             $this->writer->write($this->outputDirectory.'/dev-'.$month->format('Y-m').'.xlsx', $mapping, $this->generator->month($seed, $month));

@@ -3,19 +3,21 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * A placeholder for the login. M1-07 replaces it with the OIDC login routes and adds the logout.
+ * The OIDC callback (OIDC_REDIRECT_URI). OidcAuthenticator handles a callback with a state, so
+ * this action runs only for a request without one.
  *
- * The login is public, so this controller has no IsGranted. RouteGuardTest lists it as public.
+ * The callback is public, so this controller has no IsGranted. RouteGuardTest lists it as public.
+ * The firewall handles the logout at /logout.
  */
 final class SecurityController extends AbstractController
 {
-    #[Route('/login', name: 'login', methods: ['GET'])]
-    public function login(): Response
+    #[Route('/openid-connect/generic', name: 'openid_connect_generic', methods: ['GET'])]
+    public function callback(): RedirectResponse
     {
-        return new Response('Login');
+        return $this->redirectToRoute('overview');
     }
 }

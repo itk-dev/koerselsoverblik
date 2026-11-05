@@ -5,6 +5,7 @@ namespace App\Tests\Unit\DataFixtures\DrivingData;
 use App\DataFixtures\DrivingData\Scenario;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Import\Mapping\FieldName;
+use App\Import\Mapping\MappingLoader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -14,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 final class ScenarioLoaderTest extends TestCase
 {
     private const string SCENARIOS = __DIR__.'/../../../fixtures/driving_data';
+    private const string DEFAULT_MAPPING = __DIR__.'/../../../../config/import/driving_data/default.yaml';
 
     /** @var list<string> */
     private array $paths = [];
@@ -165,7 +167,7 @@ final class ScenarioLoaderTest extends TestCase
     public function testScenarioWithoutExpectedIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/test_scenario_.*\.yaml.*"expected"/');
+        $this->expectExceptionMessageMatches('/test_scenario_.*\.yaml.*The scenario has no "expected" section\./');
 
         $this->load(<<<'YAML'
             date: 2026-01-05
@@ -173,20 +175,32 @@ final class ScenarioLoaderTest extends TestCase
             YAML);
     }
 
-    public function testTimeThatIsNotHoursAndMinutesIsRejected(): void
+    #[DataProvider('timesThatAreNotHoursAndMinutes')]
+    public function testTimeThatIsNotHoursAndMinutesIsRejected(string $time): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/test_scenario_.*\.yaml.*"7.10"/');
+        $this->expectExceptionMessageMatches('/test_scenario_.*\.yaml.*"'.preg_quote($time, '/').'"/');
 
-        $this->load(<<<'YAML'
+        $this->load(<<<YAML
             date: 2026-01-05
             routes:
               R-01:
                 runs:
                   1:
-                    - { person: P-001, type: pickup, planned: '7.10' }
+                    - { person: P-001, type: pickup, planned: '{$time}' }
             expected: { stop_rows: 1 }
             YAML);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function timesThatAreNotHoursAndMinutes(): iterable
+    {
+        yield 'dot' => ['7.10'];
+        yield 'text before the hours' => ['a07:10'];
+        yield 'text after the minutes' => ['07:10a'];
+        yield 'minutes of 60 or more' => ['07:75'];
     }
 
     /**
@@ -240,6 +254,56 @@ final class ScenarioLoaderTest extends TestCase
             YAML);
     }
 
+    public function testRawValuesCanBeNumbersAndEmpty(): void
+    {
+        $scenario = $this->load(<<<'YAML'
+            date: 2026-01-05
+            routes:
+              R-01:
+                runs:
+                  1:
+                    - { person: P-001, type: pickup, planned: '07:10', raw: { run: 4, next_distance_km: 2.5, route: ~ } }
+            expected: { stop_rows: 1 }
+            YAML);
+
+        self::assertSame(['run' => 4, 'next_distance_km' => 2.5, 'route' => null], $scenario->rows[0]->raw);
+    }
+
+    public function testWholeNumberFieldWithTextIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('"passengers_after" must be a whole number.');
+
+        $this->load(<<<'YAML'
+            date: 2026-01-05
+            routes:
+              R-01:
+                runs:
+                  1:
+                    - { person: P-001, type: pickup, planned: '07:10', passengers_after: one }
+            expected: { stop_rows: 1 }
+            YAML);
+    }
+
+    /**
+     * The fields are a list, also when "omit" is a map.
+     */
+    public function testOmittedFieldsAreAList(): void
+    {
+        $scenario = $this->load(<<<'YAML'
+            date: 2026-01-05
+            omit: { solo: planned_solo }
+            routes:
+              R-01:
+                runs:
+                  1:
+                    - { person: P-001, type: pickup, planned: '07:10' }
+            expected: { stop_rows: 1 }
+            YAML);
+
+        self::assertSame([FieldName::PlannedSolo], $scenario->omittedFields);
+    }
+
     public function testRawValueThatIsNotTextOrANumberIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -266,6 +330,25 @@ final class ScenarioLoaderTest extends TestCase
 
         self::assertNotSame([], $scenario->rows);
         self::assertNotSame([], $scenario->expected);
+    }
+
+    /**
+     * A bad row has one bad cell, so that a test can show that the import rejects that cell alone.
+     */
+    #[DataProvider('scenarioFiles')]
+    public function testScenarioRowHasAtMostOneDefect(string $path): void
+    {
+        $mapping = (new MappingLoader())->load(self::DEFAULT_MAPPING);
+        $scenario = (new ScenarioLoader())->load($path);
+
+        foreach ($scenario->rows as $index => $row) {
+            self::assertLessThanOrEqual(1, \count($row->raw), \sprintf('Row %d has more than one raw value.', $index));
+            foreach (FieldName::cases() as $name) {
+                if ($mapping->field($name)->required && !\array_key_exists($name->value, $row->raw)) {
+                    self::assertNotNull($row->values[$name->value] ?? null, \sprintf('Row %d has no value for "%s".', $index, $name->value));
+                }
+            }
+        }
     }
 
     /**

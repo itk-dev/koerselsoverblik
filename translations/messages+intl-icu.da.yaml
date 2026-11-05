@@ -1,0 +1,22 @@
+app:
+  name: Kørselsoverblik
+  owner: Kørselskontoret
+
+layout:
+  skip_to_content: Spring til indhold
+  show_menu: Vis menu
+
+menu:
+  label: Hovedmenu
+  overview: Overblik
+  daily_counts: Daglige tal
+  suppliers: Leverandører og ruter
+
+about:
+  title: Om tallene
+  close: Luk
+  placeholder: Her kommer en forklaring af tallene og deres kilder.
+
+overview:
+  title: Overblik
+  placeholder: Nøgletallene kommer her.

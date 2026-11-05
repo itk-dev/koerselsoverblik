@@ -4,7 +4,8 @@
 # - trips: the pickups, also the cancelled pickup (P-006) and the pickup with no
 #   registration (P-005).
 # - citizens: the distinct person ids P-001 to P-007.
-# - solo_runs: the runs with at most one passenger at a time (R-01 run 2 and BOOKED).
+# - solo_runs: the runs with at most one citizen in the vehicle at a time, from
+#   passengers_after (R-01 run 2 and BOOKED). planned_solo agrees for these runs.
 # - last_drop_offs: the runs that are not fully cancelled.
 # - on_time: the last drop-off is at most 5 minutes late. R-01 run 1 is 4 minutes
 #   late, R-01 run 2 is 11 minutes late, R-02 is 3 minutes late, BOOKED is on time.
@@ -115,11 +116,13 @@ routes:
           passengers_after: 1
           km: 8.0
           min: 15
+          solo: true
         - person: P-007
           type: drop_off
           planned: "13:30"
           actual: "13:30"
           passengers_after: 0
+          solo: true
 expected:
   stop_rows: 14
   rejected_rows: 0

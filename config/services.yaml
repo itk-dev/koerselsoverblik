@@ -16,6 +16,8 @@ parameters:
     app.driving_data_max_uncompressed_size: '%env(int:APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE)%'
     app.driving_data_max_rows: '%env(int:APP_DRIVING_DATA_MAX_ROWS)%'
     app.driving_data_max_columns: '%env(int:APP_DRIVING_DATA_MAX_COLUMNS)%'
+    # The time zone of the wall-clock times in an extract. See "Configuration" in the README.
+    app.timezone: '%env(APP_TIMEZONE)%'
 
 services:
     # default configuration for services in *this* file
