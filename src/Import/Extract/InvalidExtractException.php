@@ -8,6 +8,6 @@ namespace App\Import\Extract;
  *
  * The message can have the names from the mapping. It never has a value from the extract.
  */
-final class InvalidExtractException extends \RuntimeException
+class InvalidExtractException extends \RuntimeException
 {
 }

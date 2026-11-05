@@ -10,6 +10,7 @@ use App\Import\Extract\CellConverter;
 use App\Import\Extract\ExtractInspector;
 use App\Import\Extract\ExtractLimitsDto;
 use App\Import\Extract\InvalidExtractException;
+use App\Import\Extract\MissingColumnsException;
 use App\Import\Extract\RejectedRowDto;
 use App\Import\Extract\RejectionReason;
 use App\Import\Extract\StopRowDto;
@@ -176,6 +177,20 @@ final class StopRowParserTest extends TestCase
     }
 
     /**
+     * The validate command has no range, so the parser accepts all dates.
+     */
+    public function testParserWithoutRangeAcceptsAllDates(): void
+    {
+        $this->writeScenario('range_edges');
+
+        $rows = iterator_to_array($this->parser()->parse($this->path, self::defaultMapping(), null), false);
+
+        // The 4 rows in the range of the scenario, and the 1 row outside it.
+        self::assertCount(5, $rows);
+        self::assertContainsOnlyInstancesOf(StopRowDto::class, $rows);
+    }
+
+    /**
      * The parser gives each row its key. The replacement of the stop rows rejects a key that
      * occurs more than once.
      */
@@ -239,10 +254,28 @@ final class StopRowParserTest extends TestCase
     {
         (new ExtractWriter())->write($this->path, self::defaultMapping(), [new ExtractRow(self::scenarioValues())], [FieldName::Run]);
 
-        $this->expectException(InvalidExtractException::class);
-        $this->expectExceptionMessage('The extract has no column "blocknumber" for the field "run".');
+        $this->expectException(MissingColumnsException::class);
+        $this->expectExceptionMessage('The extract has no columns "blocknumber".');
 
         $this->parse(self::defaultMapping());
+    }
+
+    /**
+     * The exception names all the missing columns, so that one run of the validate command can
+     * show them. The names come from the mapping. A column for a field and the row id is named
+     * one time.
+     */
+    public function testAllMissingColumnsAreNamed(): void
+    {
+        $this->writeRows([\array_slice(self::HEADER, 2), \array_slice(self::ROW, 2)]);
+
+        try {
+            $this->parse(self::simpleMapping(rowId: ['Id', 'Run', 'Route']));
+            self::fail('The parser accepted the extract.');
+        } catch (MissingColumnsException $exception) {
+            self::assertSame(['Route', 'Person', 'Id'], $exception->columns);
+            self::assertSame('The extract has no columns "Route", "Person", "Id".', $exception->getMessage());
+        }
     }
 
     public function testRowWithoutRowIdHasNoKey(): void
@@ -267,8 +300,8 @@ final class StopRowParserTest extends TestCase
     {
         $this->writeRows([self::HEADER, self::ROW]);
 
-        $this->expectException(InvalidExtractException::class);
-        $this->expectExceptionMessage('The extract has no column "Id" for the row id.');
+        $this->expectException(MissingColumnsException::class);
+        $this->expectExceptionMessage('The extract has no columns "Id".');
 
         $this->parse(self::simpleMapping(rowId: ['Id']));
     }

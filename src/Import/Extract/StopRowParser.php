@@ -47,11 +47,14 @@ final readonly class StopRowParser
      * The parser checks and opens the file when the caller asks for the first row. Then it can
      * throw the exception. A file above a limit gives no rows.
      *
+     * @param ?ImportRangeDto $range the dates of the upload, or null to accept all dates
+     *
      * @return \Generator<int, StopRowDto|RejectedRowDto>
      *
-     * @throws InvalidExtractException if the extract is above a limit, is not a valid xlsx file, or does not have the sheet, the header row or a column of the mapping
+     * @throws MissingColumnsException if the extract does not have all the columns of the mapping
+     * @throws InvalidExtractException if the extract is above a limit, is not a valid xlsx file, or does not have the sheet or the header row
      */
-    public function parse(string $path, MappingDto $mapping, ImportRangeDto $range): \Generator
+    public function parse(string $path, MappingDto $mapping, ?ImportRangeDto $range): \Generator
     {
         $this->inspector->inspect($path);
 
@@ -111,25 +114,25 @@ final readonly class StopRowParser
 
         $fieldColumns = [];
         foreach (FieldName::cases() as $name) {
-            $column = $mapping->field($name)->column;
-            $fieldColumns[$name->value] = $indexes[$column]
-                ?? throw new InvalidExtractException(\sprintf('The extract has no column "%s" for the field "%s".', $column, $name->value));
+            $fieldColumns[$name->value] = $mapping->field($name)->column;
         }
 
-        $rowIdColumns = array_map(
-            static fn (string $column): int => $indexes[$column]
-                ?? throw new InvalidExtractException(\sprintf('The extract has no column "%s" for the row id.', $column)),
-            $mapping->rowId,
-        );
+        $missing = array_values(array_unique(array_diff([...$fieldColumns, ...$mapping->rowId], array_keys($indexes))));
+        if ([] !== $missing) {
+            throw new MissingColumnsException($missing);
+        }
 
-        return [$fieldColumns, $rowIdColumns];
+        return [
+            array_map(static fn (string $column): int => $indexes[$column], $fieldColumns),
+            array_map(static fn (string $column): int => $indexes[$column], $mapping->rowId),
+        ];
     }
 
     /**
      * @param array<string, int> $fieldColumns
      * @param list<int>          $rowIdColumns
      */
-    private function stopRow(int $rowNumber, Row $row, MappingDto $mapping, array $fieldColumns, array $rowIdColumns, ImportRangeDto $range): StopRowDto|RejectedRowDto
+    private function stopRow(int $rowNumber, Row $row, MappingDto $mapping, array $fieldColumns, array $rowIdColumns, ?ImportRangeDto $range): StopRowDto|RejectedRowDto
     {
         $values = [];
         foreach (FieldName::cases() as $name) {
@@ -157,7 +160,7 @@ final readonly class StopRowParser
         /** @var StopRowValues $values */
         $stopRow = StopRowDto::fromValues($rowNumber, $rowKey, $values, new \DateTimeZone($this->timeZone));
 
-        return $range->contains($stopRow->serviceDate)
+        return null === $range || $range->contains($stopRow->serviceDate)
             ? $stopRow
             : new RejectedRowDto($rowNumber, RejectionReason::OutsideRange, FieldName::ServiceDate);
     }

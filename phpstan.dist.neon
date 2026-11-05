@@ -10,11 +10,3 @@ parameters:
         - config/reference.php
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
-    ignoreErrors:
-        # MappingProvider is public only in the test container (when@test in config/services.yaml).
-        # PHPStan reads the dev container, and the result of this rule is different locally and in
-        # CI. Remove this when a production service uses the provider.
-        -
-            identifier: symfonyContainer.serviceNotFound
-            path: tests/Integration/Import/Mapping/DefaultMappingTest.php
-            reportUnmatched: false
