@@ -27,6 +27,8 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
 
     private const string DEFAULT_MAPPING = __DIR__.'/../../../config/import/driving_data/default.yaml';
 
+    private const string CUSTOM_MAPPING = 'custom';
+
     private string $path = '';
 
     private string $mappingDirectory = '';
@@ -75,6 +77,39 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     }
 
     /**
+     * The command has no range, so it also accepts the row after the range of the scenario.
+     */
+    public function testFirstAndLastDateOfAFileWithManyDates(): void
+    {
+        $this->writeScenario('range_edges');
+
+        $result = $this->validate();
+
+        self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
+        $display = $result->getDisplay();
+        self::assertMatchesRegularExpression('/First date\s+2026-01-05/', $display);
+        self::assertMatchesRegularExpression('/Last date\s+2026-01-08/', $display);
+        self::assertMatchesRegularExpression('/Dates with stop rows\s+3/', $display);
+    }
+
+    /**
+     * The default mapping requires the solo value, but another mapping can make it optional.
+     */
+    public function testPreviewOfARowWithoutPlannedSolo(): void
+    {
+        $mapping = $this->customMapping("type: bool\n        required: true", "type: bool\n        required: false");
+        $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        $values['planned_solo'] = null;
+        (new ExtractWriter())->write($this->path, $mapping, [new ExtractRow($values)]);
+
+        $result = $this->validateCustom();
+
+        self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
+        // The actual time is the last value, because the solo value is empty.
+        self::assertMatchesRegularExpression('/2026-01-05 07:02:00\s*$/m', $result->getDisplay());
+    }
+
+    /**
      * The preview shows an empty optional value as an empty cell.
      */
     public function testPreviewOfARowWithoutActualTime(): void
@@ -96,23 +131,14 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
      */
     public function testRowKeyWithThePersonIdIsHidden(): void
     {
-        $this->mappingDirectory = sys_get_temp_dir().'/'.uniqid('mapping_dir_', true);
-        mkdir($this->mappingDirectory);
-        $yaml = (string) file_get_contents(self::DEFAULT_MAPPING);
-        file_put_contents($this->mappingDirectory.'/person_key.yaml', str_replace('row_id: [RouteStopID]', 'row_id: [PersonID, Date]', $yaml));
-        $mappings = new MappingProvider(new MappingLoader(), $this->mappingDirectory, 'person_key');
-        (new ExtractWriter())->write($this->path, $mappings->default(), (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
-        $parser = self::getContainer()->get(StopRowParser::class);
-        self::assertInstanceOf(StopRowParser::class, $parser);
-        $application = new ConsoleApplication();
-        $application->addCommand(new DrivingDataMappingValidateCommand($mappings, $parser, 'Europe/Copenhagen'));
-        $tester = new CommandTester($application->find('app:driving-data:mapping:validate'));
+        $mapping = $this->customMapping('row_id: [RouteStopID]', 'row_id: [PersonID, Date]');
+        (new ExtractWriter())->write($this->path, $mapping, (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
 
-        $tester->execute(['mapping-name' => 'person_key', 'path-to-file' => $this->path]);
+        $result = $this->validateCustom();
 
-        self::assertSame(Command::SUCCESS, $tester->getStatusCode(), $tester->getDisplay());
-        self::assertMatchesRegularExpression('/4\s+\(hidden\)\s+R-01\s+\(hidden\)\s+2026-01-05/', $tester->getDisplay());
-        self::assertStringNotContainsString('P-00', $tester->getDisplay());
+        self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
+        self::assertMatchesRegularExpression('/4\s+\(hidden\)\s+R-01\s+\(hidden\)\s+2026-01-05/', $result->getDisplay());
+        self::assertStringNotContainsString('P-00', $result->getDisplay());
     }
 
     public function testRejectedRowsAreCountedWithoutTheirValues(): void
@@ -241,6 +267,41 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         $tester->execute($input);
 
         return $tester;
+    }
+
+    /**
+     * Writes a copy of the default mapping with one change to a temporary mapping directory.
+     */
+    private function customMapping(string $search, string $replace): MappingDto
+    {
+        $yaml = (string) file_get_contents(self::DEFAULT_MAPPING);
+        self::assertStringContainsString($search, $yaml);
+        $this->mappingDirectory = sys_get_temp_dir().'/'.uniqid('mapping_dir_', true);
+        mkdir($this->mappingDirectory);
+        file_put_contents($this->mappingDirectory.'/'.self::CUSTOM_MAPPING.'.yaml', str_replace($search, $replace, $yaml));
+
+        return $this->customProvider()->default();
+    }
+
+    /**
+     * The command in the container reads only the mappings in config/. Thus the test makes a
+     * command with the temporary mapping directory.
+     */
+    private function validateCustom(): CommandTester
+    {
+        $parser = self::getContainer()->get(StopRowParser::class);
+        self::assertInstanceOf(StopRowParser::class, $parser);
+        $application = new ConsoleApplication();
+        $application->addCommand(new DrivingDataMappingValidateCommand($this->customProvider(), $parser, 'Europe/Copenhagen'));
+        $tester = new CommandTester($application->find('app:driving-data:mapping:validate'));
+        $tester->execute(['mapping-name' => self::CUSTOM_MAPPING, 'path-to-file' => $this->path]);
+
+        return $tester;
+    }
+
+    private function customProvider(): MappingProvider
+    {
+        return new MappingProvider(new MappingLoader(), $this->mappingDirectory, self::CUSTOM_MAPPING);
     }
 
     private function writeScenario(string $name): void
