@@ -137,11 +137,15 @@ final class CellConverterTest extends TestCase
     }
 
     /**
-     * The clocks go forward one hour at 02:00 on 29 March 2026. The time stays a wall-clock time.
+     * The clocks go forward from 02:00 to 03:00 on 29 March 2026. The time stays a wall-clock
+     * time, also in the hour that does not exist in Europe/Copenhagen.
      */
     public function testExcelSerialNumberOnTheDayOfTheChangeToSummerTime(): void
     {
-        self::assertDateTime('2026-03-29 07:12:00', self::convert(self::field(FieldType::DateTime), 46110.3));
+        $field = self::field(FieldType::DateTime);
+
+        self::assertDateTime('2026-03-29 07:12:00', self::convert($field, 46110.3));
+        self::assertDateTime('2026-03-29 02:30:00', self::convert($field, 46110 + 2.5 / 24));
     }
 
     /**
@@ -160,6 +164,19 @@ final class CellConverterTest extends TestCase
     {
         self::assertDateTime('2026-01-05 00:00:00', self::convert(self::field($type, format: 'Y-m-d'), '2026-01-05'));
         self::assertDateTime('2026-01-05 07:12:00', self::convert(self::field($type, format: 'd.m.Y H:i'), '05.01.2026 07:12'));
+        // 02:30 does not exist on 29 March 2026 in Europe/Copenhagen. The time stays a wall-clock time.
+        self::assertDateTime('2026-03-29 02:30:00', self::convert(self::field($type, format: 'Y-m-d H:i'), '2026-03-29 02:30'));
+    }
+
+    /**
+     * Excel can change the text of a date to a date cell when a user saves the file.
+     */
+    #[DataProvider('dateTypes')]
+    public function testDateCellForAFieldWithAFormat(FieldType $type): void
+    {
+        $value = self::convert(self::field($type, format: 'Y-m-d'), new \DateTimeImmutable('2026-01-05'));
+
+        self::assertDateTime('2026-01-05 00:00:00', $value);
     }
 
     /**
@@ -189,7 +206,6 @@ final class CellConverterTest extends TestCase
         yield 'text that is not a date' => ['Y-m-d', 'not-a-date'];
         yield 'a date that does not exist' => ['Y-m-d', '2026-02-30'];
         yield 'text after the date' => ['Y-m-d', '2026-01-05 07:12'];
-        yield 'a date cell for a format' => ['Y-m-d', new \DateTimeImmutable('2026-01-05')];
         yield 'a number for a format' => ['Y-m-d', 46027];
     }
 
