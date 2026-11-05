@@ -82,7 +82,12 @@ The rules:
 - The templates must convert the times, and must not convert the calendar dates. A missing
   `false` shows a calendar date one day early in a time zone west of UTC.
 - A migration converts the stored `user.last_login_at` values from `Europe/Copenhagen` to UTC.
-  A value in the hour that occurs two times is read as winter time.
+  The hour from 02:00 to 03:00 occurs two times on the night of the change to winter time:
+  - `up()` reads a value in that hour as winter time. A login in the first of the two hours
+    becomes one hour too late.
+  - `down()` gives two UTC times in that night the same local time. A login stored after the
+    migration can then become one hour wrong.
+  - `up()` followed by `down()` gives the old values.
 - The log times are in UTC.
 
 ### Follow-up Actions

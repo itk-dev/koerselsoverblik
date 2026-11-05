@@ -31,6 +31,8 @@ final class UTCDateTimeType extends DateTimeType
             return parent::convertToPHPValue($value, $platform);
         }
 
+        // The parent type tries other formats, but this type accepts only the format of the
+        // platform. A DATETIME(6) column gives fractional seconds and is then rejected.
         $converted = \DateTime::createFromFormat($platform->getDateTimeFormatString(), $value, new \DateTimeZone('UTC'));
         if (false === $converted) {
             throw InvalidFormat::new($value, static::class, $platform->getDateTimeFormatString());
