@@ -2,6 +2,7 @@
 
 namespace App\Controller\Admin;
 
+use App\Clock\LocalCalendar;
 use App\Entity\SubAgreement;
 use App\Form\SubAgreementType;
 use App\Repository\SubAgreementRepository;
@@ -20,9 +21,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class SubAgreementController extends AbstractController
 {
     #[Route('', name: 'admin_sub_agreement_index', methods: ['GET'])]
-    public function index(SubAgreementRepository $subAgreements): Response
+    public function index(SubAgreementRepository $subAgreements, LocalCalendar $calendar): Response
     {
-        $today = new \DateTimeImmutable('today');
+        $today = $calendar->today();
 
         return $this->render('admin/sub_agreement/index.html.twig', [
             'sub_agreements' => $subAgreements->findAllWithoutCurrentAssignmentFirst($today),
