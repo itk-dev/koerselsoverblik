@@ -18,16 +18,7 @@ final class OverviewAccessTest extends WebTestCase
 
         $client->request('GET', '/');
 
-        self::assertResponseRedirects('/login');
-    }
-
-    public function testAnonymousUserCanGetTheLogin(): void
-    {
-        $client = static::createClient();
-
-        $client->request('GET', '/login');
-
-        self::assertResponseIsSuccessful();
+        self::assertResponseRedirects('/openidconnect/login/default');
     }
 
     public function testUserWithTheOverviewRoleCanGetTheOverview(): void
@@ -38,6 +29,7 @@ final class OverviewAccessTest extends WebTestCase
         $client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Kørselsoverblik', (string) $client->getResponse()->getContent());
     }
 
     public function testUserWithNoPermissionRoleIsDenied(): void

@@ -46,7 +46,7 @@ final class SecurityHeadersTest extends WebTestCase
 
         $client->request('GET', '/');
 
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects('/openidconnect/login/default');
         self::assertResponseHeaderSame('Referrer-Policy', 'same-origin');
     }
 

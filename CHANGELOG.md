@@ -66,3 +66,51 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   suppliers and sub-agreements, and assigns a sub-agreement to a supplier for a date range without
   overlap. Each change dispatches `SubAgreementSupplierChanged` with the old and the new period.
   Forms keep their CSRF tokens in the session.
+- [#31](https://github.com/itk-dev/koerselsoverblik/issues/31)
+  Import mapping: the YAML format for import mappings in `config/import/driving_data/`, a loader
+  that validates a mapping and builds a `MappingDto` value object, and the `default` mapping for the
+  extract of the planning system. The map values of `stop_type` and `stop_status` must be
+  application values. `APP_DRIVING_DATA_MAPPING` selects the mapping for uploads. An
+  invalid mapping stops the application when the container is built. A mutant that times out
+  now fails the mutation run, and each mutant has 30 seconds.
+- [#33](https://github.com/itk-dev/koerselsoverblik/issues/33)
+  Fixture extracts: a writer that makes driving data extracts in the layout of an import mapping,
+  test scenarios with totals worked out by hand, and a generator for 13 months of invented
+  development data. `task fixtures:extracts` writes the files to `var/fixtures/driving_data/`.
+  Infection does not mutate the generator and the fixtures command.
+- [#42](https://github.com/itk-dev/koerselsoverblik/issues/42)
+  Infection runs with 4 threads on all computers, so the mutation tests give the same result on a
+  computer with many cores. `TASK_INFECTION_THREADS` sets a different number.
+- [#23](https://github.com/itk-dev/koerselsoverblik/issues/23)
+  The project name is Kørselsoverblik. The compose project, the local domain, the Composer package
+  and the GitHub links use `koerselsoverblik`.
+- [#20](https://github.com/itk-dev/koerselsoverblik/issues/20)
+  M1-06 User entity and role mapping: the `User` entity (email, roles, last login) with a
+  migration, and `OidcRoleMapper`.
+- [#21](https://github.com/itk-dev/koerselsoverblik/issues/21)
+  M1-07 OIDC login and mock service: `itk-dev/openid-connect-bundle` with `OidcAuthenticator`,
+  the authentication log, trusted proxies, a page for a failed login, and the
+  `oidc-provider-mock` service in `docker-compose.override.yaml`. The placeholder login is
+  removed.
+- [#36](https://github.com/itk-dev/koerselsoverblik/issues/36)
+  Extract parser: `StopRowParser` reads the stop rows of an extract through an import mapping,
+  one row at a time. It rejects a bad row with the row number and a `RejectionReason` code, and
+  a row with a date outside the `ImportRangeDto` of the upload. `APP_DRIVING_DATA_MAX_DAYS`
+  limits the range to 31 days. A mapping must now give each field an allowed type, and must make
+  `route`, `service_date`, `run`, `stop_type`, `stop_status` and `planned_time` required.
+  The parser reads the times in `APP_TIMEZONE` (default `Europe/Copenhagen`) and gives them in
+  UTC. A date cell is accepted also for a field with a format string.
+- [#38](https://github.com/itk-dev/koerselsoverblik/issues/38)
+  Extract limits: before the first row, `ExtractInspector` checks the file size, the uncompressed
+  size, the row numbers and the columns of an extract against the `APP_DRIVING_DATA_MAX_*` limits.
+  It counts the uncompressed bytes that it reads, and does not use the sizes in the archive. It
+  rejects an archive with more than 1000 files, a file in the archive that it cannot read, and a
+  file with a `DOCTYPE`. A file that OpenSpout cannot read gives an `InvalidExtractException`.
+- [#40](https://github.com/itk-dev/koerselsoverblik/issues/40)
+  Validate command: `app:driving-data:mapping:validate` reads a sample file through a mapping and
+  shows the missing columns, the rejected rows by field and reason, the dates and a preview. The
+  person id is hidden, and no value of a rejected row is shown. The preview shows the times in
+  `APP_TIMEZONE`, and hides the row key when a row id column is the person id column. The parser
+  names all missing columns in one `MissingColumnsException`, and it accepts all dates when it has
+  no range. The mutation tasks fill the test cache before Infection starts, so that cold caches
+  give no timeouts.

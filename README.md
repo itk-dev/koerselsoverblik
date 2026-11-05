@@ -1,4 +1,4 @@
-# Passenger Transport Performance
+# Kørselsoverblik
 
 A web application that collects data about citizen transport and shows whether it is getting
 better or worse over time. All figures are calculated the same way every time, from the same
@@ -130,17 +130,18 @@ Every page requires a permission role. Anonymous users are sent to the identity 
 
    The stack includes `idp`, a local OIDC mock service
    ([`oidc-provider-mock`](https://github.com/geigerzaehler/oidc-provider-mock)) at
-   <http://idp.passenger-transport-performance.local.itkdev.dk>. It has one test user with
-   `ROLE_ADMIN` and one test user for each permission role. The users are in
-   `docker-compose.dev.yml`.
+   <http://idp.koerselsoverblik.local.itkdev.dk>. It has one test user with `ROLE_ADMIN`, one
+   test user for each permission role, and `user` with no role. The users are in
+   `docker-compose.override.yaml`.
 
-4. Open the site at <https://passenger-transport-performance.local.itkdev.dk>:
+4. Open the site at <https://koerselsoverblik.local.itkdev.dk>:
 
    ```shell
    itkdev-docker-compose open
    ```
 
-5. Sign in as one of the test users of the mock service.
+5. Sign in as one of the test users of the mock service. Click "Authorize as admin" for all
+   roles.
 
    The mock creates new signing keys when its container restarts. If a login then fails with
    `"kid" invalid`, clear the cache:
@@ -160,13 +161,20 @@ Set these in `.env.local`:
 | `OIDC_METADATA_URL` | The identity provider's discovery URL (`.well-known/openid-configuration`) | The local mock service |
 | `OIDC_CLIENT_ID` | The client id of the application in the identity provider | The local mock client |
 | `OIDC_CLIENT_SECRET` | The client secret of the application in the identity provider | The local mock secret |
+| `OIDC_CLIENT_SECRET_EXPIRES_AT` | The date the client secret expires, for example `2027-01-31`. A login logs a warning 30 days before, and a critical error after the date. Empty means not monitored, and each login logs an error | Empty |
 | `OIDC_REDIRECT_URI` | The callback URL of the application, `https://<HOST>/openid-connect/generic`, registered in the identity provider | The local callback URL |
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
 | `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |
+| `TRUSTED_PROXIES` | The proxies whose `X-Forwarded-*` headers are trusted, so that URLs use https behind Traefik | `127.0.0.1,REMOTE_ADDR` |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 | `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
+| `APP_DRIVING_DATA_MAX_FILE_SIZE` | The maximum size in bytes of an extract | `20971520` (20 MiB) |
+| `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE` | The maximum total size in bytes of the files in the xlsx archive, when they are not compressed. The parser reads all the files before the first row, so this limit also controls the time of an upload | `52428800` (50 MiB) |
+| `APP_DRIVING_DATA_MAX_ROWS` | The maximum row number in the sheet of an extract | `50000` |
+| `APP_DRIVING_DATA_MAX_COLUMNS` | The maximum number of columns in a row of an extract | `200` |
+| `APP_TIMEZONE` | The time zone of the wall-clock times in an extract. The import stores the times in UTC | `Europe/Copenhagen` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.
@@ -252,16 +260,45 @@ A mapping defines:
 - **Fields:** each application field must have a source column. For each field, the mapping
   gives the column and how to read it:
   - type: `string`, `int`, `float`, `bool`, `date`, `time`, `datetime`
-  - date format, only for a `date` or `datetime` field: for example an Excel serial date or a
-    format string such as `Y-m-d`
-  - a `time` field is a time of day in an Excel time cell. It is a wall-clock time on
+  - date format, only for a `date` or `datetime` field: `excel` (or no format) for an Excel
+    serial number, or a
+    [format string](https://www.php.net/manual/en/datetimeimmutable.createfromformat.php) such
+    as `Y-m-d` for text. A date cell is accepted with all formats, because Excel can change the
+    text of a date to a date cell when a user saves the file.
+  - a `time` field is an Excel cell with a duration format, such as `[hh]:mm:ss`. A cell with
+    an ordinary time format, such as `hh:mm`, is rejected. The time is a wall-clock time on
     `service_date`. A time of 24:00 or more is on the next day: 25:10 is 01:10 on the day after
-    `service_date`. Times are stored with no time zone, so a change to or from daylight saving
-    time does not move them. See [Times](docs/architecture.md#times).
+    `service_date`.
+  - all times are wall-clock times in `APP_TIMEZONE`. The import stores them in UTC. See
+    [Times](docs/architecture.md#times).
   - value maps for codes, only for a `string` field, for example which status values mean
     "completed"
   - for a `bool` field: the values that mean true and the values that mean false
   - whether the field is required
+
+Each field has a fixed type, because the calculations use the values. Some fields must be
+required, because each stop row needs them:
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `route` | `string` | Yes |
+| `person_id` | `string` | Optional |
+| `service_date` | `date` or `datetime` | Yes |
+| `run` | `int` | Yes |
+| `stop_type` | `string`, with a value map | Yes |
+| `stop_status` | `string`, with a value map | Yes |
+| `passengers_after` | `int` | Optional |
+| `next_distance_km` | `float` | Optional |
+| `next_duration_min` | `float` | Optional |
+| `planned_time` | `time` or `datetime` | Yes |
+| `actual_time` | `time` or `datetime` | Optional |
+| `planned_solo` | `bool` | Optional |
+
+A mapping with a `time` field must have a `service_date` with the type `date`.
+
+`stop_type` and `stop_status` must have a value map. The values of the map must be application
+values: `pickup` or `drop_off` for `stop_type`, and `completed`, `cancelled` or `pending` for
+`stop_status`.
 
 The import rejects a row with a value that the mapping does not know: a code that is not in a
 value map, or a `bool` value that is in neither list. The reason gives the row number and the
@@ -277,15 +314,25 @@ fields:
   person_id:         { column: <COLUMN_NAME>, type: string, required: true }
   service_date:      { column: <COLUMN_NAME>, type: date, format: Y-m-d, required: true }
   run:               { column: <COLUMN_NAME>, type: int, required: true }
-  stop_type:         { column: <COLUMN_NAME>, type: string, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
-  stop_status:       { column: <COLUMN_NAME>, type: string, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
+  stop_type:         { column: <COLUMN_NAME>, type: string, required: true, map: { <PICKUP_VALUE>: pickup, <DROP_OFF_VALUE>: drop_off } }
+  stop_status:       { column: <COLUMN_NAME>, type: string, required: true, map: { <COMPLETED_VALUE>: completed, <CANCELLED_VALUE>: cancelled, <PENDING_VALUE>: pending } }
   passengers_after:  { column: <COLUMN_NAME>, type: int }
   next_distance_km:  { column: <COLUMN_NAME>, type: float }
   next_duration_min: { column: <COLUMN_NAME>, type: float }
-  planned_time:      { column: <COLUMN_NAME>, type: time }
+  planned_time:      { column: <COLUMN_NAME>, type: time, required: true }
   actual_time:       { column: <COLUMN_NAME>, type: datetime, format: excel }
   planned_solo:      { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
 ```
+
+The parser reads the rows of an extract through the mapping. It rejects a row with a value that
+does not agree with the mapping, with the row number and a reason. The reason never contains a
+value from the extract. It rejects the whole file if the sheet, the header row or a column is
+missing.
+
+Before the first row, the parser checks the whole file. It rejects a file above one of the
+`APP_DRIVING_DATA_MAX_*` limits in [Configuration](#configuration). It also rejects a file with
+more than 1000 files in the archive, a file in the archive that it cannot read, and a file with a
+`DOCTYPE`. Then it gives no rows.
 
 The `default` mapping reads the extract of the planning system. See
 [the reference extract](docs/architecture.md#the-reference-extract).
@@ -293,12 +340,28 @@ The `default` mapping reads the extract of the planning system. See
 Validate a mapping against a sample file before using it:
 
 ```shell
-task console -- app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE>
+task console -- app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE> [--rows=<NUMBER>]
 ```
 
-This reports missing columns, values that do not match the mapping, and a preview of the first
-rows as the application reads them. A mapping with errors is rejected when the application
-starts.
+The command changes no data. It shows:
+
+- the missing columns of the mapping, if there are any
+- the number of stop rows and rejected rows, the first and the last date of the stop rows, and
+  the number of dates with stop rows
+- the rejected rows: the count and the first row numbers for each field and reason. It never
+  shows a value of a rejected row
+- a preview of the first stop rows as the application reads them. `--rows` sets the number of
+  rows (default 5). The times are in `APP_TIMEZONE`, as in the file. The person id shows as
+  `(hidden)`. The row key also shows as `(hidden)` when a `row_id` column is the `person_id`
+  column
+
+The command does not check a date range. An upload checks the dates against the range that the
+user selects.
+
+The command exits with `0` when all rows are valid, and with `1` when a column is missing, a row
+is rejected, the file has no stop rows, or the file is not valid. It exits with `2` when the
+mapping is not valid or `--rows` is below 1. A mapping with errors is rejected when the
+application starts.
 
 ### Map sub-agreements to suppliers
 
@@ -344,11 +407,14 @@ A user is created in the application at the first login. The application has no 
 
 ### Authentication log
 
-Each login is written to `var/log/openid_connect_audit.log`:
+Each login is written to `var/log/openid_connect_audit.<APP_ENV>.log`, for example
+`var/log/openid_connect_audit.prod.log`:
 
 - A successful login, with the email, the roles and the time. For example:
-  `user foobar@example.com logged in with roles [ROLE_ADMIN]`.
-- A failed login, with the IP address and the reason.
+  `user foobar@example.com logged in with roles [ROLE_ADMIN] at 2026-10-28T12:00:00+01:00`.
+- A login that the identity provider approved but the application rejected, with the IP address
+  and the reason. A login that fails in the identity provider does not come back to the
+  application, so it is not in this log.
 
 The log holds personal data (emails and IP addresses). Its retention follows the staff data
 decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
@@ -402,13 +468,20 @@ task test:mutation:full
   not use `@codeCoverageIgnore`. The only exclusions are `src/Kernel.php` and `migrations/`.
 - **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
   `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
-  components are not mutated; the functional tests cover them. The HTML report is written to
-  `var/infection/`.
+  components are not mutated; the functional tests cover them. `DevDatasetGenerator` and the
+  fixtures command are not mutated, because their mutants change only invented data. The extract
+  writer and the scenario loader are mutated, because the parser tests trust their files.
+  The HTML report is written to `var/infection/`.
 - **How the two thresholds work:** Infection has one threshold for each run, so
   `infection.json5` sets 80 % for all mutated code. Then `bin/mutation-core-check.php` reads the
   JSON log and fails if a mutant escaped in `src/Report` or `src/Import`.
+- **Threads:** Infection runs 4 mutants at the same time on all computers, so the result does not
+  depend on the number of cores. To use a different number, set `TASK_INFECTION_THREADS`, for
+  example `TASK_INFECTION_THREADS=2 task test:mutation`.
 - **Equivalent mutants:** list each one with a reason in `infection.json5`. The pull request
   review checks the reason.
+- **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
+  Each mutant has 30 seconds.
 - **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
   full run over the whole code base runs on `release/*` and `hotfix/*` branches and is required
   before a release is merged to `main`.

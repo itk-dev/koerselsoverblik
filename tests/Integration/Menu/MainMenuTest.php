@@ -2,6 +2,7 @@
 
 namespace App\Tests\Integration\Menu;
 
+use App\Entity\User;
 use App\Menu\MainMenu;
 use App\Menu\MenuBuilder;
 use App\Menu\MenuLink;
@@ -10,7 +11,6 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 /**
  * Checks the main menu with the role hierarchy in config/packages/security.yaml.
@@ -23,30 +23,31 @@ final class MainMenuTest extends KernelTestCase
     {
         self::assertSame(
             ['menu.overview', 'menu.daily_counts', 'menu.suppliers'],
-            $this->labelsFor('admin'),
+            $this->labelsFor(['ROLE_ADMIN']),
         );
     }
 
     public function testViewerSeesOnlyTheOverview(): void
     {
-        self::assertSame(['menu.overview'], $this->labelsFor('viewer'));
+        self::assertSame(['menu.overview'], $this->labelsFor(['ROLE_VIEW_OVERVIEW']));
     }
 
     public function testUserWithNoPermissionRoleSeesNoItem(): void
     {
-        self::assertSame([], $this->labelsFor('user'));
+        self::assertSame([], $this->labelsFor([]));
     }
 
     /**
+     * @param list<string> $roles
+     *
      * @return list<string>
      */
-    private function labelsFor(string $username): array
+    private function labelsFor(array $roles): array
     {
         $container = static::getContainer();
 
-        $provider = $container->get('security.user.provider.concrete.users_in_memory');
-        self::assertInstanceOf(UserProviderInterface::class, $provider);
-        $user = $provider->loadUserByIdentifier($username);
+        $user = new User('user@example.com');
+        $user->setRoles($roles);
 
         $tokenStorage = $container->get(TokenStorageInterface::class);
         self::assertInstanceOf(TokenStorageInterface::class, $tokenStorage);

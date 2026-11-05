@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the architecture of Passenger Transport Performance for milestone 1:
+This document describes the architecture of Kørselsoverblik for milestone 1:
 OIDC login, upload of driving data, manual entry of daily counts, and an overview
 with eight key figures. See the [README](../README.md) for what the application does.
 
@@ -51,7 +51,7 @@ flowchart LR
     editor["Data editor<br/>(ROLE_EDIT_DAILY_COUNTS)"]
     admin["Administrator<br/>(ROLE_UPLOAD_DRIVING_DATA,<br/>ROLE_CLEAR_DRIVING_DATA,<br/>ROLE_MANAGE_SUPPLIERS)"]
 
-    app["Passenger Transport Performance<br/>(Symfony web application)"]
+    app["Kørselsoverblik<br/>(Symfony web application)"]
 
     planning[("Planning system<br/>driving data extract (.xlsx)")]
     idp["Identity provider (OIDC)<br/>login and roles"]
@@ -155,8 +155,8 @@ flowchart TB
     end
 
     subgraph import["Import/DrivingData"]
-        mapping["MappingLoader → Mapping<br/>config/import/driving_data/*.yaml"]
-        importrange["ImportRange<br/>max APP_DRIVING_DATA_MAX_DAYS"]
+        mapping["MappingLoader → MappingDto<br/>config/import/driving_data/*.yaml"]
+        importrange["ImportRangeDto<br/>max APP_DRIVING_DATA_MAX_DAYS"]
         parser["StopRowParser"]
         replacer["StopRowReplacer"]
         builder["RouteBuilder"]
@@ -387,7 +387,7 @@ sequenceDiagram
     actor Admin as Administrator
     participant C as Admin\ImportController
     participant P as StopRowParser
-    participant M as Mapping
+    participant M as MappingDto
     participant U as StopRowReplacer
     participant B as RouteBuilder
     participant A as DailyStatsAggregator
@@ -395,11 +395,11 @@ sequenceDiagram
 
     Admin->>C: POST /admin/import (file, first date, last date)
     C->>C: check ROLE_UPLOAD_DRIVING_DATA and CSRF
-    C->>C: ImportRange(first, last), at most APP_DRIVING_DATA_MAX_DAYS
+    C->>C: ImportRangeDto(first, last), at most APP_DRIVING_DATA_MAX_DAYS
     C->>C: keep the file in var/, and its token in the session
     C->>P: parse(file, mapping, range)
     P->>M: column, type and value map per field
-    P->>P: reject rows outside the range (ImportRange::contains)
+    P->>P: reject rows outside the range (ImportRangeDto::contains)
     P-->>C: rows, and rejected rows: row number and reason, no values
     C->>DB: count the stored rows in the range
     C-->>Admin: preview: range, rows to delete, insert and reject, dates that become empty
@@ -436,9 +436,11 @@ A mapping file, `config/import/driving_data/<MAPPING_NAME>.yaml`, describes one 
 
 `MappingLoader` validates the file with the Symfony Config component when the container is built,
 so an invalid mapping stops the application from starting. It then produces an immutable
-`Mapping` value object. `StopRowParser` reads the workbook only through `Mapping` and never
+`MappingDto` value object. `StopRowParser` reads the workbook only through `MappingDto` and never
 refers to column names itself. `app:driving-data:mapping:validate` checks a sample file against
-a mapping before it is used.
+a mapping before it is used. It uses the same parser without a date range, and
+`ExtractSummaryDto` counts the result. The output hides the person id and never shows a value of
+a rejected row. It also hides the row key when a row id column is the person id column.
 
 **What a mapping can change:** the column names, the code values and the formats of the fixed
 application fields. Each application field must have one source column. These changes need code:
@@ -499,29 +501,38 @@ end flag joins that run with the next run. The block number gives each run direc
 
 ### Times
 
-A `time` field is a time of day in an Excel time cell. It is a wall-clock time on the
-`service_date` of the row:
+A `time` field is an Excel cell with a duration format, such as `[hh]:mm:ss`. OpenSpout gives
+such a cell as a `DateInterval`. A cell with an ordinary time format, such as `hh:mm`, is
+rejected. The time is a wall-clock time on the `service_date` of the row. A time of 24:00 or
+more is on the next day. For example, 25:10 is 01:10 on the day after `service_date`.
 
-- A time of 24:00 or more is on the next day. For example, 25:10 is 01:10 on the day after
-  `service_date`.
-- The import does not convert times to UTC, and stores them with no time zone. A change to or
-  from daylight saving time in Europe/Copenhagen never moves a stored time.
-- The import does not correct a time that does not exist, or that exists two times, on the
-  night of a change.
-- Known limit: a delay across a change at night can be one hour wrong. Few runs drive at that
-  time.
+The times in the extract are wall-clock times in `APP_TIMEZONE` (default `Europe/Copenhagen`).
+The import stores all dates and times in UTC:
+
+- `CellConverter` reads a date and time as a wall-clock time. It uses UTC for the PHP object,
+  because UTC has no change to summer time.
+- `StopRowDto` reads the wall-clock time in `APP_TIMEZONE`, and converts it to UTC. A delay
+  across a change to or from summer time is then correct.
+- `service_date` and the dates of `ImportRangeDto` are calendar dates at 00:00 UTC. They are
+  not converted.
+- A time that does not exist moves one hour later. For example, 02:30 on the night of the change
+  to summer time is read as 03:30 summer time.
+- A time that occurs two times, on the night of the change to winter time, is read as winter
+  time (the second one).
+
+The browser shows the times in `APP_TIMEZONE`.
 
 ### Date range
 
-The user enters the first and the last date of the export, together with the file. `ImportRange`
-holds the two dates. The import replaces exactly this range
+The user enters the first and the last date of the export, together with the file.
+`ImportRangeDto` holds the two dates. The import replaces exactly this range
 ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)):
 
 - A date in the range with no rows in the file becomes empty. This includes the first and the
   last date.
 - A row with a date outside the range is rejected. A wrong date in one row cannot change other
-  dates. `ImportRange::contains()` is the only check. `StopRowParser` calls it for each row, so
-  the preview and the import reject the same rows.
+  dates. `ImportRangeDto::contains()` is the only check. `StopRowParser` calls it for each row,
+  so the preview and the import reject the same rows.
 - The range can be at most `APP_DRIVING_DATA_MAX_DAYS` days (default 31). A longer range is
   rejected, and no data changes.
 
@@ -534,10 +545,13 @@ holds the two dates. The import replaces exactly this range
    import, so the token works one time only. A second confirmation, for example after a double
    click, finds no token. It shows a message and imports nothing. The steps below parse the file
    again and import it. If the user cancels, the file is deleted.
-3. **Parse.** `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
-   with their row number and a reason. A row with a date that `ImportRange::contains()` does not
-   accept is also rejected. Field values are never written to messages or logs. The person id is
-   kept as it is in the extract ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed).
+3. **Parse.** Before the first row, `ExtractInspector` checks the whole file against the
+   `ExtractLimitsDto` limits. See "Data protection" in [Security](#security). Then
+   `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
+   with their row number and a reason. A row with a date that `ImportRangeDto::contains()` does
+   not accept is also rejected. The reason is a `RejectionReason` code, so field values are never
+   written to messages or logs. The person id is kept as it is in the extract
+   ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed).
 4. **Replace.** `StopRowReplacer` deletes all `StopRow` rows in the range, from all mappings, and
    then inserts the parsed rows. It does not check the range again. Rows that are not in the new
    file are removed, and two uploads can never count the same date twice. A row key that occurs
@@ -660,7 +674,8 @@ flowchart TD
     public -- no --> session{"Signed in?"}
 
     session -- no --> idp["Redirect to the identity provider"]
-    idp --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
+    idp -- "login fails in the identity provider" --> idpfail["No redirect back<br/>not in the authentication log"]
+    idp -- "user approved" --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
     callback -- invalid --> fail["Login failed<br/>written to the authentication log"]
     callback -- valid --> mapper["OidcRoleMapper<br/>role claim → ROLE_ADMIN and permission roles"]
     mapper --> user["Create or update User<br/>email, roles, last login"]
@@ -686,10 +701,15 @@ flowchart TD
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
-- **Authentication log:** the bundle's audit trail records each successful and failed login,
-  with the IP address and the reason for a failure. `OidcAuthenticator` adds a record with the
-  email and the roles at each login. Both go to the `openid_connect_audit` channel, which Monolog
-  writes to `var/log/openid_connect_audit.log`.
+- A failed login shows a page with a "Prøv igen" link (`OidcLoginFailureListener`): 403 when the
+  identity provider refused, and 500 otherwise. It does not redirect, so a broken login cannot
+  loop.
+- **Authentication log:** the bundle's audit trail records each successful login. It also
+  records each login that the identity provider approved but the application rejected, with the
+  IP address and the reason. A login that fails in the identity provider does not come back to
+  the application, so it is not in this log. `OidcLogin` adds a record with the email and the
+  roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
+  `var/log/openid_connect_audit.<APP_ENV>.log`.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**
@@ -734,11 +754,20 @@ flowchart TD
 - The confirmation uses a token from the user's session, so a user cannot confirm the upload of
   another user. The token works one time only, so a double click cannot import the file two
   times.
-- The parser reads the extract with OpenSpout, which streams one row at a time. It has
-  configurable limits for the number of rows and columns, and stops at the first row or column
-  above a limit (ASVS V12.1.2).
-- The parser rejects XML with a `DOCTYPE`, so an extract cannot use external entities (XXE,
-  ASVS V5.5.2).
+- The parser reads the extract with OpenSpout, which streams one row at a time. Before OpenSpout
+  opens the file, `ExtractInspector` checks the file size, and that the xlsx archive has at most
+  1000 files. Then it reads each XML file in the archive one node at a time, and checks the
+  row numbers and the columns against configurable limits (ASVS V12.1.2). A file above a limit
+  gives no rows. The inspector reads every XML file, because OpenSpout does not check the
+  `spans` of a row: a small file can make one row use all the memory.
+- The inspector counts the bytes that it reads from the archive, and stops one byte after the
+  uncompressed-size limit. It does not use the sizes in the archive, because libzip does not
+  check them: a zip bomb can give a false size. Thus the limit also controls the time of an
+  upload. A file in the archive that libzip cannot read, for example an encrypted file, is
+  rejected.
+- The inspector rejects XML with a `DOCTYPE`, so an extract cannot use external entities (XXE,
+  ASVS V5.5.2). OpenSpout does not read an external entity, but it ignores a cell with one. The
+  tests keep this protection if a new version of OpenSpout changes.
 - The import runs synchronously in the request. The limits above keep it short.
 - Rejection reasons and logs never contain field values from the extract.
 

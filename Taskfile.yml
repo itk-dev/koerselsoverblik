@@ -17,7 +17,11 @@ vars:
   # Xdebug collects the coverage, because the phpfpm image has no pcov.
   PHPUNIT_COVERAGE: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/phpunit'
   COVERAGE_DIR: var/coverage
-  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads=max --ignore-msi-with-no-mutations'
+  # A fixed number of threads gives the same result on all computers. With one thread for each
+  # core, the integration tests are slow on a computer with many cores, and mutants time out.
+  INFECTION_THREADS: '{{ .TASK_INFECTION_THREADS | default "4" }}'
+  # A timed-out mutant counts as killed in the MSI. "--max-timeouts=0" fails the run instead.
+  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations --max-timeouts=0'
   MUTATION_LOG: var/infection/infection.json
   # The changed-lines run compares with this git reference.
   MUTATION_BASE: '{{ .TASK_MUTATION_BASE | default "origin/develop" }}'
@@ -68,6 +72,11 @@ tasks:
         vars:
           CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
 
+  fixtures:extracts:
+    desc: 'Write the test scenarios and 13 months of invented driving data to var/fixtures/driving_data/ — `task fixtures:extracts -- --seed=2`'
+    cmds:
+      - '{{ .CONSOLE }} app:fixtures:driving-data {{ .CLI_ARGS }}'
+
   # --------------------------------------------------------------- Tests ---
 
   test:db:setup:
@@ -113,6 +122,7 @@ tasks:
     desc: Run mutation testing on the lines that changed since develop. The reports are in var/infection/.
     cmds:
       - task: test:db:setup
+      - task: test:cache:warmup
       - rm -f {{ .MUTATION_LOG }}
       - '{{ .INFECTION }} --git-diff-lines --git-diff-base={{ .MUTATION_BASE }} {{ .CLI_ARGS }}'
       - task: test:mutation:core-check
@@ -121,6 +131,7 @@ tasks:
     desc: Run mutation testing on all code. The reports are in var/infection/.
     cmds:
       - task: test:db:setup
+      - task: test:cache:warmup
       - rm -f {{ .MUTATION_LOG }}
       # The filter "src/" matches all source files. Infection fails on an unfiltered run with no
       # source files, but a filtered run with no files passes. This is necessary while src/ has no
@@ -128,6 +139,15 @@ tasks:
       # "--filter" is deprecated since Infection 0.34.
       - '{{ .INFECTION }} --filter=src/ {{ .CLI_ARGS }}'
       - task: test:mutation:core-check
+
+  test:cache:warmup:
+    internal: true
+    # The mutant processes run in parallel. If they fill a cold test cache at the same time, some
+    # of them take more than the Infection timeout. Fill the cache one time before the run.
+    cmds:
+      - task: console
+        vars:
+          CLI_ARGS: cache:warmup --env=test
 
   test:mutation:core-check:
     internal: true

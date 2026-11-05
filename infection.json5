@@ -6,7 +6,17 @@
     source: {
         directories: ['src'],
         // The functional tests cover this glue. Mutants in it are mostly equivalent.
-        excludes: ['Controller', 'Form', 'Twig/Components', 'Kernel.php'],
+        // The generator and the fixtures command make invented data. Their mutants change only
+        // the data. The extract writer and the scenario loader are mutated, because the parser
+        // tests trust their files.
+        excludes: [
+            'Controller',
+            'Form',
+            'Twig/Components',
+            'Kernel.php',
+            'DataFixtures/DrivingData/DevDatasetGenerator.php',
+            'Command/DrivingDataFixturesCommand.php',
+        ],
     },
     tmpDir: 'var/infection/tmp',
     logs: {
@@ -21,6 +31,50 @@
     },
     mutators: {
         '@default': true,
+        CastString: {
+            // Equivalent mutants. The code does not use strict types, so PHP changes an int to a
+            // string when it goes to a string parameter or return type, and for trim(). PHP also
+            // changes a numeric array key to an int, with or without the cast. The casts are for
+            // PHPStan.
+            ignore: [
+                'App\\Import\\Extract\\CellConverter::text',
+                'App\\Import\\Extract\\StopRowParser::text',
+            ],
+            ignoreSourceCodeByRegex: [
+                '.*\\$row->rowId \\?\\? \\(string\\) \\$index.*',
+                '.*return \\(string\\) \\$code;.*',
+                '.*\\$raw\\[\\(string\\) \\$field\\].*',
+            ],
+        },
+        // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
+        // the temporary files of OpenSpout, so it is necessary.
+        UnwrapFinally: {
+            ignore: ['App\\Import\\Extract\\StopRowParser::parse'],
+        },
+        Finally_: {
+            ignore: ['App\\Import\\Extract\\StopRowParser::parse'],
+        },
+        MethodCallRemoval: {
+            ignoreSourceCodeByRegex: ['\\$reader->close\\(\\);'],
+        },
+        // Equivalent: the inspector copies one byte more than the remaining size to find a file
+        // that is too large. Two bytes more find it too. Only the number of copied bytes changes.
+        //
+        // A change to a default value of a command parameter changes the class signature. Then the
+        // mutant process must build the test container again, and the build takes more than the
+        // timeout when all threads run. The command tests kill these mutants when they run alone.
+        IncrementInteger: {
+            ignoreSourceCodeByRegex: [
+                '.*stream_copy_to_stream\\(\\$stream, \\$copy, \\$remaining \\+ 1\\).*',
+                '.*int \\$rows = 5,.*',
+            ],
+        },
+        DecrementInteger: {
+            ignoreSourceCodeByRegex: ['.*int \\$rows = 5,.*'],
+        },
     },
     minCoveredMsi: 80,
+    // The default of 10 seconds is too short when all threads run. The Taskfile fails the run on
+    // a timeout, because a timed-out mutant is not known to be killed.
+    timeout: 30,
 }

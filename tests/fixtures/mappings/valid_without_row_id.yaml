@@ -1,0 +1,23 @@
+# A valid mapping with no sheet and no row id. The sheet is 0 by default.
+header_row: 1
+fields:
+  route: { column: Route, type: string, required: true }
+  person_id: { column: Person, type: string }
+  service_date: { column: Day, type: date, required: true }
+  run: { column: Run, type: int, required: true }
+  stop_type: { column: Kind, type: string, required: true, map: { P: pickup } }
+  stop_status:
+    column: State
+    type: string
+    required: true
+    map: { C: completed }
+  passengers_after: { column: Load, type: int }
+  next_distance_km: { column: Km, type: float }
+  next_duration_min: { column: Minutes, type: float }
+  planned_time: { column: Planned, type: time, required: true }
+  actual_time: { column: Actual, type: datetime }
+  planned_solo:
+    column: Solo
+    type: bool
+    true_values: [Y]
+    false_values: [N]
