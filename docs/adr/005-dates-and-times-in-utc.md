@@ -6,7 +6,7 @@
 | **Date** | 2026-11-05 |
 | **Decision Maker** | ITK Dev developers |
 | **Stakeholders** | ITK Dev developers; the users of the overview |
-| **Status** | Draft |
+| **Status** | Proposed |
 
 ## Context
 
