@@ -6,8 +6,8 @@ use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * Gives the dates in the time zone of the application. The PHP default time zone can be UTC in
- * the container, so "today" from PHP can be the wrong date shortly after midnight.
+ * Gives the dates in the time zone of the application. The PHP default time zone is UTC, so
+ * "today" from PHP can be the wrong date shortly after midnight.
  */
 final readonly class LocalCalendar
 {
@@ -22,10 +22,12 @@ final readonly class LocalCalendar
     }
 
     /**
-     * Gives midnight at the start of the current date in the time zone of the application.
+     * Gives the current date in the time zone of the application, as a calendar date at 00:00 UTC.
      */
     public function today(): \DateTimeImmutable
     {
-        return $this->clock->now()->setTimezone(new \DateTimeZone($this->timeZone))->setTime(0, 0);
+        $date = $this->clock->now()->setTimezone(new \DateTimeZone($this->timeZone))->format('Y-m-d');
+
+        return new \DateTimeImmutable($date, new \DateTimeZone('UTC'));
     }
 }

@@ -25,8 +25,8 @@
                 {% for assignment in sub_agreement.assignments %}
                     <tr data-test="assignment-row">
                         <td>{{ assignment.supplier.name }}</td>
-                        <td>{{ assignment.validFrom|date('d.m.Y') }}</td>
-                        <td>{{ assignment.validTo ? assignment.validTo|date('d.m.Y') : 'assignment.no_end'|trans }}</td>
+                        <td>{{ assignment.validFrom|date('d.m.Y', false) }}</td>
+                        <td>{{ assignment.validTo ? assignment.validTo|date('d.m.Y', false) : 'assignment.no_end'|trans }}</td>
                         <td class="actions">
                             <a class="itkaarhus-btn itkaarhus-btn--secondary itkaarhus-btn--sm" href="{{ path('admin_assignment_edit', {id: assignment.id}) }}">{{ 'common.edit'|trans }}</a>
                             <form method="post" action="{{ path('admin_assignment_delete', {id: assignment.id}) }}">

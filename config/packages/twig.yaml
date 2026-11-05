@@ -1,6 +1,9 @@
 twig:
     file_name_pattern: '*.twig'
     form_themes: ['form/theme.html.twig']
+    # Show the UTC times in local time. Show a calendar date with |date(format, false).
+    date:
+        timezone: '%app.timezone%'
 
 when@test:
     twig:
