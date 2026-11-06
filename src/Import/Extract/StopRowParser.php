@@ -84,7 +84,8 @@ final readonly class StopRowParser
     {
         foreach ($this->rows($path, $mapping) as $rowNumber => $row) {
             if ($rowNumber === $mapping->headerRow) {
-                return array_map(static fn (int|string $name): string => (string) $name, array_keys(self::indexes($row)));
+                // PHP changes a name such as "2026" to an int key. strval() gives the text again.
+                return array_map(strval(...), array_keys(self::indexes($row)));
             }
         }
 

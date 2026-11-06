@@ -68,6 +68,8 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         self::assertMatchesRegularExpression('/Dates with stop rows\s+1/', $display);
         self::assertStringNotContainsString('Kept columns that are not in the file', $display);
         self::assertStringNotContainsString('Columns that are not read', $display);
+        // No section for the rejected rows or the warnings when there are none.
+        self::assertDoesNotMatchRegularExpression('/(Rejected rows|Warnings)\n-+/', $display);
         self::assertMatchesRegularExpression('/Preview\n-+/', $display);
         self::assertMatchesRegularExpression('/row\s+row key\s+route\s+person_id\s+service_date/', $display);
         // The first stop is in row 4, and has the row id 1.
