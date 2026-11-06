@@ -28,6 +28,8 @@ final class DefaultMappingTest extends KernelTestCase
         self::assertSame(['RouteStopID'], $mapping->rowId);
         self::assertSame(FieldType::Date, $mapping->field(FieldName::ServiceDate)->type);
         self::assertSame(FieldType::Time, $mapping->field(FieldName::PlannedTime)->type);
+        // The transport office measures punctuality against the planned departure.
+        self::assertSame('PlannedDeparture', $mapping->field(FieldName::PlannedTime)->column);
         self::assertSame(FieldType::DateTime, $mapping->field(FieldName::ActualTime)->type);
         self::assertSame(['drop_off', 'pickup'], self::sortedValues($mapping->field(FieldName::StopType)->valueMap));
         self::assertSame(['cancelled', 'completed', 'pending'], self::sortedValues($mapping->field(FieldName::StopStatus)->valueMap));

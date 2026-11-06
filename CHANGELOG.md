@@ -119,3 +119,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ROLE_CLEAR_DRIVING_DATA`. The application ignores the old roles. Configure the identity
   provider to send the new role to users who do not have `ROLE_ADMIN`. One mock user,
   `driving-data-manager`, replaces the `uploader` and `clearer` mock users.
+- [#53](https://github.com/itk-dev/koerselsoverblik/issues/53)
+  The `default` mapping reads the planned time of a stop from `PlannedDeparture`, not
+  `PlannedArrival`. The transport office measures punctuality against the planned departure.
