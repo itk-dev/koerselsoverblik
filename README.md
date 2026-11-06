@@ -254,6 +254,12 @@ A mapping defines:
   are skipped.
 - **Row id (optional):** the source column, or columns, that identify a row. If a row id occurs
   more than once in a file, the second and later rows are rejected.
+- **Kept columns (optional, `keep_columns`):** the other columns that the copy of a row keeps.
+  The copy holds the field columns, the row id columns and the kept columns, so that a later task
+  can read the data again with no new upload. Never add a column with personal data, for example
+  names, addresses, labels or comments
+  ([ADR 006](docs/adr/006-keep-a-copy-of-each-imported-row.md)). A kept column that is not in a
+  file is not an error.
 - **Fields:** each application field must have a source column. For each field, the mapping
   gives the column and how to read it:
   - type: `string`, `int`, `float`, `bool`, `date`, `time`, `datetime`
@@ -297,15 +303,17 @@ A mapping with a `time` field must have a `service_date` with the type `date`.
 values: `pickup` or `drop_off` for `stop_type`, and `completed`, `cancelled` or `pending` for
 `stop_status`.
 
-The import rejects a row with a value that the mapping does not know: a code that is not in a
-value map, or a `bool` value that is in neither list. The reason gives the row number and the
-field, and never the value.
+The import rejects a row with a value that a required field cannot read, for example a code that
+is not in a value map, or a `bool` value that is in neither list. In an optional field, such a
+value gives an empty value and a warning, and the row is imported. The copy of the row keeps the
+value. A reason or a warning gives the row number and the field, and never the value.
 
 ```yaml
 # config/import/driving_data/<MAPPING_NAME>.yaml
 sheet: 0
 header_row: 1
 row_id: [<ROW_ID_COLUMN>]   # optional
+keep_columns: [<COLUMN_NAME>, <COLUMN_NAME>]   # optional
 fields:
   route:             { column: <COLUMN_NAME>, type: string, required: true }
   person_id:         { column: <COLUMN_NAME>, type: string, required: true }
@@ -343,10 +351,13 @@ task console -- app:driving-data:mapping:validate <MAPPING_NAME> <PATH_TO_FILE> 
 The command changes no data. It shows:
 
 - the missing columns of the mapping, if there are any
-- the number of stop rows and rejected rows, the first and the last date of the stop rows, and
-  the number of dates with stop rows
-- the rejected rows: the count and the first row numbers for each field and reason. It never
-  shows a value of a rejected row
+- the number of stop rows, rejected rows and warnings, the first and the last date of the stop
+  rows, and the number of dates with stop rows
+- the rejected rows and the warnings: the count and the first row numbers for each field and
+  reason. It never shows a value of a rejected row or a warning
+- the kept columns that are not in the file, and the columns of the file that the mapping does
+  not read. Check a column that is not read for personal data before you add it to
+  `keep_columns`
 - a preview of the first stop rows as the application reads them. `--rows` sets the number of
   rows (default 5). The times are in `APP_TIMEZONE`, as in the file. The person id shows as
   `(hidden)`. The row key also shows as `(hidden)` when a `row_id` column is the `person_id`
@@ -355,10 +366,10 @@ The command changes no data. It shows:
 The command does not check a date range. An upload checks the dates against the range that the
 user selects.
 
-The command exits with `0` when all rows are valid, and with `1` when a column is missing, a row
-is rejected, the file has no stop rows, or the file is not valid. It exits with `2` when the
-mapping is not valid or `--rows` is below 1. A mapping with errors is rejected when the
-application starts.
+The command exits with `0` when all rows are valid, also when there are warnings. It exits with
+`1` when a column of a field or a row id is missing, a row is rejected, the file has no stop
+rows, or the file is not valid. It exits with `2` when the mapping is not valid or `--rows` is
+below 1. A mapping with errors is rejected when the application starts.
 
 ### Map sub-agreements to suppliers
 
@@ -423,6 +434,9 @@ decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
   [ADR 004](docs/adr/004-personal-data-in-driving-data.md) (proposed).
 - Names, addresses and other personal details in the extract are not imported. The columns with
   free text and labels are not imported either.
+- The import keeps a copy of each row with the other columns of the extract, so that the data can
+  be read again with no new upload. The copy has no names, addresses, free text or labels. See
+  [ADR 006](docs/adr/006-keep-a-copy-of-each-imported-row.md) (proposed).
 - Nothing is stored or shown at driver level.
 - Uploaded files are kept outside the public folder until you confirm or cancel the upload. A
   scheduled job deletes the files that are older than one hour. An upload that is not confirmed
