@@ -201,7 +201,10 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
      */
     public function testColumnsThatAreMissingOrNotRead(): void
     {
-        $this->customMapping('row_id: [RouteStopID]', "row_id: [blocknumber]\nkeep_columns: [Note, Trip]");
+        $this->customMapping(
+            ['row_id: [RouteStopID]', "    - Tur\n"],
+            ['row_id: [blocknumber]', "    - Tur\n    - Note\n    - Trip\n"],
+        );
         (new ExtractWriter())->write($this->path, self::defaultMapping(), (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
 
         $result = $this->validateCustom();
@@ -312,12 +315,17 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     }
 
     /**
-     * Writes a copy of the default mapping with one change to a temporary mapping directory.
+     * Writes a copy of the default mapping with changes to a temporary mapping directory.
+     *
+     * @param string|list<string> $search
+     * @param string|list<string> $replace the replacements, in the order of $search
      */
-    private function customMapping(string $search, string $replace): MappingDto
+    private function customMapping(string|array $search, string|array $replace): MappingDto
     {
         $yaml = (string) file_get_contents(self::DEFAULT_MAPPING);
-        self::assertStringContainsString($search, $yaml);
+        foreach ((array) $search as $text) {
+            self::assertStringContainsString($text, $yaml);
+        }
         $this->mappingDirectory = sys_get_temp_dir().'/'.uniqid('mapping_dir_', true);
         mkdir($this->mappingDirectory);
         file_put_contents($this->mappingDirectory.'/'.self::CUSTOM_MAPPING.'.yaml', str_replace($search, $replace, $yaml));
