@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 final class OidcRoleMapperTest extends TestCase
 {
     private const array ROLE_HIERARCHY = [
-        'ROLE_ADMIN' => ['ROLE_VIEW_OVERVIEW', 'ROLE_UPLOAD_DRIVING_DATA'],
+        'ROLE_ADMIN' => ['ROLE_VIEW_OVERVIEW', 'ROLE_MANAGE_DRIVING_DATA'],
     ];
 
     /**
@@ -31,8 +31,8 @@ final class OidcRoleMapperTest extends TestCase
     {
         yield 'admin' => [['roles' => ['ROLE_ADMIN']], ['ROLE_ADMIN']];
         yield 'permission roles' => [
-            ['roles' => ['ROLE_VIEW_OVERVIEW', 'ROLE_UPLOAD_DRIVING_DATA']],
-            ['ROLE_VIEW_OVERVIEW', 'ROLE_UPLOAD_DRIVING_DATA'],
+            ['roles' => ['ROLE_VIEW_OVERVIEW', 'ROLE_MANAGE_DRIVING_DATA']],
+            ['ROLE_VIEW_OVERVIEW', 'ROLE_MANAGE_DRIVING_DATA'],
         ];
         yield 'a string' => [['roles' => 'ROLE_VIEW_OVERVIEW'], ['ROLE_VIEW_OVERVIEW']];
         yield 'unknown values are ignored' => [['roles' => ['ROLE_VIEW_OVERVIEW', 'ROLE_SUPERHERO', 'admin']], ['ROLE_VIEW_OVERVIEW']];

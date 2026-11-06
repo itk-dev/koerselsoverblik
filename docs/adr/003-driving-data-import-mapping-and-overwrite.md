@@ -81,9 +81,9 @@ Option 4:
 - **No rollback:** an `ImportBatch` cannot be undone. To correct a wrong upload, upload the
   correct file for the same range, or clear the driving data for the dates (see below).
 - **Clear driving data:** the upload page lists the uploaded dates. Users with
-  `ROLE_CLEAR_DRIVING_DATA` can clear one date from the list: `StopRow`, `RouteRun` and
-  `DailyStats`. They also need `ROLE_UPLOAD_DRIVING_DATA` to open the upload page. Manually
-  entered daily counts do not change. A console command clears a date range.
+  `ROLE_MANAGE_DRIVING_DATA` can clear one date from the list: `StopRow`, `RouteRun` and
+  `DailyStats`. Manually entered daily counts do not change. A console command clears a date
+  range.
 - **Derived data:** `RouteRun` and `DailyStats` are rebuilt for the replaced range, or deleted for
   the cleared dates.
 - **Transactions:** each import, and each clear, runs in one transaction.

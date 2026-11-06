@@ -49,7 +49,7 @@ title: System context
 flowchart LR
     user["Viewer<br/>(ROLE_VIEW_OVERVIEW)"]
     editor["Data editor<br/>(ROLE_EDIT_DAILY_COUNTS)"]
-    admin["Administrator<br/>(ROLE_UPLOAD_DRIVING_DATA,<br/>ROLE_CLEAR_DRIVING_DATA,<br/>ROLE_MANAGE_SUPPLIERS)"]
+    admin["Administrator<br/>(ROLE_MANAGE_DRIVING_DATA,<br/>ROLE_MANAGE_SUPPLIERS)"]
 
     app["Kørselsoverblik<br/>(Symfony web application)"]
 
@@ -399,7 +399,7 @@ sequenceDiagram
     participant DB as MariaDB
 
     Admin->>C: POST /admin/import (file, first date, last date)
-    C->>C: check ROLE_UPLOAD_DRIVING_DATA and CSRF
+    C->>C: check ROLE_MANAGE_DRIVING_DATA and CSRF
     C->>C: ImportRangeDto(first, last), at most APP_DRIVING_DATA_MAX_DAYS
     C->>C: keep the file in var/, and its token in the session
     C->>P: parse(file, mapping, range)
@@ -593,9 +593,8 @@ file for the same range, or clear the dates.
 
 The upload page lists the uploaded dates, one month at a time. Each date shows the number of stop
 rows and route runs, and the last upload (file name, who, when). Users with
-`ROLE_CLEAR_DRIVING_DATA` can delete the driving data for a date, for example after a wrong
-upload. The list is on the upload page, so these users also need `ROLE_UPLOAD_DRIVING_DATA`.
-`ROLE_ADMIN` gives both roles.
+`ROLE_MANAGE_DRIVING_DATA` can delete the driving data for a date, for example after a wrong
+upload.
 
 1. The user selects **Clear** for a date.
 2. The user confirms.
@@ -730,8 +729,7 @@ flowchart TD
   | Permission role | Grants |
   | --- | --- |
   | `ROLE_VIEW_OVERVIEW` | The overview |
-  | `ROLE_UPLOAD_DRIVING_DATA` | Upload of driving data |
-  | `ROLE_CLEAR_DRIVING_DATA` | Clearing the driving data for a date on the upload page. The user also needs `ROLE_UPLOAD_DRIVING_DATA` to open the page |
+  | `ROLE_MANAGE_DRIVING_DATA` | The upload of driving data, and clearing the driving data for a date on the upload page |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, sub-agreements and sub-agreement → supplier assignments |
 
@@ -742,8 +740,7 @@ flowchart TD
   role_hierarchy:
     ROLE_ADMIN:
       - ROLE_VIEW_OVERVIEW
-      - ROLE_UPLOAD_DRIVING_DATA
-      - ROLE_CLEAR_DRIVING_DATA
+      - ROLE_MANAGE_DRIVING_DATA
       - ROLE_EDIT_DAILY_COUNTS
       - ROLE_MANAGE_SUPPLIERS
   ```

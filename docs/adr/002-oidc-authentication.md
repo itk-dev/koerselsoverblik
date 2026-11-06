@@ -59,7 +59,7 @@ Option 1:
   - The application does not edit roles. A role change applies at the next login.
 - **Authorization:**
   - Each part of the application has its own permission role, for example
-    `ROLE_UPLOAD_DRIVING_DATA`. Controllers check only permission roles.
+    `ROLE_MANAGE_DRIVING_DATA`. Controllers check only permission roles.
   - In `role_hierarchy`, `ROLE_ADMIN` gives all permission roles. At first, users get
     `ROLE_ADMIN` only.
   - Every controller has a class-level `#[IsGranted]`, and `access_control` denies by default.

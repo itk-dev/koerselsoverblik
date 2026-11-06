@@ -8,8 +8,7 @@ security:
     role_hierarchy:
         ROLE_ADMIN:
             - ROLE_VIEW_OVERVIEW
-            - ROLE_UPLOAD_DRIVING_DATA
-            - ROLE_CLEAR_DRIVING_DATA
+            - ROLE_MANAGE_DRIVING_DATA
             - ROLE_EDIT_DAILY_COUNTS
             - ROLE_MANAGE_SUPPLIERS
 
