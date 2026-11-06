@@ -39,6 +39,7 @@ final class MappingLoaderTest extends TestCase
         self::assertSame(2, $mapping->headerRow);
         self::assertSame(['Id', 'Run'], $mapping->rowId);
         self::assertTrue($mapping->hasRowId());
+        self::assertSame(['Note', 'Trip'], $mapping->keepColumns);
 
         $route = $mapping->field(FieldName::Route);
         self::assertSame('Route', $route->column);
@@ -87,6 +88,7 @@ final class MappingLoaderTest extends TestCase
         self::assertSame(1, $mapping->headerRow);
         self::assertSame([], $mapping->rowId);
         self::assertFalse($mapping->hasRowId());
+        self::assertSame([], $mapping->keepColumns);
     }
 
     public function testFirstSheetAndFirstRowAreAccepted(): void
@@ -181,6 +183,22 @@ final class MappingLoaderTest extends TestCase
         yield 'empty row id' => [
             static fn (array $raw): array => self::with($raw, ['row_id' => []]),
             'The path "mapping.row_id" should have at least 1 element(s) defined.',
+        ];
+        yield 'empty kept column' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Note', '']]),
+            'The path "mapping.keep_columns.1" cannot contain an empty value',
+        ];
+        yield 'kept column two times' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Note', 'Trip', 'Note']]),
+            'The column "Note" is in "keep_columns" more than one time.',
+        ];
+        yield 'kept column that is a field column' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Note', 'Route']]),
+            'The column "Route" in "keep_columns" is a field column or a row id column.',
+        ];
+        yield 'kept column that is a row id column' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Id']]),
+            'The column "Id" in "keep_columns" is a field column or a row id column.',
         ];
         yield 'missing fields' => [
             static fn (array $raw): array => self::without($raw, 'fields'),
