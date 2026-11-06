@@ -70,7 +70,7 @@ final readonly class StopRowParser
                 if ($rowNumber === $mapping->headerRow) {
                     $columns = self::columns($row, $mapping);
                 } elseif (null !== $columns && !self::isEmpty($row)) {
-                    yield $this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $range);
+                    yield $this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $columns[2], $range);
                 }
             }
 
@@ -97,9 +97,13 @@ final readonly class StopRowParser
     }
 
     /**
-     * Finds the index of the column of each field and each row id column.
+     * Finds the index of the column of each field and each row id column, and of the columns of
+     * the copy.
      *
-     * @return array{array<string, int>, list<int>} the field columns keyed by the FieldName value, and the row id columns
+     * The copy has the field columns, the row id columns and the kept columns, in the order of the
+     * header. A kept column that is not in the header is not an error.
+     *
+     * @return array{array<string, int>, list<int>, array<string, int>} the field columns keyed by the FieldName value, the row id columns, and the columns of the copy keyed by the column name
      */
     private static function columns(Row $header, MappingDto $mapping): array
     {
@@ -122,28 +126,47 @@ final readonly class StopRowParser
             throw new MissingColumnsException($missing);
         }
 
+        $copyColumns = array_flip([...$fieldColumns, ...$mapping->rowId, ...$mapping->keepColumns]);
+
         return [
             array_map(static fn (string $column): int => $indexes[$column], $fieldColumns),
             array_map(static fn (string $column): int => $indexes[$column], $mapping->rowId),
+            array_intersect_key($indexes, $copyColumns),
         ];
     }
 
     /**
      * @param array<string, int> $fieldColumns
      * @param list<int>          $rowIdColumns
+     * @param array<string, int> $copyColumns
      */
-    private function stopRow(int $rowNumber, Row $row, MappingDto $mapping, array $fieldColumns, array $rowIdColumns, ?ImportRangeDto $range): StopRowDto|RejectedRowDto
+    private function stopRow(int $rowNumber, Row $row, MappingDto $mapping, array $fieldColumns, array $rowIdColumns, array $copyColumns, ?ImportRangeDto $range): StopRowDto|RejectedRowDto
     {
+        $copy = SourceCells::copy(array_map(static fn (int $index): Cell => $row->cells[$index] ?? new EmptyCell(null), $copyColumns));
+        $reject = fn (RejectionReason $reason, ?FieldName $name): RejectedRowDto => new RejectedRowDto(
+            $rowNumber,
+            $reason,
+            $name,
+            $this->serviceDate($row, $mapping, $fieldColumns),
+            $copy,
+        );
+
         $values = [];
+        $warnings = [];
         foreach (FieldName::cases() as $name) {
             $field = $mapping->field($name);
             try {
                 $value = $this->converter->convert($field, $row->cells[$fieldColumns[$name->value]] ?? null);
             } catch (RejectedValueException $exception) {
-                return new RejectedRowDto($rowNumber, $exception->reason, $name);
+                // An optional field gives a warning, so that one bad value does not reject the row.
+                if ($field->required) {
+                    return $reject($exception->reason, $name);
+                }
+                $warnings[] = new FieldWarningDto($name, $exception->reason);
+                $value = null;
             }
             if (null === $value && $field->required) {
-                return new RejectedRowDto($rowNumber, RejectionReason::Empty, $name);
+                return $reject(RejectionReason::Empty, $name);
             }
             $values[$name->value] = $value;
         }
@@ -152,17 +175,35 @@ final readonly class StopRowParser
         if ([] !== $rowIdColumns) {
             $parts = array_map(static fn (int $index): string => self::text($row->cells[$index] ?? new EmptyCell(null)), $rowIdColumns);
             if (\in_array('', $parts, true)) {
-                return new RejectedRowDto($rowNumber, RejectionReason::InvalidRowId, null);
+                return $reject(RejectionReason::InvalidRowId, null);
             }
             $rowKey = implode(self::ROW_KEY_SEPARATOR, $parts);
         }
 
         /** @var StopRowValues $values */
-        $stopRow = StopRowDto::fromValues($rowNumber, $rowKey, $values, new \DateTimeZone($this->timeZone));
+        $stopRow = StopRowDto::fromValues($rowNumber, $rowKey, $values, new \DateTimeZone($this->timeZone), $copy, $warnings);
 
+        // The upload for the date of the row imports it, so the row has no copy here.
         return null === $range || $range->contains($stopRow->serviceDate)
             ? $stopRow
-            : new RejectedRowDto($rowNumber, RejectionReason::OutsideRange, FieldName::ServiceDate);
+            : new RejectedRowDto($rowNumber, RejectionReason::OutsideRange, FieldName::ServiceDate, $stopRow->serviceDate);
+    }
+
+    /**
+     * Gives the service date of a rejected row, or null if its date field is not valid.
+     *
+     * @param array<string, int> $fieldColumns
+     */
+    private function serviceDate(Row $row, MappingDto $mapping, array $fieldColumns): ?\DateTimeImmutable
+    {
+        $name = FieldName::ServiceDate;
+        try {
+            $value = $this->converter->convert($mapping->field($name), $row->cells[$fieldColumns[$name->value]] ?? null);
+        } catch (RejectedValueException) {
+            return null;
+        }
+
+        return $value instanceof \DateTimeImmutable ? StopRowDto::serviceDate($value) : null;
     }
 
     /**

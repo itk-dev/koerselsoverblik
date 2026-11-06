@@ -93,16 +93,15 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     }
 
     /**
-     * The default mapping requires the solo value, but another mapping can make it optional.
+     * The solo value is optional in the default mapping.
      */
     public function testPreviewOfARowWithoutPlannedSolo(): void
     {
-        $mapping = $this->customMapping("type: bool\n        required: true", "type: bool\n        required: false");
         $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
         $values['planned_solo'] = null;
-        (new ExtractWriter())->write($this->path, $mapping, [new ExtractRow($values)]);
+        (new ExtractWriter())->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
 
-        $result = $this->validateCustom();
+        $result = $this->validate();
 
         self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
         // The actual time is the last value, because the solo value is empty.
