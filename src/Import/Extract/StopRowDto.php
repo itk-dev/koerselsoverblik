@@ -25,6 +25,7 @@ use App\Import\Mapping\StopType;
  *     actual_time: \DateInterval|\DateTimeImmutable|null,
  *     planned_solo: ?bool,
  * }
+ *
  * @phpstan-import-type SourceValue from SourceCells
  */
 final readonly class StopRowDto
