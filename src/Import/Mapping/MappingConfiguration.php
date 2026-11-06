@@ -153,16 +153,17 @@ final class MappingConfiguration implements ConfigurationInterface
      */
     private static function checkKeptColumns(array $mapping): array
     {
-        $mappedColumns = [...array_column($mapping['fields'], 'column'), ...$mapping['row_id']];
-        $seen = [];
-        foreach ($mapping['keep_columns'] as $column) {
-            if (isset($seen[$column])) {
+        foreach (array_count_values($mapping['keep_columns']) as $column => $count) {
+            if ($count > 1) {
                 throw new \InvalidArgumentException(\sprintf('The column "%s" is in "keep_columns" more than one time.', $column));
             }
+        }
+
+        $mappedColumns = [...array_column($mapping['fields'], 'column'), ...$mapping['row_id']];
+        foreach ($mapping['keep_columns'] as $column) {
             if (\in_array($column, $mappedColumns, true)) {
                 throw new \InvalidArgumentException(\sprintf('The column "%s" in "keep_columns" is a field column or a row id column.', $column));
             }
-            $seen[$column] = true;
         }
 
         return $mapping;

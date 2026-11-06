@@ -12,6 +12,8 @@ use OpenSpout\Common\Entity\Cell\ErrorCell;
 use OpenSpout\Common\Entity\Cell\FormulaCell;
 use OpenSpout\Common\Entity\Cell\NumericCell;
 use OpenSpout\Common\Entity\Cell\StringCell;
+use OpenSpout\Common\Entity\Cell\TextRunCell;
+use OpenSpout\Common\Entity\Comment\TextRun;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -50,6 +52,14 @@ final class SourceCellsTest extends TestCase
     public function testCopyLeavesOutAnEmptyCell(): void
     {
         self::assertSame(['Text' => 'A'], SourceCells::copy(['Empty' => new EmptyCell(null), 'Text' => new StringCell('A'), 'Blank' => new StringCell('')]));
+    }
+
+    /**
+     * The XLSX reader gives no cell with rich text, so the copy has no type for it.
+     */
+    public function testCopyLeavesOutACellWithRichText(): void
+    {
+        self::assertSame([], SourceCells::copy(['Rich' => new TextRunCell([new TextRun('A')], null, null)]));
     }
 
     /**

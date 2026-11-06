@@ -193,8 +193,8 @@ final class MappingLoaderTest extends TestCase
             'The column "Note" is in "keep_columns" more than one time.',
         ];
         yield 'kept column that is a field column' => [
-            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Note', 'Route']]),
-            'The column "Route" in "keep_columns" is a field column or a row id column.',
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Note', 'Solo']]),
+            'The column "Solo" in "keep_columns" is a field column or a row id column.',
         ];
         yield 'kept column that is a row id column' => [
             static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Id']]),
