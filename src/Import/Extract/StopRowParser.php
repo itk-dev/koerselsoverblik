@@ -56,6 +56,51 @@ final readonly class StopRowParser
      */
     public function parse(string $path, MappingDto $mapping, ?ImportRangeDto $range): \Generator
     {
+        // The columns are null until the header row. The rows above the header are not read.
+        $columns = null;
+        foreach ($this->rows($path, $mapping) as $rowNumber => $row) {
+            if ($rowNumber === $mapping->headerRow) {
+                $columns = self::columns($row, $mapping);
+            } elseif (null !== $columns && !self::isEmpty($row)) {
+                yield $this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $columns[2], $range);
+            }
+        }
+
+        if (null === $columns) {
+            throw self::noHeaderRow($mapping);
+        }
+    }
+
+    /**
+     * Gives the column names of the header row, with no spaces at the start and the end. A cell
+     * with no name is left out, and a name occurs one time. The validate command compares them
+     * with the mapping.
+     *
+     * @return list<string>
+     *
+     * @throws InvalidExtractException if the extract is above a limit, is not a valid xlsx file, or does not have the sheet or the header row
+     */
+    public function header(string $path, MappingDto $mapping): array
+    {
+        foreach ($this->rows($path, $mapping) as $rowNumber => $row) {
+            if ($rowNumber === $mapping->headerRow) {
+                return array_map(static fn (int|string $name): string => (string) $name, array_keys(self::indexes($row)));
+            }
+        }
+
+        throw self::noHeaderRow($mapping);
+    }
+
+    /**
+     * Gives the rows of the sheet of the mapping, keyed by the row number. The reader closes when
+     * the caller stops, also after an exception.
+     *
+     * @return \Generator<int, Row>
+     *
+     * @throws InvalidExtractException if the extract is above a limit, is not a valid xlsx file, or does not have the sheet
+     */
+    private function rows(string $path, MappingDto $mapping): \Generator
+    {
         $this->inspector->inspect($path);
 
         // With the empty rows, the key of a row is its row number in the sheet.
@@ -63,19 +108,9 @@ final readonly class StopRowParser
 
         try {
             $reader->open($path);
-            // The columns are null until the header row. The rows above the header are not read.
-            $columns = null;
             /** @var int $rowNumber RowIterator::key() gives the row number. */
             foreach (self::sheet($reader, $mapping->sheet)->getRowIterator() as $rowNumber => $row) {
-                if ($rowNumber === $mapping->headerRow) {
-                    $columns = self::columns($row, $mapping);
-                } elseif (null !== $columns && !self::isEmpty($row)) {
-                    yield $this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $columns[2], $range);
-                }
-            }
-
-            if (null === $columns) {
-                throw new InvalidExtractException(\sprintf('The extract has no header row %d.', $mapping->headerRow));
+                yield $rowNumber => $row;
             }
         } catch (OpenSpoutException) {
             // The message of OpenSpout can contain text from the file, so it is not kept.
@@ -83,6 +118,11 @@ final readonly class StopRowParser
         } finally {
             $reader->close();
         }
+    }
+
+    private static function noHeaderRow(MappingDto $mapping): InvalidExtractException
+    {
+        return new InvalidExtractException(\sprintf('The extract has no header row %d.', $mapping->headerRow));
     }
 
     private static function sheet(Reader $reader, int $index): Sheet
@@ -107,14 +147,7 @@ final readonly class StopRowParser
      */
     private static function columns(Row $header, MappingDto $mapping): array
     {
-        $indexes = [];
-        foreach ($header->cells as $index => $cell) {
-            $name = $cell->getValue();
-            if (\is_string($name)) {
-                // If two columns have the same name, the first column is used.
-                $indexes[trim($name)] ??= $index;
-            }
-        }
+        $indexes = self::indexes($header);
 
         $fieldColumns = [];
         foreach (FieldName::cases() as $name) {
@@ -133,6 +166,26 @@ final readonly class StopRowParser
             array_map(static fn (string $column): int => $indexes[$column], $mapping->rowId),
             array_intersect_key($indexes, $copyColumns),
         ];
+    }
+
+    /**
+     * Gives the index of each column name in the header, in the order of the header. A name has no
+     * spaces at the start and the end. If two columns have the same name, the first column is used.
+     *
+     * @return array<string, int>
+     */
+    private static function indexes(Row $header): array
+    {
+        $indexes = [];
+        foreach ($header->cells as $index => $cell) {
+            $name = $cell->getValue();
+            $name = \is_string($name) ? trim($name) : '';
+            if ('' !== $name) {
+                $indexes[$name] ??= $index;
+            }
+        }
+
+        return $indexes;
     }
 
     /**

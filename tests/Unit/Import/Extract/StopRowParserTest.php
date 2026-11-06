@@ -571,9 +571,10 @@ final class StopRowParserTest extends TestCase
      */
     public function testHeaderGivesTheColumnNames(): void
     {
-        $this->writeRows([['Title'], [' Route ', '', 'Note', 'Route', 7, new \DateTimeImmutable('2026-01-05')], self::ROW]);
+        $this->writeRows([['Title'], [' Route ', '', 'Note', 'Route', 7, new \DateTimeImmutable('2026-01-05'), '2026'], self::ROW]);
 
-        self::assertSame(['Route', 'Note'], $this->parser()->header($this->path, self::simpleMapping(headerRow: 2)));
+        // A name that is a number in text stays text.
+        self::assertSame(['Route', 'Note', '2026'], $this->parser()->header($this->path, self::simpleMapping(headerRow: 2)));
     }
 
     public function testHeaderOfAFileWithoutTheHeaderRowIsRejected(): void

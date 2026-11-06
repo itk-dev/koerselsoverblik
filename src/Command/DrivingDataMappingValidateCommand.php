@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Import\Extract\ExtractColumnsDto;
 use App\Import\Extract\ExtractSummaryDto;
 use App\Import\Extract\InvalidExtractException;
 use App\Import\Extract\MissingColumnsException;
@@ -65,6 +66,7 @@ final readonly class DrivingDataMappingValidateCommand
         try {
             // The command has no upload range, so the parser accepts all dates.
             $summary = ExtractSummaryDto::fromRows($this->parser->parse($pathToFile, $mapping, null), $rows);
+            $columns = ExtractColumnsDto::compare($this->parser->header($pathToFile, $mapping), $mapping);
         } catch (MissingColumnsException $exception) {
             $io->error('The file does not have these columns of the mapping:');
             $io->listing($exception->columns);
@@ -79,22 +81,25 @@ final readonly class DrivingDataMappingValidateCommand
         $io->definitionList(
             ['Stop rows' => $summary->stopRows],
             ['Rejected rows' => $summary->rejectedRows],
+            ['Warnings' => $summary->warningCount],
             ['First date' => $summary->dates[0] ?? '-'],
             ['Last date' => array_slice($summary->dates, -1)[0] ?? '-'],
             ['Dates with stop rows' => \count($summary->dates)],
         );
 
-        if ([] !== $summary->rejections) {
-            $io->section('Rejected rows');
-            $io->table(
-                ['field', 'reason', 'rows', 'first row numbers'],
-                array_map(static fn (RejectionCountDto $group): array => [
-                    $group->field->value ?? '(row id)',
-                    $group->reason->value,
-                    $group->count,
-                    implode(', ', $group->rowNumbers),
-                ], $summary->rejections),
-            );
+        self::groups($io, 'Rejected rows', $summary->rejections);
+        // A bad value in an optional field. The field is empty, and the row is imported.
+        self::groups($io, 'Warnings', $summary->warnings);
+
+        // The names only. A new column can hold personal data, so it is not kept until a person
+        // adds it to the mapping.
+        if ([] !== $columns->missingKeptColumns) {
+            $io->section('Kept columns that are not in the file');
+            $io->listing($columns->missingKeptColumns);
+        }
+        if ([] !== $columns->unreadColumns) {
+            $io->section('Columns that are not read');
+            $io->listing($columns->unreadColumns);
         }
 
         if ([] !== $summary->preview) {
@@ -121,6 +126,29 @@ final readonly class DrivingDataMappingValidateCommand
         $io->success('The file agrees with the mapping.');
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Shows the rows with the same field and reason as one line, with no values.
+     *
+     * @param list<RejectionCountDto> $groups
+     */
+    private static function groups(SymfonyStyle $io, string $title, array $groups): void
+    {
+        if ([] === $groups) {
+            return;
+        }
+
+        $io->section($title);
+        $io->table(
+            ['field', 'reason', 'rows', 'first row numbers'],
+            array_map(static fn (RejectionCountDto $group): array => [
+                $group->field->value ?? '(row id)',
+                $group->reason->value,
+                $group->count,
+                implode(', ', $group->rowNumbers),
+            ], $groups),
+        );
     }
 
     /**
