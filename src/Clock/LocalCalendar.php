@@ -3,29 +3,23 @@
 namespace App\Clock;
 
 use Psr\Clock\ClockInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * Gives the dates in the time zone of the application. The PHP default time zone can be UTC in
- * the container, so "today" from PHP can be the wrong date shortly after midnight.
+ * Gives the dates in the PHP default time zone. The clock can give the time in another time zone,
+ * so "today" from the clock can be the wrong date shortly after midnight. See ADR 005.
  */
 final readonly class LocalCalendar
 {
-    /**
-     * @param string $timeZone the value of APP_TIMEZONE
-     */
     public function __construct(
         private ClockInterface $clock,
-        #[Autowire('%app.timezone%')]
-        private string $timeZone,
     ) {
     }
 
     /**
-     * Gives midnight at the start of the current date in the time zone of the application.
+     * Gives midnight at the start of the current date in the PHP default time zone.
      */
     public function today(): \DateTimeImmutable
     {
-        return $this->clock->now()->setTimezone(new \DateTimeZone($this->timeZone))->setTime(0, 0);
+        return $this->clock->now()->setTimezone(new \DateTimeZone(date_default_timezone_get()))->setTime(0, 0);
     }
 }

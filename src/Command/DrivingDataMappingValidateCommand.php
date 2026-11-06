@@ -16,7 +16,6 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Reads a sample file through an import mapping, and shows the result. It changes no data.
@@ -28,14 +27,9 @@ final readonly class DrivingDataMappingValidateCommand
 {
     private const string HIDDEN = '(hidden)';
 
-    /**
-     * @param string $timeZone the value of APP_TIMEZONE, the time zone of the wall-clock times in the extract
-     */
     public function __construct(
         private MappingProvider $mappings,
         private StopRowParser $parser,
-        #[Autowire('%app.timezone%')]
-        private string $timeZone,
     ) {
     }
 
@@ -124,8 +118,8 @@ final readonly class DrivingDataMappingValidateCommand
     }
 
     /**
-     * Gives the values of a stop row in the order of FieldName::cases(). The times are in
-     * APP_TIMEZONE, so that they agree with the cells of the file.
+     * Gives the values of a stop row in the order of FieldName::cases(). The times are wall-clock
+     * times, as in the cells of the file.
      *
      * @param bool $hideRowKey true if the row key has the person id
      *
@@ -133,8 +127,6 @@ final readonly class DrivingDataMappingValidateCommand
      */
     private function previewRow(StopRowDto $row, bool $hideRowKey): array
     {
-        $timeZone = new \DateTimeZone($this->timeZone);
-
         return [
             $row->rowNumber,
             $hideRowKey ? self::HIDDEN : $row->rowKey,
@@ -147,8 +139,8 @@ final readonly class DrivingDataMappingValidateCommand
             $row->passengersAfter,
             $row->nextDistanceKm,
             $row->nextDurationMin,
-            $row->plannedTime->setTimezone($timeZone)->format('Y-m-d H:i:s'),
-            $row->actualTime?->setTimezone($timeZone)->format('Y-m-d H:i:s'),
+            $row->plannedTime->format('Y-m-d H:i:s'),
+            $row->actualTime?->format('Y-m-d H:i:s'),
             match ($row->plannedSolo) {
                 true => 'yes',
                 false => 'no',

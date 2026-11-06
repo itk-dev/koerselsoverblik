@@ -11,8 +11,8 @@ use PHPUnit\Framework\TestCase;
 /**
  * Checks that a stop row gets the converted values of a row with application types.
  *
- * The times in the values are wall-clock times in Europe/Copenhagen. The stop row has them in
- * UTC.
+ * The times in the values are wall-clock times. The stop row has them in the PHP default time
+ * zone, Europe/Copenhagen in phpunit.dist.xml. See ADR 005.
  *
  * @phpstan-import-type StopRowValues from StopRowDto
  */
@@ -26,15 +26,15 @@ final class StopRowDtoTest extends TestCase
         self::assertSame('D-1', $row->rowKey);
         self::assertSame('R-01', $row->route);
         self::assertSame('P-001', $row->personId);
-        self::assertUtc('2026-01-05 00:00:00', $row->serviceDate);
+        self::assertLocal('2026-01-05 00:00:00', $row->serviceDate);
         self::assertSame(3, $row->run);
         self::assertSame(StopType::Pickup, $row->stopType);
         self::assertSame(StopStatus::Cancelled, $row->stopStatus);
         self::assertSame(2, $row->passengersAfter);
         self::assertSame(3.5, $row->nextDistanceKm);
         self::assertSame(7.5, $row->nextDurationMin);
-        self::assertUtc('2026-01-05 06:10:00', $row->plannedTime);
-        self::assertUtc('2026-01-05 06:12:00', $row->actualTime);
+        self::assertLocal('2026-01-05 07:10:00', $row->plannedTime);
+        self::assertLocal('2026-01-05 07:12:00', $row->actualTime);
         self::assertTrue($row->plannedSolo);
     }
 
@@ -60,14 +60,15 @@ final class StopRowDtoTest extends TestCase
     }
 
     /**
-     * The service date is a calendar date. The time zone does not change it.
+     * The service date is a calendar date. The time zone of the value does not change it.
      */
-    public function testServiceDateFromADateAndTimeHasNoTime(): void
+    #[DataProvider('valueTimeZones')]
+    public function testServiceDateFromADateAndTimeHasNoTime(string $timeZone): void
     {
         $values = self::values();
-        $values['service_date'] = new \DateTimeImmutable('2026-01-05 00:30:10', new \DateTimeZone('Europe/Copenhagen'));
+        $values['service_date'] = new \DateTimeImmutable('2026-01-05 00:30:10', new \DateTimeZone($timeZone));
 
-        self::assertUtc('2026-01-05 00:00:00', self::fromValues($values)->serviceDate);
+        self::assertLocal('2026-01-05 00:00:00', self::fromValues($values)->serviceDate);
     }
 
     public function testTimeIsOnTheServiceDate(): void
@@ -79,8 +80,8 @@ final class StopRowDtoTest extends TestCase
 
         $row = self::fromValues($values);
 
-        self::assertUtc('2026-01-05 06:10:05', $row->plannedTime);
-        self::assertUtc('2026-01-05 06:12:00', $row->actualTime);
+        self::assertLocal('2026-01-05 07:10:05', $row->plannedTime);
+        self::assertLocal('2026-01-05 07:12:00', $row->actualTime);
     }
 
     public function testTimeOf24OrMoreIsOnTheNextDay(): void
@@ -90,7 +91,7 @@ final class StopRowDtoTest extends TestCase
 
         $row = self::fromValues($values);
 
-        self::assertUtc('2026-01-06 00:10:00', $row->plannedTime);
+        self::assertLocal('2026-01-06 01:10:00', $row->plannedTime);
         self::assertSame('2026-01-05', $row->serviceDate->format('Y-m-d'));
     }
 
@@ -104,7 +105,7 @@ final class StopRowDtoTest extends TestCase
         $values = self::values();
         $values['planned_time'] = new \DateTimeImmutable('2026-01-05 07:10', new \DateTimeZone($timeZone));
 
-        self::assertUtc('2026-01-05 06:10:00', self::fromValues($values)->plannedTime);
+        self::assertLocal('2026-01-05 07:10:00', self::fromValues($values)->plannedTime);
     }
 
     /**
@@ -117,7 +118,7 @@ final class StopRowDtoTest extends TestCase
     }
 
     /**
-     * Copenhagen is two hours ahead of UTC in summer time, and one hour in winter time.
+     * A time in summer time keeps its wall-clock time, with the offset of summer time.
      */
     public function testSummerTime(): void
     {
@@ -128,8 +129,9 @@ final class StopRowDtoTest extends TestCase
 
         $row = self::fromValues($values);
 
-        self::assertUtc('2026-06-15 05:10:00', $row->plannedTime);
-        self::assertUtc('2026-06-15 05:12:00', $row->actualTime);
+        self::assertLocal('2026-06-15 07:10:00', $row->plannedTime);
+        self::assertLocal('2026-06-15 07:12:00', $row->actualTime);
+        self::assertSame('+02:00', $row->plannedTime->format('P'));
     }
 
     /**
@@ -145,8 +147,8 @@ final class StopRowDtoTest extends TestCase
 
         $row = self::fromValues($values);
 
-        self::assertUtc('2026-03-29 01:30:00', $row->plannedTime);
-        self::assertUtc('2026-03-29 01:30:00', $row->actualTime);
+        self::assertLocal('2026-03-29 03:30:00', $row->plannedTime);
+        self::assertLocal('2026-03-29 03:30:00', $row->actualTime);
     }
 
     /**
@@ -162,8 +164,25 @@ final class StopRowDtoTest extends TestCase
 
         $row = self::fromValues($values);
 
-        self::assertUtc('2026-10-25 01:30:00', $row->plannedTime);
-        self::assertUtc('2026-10-25 01:30:00', $row->actualTime);
+        self::assertLocal('2026-10-25 02:30:00', $row->plannedTime);
+        self::assertLocal('2026-10-25 02:30:00', $row->actualTime);
+        self::assertSame('+01:00', $row->plannedTime->format('P'));
+    }
+
+    /**
+     * The clocks go forward on 29 March 2026. From 00:30 to 03:30 local time is 2 hours.
+     */
+    public function testDelayAcrossTheChangeToSummerTimeIsCorrect(): void
+    {
+        $values = self::values();
+        $values['service_date'] = new \DateTimeImmutable('2026-03-29');
+        $values['planned_time'] = new \DateInterval('PT0H30M');
+        $values['actual_time'] = new \DateInterval('PT3H30M');
+
+        $row = self::fromValues($values);
+
+        self::assertNotNull($row->actualTime);
+        self::assertSame(7200, $row->actualTime->getTimestamp() - $row->plannedTime->getTimestamp());
     }
 
     /**
@@ -171,14 +190,14 @@ final class StopRowDtoTest extends TestCase
      */
     private static function fromValues(array $values, ?string $rowKey = null): StopRowDto
     {
-        return StopRowDto::fromValues(4, $rowKey, $values, new \DateTimeZone('Europe/Copenhagen'));
+        return StopRowDto::fromValues(4, $rowKey, $values);
     }
 
-    private static function assertUtc(string $expected, ?\DateTimeImmutable $value): void
+    private static function assertLocal(string $expected, ?\DateTimeImmutable $value): void
     {
         self::assertNotNull($value);
         self::assertSame($expected, $value->format('Y-m-d H:i:s'));
-        self::assertSame('UTC', $value->getTimezone()->getName());
+        self::assertSame('Europe/Copenhagen', $value->getTimezone()->getName());
     }
 
     /**

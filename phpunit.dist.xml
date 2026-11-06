@@ -13,6 +13,8 @@
     <php>
         <ini name="display_errors" value="1" />
         <ini name="error_reporting" value="-1" />
+        <!-- The time zone of the driving data (ADR 005). The tests then do not depend on php.ini. -->
+        <ini name="date.timezone" value="Europe/Copenhagen" />
         <server name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
