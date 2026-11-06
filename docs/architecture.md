@@ -480,9 +480,15 @@ extract is not in Git, and the docs contain no values from it.
 | `passengers_after` | `passengersaftercancel` | integer | The passengers after the stop, when the cancellations are removed. |
 | `next_distance_km` | `ToNextDistance` | decimal | Kilometres. Can be empty. |
 | `next_duration_min` | `ToNextDuration` | decimal | Minutes. Can be empty when the distance is not. |
-| `planned_time` | `PlannedArrival` | Excel time, `[hh]:mm:ss` | A wall-clock time on `service_date`. Can be 24:00 or more (see [Times](#times)). |
+| `planned_time` | `PlannedDeparture` | Excel time, `[hh]:mm:ss` | A wall-clock time on `service_date`. Can be 24:00 or more (see [Times](#times)). |
 | `actual_time` | `StatusUpdateTime` | Excel date and time | Empty when the stop has no registration. |
 | `planned_solo` | `kørselstype` | text code | Two codes: solo and shared. |
+
+**Why the planned time comes from `PlannedDeparture`:** the extract has a planned arrival
+(`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The departure is
+some minutes after the arrival. The transport office measures punctuality against the planned
+departure, because the driver registers the stop when the citizen is in or out of the car.
+`StatusUpdateTime` is that registration.
 
 **Why the run comes from `blocknumber`:** the extract also has a column for the start and a column
 for the end of a block. In the reference extract, one run has a start but no end. A split on the

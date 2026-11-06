@@ -25,8 +25,9 @@ fields:
         required: true
     next_distance_km: { column: ToNextDistance, type: float }
     next_duration_min: { column: ToNextDuration, type: float }
-    # An Excel time. It can be 24:00 or more after midnight on the same service day.
-    planned_time: { column: PlannedArrival, type: time, required: true }
+    # An Excel time. It can be 24:00 or more after midnight on the same service day. The transport
+    # office measures punctuality against the planned departure, not the planned arrival.
+    planned_time: { column: PlannedDeparture, type: time, required: true }
     # Empty when the stop has no registration.
     actual_time: { column: StatusUpdateTime, type: datetime, format: excel }
     planned_solo:
