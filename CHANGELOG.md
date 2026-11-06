@@ -114,3 +114,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   names all missing columns in one `MissingColumnsException`, and it accepts all dates when it has
   no range. The mutation tasks fill the test cache before Infection starts, so that cold caches
   give no timeouts.
+- [#49](https://github.com/itk-dev/koerselsoverblik/issues/49)
+  One role for the driving data: `ROLE_MANAGE_DRIVING_DATA` replaces `ROLE_UPLOAD_DRIVING_DATA` and
+  `ROLE_CLEAR_DRIVING_DATA`. The application ignores the old roles. Configure the identity
+  provider to send the new role to users who do not have `ROLE_ADMIN`. One mock user,
+  `driving-data-manager`, replaces the `uploader` and `clearer` mock users.
