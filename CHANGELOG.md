@@ -114,3 +114,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   names all missing columns in one `MissingColumnsException`, and it accepts all dates when it has
   no range. The mutation tasks fill the test cache before Infection starts, so that cold caches
   give no timeouts.
+- [#53](https://github.com/itk-dev/koerselsoverblik/issues/53)
+  The `default` mapping reads the planned time of a stop from `PlannedDeparture`, not
+  `PlannedArrival`. The transport office measures punctuality against the planned departure.
