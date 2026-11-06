@@ -18,7 +18,7 @@ final class DrivingDataFixturesCommandTest extends KernelTestCase
 {
     private const array DEFAULT_HEADER = [
         'RouteStopID', 'RouteName', 'PersonID', 'Date', 'blocknumber', 'StopType', 'Status',
-        'passengersaftercancel', 'ToNextDistance', 'ToNextDuration', 'PlannedArrival', 'StatusUpdateTime',
+        'passengersaftercancel', 'ToNextDistance', 'ToNextDuration', 'PlannedDeparture', 'StatusUpdateTime',
         'kørselstype',
     ];
 

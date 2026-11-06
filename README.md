@@ -90,8 +90,7 @@ Each part of the application has its own permission role:
 | Role | Can |
 | --- | --- |
 | `ROLE_VIEW_OVERVIEW` | View the overview |
-| `ROLE_UPLOAD_DRIVING_DATA` | Upload driving data |
-| `ROLE_CLEAR_DRIVING_DATA` | Clear the driving data for a date. Also needs `ROLE_UPLOAD_DRIVING_DATA`, because the dates are on the upload page |
+| `ROLE_MANAGE_DRIVING_DATA` | Upload driving data, and clear the driving data for a date |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the sub-agreement → supplier assignments |
 
@@ -182,7 +181,7 @@ from the real identity provider.
 
 ### Upload driving data
 
-1. Go to **Administration → Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
+1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`).
 2. Choose a driving data extract (`.xlsx`).
 3. Enter the first and the last date of the export, and upload the file.
 4. Check the preview. It shows:
@@ -221,12 +220,10 @@ given.
 
 ### Clear driving data
 
-1. Go to **Administration → Upload driving data** (requires `ROLE_UPLOAD_DRIVING_DATA`).
+1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`).
 2. Find the date in the list of uploaded dates. Use the previous and next month links.
 3. Check the number of stop rows and route runs for the date.
-4. Select **Clear** (requires `ROLE_CLEAR_DRIVING_DATA`), and confirm.
-
-To clear a date, a user needs both roles. `ROLE_ADMIN` gives both.
+4. Select **Clear**, and confirm.
 
 This deletes the uploaded driving data and the calculated figures for the date. The daily
 counts of mails, complaints and phone calls do not change. You cannot undo this.

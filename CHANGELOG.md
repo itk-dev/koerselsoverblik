@@ -120,3 +120,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dates in the PHP default time zone, with no conversion to UTC. `APP_TIMEZONE` is removed.
   The fixtures command gets the current month from `LocalCalendar`. The `mariadb` service uses
   `Europe/Copenhagen`, as on the servers.
+- [#49](https://github.com/itk-dev/koerselsoverblik/issues/49)
+  One role for the driving data: `ROLE_MANAGE_DRIVING_DATA` replaces `ROLE_UPLOAD_DRIVING_DATA` and
+  `ROLE_CLEAR_DRIVING_DATA`. The application ignores the old roles. Configure the identity
+  provider to send the new role to users who do not have `ROLE_ADMIN`. One mock user,
+  `driving-data-manager`, replaces the `uploader` and `clearer` mock users.
+- [#53](https://github.com/itk-dev/koerselsoverblik/issues/53)
+  The `default` mapping reads the planned time of a stop from `PlannedDeparture`, not
+  `PlannedArrival`. The transport office measures punctuality against the planned departure.
