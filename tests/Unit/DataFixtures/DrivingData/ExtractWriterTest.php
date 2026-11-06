@@ -22,7 +22,7 @@ final class ExtractWriterTest extends TestCase
 {
     private const string MAPPINGS = __DIR__.'/../../../fixtures/mappings';
 
-    private const array HEADER = ['Id', 'Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo'];
+    private const array HEADER = ['Id', 'Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Note', 'Trip'];
 
     private string $path = '';
 
@@ -57,7 +57,31 @@ final class ExtractWriterTest extends TestCase
         $rows = $this->readSheet(0);
 
         self::assertCount(1, $rows);
-        self::assertSame(array_slice(self::HEADER, 1), $rows[0]);
+        // The mapping has no kept columns.
+        self::assertSame(array_slice(self::HEADER, 1, 12), $rows[0]);
+    }
+
+    public function testKeptColumnsHaveTheValuesOfTheRow(): void
+    {
+        (new ExtractWriter())->write($this->path, self::mapping('valid'), [
+            new ExtractRow(self::values(), kept: ['Trip' => 7, 'Note' => 'first']),
+            new ExtractRow(self::values()),
+        ]);
+
+        $rows = $this->readSheet(1);
+        self::assertSame(['first', 7], array_slice($rows[2], 13));
+        self::assertSame(['', ''], array_slice($rows[3], 13));
+    }
+
+    /**
+     * A misspelt column name would otherwise give an empty cell with no error.
+     */
+    public function testValueForAColumnThatIsNotKeptIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The row has a value for the column "Colour", which is not kept.');
+
+        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values(), kept: ['Colour' => 'red'])]);
     }
 
     public function testValuesReadBackWithTheirTypes(): void
@@ -152,8 +176,8 @@ final class ExtractWriterTest extends TestCase
         (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values())], [FieldName::PlannedSolo]);
 
         $rows = $this->readSheet(1);
-        self::assertSame(array_slice(self::HEADER, 0, 12), $rows[1]);
-        self::assertCount(12, $rows[2]);
+        self::assertSame([...array_slice(self::HEADER, 0, 12), 'Note', 'Trip'], $rows[1]);
+        self::assertCount(14, $rows[2]);
     }
 
     public function testValueThatIsNotInTheMapIsRejected(): void

@@ -122,3 +122,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#53](https://github.com/itk-dev/koerselsoverblik/issues/53)
   The `default` mapping reads the planned time of a stop from `PlannedDeparture`, not
   `PlannedArrival`. The transport office measures punctuality against the planned departure.
+- [#55](https://github.com/itk-dev/koerselsoverblik/issues/55)
+  A copy of each imported row: the parser keeps the field columns, the row id columns and the new
+  `keep_columns` of a mapping, with the type of each cell, so that a later task can read the data
+  again with no new upload. A rejected row also has a copy, except a row outside the range. The
+  `default` mapping keeps all the columns of the reference extract except the personal data. A
+  bad value in an optional field gives an empty value and a warning, not a rejected row, and
+  `planned_solo` is optional. The validate command shows the warnings, the kept columns that are
+  not in the file and the columns that it does not read. ADR 006 is proposed.

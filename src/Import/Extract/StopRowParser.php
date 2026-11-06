@@ -56,6 +56,52 @@ final readonly class StopRowParser
      */
     public function parse(string $path, MappingDto $mapping, ?ImportRangeDto $range): \Generator
     {
+        // The columns are null until the header row. The rows above the header are not read.
+        $columns = null;
+        foreach ($this->rows($path, $mapping) as $rowNumber => $row) {
+            if ($rowNumber === $mapping->headerRow) {
+                $columns = self::columns($row, $mapping);
+            } elseif (null !== $columns && !self::isEmpty($row)) {
+                yield $this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $columns[2], $range);
+            }
+        }
+
+        if (null === $columns) {
+            throw self::noHeaderRow($mapping);
+        }
+    }
+
+    /**
+     * Gives the column names of the header row, with no spaces at the start and the end. A cell
+     * with no name is left out, and a name occurs one time. The validate command compares them
+     * with the mapping.
+     *
+     * @return list<string>
+     *
+     * @throws InvalidExtractException if the extract is above a limit, is not a valid xlsx file, or does not have the sheet or the header row
+     */
+    public function header(string $path, MappingDto $mapping): array
+    {
+        foreach ($this->rows($path, $mapping) as $rowNumber => $row) {
+            if ($rowNumber === $mapping->headerRow) {
+                // PHP changes a name such as "2026" to an int key. strval() gives the text again.
+                return array_map(strval(...), array_keys(self::indexes($row)));
+            }
+        }
+
+        throw self::noHeaderRow($mapping);
+    }
+
+    /**
+     * Gives the rows of the sheet of the mapping, keyed by the row number. The reader closes when
+     * the caller stops, also after an exception.
+     *
+     * @return \Generator<int, Row>
+     *
+     * @throws InvalidExtractException if the extract is above a limit, is not a valid xlsx file, or does not have the sheet
+     */
+    private function rows(string $path, MappingDto $mapping): \Generator
+    {
         $this->inspector->inspect($path);
 
         // With the empty rows, the key of a row is its row number in the sheet.
@@ -63,19 +109,9 @@ final readonly class StopRowParser
 
         try {
             $reader->open($path);
-            // The columns are null until the header row. The rows above the header are not read.
-            $columns = null;
             /** @var int $rowNumber RowIterator::key() gives the row number. */
             foreach (self::sheet($reader, $mapping->sheet)->getRowIterator() as $rowNumber => $row) {
-                if ($rowNumber === $mapping->headerRow) {
-                    $columns = self::columns($row, $mapping);
-                } elseif (null !== $columns && !self::isEmpty($row)) {
-                    yield $this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $range);
-                }
-            }
-
-            if (null === $columns) {
-                throw new InvalidExtractException(\sprintf('The extract has no header row %d.', $mapping->headerRow));
+                yield $rowNumber => $row;
             }
         } catch (OpenSpoutException) {
             // The message of OpenSpout can contain text from the file, so it is not kept.
@@ -83,6 +119,11 @@ final readonly class StopRowParser
         } finally {
             $reader->close();
         }
+    }
+
+    private static function noHeaderRow(MappingDto $mapping): InvalidExtractException
+    {
+        return new InvalidExtractException(\sprintf('The extract has no header row %d.', $mapping->headerRow));
     }
 
     private static function sheet(Reader $reader, int $index): Sheet
@@ -97,20 +138,17 @@ final readonly class StopRowParser
     }
 
     /**
-     * Finds the index of the column of each field and each row id column.
+     * Finds the index of the column of each field and each row id column, and of the columns of
+     * the copy.
      *
-     * @return array{array<string, int>, list<int>} the field columns keyed by the FieldName value, and the row id columns
+     * The copy has the field columns, the row id columns and the kept columns, in the order of the
+     * header. A kept column that is not in the header is not an error.
+     *
+     * @return array{array<string, int>, list<int>, array<string, int>} the field columns keyed by the FieldName value, the row id columns, and the columns of the copy keyed by the column name
      */
     private static function columns(Row $header, MappingDto $mapping): array
     {
-        $indexes = [];
-        foreach ($header->cells as $index => $cell) {
-            $name = $cell->getValue();
-            if (\is_string($name)) {
-                // If two columns have the same name, the first column is used.
-                $indexes[trim($name)] ??= $index;
-            }
-        }
+        $indexes = self::indexes($header);
 
         $fieldColumns = [];
         foreach (FieldName::cases() as $name) {
@@ -122,28 +160,67 @@ final readonly class StopRowParser
             throw new MissingColumnsException($missing);
         }
 
+        $copyColumns = array_flip([...$fieldColumns, ...$mapping->rowId, ...$mapping->keepColumns]);
+
         return [
             array_map(static fn (string $column): int => $indexes[$column], $fieldColumns),
             array_map(static fn (string $column): int => $indexes[$column], $mapping->rowId),
+            array_intersect_key($indexes, $copyColumns),
         ];
+    }
+
+    /**
+     * Gives the index of each column name in the header, in the order of the header. A name has no
+     * spaces at the start and the end. If two columns have the same name, the first column is used.
+     *
+     * @return array<string, int>
+     */
+    private static function indexes(Row $header): array
+    {
+        $indexes = [];
+        foreach ($header->cells as $index => $cell) {
+            $name = $cell->getValue();
+            $name = \is_string($name) ? trim($name) : '';
+            if ('' !== $name) {
+                $indexes[$name] ??= $index;
+            }
+        }
+
+        return $indexes;
     }
 
     /**
      * @param array<string, int> $fieldColumns
      * @param list<int>          $rowIdColumns
+     * @param array<string, int> $copyColumns
      */
-    private function stopRow(int $rowNumber, Row $row, MappingDto $mapping, array $fieldColumns, array $rowIdColumns, ?ImportRangeDto $range): StopRowDto|RejectedRowDto
+    private function stopRow(int $rowNumber, Row $row, MappingDto $mapping, array $fieldColumns, array $rowIdColumns, array $copyColumns, ?ImportRangeDto $range): StopRowDto|RejectedRowDto
     {
+        $copy = SourceCells::copy(array_map(static fn (int $index): Cell => $row->cells[$index] ?? new EmptyCell(null), $copyColumns));
+        $reject = fn (RejectionReason $reason, ?FieldName $name): RejectedRowDto => new RejectedRowDto(
+            $rowNumber,
+            $reason,
+            $name,
+            $this->serviceDate($row, $mapping, $fieldColumns),
+            $copy,
+        );
+
         $values = [];
+        $warnings = [];
         foreach (FieldName::cases() as $name) {
             $field = $mapping->field($name);
             try {
                 $value = $this->converter->convert($field, $row->cells[$fieldColumns[$name->value]] ?? null);
             } catch (RejectedValueException $exception) {
-                return new RejectedRowDto($rowNumber, $exception->reason, $name);
+                // An optional field gives a warning, so that one bad value does not reject the row.
+                if ($field->required) {
+                    return $reject($exception->reason, $name);
+                }
+                $warnings[] = new FieldWarningDto($name, $exception->reason);
+                $value = null;
             }
             if (null === $value && $field->required) {
-                return new RejectedRowDto($rowNumber, RejectionReason::Empty, $name);
+                return $reject(RejectionReason::Empty, $name);
             }
             $values[$name->value] = $value;
         }
@@ -152,17 +229,35 @@ final readonly class StopRowParser
         if ([] !== $rowIdColumns) {
             $parts = array_map(static fn (int $index): string => self::text($row->cells[$index] ?? new EmptyCell(null)), $rowIdColumns);
             if (\in_array('', $parts, true)) {
-                return new RejectedRowDto($rowNumber, RejectionReason::InvalidRowId, null);
+                return $reject(RejectionReason::InvalidRowId, null);
             }
             $rowKey = implode(self::ROW_KEY_SEPARATOR, $parts);
         }
 
         /** @var StopRowValues $values */
-        $stopRow = StopRowDto::fromValues($rowNumber, $rowKey, $values, new \DateTimeZone($this->timeZone));
+        $stopRow = StopRowDto::fromValues($rowNumber, $rowKey, $values, new \DateTimeZone($this->timeZone), $copy, $warnings);
 
+        // The upload for the date of the row imports it, so the row has no copy here.
         return null === $range || $range->contains($stopRow->serviceDate)
             ? $stopRow
-            : new RejectedRowDto($rowNumber, RejectionReason::OutsideRange, FieldName::ServiceDate);
+            : new RejectedRowDto($rowNumber, RejectionReason::OutsideRange, FieldName::ServiceDate, $stopRow->serviceDate);
+    }
+
+    /**
+     * Gives the service date of a rejected row, or null if its date field is not valid.
+     *
+     * @param array<string, int> $fieldColumns
+     */
+    private function serviceDate(Row $row, MappingDto $mapping, array $fieldColumns): ?\DateTimeImmutable
+    {
+        $name = FieldName::ServiceDate;
+        try {
+            $value = $this->converter->convert($mapping->field($name), $row->cells[$fieldColumns[$name->value]] ?? null);
+        } catch (RejectedValueException) {
+            return null;
+        }
+
+        return $value instanceof \DateTimeImmutable ? StopRowDto::serviceDate($value) : null;
     }
 
     /**

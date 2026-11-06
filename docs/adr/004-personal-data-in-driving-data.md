@@ -57,8 +57,9 @@ re-upload replaces the date range of the upload
 - No names, addresses or other personal details are imported.
 - The columns with free text and labels are never imported. They can hold the needs of a
   citizen, and that can be health data.
-- The parser reads only the columns in the import mapping. Other columns of the extract are not
-  read.
+- The parser reads only the columns in the import mapping: the field columns, the row id columns
+  and the kept columns ([ADR 006](006-keep-a-copy-of-each-imported-row.md)). Other columns of the
+  extract are not read.
 - Logs and rejection messages contain no field values.
 - Uploaded files are deleted after processing.
 
