@@ -13,15 +13,26 @@ use PHPUnit\Framework\TestCase;
 final class ImportRangeDtoTest extends TestCase
 {
     /**
-     * The dates are calendar dates at 00:00 UTC. The time zone of the input does not change them.
+     * The dates are calendar dates at 00:00 in the PHP default time zone. The time zone of the
+     * input does not change them.
      */
     public function testRangeHasTheDatesWithoutTime(): void
     {
-        $copenhagen = new \DateTimeZone('Europe/Copenhagen');
-        $range = ImportRangeDto::create(new \DateTime('2026-01-05 00:30', $copenhagen), new \DateTimeImmutable('2026-01-07 08:00', $copenhagen), 31);
+        $utc = new \DateTimeZone('UTC');
+        $range = ImportRangeDto::create(new \DateTime('2026-01-05 23:30', $utc), new \DateTimeImmutable('2026-01-07 08:00', $utc), 31);
 
-        self::assertSame('2026-01-05 00:00:00 UTC', $range->firstDate->format('Y-m-d H:i:s e'));
-        self::assertSame('2026-01-07 00:00:00 UTC', $range->lastDate->format('Y-m-d H:i:s e'));
+        self::assertSame('2026-01-05 00:00:00 Europe/Copenhagen', $range->firstDate->format('Y-m-d H:i:s e'));
+        self::assertSame('2026-01-07 00:00:00 Europe/Copenhagen', $range->lastDate->format('Y-m-d H:i:s e'));
+    }
+
+    /**
+     * The clocks go forward on 29 March 2026. That day has 23 hours, but it is one day.
+     */
+    public function testRangeAcrossTheChangeToSummerTimeCountsTheDays(): void
+    {
+        $range = ImportRangeDto::create(new \DateTimeImmutable('2026-03-28'), new \DateTimeImmutable('2026-03-30'), 31);
+
+        self::assertSame(3, $range->days());
     }
 
     public function testRangeOfOneDayIsAccepted(): void

@@ -58,6 +58,9 @@ The project uses test-driven development. See "Development" in [README.md](READM
 - Logs and error messages never contain field values from the driving data.
 - Change the database schema only with Doctrine migrations. Do not use
   `doctrine:schema:update` or hand-written SQL.
+- Use the PHP default time zone for all dates and times. Do not convert them. Calculate a
+  duration from `getTimestamp()`, not with `TIMESTAMPDIFF()`. Get the time from `ClockInterface`,
+  not from `NOW()`. See [ADR 005](docs/adr/005-dates-and-times-in-one-time-zone.md).
 - The user interface is in Danish. Code, comments and documentation are in English.
 
 ## Symfony conventions
