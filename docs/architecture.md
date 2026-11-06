@@ -511,21 +511,24 @@ such a cell as a `DateInterval`. A cell with an ordinary time format, such as `h
 rejected. The time is a wall-clock time on the `service_date` of the row. A time of 24:00 or
 more is on the next day. For example, 25:10 is 01:10 on the day after `service_date`.
 
-The times in the extract are wall-clock times in `APP_TIMEZONE` (default `Europe/Copenhagen`).
-The import stores all dates and times in UTC:
+The application supports one time zone only
+([ADR 005](adr/005-dates-and-times-in-one-time-zone.md)). The times in the extract are
+wall-clock times in the PHP default time zone (`date.timezone` in `php.ini`, `Europe/Copenhagen`).
+MariaDB must use the same time zone. The import stores the times with no conversion:
 
 - `CellConverter` reads a date and time as a wall-clock time. It uses UTC for the PHP object,
   because UTC has no change to summer time.
-- `StopRowDto` reads the wall-clock time in `APP_TIMEZONE`, and converts it to UTC. A delay
-  across a change to or from summer time is then correct.
-- `service_date` and the dates of `ImportRangeDto` are calendar dates at 00:00 UTC. They are
-  not converted.
+- `StopRowDto` reads the wall-clock time in the PHP default time zone.
+- `service_date` and the dates of `ImportRangeDto` are calendar dates at 00:00 in the PHP
+  default time zone.
 - A time that does not exist moves one hour later. For example, 02:30 on the night of the change
   to summer time is read as 03:30 summer time.
 - A time that occurs two times, on the night of the change to winter time, is read as winter
   time (the second one).
+- Calculate a delay from `getTimestamp()`. A delay across a change to or from summer time is
+  then correct.
 
-The browser shows the times in `APP_TIMEZONE`.
+The browser shows the times as they are stored.
 
 ### Date range
 
@@ -957,3 +960,4 @@ See [`adr/`](adr/README.md):
 - [002: OIDC authentication with roles from the identity provider](adr/002-oidc-authentication.md)
 - [003: Driving data import with mappings and replacement of the entered date range](adr/003-driving-data-import-mapping-and-overwrite.md)
 - [004: Personal data in driving data](adr/004-personal-data-in-driving-data.md)
+- [005: Dates and times in one time zone](adr/005-dates-and-times-in-one-time-zone.md)

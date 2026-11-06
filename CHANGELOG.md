@@ -114,3 +114,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   names all missing columns in one `MissingColumnsException`, and it accepts all dates when it has
   no range. The mutation tasks fill the test cache before Infection starts, so that cold caches
   give no timeouts.
+- [#47](https://github.com/itk-dev/koerselsoverblik/issues/47)
+  Dates and times in one time zone (ADR 005): the application supports one time zone only. The
+  driving data, PHP and MariaDB must use the same time zone. The parser gives the times and the
+  dates in the PHP default time zone, with no conversion to UTC. `APP_TIMEZONE` is removed.
+  The fixtures command gets the current month from `LocalCalendar`. The `mariadb` service uses
+  `Europe/Copenhagen`, as on the servers.
