@@ -24,6 +24,7 @@ services:
       - MYSQL_USER=db
       - MYSQL_PASSWORD=db
       - MYSQL_DATABASE=db
+      - TZ=Europe/Copenhagen # Match the timezone of the servers.
       #- ENCRYPT=1 # Uncomment to enable database encryption.
 
   phpfpm:
