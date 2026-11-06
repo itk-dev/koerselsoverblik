@@ -5,7 +5,6 @@ namespace App\Import\Extract;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\DateIntervalCell;
 use OpenSpout\Common\Entity\Cell\DateTimeCell;
-use OpenSpout\Common\Entity\Cell\EmptyCell;
 use OpenSpout\Common\Entity\Cell\ErrorCell;
 use OpenSpout\Common\Entity\Cell\FormulaCell;
 
@@ -79,14 +78,14 @@ final class SourceCells
             $cell instanceof FormulaCell => ['formula' => $cell->getValue()],
             $cell instanceof DateIntervalCell => ['duration' => $cell->getValue()->format(self::DURATION_FORMAT)],
             $cell instanceof DateTimeCell => ['datetime' => $cell->getValue()->format(self::DATE_TIME_FORMAT)],
-            $cell instanceof EmptyCell, '' === $cell->getValue() => null,
+            '' === $cell->getValue() => null,
             default => self::scalar($cell),
         };
     }
 
     /**
-     * The other cells have text, a number or a boolean. The XLSX reader gives no cell with rich
-     * text or an image, so the copy leaves them out.
+     * The other cells have text, a number or a boolean. An empty cell has no value. The XLSX
+     * reader gives no cell with rich text or an image, so the copy leaves them out.
      */
     private static function scalar(Cell $cell): string|int|float|bool|null
     {
@@ -105,7 +104,7 @@ final class SourceCells
         }
 
         $cell = \is_array($value) && 1 === \count($value) && \is_string(current($value))
-            ? self::typedCell((string) key($value), current($value))
+            ? self::typedCell(key($value), current($value))
             : null;
 
         return $cell ?? throw new \InvalidArgumentException(\sprintf('The copy has a value of an unknown type in the column "%s".', $column));
@@ -115,7 +114,7 @@ final class SourceCells
      * Gives null if the key is not a type of the copy, or if the text does not agree with it. The
      * exception of PHP has the text, so it is not kept.
      */
-    private static function typedCell(string $type, string $text): ?Cell
+    private static function typedCell(int|string|null $type, string $text): ?Cell
     {
         try {
             return match ($type) {
