@@ -565,6 +565,37 @@ final class StopRowParserTest extends TestCase
         self::assertSame([], $rows);
     }
 
+    /**
+     * The header has the names with no spaces at the start and the end. A cell with no name is
+     * left out, and a name occurs one time.
+     */
+    public function testHeaderGivesTheColumnNames(): void
+    {
+        $this->writeRows([['Title'], [' Route ', '', 'Note', 'Route', 7, new \DateTimeImmutable('2026-01-05')], self::ROW]);
+
+        self::assertSame(['Route', 'Note'], $this->parser()->header($this->path, self::simpleMapping(headerRow: 2)));
+    }
+
+    public function testHeaderOfAFileWithoutTheHeaderRowIsRejected(): void
+    {
+        $this->writeRows([self::HEADER]);
+
+        $this->expectException(InvalidExtractException::class);
+        $this->expectExceptionMessage('The extract has no header row 2.');
+
+        $this->parser()->header($this->path, self::simpleMapping(headerRow: 2));
+    }
+
+    public function testHeaderOfAFileAboveALimitIsRejected(): void
+    {
+        $this->writeRows([self::HEADER, self::ROW, self::ROW]);
+
+        $this->expectException(InvalidExtractException::class);
+        $this->expectExceptionMessage('The extract has more than 2 rows.');
+
+        $this->parser(new ExtractLimitsDto(1_000_000, 1_000_000, 2, 100))->header($this->path, self::simpleMapping());
+    }
+
     public function testArchiveThatOpenSpoutCannotReadIsRejected(): void
     {
         $zip = new \ZipArchive();

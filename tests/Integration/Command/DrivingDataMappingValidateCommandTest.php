@@ -62,9 +62,12 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         $display = $result->getDisplay();
         self::assertMatchesRegularExpression('/Stop rows\s+14/', $display);
         self::assertMatchesRegularExpression('/Rejected rows\s+0/', $display);
+        self::assertMatchesRegularExpression('/Warnings\s+0/', $display);
         self::assertMatchesRegularExpression('/First date\s+2026-01-05/', $display);
         self::assertMatchesRegularExpression('/Last date\s+2026-01-05/', $display);
         self::assertMatchesRegularExpression('/Dates with stop rows\s+1/', $display);
+        self::assertStringNotContainsString('Kept columns that are not in the file', $display);
+        self::assertStringNotContainsString('Columns that are not read', $display);
         self::assertMatchesRegularExpression('/Preview\n-+/', $display);
         self::assertMatchesRegularExpression('/row\s+row key\s+route\s+person_id\s+service_date/', $display);
         // The first stop is in row 4, and has the row id 1.
@@ -164,6 +167,47 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         foreach (['P-00', 'abc', 'far', 'maybe', 'not-a-date', 'late', 'soon', 'UNKNOWN'] as $value) {
             self::assertStringNotContainsString($value, $display);
         }
+    }
+
+    /**
+     * A bad value in an optional field gives a warning. The command shows the field and the
+     * reason, but never the value.
+     */
+    public function testWarningsAreCountedWithoutTheirValues(): void
+    {
+        $this->writeScenario('bad_values');
+
+        $display = $this->validate()->getDisplay();
+
+        self::assertMatchesRegularExpression('/Warnings\s+3/', $display);
+        self::assertMatchesRegularExpression('/Warnings\n-+/', $display);
+        foreach ([
+            'next_distance_km\s+not_number\s+1\s+7',
+            'planned_solo\s+unknown_bool_value\s+1\s+8',
+            'actual_time\s+not_date_time\s+1\s+11',
+        ] as $line) {
+            self::assertMatchesRegularExpression('/'.$line.'/', $display);
+        }
+        foreach (['far', 'maybe', 'soon'] as $value) {
+            self::assertStringNotContainsString($value, $display);
+        }
+    }
+
+    /**
+     * The command names the kept columns that the file does not have, and the columns of the file
+     * that the mapping does not read. They are not an error.
+     */
+    public function testColumnsThatAreMissingOrNotRead(): void
+    {
+        $this->customMapping('row_id: [RouteStopID]', "row_id: [blocknumber]\nkeep_columns: [Note, Trip]");
+        (new ExtractWriter())->write($this->path, self::defaultMapping(), (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
+
+        $result = $this->validateCustom();
+
+        self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
+        $display = $result->getDisplay();
+        self::assertMatchesRegularExpression('/Kept columns that are not in the file\n-+\n\n\s+\* Note\n\s+\* Trip/', $display);
+        self::assertMatchesRegularExpression('/Columns that are not read\n-+\n\n\s+\* RouteStopID/', $display);
     }
 
     /**
