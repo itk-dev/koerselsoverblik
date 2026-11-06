@@ -3,6 +3,53 @@
 sheet: 0
 header_row: 3
 row_id: [RouteStopID]
+# The other columns that the copy of a row keeps, so that a later task can read them with no new
+# upload. The personal data is never kept: PersonName, Adresse, Post-nr, By, Labels and Comment.
+# See ADR 006. Add a new column of the extract here only after a check for personal data.
+keep_columns:
+    - RouteGroupID
+    - TripID
+    - RouteID
+    - TripRequestID
+    - PlaceID
+    - AddressID
+    - LocationID
+    - IsCancelled
+    - CancellationID
+    - RequestTimeEarliest
+    - RequestTimePref
+    - RequestTimeLatest
+    - StopService
+    - ServiceTime
+    - ServiceTime2
+    - PlannedArrival
+    - PlannedActivityStart
+    - PlannedActivityStop
+    - MaxDriveTime
+    - RideGroups
+    - ToNextPathID
+    - DirectPathID
+    - MaxInCar
+    - ReplacedByRouteStopID
+    - IsLocked
+    - RunLocationID
+    - StatusClickLocationID
+    - StatusClickDeviation
+    - DirectPathDuration
+    - DirectPathDistance
+    - prisprminut
+    - passengers
+    - aflysningstidspunkt
+    - aflysningsvarsel
+    - RettidigAflysningsvarsel
+    - rutestartet
+    - blokstart
+    - blokslut
+    - Placename
+    - StartTidspunkt
+    - SlutTidspunkt
+    - tidspunkt
+    - Tur
 fields:
     route: { column: RouteName, type: string, required: true }
     person_id: { column: PersonID, type: string, required: true }
