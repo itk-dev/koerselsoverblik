@@ -149,18 +149,15 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
 
         self::assertSame(Command::FAILURE, $result->getStatusCode());
         $display = $result->getDisplay();
-        self::assertMatchesRegularExpression('/Rejected rows\s+8/', $display);
+        self::assertMatchesRegularExpression('/Rejected rows\s+5/', $display);
         self::assertMatchesRegularExpression('/Rejected rows\n-+/', $display);
         self::assertMatchesRegularExpression('/field\s+reason\s+rows\s+first row numbers/', $display);
-        self::assertStringContainsString('The file has 8 rejected rows.', $display);
+        self::assertStringContainsString('The file has 5 rejected rows.', $display);
         foreach ([
             'route\s+empty\s+1\s+5',
             'run\s+not_whole_number\s+1\s+6',
-            'next_distance_km\s+not_number\s+1\s+7',
-            'planned_solo\s+unknown_bool_value\s+1\s+8',
             'service_date\s+not_date\s+1\s+9',
             'planned_time\s+not_time\s+1\s+10',
-            'actual_time\s+not_date_time\s+1\s+11',
             'stop_type\s+unknown_code\s+1\s+12',
         ] as $line) {
             self::assertMatchesRegularExpression('/'.$line.'/', $display);

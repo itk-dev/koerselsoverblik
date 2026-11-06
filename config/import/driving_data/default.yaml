@@ -30,9 +30,10 @@ fields:
     planned_time: { column: PlannedDeparture, type: time, required: true }
     # Empty when the stop has no registration.
     actual_time: { column: StatusUpdateTime, type: datetime, format: excel }
+    # Optional, so that a new code gives a warning and does not reject the row. No figure needs it
+    # yet.
     planned_solo:
         column: kørselstype
         type: bool
-        required: true
         true_values: [Solo]
         false_values: [Samkørsel]

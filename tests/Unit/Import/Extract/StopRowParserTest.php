@@ -9,10 +9,12 @@ use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Import\Extract\CellConverter;
 use App\Import\Extract\ExtractInspector;
 use App\Import\Extract\ExtractLimitsDto;
+use App\Import\Extract\FieldWarningDto;
 use App\Import\Extract\InvalidExtractException;
 use App\Import\Extract\MissingColumnsException;
 use App\Import\Extract\RejectedRowDto;
 use App\Import\Extract\RejectionReason;
+use App\Import\Extract\SourceCells;
 use App\Import\Extract\StopRowDto;
 use App\Import\Extract\StopRowParser;
 use App\Import\ImportRangeDto;
@@ -23,7 +25,12 @@ use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingLoader;
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
+use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Cell\DateIntervalCell;
+use OpenSpout\Common\Entity\Cell\DateTimeCell;
+use OpenSpout\Common\Entity\Cell\EmptyCell;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\XLSX\Writer;
 use PHPUnit\Framework\TestCase;
 
@@ -143,27 +150,198 @@ final class StopRowParserTest extends TestCase
             [
                 [5, RejectionReason::Empty, FieldName::Route],
                 [6, RejectionReason::NotWholeNumber, FieldName::Run],
-                [7, RejectionReason::NotNumber, FieldName::NextDistanceKm],
-                [8, RejectionReason::UnknownBoolValue, FieldName::PlannedSolo],
                 [9, RejectionReason::NotDate, FieldName::ServiceDate],
                 [10, RejectionReason::NotTime, FieldName::PlannedTime],
-                [11, RejectionReason::NotDateTime, FieldName::ActualTime],
                 [12, RejectionReason::UnknownCode, FieldName::StopType],
             ],
             self::reasons($rejected),
         );
+        // A bad value in an optional field gives a warning, not a rejected row.
+        self::assertSame($scenario->expected['warnings'], array_sum(array_map(static fn (StopRowDto $row): int => \count($row->warnings), $rows)));
+        self::assertSame(
+            [
+                [7, FieldName::NextDistanceKm, RejectionReason::NotNumber],
+                [8, FieldName::PlannedSolo, RejectionReason::UnknownBoolValue],
+                [11, FieldName::ActualTime, RejectionReason::NotDateTime],
+            ],
+            self::warnings($rows),
+        );
     }
 
-    public function testRejectionHasNoValueFromTheExtract(): void
+    /**
+     * The copy of a row has the values on purpose. The reason of a rejection and a warning never
+     * has one.
+     */
+    public function testReasonsAndWarningsHaveNoValueFromTheExtract(): void
     {
         $scenario = $this->writeScenario('bad_values');
 
-        [, $rejected] = $this->parse(self::defaultMapping(), self::range($scenario));
-        $text = json_encode($rejected, \JSON_THROW_ON_ERROR);
+        [$rows, $rejected] = $this->parse(self::defaultMapping(), self::range($scenario));
+        $text = json_encode([self::reasons($rejected), self::warnings($rows)], \JSON_THROW_ON_ERROR);
 
         foreach (['P-00', 'R-01', 'abc', 'far', 'maybe', 'not-a-date', 'late', 'soon', 'UNKNOWN'] as $value) {
             self::assertStringNotContainsString($value, $text);
         }
+    }
+
+    public function testBadValueInAnOptionalFieldIsEmptyAndTheCopyKeepsIt(): void
+    {
+        $this->writeRows([self::HEADER, [...\array_slice(self::ROW, 0, 7), 'far', ...\array_slice(self::ROW, 8)]]);
+
+        [$rows, $rejected] = $this->parse(self::simpleMapping());
+
+        self::assertSame([], $rejected);
+        self::assertCount(1, $rows);
+        self::assertNull($rows[0]->nextDistanceKm);
+        self::assertEquals([new FieldWarningDto(FieldName::NextDistanceKm, RejectionReason::NotNumber)], $rows[0]->warnings);
+        self::assertSame('far', $rows[0]->sourceValues['Km']);
+    }
+
+    /**
+     * A required field is still rejected, also when the mapping could make it optional.
+     */
+    public function testBadValueInARequiredFieldRejectsTheRow(): void
+    {
+        $this->writeRows([self::HEADER, [...\array_slice(self::ROW, 0, 6), 'many', ...\array_slice(self::ROW, 7)]]);
+        $mapping = self::simpleMapping(required: [FieldName::PassengersAfter]);
+
+        [$rows, $rejected] = $this->parse($mapping);
+
+        self::assertSame([], $rows);
+        self::assertSame([[2, RejectionReason::NotWholeNumber, FieldName::PassengersAfter]], self::reasons($rejected));
+    }
+
+    public function testRowHasACopyOfTheMappedAndTheKeptColumns(): void
+    {
+        $this->writeRows([
+            [...self::HEADER, 'Note', 'Other'],
+            [...self::ROW, ' first ', 'not kept'],
+        ]);
+
+        [$rows] = $this->parse(self::simpleMapping(keepColumns: ['Note', 'Missing']));
+
+        self::assertSame(
+            [
+                'Route' => 'R-01',
+                'Person' => 'P-001',
+                'Day' => 46027,
+                'Run' => 1,
+                'Kind' => 'P',
+                'State' => 'C',
+                'Load' => 1,
+                'Km' => 2.5,
+                'Minutes' => 5,
+                'Planned' => 46027.3,
+                'Actual' => 46027.31,
+                'Solo' => 'Y',
+                // A kept column that is not in the file is not an error.
+                'Note' => ' first ',
+            ],
+            $rows[0]->sourceValues,
+        );
+    }
+
+    /**
+     * A row id column is in the copy one time, also when it is the column of a field.
+     */
+    public function testCopyHasTheRowIdColumns(): void
+    {
+        $this->writeRows([['Id', ...self::HEADER], ['S-1', ...self::ROW]]);
+
+        [$rows] = $this->parse(self::simpleMapping(rowId: ['Id', 'Run']));
+
+        self::assertSame('S-1', $rows[0]->sourceValues['Id']);
+        self::assertSame(1, $rows[0]->sourceValues['Run']);
+        self::assertCount(13, $rows[0]->sourceValues);
+    }
+
+    public function testRejectedRowHasACopyAndTheServiceDate(): void
+    {
+        $this->writeRows([self::HEADER, [...\array_slice(self::ROW, 0, 3), 'abc', ...\array_slice(self::ROW, 4)]]);
+
+        [, $rejected] = $this->parse(self::simpleMapping());
+
+        self::assertSame([[2, RejectionReason::NotWholeNumber, FieldName::Run]], self::reasons($rejected));
+        self::assertNotNull($rejected[0]->serviceDate);
+        self::assertSame('2026-01-05 00:00:00 UTC', $rejected[0]->serviceDate->format('Y-m-d H:i:s e'));
+        self::assertSame('abc', $rejected[0]->sourceValues['Run']);
+        self::assertSame('R-01', $rejected[0]->sourceValues['Route']);
+    }
+
+    public function testRejectedRowWithABadDateHasACopyAndNoServiceDate(): void
+    {
+        $this->writeRows([self::HEADER, [...\array_slice(self::ROW, 0, 2), 'soon', ...\array_slice(self::ROW, 3)]]);
+
+        [, $rejected] = $this->parse(self::simpleMapping());
+
+        self::assertSame([[2, RejectionReason::NotDate, FieldName::ServiceDate]], self::reasons($rejected));
+        self::assertNull($rejected[0]->serviceDate);
+        self::assertSame('soon', $rejected[0]->sourceValues['Day']);
+    }
+
+    public function testRejectedRowWithoutRowIdHasACopy(): void
+    {
+        $this->writeRows([['Id', ...self::HEADER], ['', ...self::ROW]]);
+
+        [, $rejected] = $this->parse(self::simpleMapping(rowId: ['Id']));
+
+        self::assertSame([[2, RejectionReason::InvalidRowId, null]], self::reasons($rejected));
+        self::assertSame('R-01', $rejected[0]->sourceValues['Route']);
+        self::assertArrayNotHasKey('Id', $rejected[0]->sourceValues);
+    }
+
+    /**
+     * A row outside the range belongs to another date. The upload for that date imports it, so
+     * the row has no copy.
+     */
+    public function testRowOutsideTheRangeHasNoCopy(): void
+    {
+        $scenario = $this->writeScenario('range_edges');
+
+        [, $rejected] = $this->parse(self::defaultMapping(), self::range($scenario));
+
+        self::assertSame([[8, RejectionReason::OutsideRange, FieldName::ServiceDate]], self::reasons($rejected));
+        self::assertSame([], $rejected[0]->sourceValues);
+        self::assertNotNull($rejected[0]->serviceDate);
+        self::assertSame('2026-01-08', $rejected[0]->serviceDate->format('Y-m-d'));
+    }
+
+    /**
+     * The copies, written to a new file and read again through the same mapping, give the same
+     * stop rows.
+     */
+    public function testCopiesReadAgainGiveTheSameRows(): void
+    {
+        $scenario = $this->writeScenario('base');
+        $mapping = self::defaultMapping();
+        [$rows] = $this->parse($mapping, self::range($scenario));
+
+        $columns = array_keys($rows[0]->sourceValues);
+        // The file needs a number format, so that the reader gives a duration or a date again.
+        $styles = [DateIntervalCell::class => new Style(format: '[hh]:mm:ss'), DateTimeCell::class => new Style(format: 'yyyy-mm-dd hh:mm:ss')];
+        $copies = [];
+        foreach ($rows as $row) {
+            $cells = SourceCells::cells($row->sourceValues);
+            $copies[] = new Row(array_map(
+                static function (string $column) use ($cells, $styles): Cell {
+                    $cell = $cells[$column] ?? new EmptyCell(null);
+
+                    return isset($styles[$cell::class]) ? $cell->withStyle($styles[$cell::class]) : $cell;
+                },
+                $columns,
+            ));
+        }
+        $writer = new Writer();
+        $writer->openToFile($this->path);
+        $writer->addRow(Row::fromValues([ExtractWriter::TITLE]));
+        $writer->addRow(Row::fromValues([]));
+        $writer->addRow(Row::fromValues($columns));
+        $writer->addRows($copies);
+        $writer->close();
+
+        [$again] = $this->parse($mapping, self::range($scenario));
+
+        self::assertEquals($rows, $again);
     }
 
     public function testRangeEdgesScenario(): void
@@ -479,6 +657,23 @@ final class StopRowParserTest extends TestCase
     }
 
     /**
+     * @param list<StopRowDto> $rows
+     *
+     * @return list<array{int, FieldName, RejectionReason}>
+     */
+    private static function warnings(array $rows): array
+    {
+        $warnings = [];
+        foreach ($rows as $row) {
+            foreach ($row->warnings as $warning) {
+                $warnings[] = [$row->rowNumber, $warning->field, $warning->reason];
+            }
+        }
+
+        return $warnings;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function scenarioValues(): array
@@ -494,10 +689,14 @@ final class StopRowParserTest extends TestCase
     /**
      * A mapping for rows of text and numbers. The dates and times are Excel serial numbers.
      *
-     * @param list<string> $rowId
+     * @param list<string>    $rowId
+     * @param list<string>    $keepColumns
+     * @param list<FieldName> $required    the optional fields to make required
      */
-    private static function simpleMapping(int $sheet = 0, int $headerRow = 1, array $rowId = []): MappingDto
+    private static function simpleMapping(int $sheet = 0, int $headerRow = 1, array $rowId = [], array $keepColumns = [], array $required = []): MappingDto
     {
+        $isRequired = static fn (FieldName $name): bool => \in_array($name, $required, true);
+
         return new MappingDto(
             name: 'simple',
             sheet: $sheet,
@@ -505,18 +704,19 @@ final class StopRowParserTest extends TestCase
             rowId: $rowId,
             fields: [
                 'route' => self::simpleField(FieldName::Route, FieldType::String, true),
-                'person_id' => self::simpleField(FieldName::PersonId, FieldType::String, false),
+                'person_id' => self::simpleField(FieldName::PersonId, FieldType::String, $isRequired(FieldName::PersonId)),
                 'service_date' => self::simpleField(FieldName::ServiceDate, FieldType::Date, true),
                 'run' => self::simpleField(FieldName::Run, FieldType::Int, true),
                 'stop_type' => self::simpleField(FieldName::StopType, FieldType::String, true, ['P' => 'pickup', 'D' => 'drop_off']),
                 'stop_status' => self::simpleField(FieldName::StopStatus, FieldType::String, true, ['C' => 'completed', 'X' => 'cancelled']),
-                'passengers_after' => self::simpleField(FieldName::PassengersAfter, FieldType::Int, false),
-                'next_distance_km' => self::simpleField(FieldName::NextDistanceKm, FieldType::Float, false),
-                'next_duration_min' => self::simpleField(FieldName::NextDurationMin, FieldType::Float, false),
+                'passengers_after' => self::simpleField(FieldName::PassengersAfter, FieldType::Int, $isRequired(FieldName::PassengersAfter)),
+                'next_distance_km' => self::simpleField(FieldName::NextDistanceKm, FieldType::Float, $isRequired(FieldName::NextDistanceKm)),
+                'next_duration_min' => self::simpleField(FieldName::NextDurationMin, FieldType::Float, $isRequired(FieldName::NextDurationMin)),
                 'planned_time' => self::simpleField(FieldName::PlannedTime, FieldType::DateTime, true),
-                'actual_time' => self::simpleField(FieldName::ActualTime, FieldType::DateTime, false),
-                'planned_solo' => self::simpleField(FieldName::PlannedSolo, FieldType::Bool, false, [], ['Y'], ['N']),
+                'actual_time' => self::simpleField(FieldName::ActualTime, FieldType::DateTime, $isRequired(FieldName::ActualTime)),
+                'planned_solo' => self::simpleField(FieldName::PlannedSolo, FieldType::Bool, $isRequired(FieldName::PlannedSolo), [], ['Y'], ['N']),
             ],
+            keepColumns: $keepColumns,
         );
     }
 
