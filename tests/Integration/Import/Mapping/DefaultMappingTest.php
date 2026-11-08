@@ -26,6 +26,13 @@ final class DefaultMappingTest extends KernelTestCase
         self::assertSame(0, $mapping->sheet);
         self::assertSame(3, $mapping->headerRow);
         self::assertSame(['RouteStopID'], $mapping->rowId);
+        // The copy of a row keeps the other columns, but never the personal data (ADR 004).
+        self::assertCount(43, $mapping->keepColumns);
+        self::assertContains('PlannedArrival', $mapping->keepColumns);
+        self::assertContains('prisprminut', $mapping->keepColumns);
+        // The mapping names the personal columns that it leaves out on purpose.
+        self::assertSame(['PersonName', 'Adresse', 'Post-nr', 'By', 'Labels', 'Comment'], $mapping->excludeColumns);
+        self::assertFalse($mapping->field(FieldName::PlannedSolo)->required);
         self::assertSame(FieldType::Date, $mapping->field(FieldName::ServiceDate)->type);
         self::assertSame(FieldType::Time, $mapping->field(FieldName::PlannedTime)->type);
         // The transport office measures punctuality against the planned departure.

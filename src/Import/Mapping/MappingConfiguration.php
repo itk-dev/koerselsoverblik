@@ -22,6 +22,8 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  *     sheet: int,
  *     header_row: int,
  *     row_id: list<string>,
+ *     keep_columns: list<string>,
+ *     exclude_columns: list<string>,
  *     fields: array<string, FieldConfig>,
  * }
  */
@@ -36,11 +38,23 @@ final class MappingConfiguration implements ConfigurationInterface
             ->integerNode('sheet')->min(0)->defaultValue(0)->end()
             ->integerNode('header_row')->isRequired()->min(1)->end()
             ->arrayNode('row_id')->requiresAtLeastOneElement()->stringPrototype()->end()->end()
+            // The other columns that the copy of a row keeps. See "Keep a copy of each imported row"
+            // in docs/architecture.md.
+            ->arrayNode('keep_columns')->stringPrototype()->cannotBeEmpty()->end()->end()
+            // The columns that the mapping leaves out on purpose, for example the personal data. The
+            // copy never keeps them, and the validate command does not show them as not read.
+            ->arrayNode('exclude_columns')->stringPrototype()->cannotBeEmpty()->end()->end()
             ->append($this->fieldsNode());
 
         $root->validate()
             ->ifTrue(self::timeWithoutServiceDate(...))
             ->thenInvalid('A "time" field needs a "service_date" field with the type "date".');
+
+        $root->validate()
+            ->always(self::checkColumnNames(...));
+
+        $root->validate()
+            ->always(self::checkColumnLists(...));
 
         return $treeBuilder;
     }
@@ -132,6 +146,68 @@ final class MappingConfiguration implements ConfigurationInterface
     {
         return FieldType::Date !== $mapping['fields'][FieldName::ServiceDate->value]['type']
             && array_any($mapping['fields'], static fn (array $field): bool => FieldType::Time === $field['type']);
+    }
+
+    /**
+     * The parser removes the spaces at the start and the end of the header names. A column name
+     * with such a space then never matches a header name.
+     *
+     * @param MappingConfig $mapping
+     *
+     * @return MappingConfig
+     *
+     * @throws \InvalidArgumentException if a column name in the mapping has a space at the start or the end
+     */
+    private static function checkColumnNames(array $mapping): array
+    {
+        foreach ([...array_column($mapping['fields'], 'column'), ...$mapping['row_id'], ...$mapping['keep_columns'], ...$mapping['exclude_columns']] as $column) {
+            if (trim($column) !== $column) {
+                throw new \InvalidArgumentException(\sprintf('The column "%s" has a space at the start or the end.', $column));
+            }
+        }
+
+        return $mapping;
+    }
+
+    /**
+     * The copy of a row holds the field columns and the row id columns. A kept column is one of
+     * the other columns, so that each column is in the copy one time. An excluded column is never
+     * in the copy, so it is none of these columns.
+     *
+     * @param MappingConfig $mapping
+     *
+     * @return MappingConfig
+     *
+     * @throws \InvalidArgumentException if a kept or excluded column is in its list more than one time, or is also a column of the copy
+     */
+    private static function checkColumnLists(array $mapping): array
+    {
+        $mappedColumns = [...array_column($mapping['fields'], 'column'), ...$mapping['row_id']];
+        self::checkColumnList($mapping['keep_columns'], 'keep_columns', $mappedColumns, 'a field column or a row id column');
+        self::checkColumnList($mapping['exclude_columns'], 'exclude_columns', [...$mappedColumns, ...$mapping['keep_columns']], 'a field column, a row id column or a kept column');
+
+        return $mapping;
+    }
+
+    /**
+     * @param list<string> $columns      the columns of the list
+     * @param list<string> $otherColumns the columns that the list must not have
+     *
+     * @throws \InvalidArgumentException if a column is in the list more than one time, or is one of the other columns
+     */
+    private static function checkColumnList(array $columns, string $key, array $otherColumns, string $otherDescription): void
+    {
+        foreach (array_count_values($columns) as $column => $count) {
+            if ($count > 1) {
+                throw new \InvalidArgumentException(\sprintf('The column "%s" is in "%s" more than one time.', $column, $key));
+            }
+        }
+
+        foreach ($columns as $column) {
+            if (\in_array($column, $otherColumns, true)) {
+                throw new \InvalidArgumentException(\sprintf('The column "%s" in "%s" is %s.', $column, $key, $otherDescription));
+            }
+        }
     }
 
     /**

@@ -1,6 +1,8 @@
-# One good row, and one row for each kind of bad value. The import rejects the
-# bad rows. "raw" writes the cell value as it is. Each bad row has one bad value
-# only, so the reason of each rejection is known.
+# One good row, and one row for each kind of bad value. "raw" writes the cell
+# value as it is. Each bad row has one bad value only, so the reason of each
+# rejection is known. The import rejects a row with a bad value in a required
+# field. A bad value in an optional field (next_distance_km, planned_solo and
+# actual_time) gives an empty value and a warning, and the row is imported.
 date: 2026-01-05
 routes:
   R-01:
@@ -60,5 +62,6 @@ routes:
           passengers_after: 1
           raw: { stop_type: UNKNOWN }
 expected:
-  stop_rows: 1
-  rejected_rows: 8
+  stop_rows: 4
+  rejected_rows: 5
+  warnings: 3

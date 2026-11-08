@@ -39,6 +39,8 @@ final class MappingLoaderTest extends TestCase
         self::assertSame(2, $mapping->headerRow);
         self::assertSame(['Id', 'Run'], $mapping->rowId);
         self::assertTrue($mapping->hasRowId());
+        self::assertSame(['Note', 'Trip'], $mapping->keepColumns);
+        self::assertSame(['Name'], $mapping->excludeColumns);
 
         $route = $mapping->field(FieldName::Route);
         self::assertSame('Route', $route->column);
@@ -87,6 +89,8 @@ final class MappingLoaderTest extends TestCase
         self::assertSame(1, $mapping->headerRow);
         self::assertSame([], $mapping->rowId);
         self::assertFalse($mapping->hasRowId());
+        self::assertSame([], $mapping->keepColumns);
+        self::assertSame([], $mapping->excludeColumns);
     }
 
     public function testFirstSheetAndFirstRowAreAccepted(): void
@@ -181,6 +185,59 @@ final class MappingLoaderTest extends TestCase
         yield 'empty row id' => [
             static fn (array $raw): array => self::with($raw, ['row_id' => []]),
             'The path "mapping.row_id" should have at least 1 element(s) defined.',
+        ];
+        yield 'empty kept column' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Note', '']]),
+            'The path "mapping.keep_columns.1" cannot contain an empty value',
+        ];
+        yield 'kept column two times' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Note', 'Trip', 'Note']]),
+            'The column "Note" is in "keep_columns" more than one time.',
+        ];
+        yield 'kept column that is a field column' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Note', 'Solo']]),
+            'The column "Solo" in "keep_columns" is a field column or a row id column.',
+        ];
+        yield 'kept column that is a row id column' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Id']]),
+            'The column "Id" in "keep_columns" is a field column or a row id column.',
+        ];
+        yield 'empty excluded column' => [
+            static fn (array $raw): array => self::with($raw, ['exclude_columns' => ['Name', '']]),
+            'The path "mapping.exclude_columns.1" cannot contain an empty value',
+        ];
+        yield 'excluded column two times' => [
+            static fn (array $raw): array => self::with($raw, ['exclude_columns' => ['Name', 'Name']]),
+            'The column "Name" is in "exclude_columns" more than one time.',
+        ];
+        yield 'excluded column that is a field column' => [
+            static fn (array $raw): array => self::with($raw, ['exclude_columns' => ['Name', 'Solo']]),
+            'The column "Solo" in "exclude_columns" is a field column, a row id column or a kept column.',
+        ];
+        yield 'excluded column that is a row id column' => [
+            static fn (array $raw): array => self::with($raw, ['exclude_columns' => ['Id']]),
+            'The column "Id" in "exclude_columns" is a field column, a row id column or a kept column.',
+        ];
+        yield 'excluded column that is a kept column' => [
+            static fn (array $raw): array => self::with($raw, ['exclude_columns' => ['Note']]),
+            'The column "Note" in "exclude_columns" is a field column, a row id column or a kept column.',
+        ];
+        yield 'excluded column with a space at the start' => [
+            static fn (array $raw): array => self::with($raw, ['exclude_columns' => [' Name']]),
+            'The column " Name" has a space at the start or the end.',
+        ];
+        // The parser removes the spaces at the ends of the header names, so such a name never matches.
+        yield 'field column with a space at the start' => [
+            static fn (array $raw): array => self::withField($raw, 'route', ['column' => ' Route', 'type' => 'string', 'required' => true]),
+            'The column " Route" has a space at the start or the end.',
+        ];
+        yield 'row id column with a space at the end' => [
+            static fn (array $raw): array => self::with($raw, ['row_id' => ['Id ', 'Run']]),
+            'The column "Id " has a space at the start or the end.',
+        ];
+        yield 'kept column with a tab at the end' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ["Note\t"]]),
+            "The column \"Note\t\" has a space at the start or the end.",
         ];
         yield 'missing fields' => [
             static fn (array $raw): array => self::without($raw, 'fields'),

@@ -2,6 +2,8 @@
 sheet: 1
 header_row: 2
 row_id: [Id, Run]
+keep_columns: [Note, Trip]
+exclude_columns: [Name]
 fields:
   route: { column: Route, type: string, required: true }
   person_id: { column: Person, type: string, required: true }

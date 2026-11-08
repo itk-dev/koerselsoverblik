@@ -62,9 +62,15 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         $display = $result->getDisplay();
         self::assertMatchesRegularExpression('/Stop rows\s+14/', $display);
         self::assertMatchesRegularExpression('/Rejected rows\s+0/', $display);
+        self::assertMatchesRegularExpression('/Warnings\s+0/', $display);
         self::assertMatchesRegularExpression('/First date\s+2026-01-05/', $display);
         self::assertMatchesRegularExpression('/Last date\s+2026-01-05/', $display);
         self::assertMatchesRegularExpression('/Dates with stop rows\s+1/', $display);
+        self::assertStringNotContainsString('Kept columns that are not in the file', $display);
+        self::assertStringNotContainsString('Excluded columns that are not in the file', $display);
+        self::assertStringNotContainsString('Columns that are not read', $display);
+        // No section for the rejected rows or the warnings when there are none.
+        self::assertDoesNotMatchRegularExpression('/(Rejected rows|Warnings)\n-+/', $display);
         self::assertMatchesRegularExpression('/Preview\n-+/', $display);
         self::assertMatchesRegularExpression('/row\s+row key\s+route\s+person_id\s+service_date/', $display);
         // The first stop is in row 4, and has the row id 1.
@@ -93,16 +99,15 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     }
 
     /**
-     * The default mapping requires the solo value, but another mapping can make it optional.
+     * The solo value is optional in the default mapping.
      */
     public function testPreviewOfARowWithoutPlannedSolo(): void
     {
-        $mapping = $this->customMapping("type: bool\n        required: true", "type: bool\n        required: false");
         $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
         $values['planned_solo'] = null;
-        (new ExtractWriter())->write($this->path, $mapping, [new ExtractRow($values)]);
+        (new ExtractWriter())->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
 
-        $result = $this->validateCustom();
+        $result = $this->validate();
 
         self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
         // The actual time is the last value, because the solo value is empty.
@@ -149,18 +154,15 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
 
         self::assertSame(Command::FAILURE, $result->getStatusCode());
         $display = $result->getDisplay();
-        self::assertMatchesRegularExpression('/Rejected rows\s+8/', $display);
+        self::assertMatchesRegularExpression('/Rejected rows\s+5/', $display);
         self::assertMatchesRegularExpression('/Rejected rows\n-+/', $display);
         self::assertMatchesRegularExpression('/field\s+reason\s+rows\s+first row numbers/', $display);
-        self::assertStringContainsString('The file has 8 rejected rows.', $display);
+        self::assertStringContainsString('The file has 5 rejected rows.', $display);
         foreach ([
             'route\s+empty\s+1\s+5',
             'run\s+not_whole_number\s+1\s+6',
-            'next_distance_km\s+not_number\s+1\s+7',
-            'planned_solo\s+unknown_bool_value\s+1\s+8',
             'service_date\s+not_date\s+1\s+9',
             'planned_time\s+not_time\s+1\s+10',
-            'actual_time\s+not_date_time\s+1\s+11',
             'stop_type\s+unknown_code\s+1\s+12',
         ] as $line) {
             self::assertMatchesRegularExpression('/'.$line.'/', $display);
@@ -168,6 +170,70 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         foreach (['P-00', 'abc', 'far', 'maybe', 'not-a-date', 'late', 'soon', 'UNKNOWN'] as $value) {
             self::assertStringNotContainsString($value, $display);
         }
+    }
+
+    /**
+     * A bad value in an optional field gives a warning. The command shows the field and the
+     * reason, but never the value.
+     */
+    public function testWarningsAreCountedWithoutTheirValues(): void
+    {
+        $this->writeScenario('bad_values');
+
+        $display = $this->validate()->getDisplay();
+
+        self::assertMatchesRegularExpression('/Warnings\s+3/', $display);
+        self::assertMatchesRegularExpression('/Warnings\n-+/', $display);
+        foreach ([
+            'next_distance_km\s+not_number\s+1\s+7',
+            'planned_solo\s+unknown_bool_value\s+1\s+8',
+            'actual_time\s+not_date_time\s+1\s+11',
+        ] as $line) {
+            self::assertMatchesRegularExpression('/'.$line.'/', $display);
+        }
+        foreach (['far', 'maybe', 'soon'] as $value) {
+            self::assertStringNotContainsString($value, $display);
+        }
+    }
+
+    /**
+     * The command names the kept columns that the file does not have, and the columns of the file
+     * that the mapping does not read. They are not an error.
+     */
+    public function testColumnsThatAreMissingOrNotRead(): void
+    {
+        $this->customMapping(
+            ['row_id: [RouteStopID]', "    - Tur\n"],
+            ['row_id: [blocknumber]', "    - Tur\n    - Note\n    - Trip\n"],
+        );
+        (new ExtractWriter())->write($this->path, self::defaultMapping(), (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
+
+        $result = $this->validateCustom();
+
+        self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
+        $display = $result->getDisplay();
+        self::assertMatchesRegularExpression('/Kept columns that are not in the file\n-+\n\n\s+\* Note\n\s+\* Trip/', $display);
+        self::assertMatchesRegularExpression('/Columns that are not read\n-+\n\n\s+\* RouteStopID/', $display);
+    }
+
+    /**
+     * An excluded column is not a column that is not read. The command names the excluded columns
+     * that the file does not have, because such a column can have a new name in the file.
+     */
+    public function testExcludedColumns(): void
+    {
+        $this->customMapping(
+            ['row_id: [RouteStopID]', 'exclude_columns: [PersonName,'],
+            ['row_id: [blocknumber]', 'exclude_columns: [RouteStopID, Ghost, PersonName,'],
+        );
+        $this->writeScenario('base');
+
+        $result = $this->validateCustom();
+
+        self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
+        $display = $result->getDisplay();
+        self::assertMatchesRegularExpression('/Excluded columns that are not in the file\n-+\n\n\s+\* Ghost\n\n/', $display);
+        self::assertStringNotContainsString('Columns that are not read', $display);
     }
 
     /**
@@ -270,12 +336,17 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     }
 
     /**
-     * Writes a copy of the default mapping with one change to a temporary mapping directory.
+     * Writes a copy of the default mapping with changes to a temporary mapping directory.
+     *
+     * @param string|list<string> $search
+     * @param string|list<string> $replace the replacements, in the order of $search
      */
-    private function customMapping(string $search, string $replace): MappingDto
+    private function customMapping(string|array $search, string|array $replace): MappingDto
     {
         $yaml = (string) file_get_contents(self::DEFAULT_MAPPING);
-        self::assertStringContainsString($search, $yaml);
+        foreach ((array) $search as $text) {
+            self::assertStringContainsString($text, $yaml);
+        }
         $this->mappingDirectory = sys_get_temp_dir().'/'.uniqid('mapping_dir_', true);
         mkdir($this->mappingDirectory);
         file_put_contents($this->mappingDirectory.'/'.self::CUSTOM_MAPPING.'.yaml', str_replace($search, $replace, $yaml));

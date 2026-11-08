@@ -3,6 +3,7 @@
 namespace App\Tests\Unit\Import\Extract;
 
 use App\Import\Extract\ExtractSummaryDto;
+use App\Import\Extract\FieldWarningDto;
 use App\Import\Extract\RejectedRowDto;
 use App\Import\Extract\RejectionCountDto;
 use App\Import\Extract\RejectionReason;
@@ -65,6 +66,45 @@ final class ExtractSummaryDtoTest extends TestCase
         self::assertEquals([new RejectionCountDto(FieldName::Route, RejectionReason::Empty, 12, range(2, 11))], $summary->rejections);
     }
 
+    /**
+     * The warnings are grouped in the same way as the rejections. A stop row can have more than
+     * one warning.
+     */
+    public function testGroupsTheWarningsByFieldAndReason(): void
+    {
+        $rows = [
+            self::stopRow(4, warnings: [new FieldWarningDto(FieldName::PlannedSolo, RejectionReason::UnknownBoolValue)]),
+            self::stopRow(5),
+            self::stopRow(6, warnings: [
+                new FieldWarningDto(FieldName::NextDistanceKm, RejectionReason::NotNumber),
+                new FieldWarningDto(FieldName::PlannedSolo, RejectionReason::UnknownBoolValue),
+            ]),
+            ...array_map(static fn (int $rowNumber): StopRowDto => self::stopRow($rowNumber, warnings: [new FieldWarningDto(FieldName::ActualTime, RejectionReason::NotDateTime)]), range(7, 18)),
+        ];
+
+        $summary = ExtractSummaryDto::fromRows($rows, 5);
+
+        self::assertEquals(
+            [
+                new RejectionCountDto(FieldName::PlannedSolo, RejectionReason::UnknownBoolValue, 2, [4, 6]),
+                new RejectionCountDto(FieldName::NextDistanceKm, RejectionReason::NotNumber, 1, [6]),
+                new RejectionCountDto(FieldName::ActualTime, RejectionReason::NotDateTime, 12, range(7, 16)),
+            ],
+            $summary->warnings,
+        );
+        self::assertSame(15, $summary->warningCount);
+        self::assertSame(15, $summary->stopRows);
+        self::assertSame(0, $summary->rejectedRows);
+    }
+
+    public function testNoWarnings(): void
+    {
+        $summary = ExtractSummaryDto::fromRows([self::stopRow(4)], 5);
+
+        self::assertSame([], $summary->warnings);
+        self::assertSame(0, $summary->warningCount);
+    }
+
     public function testPreviewHasTheFirstStopRows(): void
     {
         $summary = ExtractSummaryDto::fromRows([
@@ -98,7 +138,10 @@ final class ExtractSummaryDtoTest extends TestCase
         self::assertSame([], $summary->preview);
     }
 
-    private static function stopRow(int $rowNumber, string $date = '2026-01-05'): StopRowDto
+    /**
+     * @param list<FieldWarningDto> $warnings
+     */
+    private static function stopRow(int $rowNumber, string $date = '2026-01-05', array $warnings = []): StopRowDto
     {
         return StopRowDto::fromValues($rowNumber, null, [
             'route' => 'R-01',
@@ -113,6 +156,6 @@ final class ExtractSummaryDtoTest extends TestCase
             'planned_time' => new \DateInterval('PT7H'),
             'actual_time' => null,
             'planned_solo' => null,
-        ]);
+        ], warnings: $warnings);
     }
 }

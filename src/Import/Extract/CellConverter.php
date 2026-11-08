@@ -6,6 +6,7 @@ use App\Import\Mapping\FieldMappingDto;
 use App\Import\Mapping\FieldType;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\ErrorCell;
+use OpenSpout\Common\Entity\Cell\FormulaCell;
 
 /**
  * Converts the cell of one field to an application value, by the type of the field.
@@ -24,6 +25,9 @@ final readonly class CellConverter
      *
      * A "time" field gives a DateInterval. StopRowDto adds it to the service date.
      *
+     * A formula cell gives its computed value, not the formula. The reader gives no computed value
+     * when the result of the formula is an error.
+     *
      * @throws RejectedValueException if the value does not agree with the field
      */
     public function convert(FieldMappingDto $field, ?Cell $cell): string|int|float|bool|\DateTimeImmutable|\DateInterval|null
@@ -32,7 +36,7 @@ final readonly class CellConverter
             self::reject(RejectionReason::ErrorValue);
         }
 
-        $value = $cell?->getValue();
+        $value = $cell instanceof FormulaCell ? $cell->getComputedValue() : $cell?->getValue();
         if (\is_string($value)) {
             $value = trim($value);
         }

@@ -436,16 +436,28 @@ A mapping file, `config/import/driving_data/<MAPPING_NAME>.yaml`, describes one 
 - the sheet and the header row
 - an optional **row key**: one or more source columns that identify a row. It finds duplicate
   rows in one file
+- optional **kept columns**: the other columns that the copy of a row keeps (see
+  [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row))
+- optional **excluded columns**: the columns that the mapping leaves out on purpose, for example
+  the personal data
 - for each application field: the source column, type, date format, value maps for codes, and
   whether it is required
 
 `MappingLoader` validates the file with the Symfony Config component when the container is built,
-so an invalid mapping stops the application from starting. It then produces an immutable
-`MappingDto` value object. `StopRowParser` reads the workbook only through `MappingDto` and never
-refers to column names itself. `app:driving-data:mapping:validate` checks a sample file against
-a mapping before it is used. It uses the same parser without a date range, and
-`ExtractSummaryDto` counts the result. The output hides the person id and never shows a value of
-a rejected row. It also hides the row key when a row id column is the person id column.
+so an invalid mapping stops the application from starting. The parser removes the spaces at the
+start and the end of the header names, so the validation rejects a column name with such a space.
+An excluded column cannot also be a field column, a row id column or a kept column. The loader
+then produces an immutable `MappingDto` value object. `StopRowParser` reads the workbook only
+through `MappingDto` and never refers to column names itself.
+
+`app:driving-data:mapping:validate` checks a sample file against a mapping before it is used. It
+uses the same parser without a date range, and `ExtractSummaryDto` counts the result. The output
+hides the person id and never shows a value of a rejected row or a warning. It also hides the row
+key when a row id column is the person id column. `ExtractColumnsDto` compares the header with the
+mapping. The output names the kept columns and the excluded columns that are not in the file, and
+the columns that the mapping does not read. An excluded column is a decision, so it is never a
+column that is not read. The fixture writer writes the excluded columns with no values, as the
+reference extract has them.
 
 **What a mapping can change:** the column names, the code values and the formats of the fixed
 application fields. Each application field must have one source column. These changes need code:
@@ -453,6 +465,33 @@ application fields. Each application field must have one source column. These ch
 - a field that the extract does not have
 - a field that is made from more than one column, or a column that holds more than one field
 - a new application field
+
+### Keep a copy of each imported row
+
+An upload deletes the extract after the import, so a column that the import does not keep is lost
+for all the uploaded dates. Thus the parser keeps a copy of each row
+([ADR 006](adr/006-keep-a-copy-of-each-imported-row.md), proposed):
+
+- The copy holds the field columns, the row id columns and the kept columns of the mapping, keyed
+  by the column name. A later task can read the copies again through a changed mapping, with no
+  new upload.
+- `SourceCells` makes the copy, and the cells again from a copy. The copy keeps the type of each
+  cell: text, numbers and booleans are JSON values, and a duration, a date and time and an Excel
+  error are objects with one key, for example `{"duration": "P0DT25H10M0S"}`. An empty cell is
+  left out.
+- A formula cell gives its computed value, in the parser (`CellConverter`) and in the copy. The
+  formula is not kept. When the result of the formula is an error, the reader gives no computed
+  value, so the cell is empty.
+- A rejected row also has a copy, and its service date if the date field is valid. A row outside
+  the range of the upload has no copy, because the upload for its date imports it.
+- In an optional field, a value that the parser cannot read gives an empty value and a
+  `FieldWarningDto`. The row is imported, and the copy keeps the value.
+- The copy never holds the personal data of the extract. A column is kept only when the mapping
+  names it, so a new column is not kept until a person adds it. The `default` mapping names the
+  personal columns in `exclude_columns`, and the validation stops a column that is both kept and
+  excluded.
+- The copy has the values on purpose. It never goes to a log, a message or the output of the
+  validate command.
 
 ### The reference extract
 
@@ -494,21 +533,23 @@ departure, because the driver registers the stop when the citizen is in or out o
 for the end of a block. In the reference extract, one run has a start but no end. A split on the
 end flag joins that run with the next run. The block number gives each run directly.
 
-**Columns that are not imported:**
+**Columns in the copy only:** the `default` mapping keeps all the other columns in the copy of a
+row, but not the personal data. For example:
 
-- Names, addresses, postcodes, towns and places. They are empty in the reference extract.
-- `Labels` and `Comment`. They can hold the needs of a citizen or free text, and that can be
-  health data ([ADR 004](adr/004-personal-data-in-driving-data.md)).
-- The ids of addresses, locations, places, trips and trip requests.
-- The other planning columns, for example the requested times, the service times and the paths.
-
-**Columns for milestone 2** (not imported in milestone 1):
-
-- The cancellation columns: the cancellation id, the time of the cancellation, the notice in
+- the ids of trips, trip requests, routes, addresses, locations, places and paths
+- the requested times, the service times, the planned arrival and the planned activity times
+- the cancellation columns: the cancellation id, the time of the cancellation, the notice in
   minutes (negative when the cancellation came after the planned time), and whether the notice
-  was in time.
-- `prisprminut`, the price per minute, for the estimated cost of empty running.
-- `passengers`, the passengers after the stop before the cancellations are removed.
+  was in time
+- `prisprminut`, the price per minute, for the cost of empty running
+- `passengers`, the passengers after the stop before the cancellations are removed
+- `blokstart` and `blokslut`, and `Placename`, the institution of a trip
+
+Milestone 2 can add typed fields for these columns, and fill them from the copies.
+
+**Columns that are never kept:** the personal data. `PersonName`, `Adresse`, `Post-nr` and `By`
+identify a citizen. `Labels` and `Comment` can hold the needs of a citizen or free text, and that
+can be health data ([ADR 004](adr/004-personal-data-in-driving-data.md)).
 
 ### Times
 
@@ -563,9 +604,12 @@ The user enters the first and the last date of the export, together with the fil
    `ExtractLimitsDto` limits. See "Data protection" in [Security](#security). Then
    `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
    with their row number and a reason. A row with a date that `ImportRangeDto::contains()` does
-   not accept is also rejected. The reason is a `RejectionReason` code, so field values are never
-   written to messages or logs. The person id is kept as it is in the extract
-   ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed).
+   not accept is also rejected. A bad value in an optional field gives a warning, not a rejection.
+   The reason and the warning are `RejectionReason` codes, so field values are never written to
+   messages or logs. The person id is kept as it is in the extract
+   ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed). Each row, and each rejected
+   row in the range, has a copy of its columns (see
+   [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row)).
 4. **Replace.** `StopRowReplacer` deletes all `StopRow` rows in the range, from all mappings, and
    then inserts the parsed rows. It does not check the range again. Rows that are not in the new
    file are removed, and two uploads can never count the same date twice. A row key that occurs
@@ -964,3 +1008,4 @@ See [`adr/`](adr/README.md):
 - [003: Driving data import with mappings and replacement of the entered date range](adr/003-driving-data-import-mapping-and-overwrite.md)
 - [004: Personal data in driving data](adr/004-personal-data-in-driving-data.md)
 - [005: Dates and times in one time zone](adr/005-dates-and-times-in-one-time-zone.md)
+- [006: Keep a copy of each imported row](adr/006-keep-a-copy-of-each-imported-row.md)

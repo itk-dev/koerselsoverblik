@@ -44,15 +44,16 @@
                 '.*\\$row->rowId \\?\\? \\(string\\) \\$index.*',
                 '.*return \\(string\\) \\$code;.*',
                 '.*\\$raw\\[\\(string\\) \\$field\\].*',
+                '.*self::cell\\(\\(string\\) \\$column, \\$value\\).*',
             ],
         },
         // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
         // the temporary files of OpenSpout, so it is necessary.
         UnwrapFinally: {
-            ignore: ['App\\Import\\Extract\\StopRowParser::parse'],
+            ignore: ['App\\Import\\Extract\\StopRowParser::rows'],
         },
         Finally_: {
-            ignore: ['App\\Import\\Extract\\StopRowParser::parse'],
+            ignore: ['App\\Import\\Extract\\StopRowParser::rows'],
         },
         MethodCallRemoval: {
             ignoreSourceCodeByRegex: ['\\$reader->close\\(\\);'],

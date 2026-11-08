@@ -25,12 +25,16 @@ use App\Import\Mapping\StopType;
  *     actual_time: \DateInterval|\DateTimeImmutable|null,
  *     planned_solo: ?bool,
  * }
+ *
+ * @phpstan-import-type SourceValue from SourceCells
  */
 final readonly class StopRowDto
 {
     /**
-     * @param int     $rowNumber the 1-based row number in the sheet
-     * @param ?string $rowKey    the values of the row id columns, or null if the mapping has no row id
+     * @param int                           $rowNumber    the 1-based row number in the sheet
+     * @param ?string                       $rowKey       the values of the row id columns, or null if the mapping has no row id
+     * @param array<array-key, SourceValue> $sourceValues the copy of the row, keyed by the column name
+     * @param list<FieldWarningDto>         $warnings     the optional fields with a value that the parser cannot read
      */
     public function __construct(
         public int $rowNumber,
@@ -47,6 +51,8 @@ final readonly class StopRowDto
         public \DateTimeImmutable $plannedTime,
         public ?\DateTimeImmutable $actualTime,
         public ?bool $plannedSolo,
+        public array $sourceValues = [],
+        public array $warnings = [],
     ) {
     }
 
@@ -54,11 +60,13 @@ final readonly class StopRowDto
      * The service date is the calendar date at 00:00, and the times are wall-clock times. Both are
      * in the PHP default time zone. See ADR 005.
      *
-     * @param StopRowValues $values the values from CellConverter, keyed by the FieldName value
+     * @param StopRowValues                 $values       the values from CellConverter, keyed by the FieldName value
+     * @param array<array-key, SourceValue> $sourceValues the copy of the row, keyed by the column name
+     * @param list<FieldWarningDto>         $warnings
      */
-    public static function fromValues(int $rowNumber, ?string $rowKey, array $values): self
+    public static function fromValues(int $rowNumber, ?string $rowKey, array $values, array $sourceValues = [], array $warnings = []): self
     {
-        $serviceDate = new \DateTimeImmutable($values['service_date']->format('Y-m-d'));
+        $serviceDate = self::serviceDate($values['service_date']);
 
         return new self(
             rowNumber: $rowNumber,
@@ -75,7 +83,18 @@ final readonly class StopRowDto
             plannedTime: self::moment($values['planned_time'], $serviceDate),
             actualTime: null === $values['actual_time'] ? null : self::moment($values['actual_time'], $serviceDate),
             plannedSolo: $values['planned_solo'],
+            sourceValues: $sourceValues,
+            warnings: $warnings,
         );
+    }
+
+    /**
+     * Gives the calendar date of the value of the date field, at 00:00 in the PHP default time
+     * zone.
+     */
+    public static function serviceDate(\DateTimeImmutable $value): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable($value->format('Y-m-d'));
     }
 
     /**

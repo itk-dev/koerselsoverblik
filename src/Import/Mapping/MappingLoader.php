@@ -45,6 +45,8 @@ final class MappingLoader
             headerRow: $config['header_row'],
             rowId: $config['row_id'],
             fields: $fields,
+            keepColumns: $config['keep_columns'],
+            excludeColumns: $config['exclude_columns'],
         );
     }
 }
