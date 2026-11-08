@@ -67,6 +67,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         self::assertMatchesRegularExpression('/Last date\s+2026-01-05/', $display);
         self::assertMatchesRegularExpression('/Dates with stop rows\s+1/', $display);
         self::assertStringNotContainsString('Kept columns that are not in the file', $display);
+        self::assertStringNotContainsString('Excluded columns that are not in the file', $display);
         self::assertStringNotContainsString('Columns that are not read', $display);
         // No section for the rejected rows or the warnings when there are none.
         self::assertDoesNotMatchRegularExpression('/(Rejected rows|Warnings)\n-+/', $display);
@@ -213,6 +214,26 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         $display = $result->getDisplay();
         self::assertMatchesRegularExpression('/Kept columns that are not in the file\n-+\n\n\s+\* Note\n\s+\* Trip/', $display);
         self::assertMatchesRegularExpression('/Columns that are not read\n-+\n\n\s+\* RouteStopID/', $display);
+    }
+
+    /**
+     * An excluded column is not a column that is not read. The command names the excluded columns
+     * that the file does not have, because such a column can have a new name in the file.
+     */
+    public function testExcludedColumns(): void
+    {
+        $this->customMapping(
+            ['row_id: [RouteStopID]', 'exclude_columns: [PersonName,'],
+            ['row_id: [blocknumber]', 'exclude_columns: [RouteStopID, Ghost, PersonName,'],
+        );
+        $this->writeScenario('base');
+
+        $result = $this->validateCustom();
+
+        self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
+        $display = $result->getDisplay();
+        self::assertMatchesRegularExpression('/Excluded columns that are not in the file\n-+\n\n\s+\* Ghost\n\n/', $display);
+        self::assertStringNotContainsString('Columns that are not read', $display);
     }
 
     /**

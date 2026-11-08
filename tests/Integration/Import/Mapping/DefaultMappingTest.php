@@ -30,9 +30,8 @@ final class DefaultMappingTest extends KernelTestCase
         self::assertCount(43, $mapping->keepColumns);
         self::assertContains('PlannedArrival', $mapping->keepColumns);
         self::assertContains('prisprminut', $mapping->keepColumns);
-        foreach (['PersonName', 'Adresse', 'Post-nr', 'By', 'Labels', 'Comment'] as $column) {
-            self::assertNotContains($column, $mapping->keepColumns);
-        }
+        // The mapping names the personal columns that it leaves out on purpose.
+        self::assertSame(['PersonName', 'Adresse', 'Post-nr', 'By', 'Labels', 'Comment'], $mapping->excludeColumns);
         self::assertFalse($mapping->field(FieldName::PlannedSolo)->required);
         self::assertSame(FieldType::Date, $mapping->field(FieldName::ServiceDate)->type);
         self::assertSame(FieldType::Time, $mapping->field(FieldName::PlannedTime)->type);

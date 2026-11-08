@@ -22,14 +22,30 @@ final class ExtractColumnsDtoTest extends TestCase
 
         self::assertSame(['Trip', 'Price'], $columns->missingKeptColumns);
         self::assertSame(['Labels', 'Adresse'], $columns->unreadColumns);
+        self::assertSame([], $columns->missingExcludedColumns);
+    }
+
+    /**
+     * An excluded column is a decision, so it is not a column that is not read. An excluded column
+     * that the file does not have can be a renamed column.
+     */
+    public function testExcludedColumnsAreNotUnreadColumns(): void
+    {
+        $header = ['Labels', 'Col route', 'Col run', 'Adresse', ...self::otherFieldColumns()];
+
+        $columns = ExtractColumnsDto::compare($header, self::mapping(excludeColumns: ['Comment', 'Labels', 'By']));
+
+        self::assertSame(['Adresse'], $columns->unreadColumns);
+        self::assertSame(['Comment', 'By'], $columns->missingExcludedColumns);
     }
 
     public function testFileWithTheColumnsOfTheMapping(): void
     {
-        $columns = ExtractColumnsDto::compare(['Col route', 'Col run', ...self::otherFieldColumns(), 'Note'], self::mapping(keepColumns: ['Note']));
+        $columns = ExtractColumnsDto::compare(['Col route', 'Col run', ...self::otherFieldColumns(), 'Note', 'Labels'], self::mapping(keepColumns: ['Note'], excludeColumns: ['Labels']));
 
         self::assertSame([], $columns->missingKeptColumns);
         self::assertSame([], $columns->unreadColumns);
+        self::assertSame([], $columns->missingExcludedColumns);
     }
 
     /**
@@ -56,14 +72,15 @@ final class ExtractColumnsDtoTest extends TestCase
     /**
      * @param list<string> $rowId
      * @param list<string> $keepColumns
+     * @param list<string> $excludeColumns
      */
-    private static function mapping(array $rowId = [], array $keepColumns = []): MappingDto
+    private static function mapping(array $rowId = [], array $keepColumns = [], array $excludeColumns = []): MappingDto
     {
         $fields = [];
         foreach (FieldName::cases() as $name) {
             $fields[$name->value] = new FieldMappingDto('Col '.$name->value, FieldType::String, false, null, [], [], []);
         }
 
-        return new MappingDto('test', 0, 1, $rowId, $fields, $keepColumns);
+        return new MappingDto('test', 0, 1, $rowId, $fields, $keepColumns, $excludeColumns);
     }
 }
