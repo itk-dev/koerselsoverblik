@@ -61,6 +61,9 @@ The project uses test-driven development. See "Development" in [README.md](READM
 - Use the PHP default time zone for all dates and times. Do not convert them. Calculate a
   duration from `getTimestamp()`, not with `TIMESTAMPDIFF()`. Get the time from `ClockInterface`,
   not from `NOW()`. See [ADR 005](docs/adr/005-dates-and-times-in-one-time-zone.md).
+- The parser uses UTC as a scratch zone for wall-clock arithmetic, in `CellConverter` and
+  `StopRowDto::moment()`. UTC has no change to summer time, so a time of 24:00 or more stays
+  exact. Do not remove this UTC. It is an exception in ADR 005.
 - The user interface is in Danish. Code, comments and documentation are in English.
 
 ## Symfony conventions

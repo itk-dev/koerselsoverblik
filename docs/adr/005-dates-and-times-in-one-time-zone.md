@@ -76,8 +76,14 @@ two hours wrong, and no error shows.
 
 - Doctrine uses the default `datetime` and `date` types. They write and read in the PHP default
   time zone.
-- Make a date or a time in the PHP default time zone. Do not give a time zone to a PHP object,
-  except to read a value from a source in UTC.
+- Make a date or a time in the PHP default time zone. Do not give a time zone to a PHP object.
+  There are two exceptions:
+  - To read a value from a source in UTC.
+  - To use UTC as a scratch zone for wall-clock arithmetic. UTC has no change to summer time, so
+    each wall-clock time exists, and a time of 24:00 or more stays exact.
+    `CellConverter::fromFormat()`, `CellConverter::fromExcelSerial()` and `StopRowDto::moment()`
+    use UTC in this way. Do not remove it. `StopRowDto` then gives the wall-clock time in the PHP
+    default time zone.
 - `StopRowDto` gives the times in the PHP default time zone. `service_date` and the dates of
   `ImportRangeDto` are calendar dates at 00:00 in the same time zone.
 - `phpunit.dist.xml` sets `date.timezone` to `Europe/Copenhagen`, so that the tests do not depend
