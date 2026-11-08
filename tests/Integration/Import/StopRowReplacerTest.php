@@ -20,6 +20,7 @@ use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
 use App\Import\StopRowReplacer;
+use App\Repository\SubAgreementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -311,8 +312,10 @@ final class StopRowReplacerTest extends KernelTestCase
 
         $parser = self::getContainer()->get(StopRowParser::class);
         self::assertInstanceOf(StopRowParser::class, $parser);
-        $replacer = self::getContainer()->get(StopRowReplacer::class);
-        self::assertInstanceOf(StopRowReplacer::class, $replacer);
+        $subAgreements = self::getContainer()->get(SubAgreementRepository::class);
+        self::assertInstanceOf(SubAgreementRepository::class, $subAgreements);
+        // The container removes a private service that no other service uses yet.
+        $replacer = new StopRowReplacer($this->entityManager, $subAgreements);
 
         return $replacer->replace($range, $mapping, $parser->parse($this->path, $mapping, $range), $batch);
     }

@@ -73,6 +73,12 @@
         DecrementInteger: {
             ignoreSourceCodeByRegex: ['.*int \\$rows = 5,.*'],
         },
+        // A change to the visibility of a public method of a service changes the class signature,
+        // with the same problem as above. The tests call the method, so they kill the mutant when
+        // it runs alone.
+        PublicVisibility: {
+            ignore: ['App\\Import\\StopRowReplacer::replace'],
+        },
     },
     minCoveredMsi: 80,
     // The default of 10 seconds is too short when all threads run. The Taskfile fails the run on
