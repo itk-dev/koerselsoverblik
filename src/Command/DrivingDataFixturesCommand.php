@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Clock\LocalCalendar;
 use App\DataFixtures\DrivingData\DevDatasetGenerator;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
@@ -29,6 +30,7 @@ final readonly class DrivingDataFixturesCommand
         private ScenarioLoader $scenarios,
         private DevDatasetGenerator $generator,
         private ExtractWriter $writer,
+        private LocalCalendar $calendar,
         #[Autowire('%kernel.project_dir%/tests/fixtures/driving_data')]
         private string $scenarioDirectory,
         #[Autowire('%kernel.project_dir%/var/fixtures/driving_data')]
@@ -52,7 +54,7 @@ final readonly class DrivingDataFixturesCommand
         }
 
         $last = null === $lastMonth
-            ? new \DateTimeImmutable('first day of this month')
+            ? $this->calendar->today()->modify('first day of this month')
             : \DateTimeImmutable::createFromFormat('!Y-m', $lastMonth);
         if (false === $last) {
             $io->error('The last month must have the format YYYY-MM.');

@@ -5,6 +5,7 @@ namespace App\Tests\Integration\Command;
 use OpenSpout\Reader\XLSX\Options;
 use OpenSpout\Reader\XLSX\Reader;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Console\Tester\ExecutionResult;
 
 /**
@@ -81,12 +82,17 @@ final class DrivingDataFixturesCommandTest extends KernelTestCase
         self::assertFileDoesNotExist(self::directory().'/old_scenario.xlsx');
     }
 
-    public function testLastMonthIsTheCurrentMonthByDefault(): void
+    /**
+     * At 22:30 UTC on 30 June it is 1 July in Copenhagen.
+     */
+    public function testLastMonthIsTheCurrentMonthInTheApplicationTimeZoneByDefault(): void
     {
+        self::getContainer()->set('clock', new MockClock('2026-06-30 22:30:00', 'UTC'));
+
         $result = self::runCommand('app:fixtures:driving-data', ['--months' => '1']);
 
         $this->assertCommandIsSuccessful($result);
-        self::assertFileExists(self::directory().'/dev-'.(new \DateTimeImmutable())->format('Y-m').'.xlsx');
+        self::assertSame(['dev-2026-07.xlsx'], array_map(basename(...), glob(self::directory().'/dev-*.xlsx') ?: []));
     }
 
     public function testLastMonthThatIsNotYearAndMonthIsRejected(): void

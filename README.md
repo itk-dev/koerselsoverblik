@@ -173,7 +173,6 @@ Set these in `.env.local`:
 | `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE` | The maximum total size in bytes of the files in the xlsx archive, when they are not compressed. The parser reads all the files before the first row, so this limit also controls the time of an upload | `52428800` (50 MiB) |
 | `APP_DRIVING_DATA_MAX_ROWS` | The maximum row number in the sheet of an extract | `50000` |
 | `APP_DRIVING_DATA_MAX_COLUMNS` | The maximum number of columns in a row of an extract | `200` |
-| `APP_TIMEZONE` | The time zone of the wall-clock times in an extract. The import stores the times in UTC | `Europe/Copenhagen` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.
@@ -266,8 +265,8 @@ A mapping defines:
     an ordinary time format, such as `hh:mm`, is rejected. The time is a wall-clock time on
     `service_date`. A time of 24:00 or more is on the next day: 25:10 is 01:10 on the day after
     `service_date`.
-  - all times are wall-clock times in `APP_TIMEZONE`. The import stores them in UTC. See
-    [Times](docs/architecture.md#times).
+  - all times are wall-clock times in the time zone of PHP and MariaDB. The import stores them
+    with no conversion. See [Times](docs/architecture.md#times).
   - value maps for codes, only for a `string` field, for example which status values mean
     "completed"
   - for a `bool` field: the values that mean true and the values that mean false
@@ -348,7 +347,7 @@ The command changes no data. It shows:
 - the rejected rows: the count and the first row numbers for each field and reason. It never
   shows a value of a rejected row
 - a preview of the first stop rows as the application reads them. `--rows` sets the number of
-  rows (default 5). The times are in `APP_TIMEZONE`, as in the file. The person id shows as
+  rows (default 5). The times are wall-clock times, as in the file. The person id shows as
   `(hidden)`. The row key also shows as `(hidden)` when a `row_id` column is the `person_id`
   column
 
@@ -584,20 +583,25 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 
 To set up a new server:
 
+1. Make sure that PHP and MariaDB use the time zone of the driving data, `Europe/Copenhagen`. The
+   application supports one time zone only, and does not check it yet
+   ([ADR 005](docs/adr/005-dates-and-times-in-one-time-zone.md)):
+   - `date.timezone` in `php.ini`. The `itkdev/php8.4-fpm` image sets it from `PHP_TIMEZONE`.
+   - `@@global.time_zone` in MariaDB, or the time zone of the host when the value is `SYSTEM`.
 1. Set these in `.env.local` (staging included):
    - `APP_ENV=prod`
    - `APP_SECRET`
    - the `OIDC_*` settings from the identity provider
    - the database settings
-2. Deploy.
-3. Add a cron job that deletes the upload files that nobody confirmed. Run it every 15 minutes:
+1. Deploy.
+1. Add a cron job that deletes the upload files that nobody confirmed. Run it every 15 minutes:
 
    ```shell
    */15 * * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:purge-uploads --quiet
    ```
 
-4. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
-5. Make sure that the administrator can sign in.
+1. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
+1. Make sure that the administrator can sign in.
 
 ## Documentation
 
