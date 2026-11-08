@@ -259,6 +259,12 @@ A mapping defines:
   names, addresses, labels or comments
   ([ADR 006](docs/adr/006-keep-a-copy-of-each-imported-row.md)). A kept column that is not in a
   file is not an error.
+- **Excluded columns (optional, `exclude_columns`):** the columns that the mapping leaves out on
+  purpose, for example the personal data. The copy never keeps them, and the validate command
+  does not show them as not read. An excluded column cannot also be a field column, a row id
+  column or a kept column.
+- A column name in the mapping cannot have a space at the start or the end, because the parser
+  removes these spaces from the header names.
 - **Fields:** each application field must have a source column. For each field, the mapping
   gives the column and how to read it:
   - type: `string`, `int`, `float`, `bool`, `date`, `time`, `datetime`
@@ -313,6 +319,7 @@ sheet: 0
 header_row: 1
 row_id: [<ROW_ID_COLUMN>]   # optional
 keep_columns: [<COLUMN_NAME>, <COLUMN_NAME>]   # optional
+exclude_columns: [<COLUMN_NAME>, <COLUMN_NAME>]   # optional
 fields:
   route:             { column: <COLUMN_NAME>, type: string, required: true }
   person_id:         { column: <COLUMN_NAME>, type: string, required: true }
@@ -354,9 +361,10 @@ The command changes no data. It shows:
   rows, and the number of dates with stop rows
 - the rejected rows and the warnings: the count and the first row numbers for each field and
   reason. It never shows a value of a rejected row or a warning
-- the kept columns that are not in the file, and the columns of the file that the mapping does
-  not read. Check a column that is not read for personal data before you add it to
-  `keep_columns`
+- the kept columns and the excluded columns that are not in the file, and the columns of the file
+  that the mapping does not read. Check a column that is not read for personal data, and add it
+  to `keep_columns` or to `exclude_columns`. An excluded column that is not in the file can have
+  a new name
 - a preview of the first stop rows as the application reads them. `--rows` sets the number of
   rows (default 5). The times are wall-clock times, as in the file. The person id shows as
   `(hidden)`. The row key also shows as `(hidden)` when a `row_id` column is the `person_id`

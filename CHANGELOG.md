@@ -135,6 +135,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `default` mapping keeps all the columns of the reference extract except the personal data. A
   bad value in an optional field gives an empty value and a warning, not a rejected row, and
   `planned_solo` is optional. A formula cell gives its computed value, not the formula. A mapping
-  with a column name that has a space at the start or the end is rejected. The validate command
-  shows the warnings, the kept columns that are not in the file and the columns that it does not
-  read. ADR 006 is proposed.
+  with a column name that has a space at the start or the end is rejected. The new
+  `exclude_columns` of a mapping names the columns that it leaves out on purpose; the `default`
+  mapping names the six personal columns. The validate command shows the warnings, the kept and
+  the excluded columns that are not in the file, and the columns that it does not read. ADR 006
+  is proposed.

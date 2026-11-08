@@ -50,7 +50,10 @@ upload it again.
   read a copy in the same way as a row of the file.
 - **What the copy never holds:** the personal data, `PersonName`, `Adresse`, `Post-nr`, `By`,
   `Labels` and `Comment`. A column is kept only when the mapping names it, so a new column in the
-  extract is not kept until a person adds it after a check for personal data.
+  extract is not kept until a person adds it after a check for personal data. The mapping names
+  these columns in `exclude_columns`, so that the decision is visible. The validation stops a
+  column that is both kept and excluded. No view of the prototype needs them: the locations are
+  the institutions in `Placename`, not the address of the citizen.
 - **The person id:** the copy keeps `PersonID`, because a new read needs the required field
   `person_id`. The stop row already stores it ([ADR 004](004-personal-data-in-driving-data.md)),
   so the copy adds no new personal data.

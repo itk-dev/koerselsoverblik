@@ -438,20 +438,26 @@ A mapping file, `config/import/driving_data/<MAPPING_NAME>.yaml`, describes one 
   rows in one file
 - optional **kept columns**: the other columns that the copy of a row keeps (see
   [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row))
+- optional **excluded columns**: the columns that the mapping leaves out on purpose, for example
+  the personal data
 - for each application field: the source column, type, date format, value maps for codes, and
   whether it is required
 
 `MappingLoader` validates the file with the Symfony Config component when the container is built,
 so an invalid mapping stops the application from starting. The parser removes the spaces at the
-start and the end of the header names, so the validation rejects a column name with such a
-space. It then produces an immutable
-`MappingDto` value object. `StopRowParser` reads the workbook only through `MappingDto` and never
-refers to column names itself. `app:driving-data:mapping:validate` checks a sample file against
-a mapping before it is used. It uses the same parser without a date range, and
-`ExtractSummaryDto` counts the result. The output hides the person id and never shows a value of
-a rejected row or a warning. It also hides the row key when a row id column is the person id
-column. `ExtractColumnsDto` compares the header with the mapping, so that the output names the
-kept columns that are not in the file, and the columns that the mapping does not read.
+start and the end of the header names, so the validation rejects a column name with such a space.
+An excluded column cannot also be a field column, a row id column or a kept column. The loader
+then produces an immutable `MappingDto` value object. `StopRowParser` reads the workbook only
+through `MappingDto` and never refers to column names itself.
+
+`app:driving-data:mapping:validate` checks a sample file against a mapping before it is used. It
+uses the same parser without a date range, and `ExtractSummaryDto` counts the result. The output
+hides the person id and never shows a value of a rejected row or a warning. It also hides the row
+key when a row id column is the person id column. `ExtractColumnsDto` compares the header with the
+mapping. The output names the kept columns and the excluded columns that are not in the file, and
+the columns that the mapping does not read. An excluded column is a decision, so it is never a
+column that is not read. The fixture writer writes the excluded columns with no values, as the
+reference extract has them.
 
 **What a mapping can change:** the column names, the code values and the formats of the fixed
 application fields. Each application field must have one source column. These changes need code:
@@ -481,7 +487,9 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
 - In an optional field, a value that the parser cannot read gives an empty value and a
   `FieldWarningDto`. The row is imported, and the copy keeps the value.
 - The copy never holds the personal data of the extract. A column is kept only when the mapping
-  names it, so a new column is not kept until a person adds it.
+  names it, so a new column is not kept until a person adds it. The `default` mapping names the
+  personal columns in `exclude_columns`, and the validation stops a column that is both kept and
+  excluded.
 - The copy has the values on purpose. It never goes to a log, a message or the output of the
   validate command.
 
