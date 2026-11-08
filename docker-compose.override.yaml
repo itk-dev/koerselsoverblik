@@ -1,9 +1,5 @@
 # Local development only.
 services:
-  phpfpm:
-    environment:
-      - PHP_TIMEZONE=Europe/Copenhagen # The time zone of the driving data (ADR 005).
-
   # A mock OIDC identity provider: https://github.com/geigerzaehler/oidc-provider-mock
   #
   # The container name is the external host name, so that the browser and the application reach

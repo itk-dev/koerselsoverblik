@@ -118,8 +118,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Dates and times in one time zone (ADR 005): the application supports one time zone only. The
   driving data, PHP and MariaDB must use the same time zone. The parser gives the times and the
   dates in the PHP default time zone, with no conversion to UTC. `APP_TIMEZONE` is removed.
-  The fixtures command gets the current month from `LocalCalendar`. The `mariadb` and `phpfpm`
-  services use `Europe/Copenhagen`, as on the servers.
+  The fixtures command gets the current month from `LocalCalendar`. The `mariadb` service uses
+  `Europe/Copenhagen`, as on the servers.
 - [#49](https://github.com/itk-dev/koerselsoverblik/issues/49)
   One role for the driving data: `ROLE_MANAGE_DRIVING_DATA` replaces `ROLE_UPLOAD_DRIVING_DATA` and
   `ROLE_CLEAR_DRIVING_DATA`. The application ignores the old roles. Configure the identity
