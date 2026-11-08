@@ -34,6 +34,7 @@ final class SourceCellsTest extends TestCase
             'Moment' => new DateTimeCell(new \DateTimeImmutable('2026-09-18 06:51:56.250000')),
             'Error' => new ErrorCell('#VALUE!'),
             'Formula' => new FormulaCell('=A1+1', 4),
+            'Formula time' => new FormulaCell('=B1', new \DateInterval('PT7H10M')),
         ]);
 
         self::assertSame([
@@ -45,8 +46,18 @@ final class SourceCellsTest extends TestCase
             'Time' => ['duration' => 'P0DT25H10M5S'],
             'Moment' => ['datetime' => '2026-09-18 06:51:56.250000'],
             'Error' => ['error' => '#VALUE!'],
-            'Formula' => ['formula' => '=A1+1'],
+            // A formula cell gives its computed value, as the parser reads it.
+            'Formula' => 4,
+            'Formula time' => ['duration' => 'P0DT7H10M0S'],
         ], $copy);
+    }
+
+    /**
+     * The reader gives no computed value when the result of the formula is an error.
+     */
+    public function testCopyLeavesOutAFormulaWithNoComputedValue(): void
+    {
+        self::assertSame([], SourceCells::copy(['Formula' => new FormulaCell('=A1/0', null)]));
     }
 
     public function testCopyLeavesOutAnEmptyCell(): void
@@ -95,7 +106,8 @@ final class SourceCellsTest extends TestCase
         yield 'time after midnight' => [['Time' => new DateIntervalCell(new \DateInterval('PT25H10M0S'))]];
         yield 'time with days' => [['Time' => new DateIntervalCell(new \DateInterval('P1DT1H10M0S'))]];
         yield 'date and time' => [['Moment' => new DateTimeCell(new \DateTimeImmutable('2026-03-29 02:30:00.125000'))]];
-        yield 'formula' => [['Formula' => new FormulaCell('=A1+1')]];
+        // Cell::fromValue() makes a formula cell from text that starts with "=".
+        yield 'text that starts with "="' => [['Text' => new StringCell('=abc')]];
         yield 'several' => [['A' => new StringCell('x'), 'B' => new NumericCell(1)]];
     }
 
@@ -141,6 +153,7 @@ final class SourceCellsTest extends TestCase
         yield 'null' => [['Bad' => null]];
         yield 'list' => [['Bad' => ['x']]];
         yield 'unknown key' => [['Bad' => ['colour' => 'red']]];
+        yield 'formula' => [['Bad' => ['formula' => '=A1']]];
         yield 'two keys' => [['Bad' => ['duration' => 'PT1H', 'datetime' => '2026-01-01 00:00:00']]];
         yield 'value that is not text' => [['Bad' => ['duration' => 1]]];
     }

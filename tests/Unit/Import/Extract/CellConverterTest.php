@@ -10,6 +10,7 @@ use App\Import\Mapping\FieldType;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\EmptyCell;
 use OpenSpout\Common\Entity\Cell\ErrorCell;
+use OpenSpout\Common\Entity\Cell\FormulaCell;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -38,11 +39,34 @@ final class CellConverterTest extends TestCase
         yield 'an empty cell' => [static fn (): Cell => new EmptyCell(null)];
         yield 'empty text' => [static fn (): Cell => Cell::fromValue('')];
         yield 'only spaces' => [static fn (): Cell => Cell::fromValue('   ')];
+        // The reader gives no computed value when the result of the formula is an error.
+        yield 'a formula with no computed value' => [static fn (): Cell => new FormulaCell('=A1/0', null)];
     }
 
     public function testErrorCellIsRejected(): void
     {
         self::assertRejected(RejectionReason::ErrorValue, self::field(FieldType::Int), new ErrorCell('#N/A', null));
+    }
+
+    /**
+     * The value of a formula cell is the formula. The computed value is the value in the cell.
+     */
+    #[DataProvider('formulaCells')]
+    public function testFormulaCellGivesTheComputedValue(FieldType $type, \DateInterval|int|string $computed, mixed $expected): void
+    {
+        $value = (new CellConverter())->convert(self::field($type), new FormulaCell('=A1', $computed));
+
+        self::assertEquals($expected, $value);
+    }
+
+    /**
+     * @return iterable<string, array{FieldType, \DateInterval|int|string, mixed}>
+     */
+    public static function formulaCells(): iterable
+    {
+        yield 'a whole number' => [FieldType::Int, 4, 4];
+        yield 'text' => [FieldType::String, ' R-01 ', 'R-01'];
+        yield 'a time' => [FieldType::Time, new \DateInterval('PT7H10M'), new \DateInterval('PT7H10M')];
     }
 
     public function testTextHasNoSpacesAtTheStartAndTheEnd(): void
