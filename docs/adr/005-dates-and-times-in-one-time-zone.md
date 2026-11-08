@@ -69,8 +69,8 @@ The operators must make sure that these three are the same time zone, `Europe/Co
 - The time zone of MariaDB: `@@global.time_zone`, or the system time zone of the host when the
   value is `SYSTEM`.
 
-The application does not check this. If the time zones are different, the stored times are one or
-two hours wrong, and no error shows.
+The application does not check this yet (see [Follow-up Actions](#follow-up-actions)). If the
+time zones are different, the stored times are one or two hours wrong, and no error shows.
 
 ### Rules for the code
 
@@ -104,12 +104,18 @@ two hours wrong, and no error shows.
 
 ### Negative / Trade-offs
 
-- The correct time zone is a requirement for the operators. The application cannot find an
-  error in the configuration.
+- The correct time zone is a requirement for the operators. Until the check in the follow-up
+  actions exists, the application cannot find an error in the configuration.
 - A value in the hour from 02:00 to 03:00 on the night of the change to winter time is read as
   winter time. The driving data has few or no trips in that hour.
 - A PHP object in another time zone is written with its own wall-clock time, with no error.
 - If a second source with times in other time zones comes, examine this decision again.
+
+### Follow-up Actions
+
+- [ ] Add a check that compares the offset of MariaDB (`TIMEDIFF(NOW(), UTC_TIMESTAMP())`) with
+  the offset of PHP (`date('P')`), for example a command `app:time-zone:check`. Name it in the
+  steps to set up a server in the README, or run it before an import.
 
 ## References
 

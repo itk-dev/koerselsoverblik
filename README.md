@@ -584,7 +584,7 @@ itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 To set up a new server:
 
 1. Make sure that PHP and MariaDB use the time zone of the driving data, `Europe/Copenhagen`. The
-   application supports one time zone only, and does not check it
+   application supports one time zone only, and does not check it yet
    ([ADR 005](docs/adr/005-dates-and-times-in-one-time-zone.md)):
    - `date.timezone` in `php.ini`. The `itkdev/php8.4-fpm` image sets it from `PHP_TIMEZONE`.
    - `@@global.time_zone` in MariaDB, or the time zone of the host when the value is `SYSTEM`.
