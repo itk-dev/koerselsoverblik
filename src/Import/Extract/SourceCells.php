@@ -7,6 +7,7 @@ use OpenSpout\Common\Entity\Cell\DateIntervalCell;
 use OpenSpout\Common\Entity\Cell\DateTimeCell;
 use OpenSpout\Common\Entity\Cell\ErrorCell;
 use OpenSpout\Common\Entity\Cell\FormulaCell;
+use OpenSpout\Common\Entity\Cell\StringCell;
 
 /**
  * Makes the copy of the cells of a row, and the cells again from a copy.
@@ -15,7 +16,7 @@ use OpenSpout\Common\Entity\Cell\FormulaCell;
  * row of the file. A JSON value has no type for a duration or a date and time, so these values
  * are objects with one key. See "Keep a copy of each imported row" in docs/architecture.md.
  *
- * @phpstan-type SourceValue string|int|float|bool|array{duration: string}|array{datetime: string}|array{error: string}|array{formula: string}
+ * @phpstan-type SourceValue string|int|float|bool|array{duration: string}|array{datetime: string}|array{error: string}
  */
 final class SourceCells
 {
@@ -69,29 +70,34 @@ final class SourceCells
     }
 
     /**
+     * A formula cell gives its computed value, as CellConverter reads it. The formula is not kept.
+     *
      * @return SourceValue|null
      */
     private static function value(Cell $cell): string|int|float|bool|array|null
     {
         return match (true) {
             $cell instanceof ErrorCell => ['error' => $cell->getRawValue()],
-            $cell instanceof FormulaCell => ['formula' => $cell->getValue()],
-            $cell instanceof DateIntervalCell => ['duration' => $cell->getValue()->format(self::DURATION_FORMAT)],
-            $cell instanceof DateTimeCell => ['datetime' => $cell->getValue()->format(self::DATE_TIME_FORMAT)],
-            '' === $cell->getValue() => null,
-            default => self::scalar($cell),
+            $cell instanceof FormulaCell => self::copyValue($cell->getComputedValue()),
+            default => self::copyValue($cell->getValue()),
         };
     }
 
     /**
-     * The other cells have text, a number or a boolean. An empty cell has no value. The XLSX
-     * reader gives no cell with rich text or an image, so the copy leaves them out.
+     * Text, a number and a boolean stay as they are. An empty value has no copy. The XLSX reader
+     * gives no cell with rich text or an image, so the copy leaves them out.
+     *
+     * @return string|int|float|bool|array{duration: string}|array{datetime: string}|null
      */
-    private static function scalar(Cell $cell): string|int|float|bool|null
+    private static function copyValue(mixed $value): string|int|float|bool|array|null
     {
-        $value = $cell->getValue();
-
-        return \is_string($value) || \is_int($value) || \is_float($value) || \is_bool($value) ? $value : null;
+        return match (true) {
+            $value instanceof \DateInterval => ['duration' => $value->format(self::DURATION_FORMAT)],
+            $value instanceof \DateTimeInterface => ['datetime' => $value->format(self::DATE_TIME_FORMAT)],
+            '' === $value => null,
+            \is_string($value) || \is_int($value) || \is_float($value) || \is_bool($value) => $value,
+            default => null,
+        };
     }
 
     /**
@@ -99,7 +105,12 @@ final class SourceCells
      */
     private static function cell(string $column, mixed $value): Cell
     {
-        if (\is_string($value) || \is_int($value) || \is_float($value) || \is_bool($value)) {
+        // Cell::fromValue() makes a formula cell from text that starts with "=".
+        if (\is_string($value)) {
+            return new StringCell($value);
+        }
+
+        if (\is_int($value) || \is_float($value) || \is_bool($value)) {
             return Cell::fromValue($value);
         }
 
@@ -121,7 +132,6 @@ final class SourceCells
                 'duration' => new DateIntervalCell(new \DateInterval($text)),
                 'datetime' => self::dateTimeCell($text),
                 'error' => new ErrorCell($text),
-                'formula' => new FormulaCell($text),
                 default => null,
             };
         } catch (\Exception) {

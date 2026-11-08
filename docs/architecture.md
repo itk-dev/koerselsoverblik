@@ -468,9 +468,12 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
   by the column name. A later task can read the copies again through a changed mapping, with no
   new upload.
 - `SourceCells` makes the copy, and the cells again from a copy. The copy keeps the type of each
-  cell: text, numbers and booleans are JSON values, and a duration, a date and time, an Excel
-  error and a formula are objects with one key, for example `{"duration": "P0DT25H10M0S"}`. An
-  empty cell is left out.
+  cell: text, numbers and booleans are JSON values, and a duration, a date and time and an Excel
+  error are objects with one key, for example `{"duration": "P0DT25H10M0S"}`. An empty cell is
+  left out.
+- A formula cell gives its computed value, in the parser (`CellConverter`) and in the copy. The
+  formula is not kept. When the result of the formula is an error, the reader gives no computed
+  value, so the cell is empty.
 - A rejected row also has a copy, and its service date if the date field is valid. A row outside
   the range of the upload has no copy, because the upload for its date imports it.
 - In an optional field, a value that the parser cannot read gives an empty value and a
