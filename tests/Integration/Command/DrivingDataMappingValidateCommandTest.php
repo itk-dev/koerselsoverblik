@@ -74,7 +74,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         self::assertMatchesRegularExpression('/row\s+row key\s+route\s+person_id\s+service_date/', $display);
         // The first stop is in row 4, and has the row id 1.
         self::assertMatchesRegularExpression('/4\s+1\s+R-01\s+\(hidden\)\s+2026-01-05/', $display);
-        // The times are in APP_TIMEZONE, as in the file.
+        // The times are wall-clock times, as in the file.
         self::assertMatchesRegularExpression('/2026-01-05 07:00:00\s+2026-01-05 07:02:00/', $display);
         self::assertSame(5, substr_count($display, '(hidden)'));
         self::assertStringNotContainsString('P-00', $display);
@@ -342,7 +342,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         $parser = self::getContainer()->get(StopRowParser::class);
         self::assertInstanceOf(StopRowParser::class, $parser);
         $application = new ConsoleApplication();
-        $application->addCommand(new DrivingDataMappingValidateCommand($this->customProvider(), $parser, 'Europe/Copenhagen'));
+        $application->addCommand(new DrivingDataMappingValidateCommand($this->customProvider(), $parser));
         $tester = new CommandTester($application->find('app:driving-data:mapping:validate'));
         $tester->execute(['mapping-name' => self::CUSTOM_MAPPING, 'path-to-file' => $this->path]);
 

@@ -80,7 +80,7 @@ final readonly class CellConverter
      * saves the file. A field with a format string also reads text. Other fields also read an
      * Excel serial number.
      *
-     * The value is a wall-clock time. StopRowDto reads it in the time zone of the extract.
+     * The value is a wall-clock time. StopRowDto reads it in the PHP default time zone.
      */
     private static function dateTime(FieldMappingDto $field, mixed $value): ?\DateTimeImmutable
     {

@@ -156,6 +156,6 @@ final class ExtractSummaryDtoTest extends TestCase
             'planned_time' => new \DateInterval('PT7H'),
             'actual_time' => null,
             'planned_solo' => null,
-        ], new \DateTimeZone('UTC'), warnings: $warnings);
+        ], warnings: $warnings);
     }
 }

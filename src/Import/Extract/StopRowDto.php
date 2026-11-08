@@ -57,14 +57,14 @@ final readonly class StopRowDto
     }
 
     /**
-     * The service date is the calendar date at 00:00 UTC. The times are in UTC.
+     * The service date is the calendar date at 00:00, and the times are wall-clock times. Both are
+     * in the PHP default time zone. See ADR 005.
      *
      * @param StopRowValues              $values       the values from CellConverter, keyed by the FieldName value
-     * @param \DateTimeZone              $timeZone     the time zone of the wall-clock times in the extract
      * @param array<string, SourceValue> $sourceValues the copy of the row, keyed by the column name
      * @param list<FieldWarningDto>      $warnings
      */
-    public static function fromValues(int $rowNumber, ?string $rowKey, array $values, \DateTimeZone $timeZone, array $sourceValues = [], array $warnings = []): self
+    public static function fromValues(int $rowNumber, ?string $rowKey, array $values, array $sourceValues = [], array $warnings = []): self
     {
         $serviceDate = self::serviceDate($values['service_date']);
 
@@ -80,8 +80,8 @@ final readonly class StopRowDto
             passengersAfter: $values['passengers_after'],
             nextDistanceKm: $values['next_distance_km'],
             nextDurationMin: $values['next_duration_min'],
-            plannedTime: self::moment($values['planned_time'], $serviceDate, $timeZone),
-            actualTime: null === $values['actual_time'] ? null : self::moment($values['actual_time'], $serviceDate, $timeZone),
+            plannedTime: self::moment($values['planned_time'], $serviceDate),
+            actualTime: null === $values['actual_time'] ? null : self::moment($values['actual_time'], $serviceDate),
             plannedSolo: $values['planned_solo'],
             sourceValues: $sourceValues,
             warnings: $warnings,
@@ -89,28 +89,30 @@ final readonly class StopRowDto
     }
 
     /**
-     * Gives the calendar date of the value of the date field, at 00:00 UTC.
+     * Gives the calendar date of the value of the date field, at 00:00 in the PHP default time
+     * zone.
      */
     public static function serviceDate(\DateTimeImmutable $value): \DateTimeImmutable
     {
-        return new \DateTimeImmutable($value->format('Y-m-d'), new \DateTimeZone('UTC'));
+        return new \DateTimeImmutable($value->format('Y-m-d'));
     }
 
     /**
-     * Reads a wall-clock time in the time zone of the extract, and gives it in UTC. See "Times"
-     * in docs/architecture.md.
+     * Reads a wall-clock time in the PHP default time zone. See "Times" in docs/architecture.md.
      *
      * A time from a "time" field is on the service date. A time of 24:00 or more is on the next
      * day. OpenSpout gives the hours of a "time" field with no days, and never a negative time.
      */
-    private static function moment(\DateInterval|\DateTimeImmutable $value, \DateTimeImmutable $serviceDate, \DateTimeZone $timeZone): \DateTimeImmutable
+    private static function moment(\DateInterval|\DateTimeImmutable $value, \DateTimeImmutable $serviceDate): \DateTimeImmutable
     {
-        // The service date is in UTC, which has no change to summer time. setTime() then gives
-        // the wall-clock time exactly.
-        $wallClock = $value instanceof \DateInterval ? $serviceDate->setTime($value->h, $value->i, $value->s) : $value;
+        // UTC has no change to summer time. setTime() then gives the wall-clock time exactly, also
+        // for a time of 24:00 or more.
+        $wallClock = $value instanceof \DateInterval
+            ? (new \DateTimeImmutable($serviceDate->format('Y-m-d'), new \DateTimeZone('UTC')))->setTime($value->h, $value->i, $value->s)
+            : $value;
 
         // The constructor and setTime() read a time in the hour that occurs two times
         // differently. The constructor is the only rule.
-        return (new \DateTimeImmutable($wallClock->format('Y-m-d H:i:s'), $timeZone))->setTimezone(new \DateTimeZone('UTC'));
+        return new \DateTimeImmutable($wallClock->format('Y-m-d H:i:s'));
     }
 }

@@ -5,7 +5,8 @@ namespace App\Import;
 /**
  * The first and the last date of an upload. The import replaces the stop rows of these dates.
  *
- * The dates are calendar dates at 00:00 UTC. See "Date range" in docs/architecture.md.
+ * The dates are calendar dates at 00:00 in the PHP default time zone. See "Date range" in
+ * docs/architecture.md.
  */
 final readonly class ImportRangeDto
 {
@@ -51,6 +52,6 @@ final readonly class ImportRangeDto
 
     private static function day(\DateTimeInterface $date): \DateTimeImmutable
     {
-        return new \DateTimeImmutable($date->format('Y-m-d'), new \DateTimeZone('UTC'));
+        return new \DateTimeImmutable($date->format('Y-m-d'));
     }
 }

@@ -9,11 +9,11 @@ use Symfony\Component\Clock\MockClock;
 final class LocalCalendarTest extends TestCase
 {
     /**
-     * At 22:30 UTC on 1 June it is 00:30 on 2 June in Copenhagen.
+     * At 22:30 UTC on 1 June it is 00:30 on 2 June in Copenhagen, the PHP default time zone.
      */
-    public function testTodayIsTheDateInTheApplicationTimeZone(): void
+    public function testTodayIsTheDateInThePhpDefaultTimeZone(): void
     {
-        $calendar = new LocalCalendar(new MockClock('2026-06-01 22:30:00', 'UTC'), 'Europe/Copenhagen');
+        $calendar = new LocalCalendar(new MockClock('2026-06-01 22:30:00', 'UTC'));
 
         $today = $calendar->today();
 

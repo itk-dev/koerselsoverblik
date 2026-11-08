@@ -12,7 +12,6 @@ use OpenSpout\Common\Exception\OpenSpoutException;
 use OpenSpout\Reader\XLSX\Options;
 use OpenSpout\Reader\XLSX\Reader;
 use OpenSpout\Reader\XLSX\Sheet;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Reads the stop rows of an extract through an import mapping.
@@ -29,14 +28,9 @@ final readonly class StopRowParser
      */
     private const string ROW_KEY_SEPARATOR = "\u{1F}";
 
-    /**
-     * @param string $timeZone the value of APP_TIMEZONE, the time zone of the wall-clock times in the extract
-     */
     public function __construct(
         private CellConverter $converter,
         private ExtractInspector $inspector,
-        #[Autowire('%app.timezone%')]
-        private string $timeZone,
     ) {
     }
 
@@ -235,7 +229,7 @@ final readonly class StopRowParser
         }
 
         /** @var StopRowValues $values */
-        $stopRow = StopRowDto::fromValues($rowNumber, $rowKey, $values, new \DateTimeZone($this->timeZone), $copy, $warnings);
+        $stopRow = StopRowDto::fromValues($rowNumber, $rowKey, $values, $copy, $warnings);
 
         // The upload for the date of the row imports it, so the row has no copy here.
         return null === $range || $range->contains($stopRow->serviceDate)
