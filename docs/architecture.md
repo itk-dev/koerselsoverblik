@@ -442,7 +442,9 @@ A mapping file, `config/import/driving_data/<MAPPING_NAME>.yaml`, describes one 
   whether it is required
 
 `MappingLoader` validates the file with the Symfony Config component when the container is built,
-so an invalid mapping stops the application from starting. It then produces an immutable
+so an invalid mapping stops the application from starting. The parser removes the spaces at the
+start and the end of the header names, so the validation rejects a column name with such a
+space. It then produces an immutable
 `MappingDto` value object. `StopRowParser` reads the workbook only through `MappingDto` and never
 refers to column names itself. `app:driving-data:mapping:validate` checks a sample file against
 a mapping before it is used. It uses the same parser without a date range, and

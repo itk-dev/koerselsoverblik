@@ -47,6 +47,9 @@ final class MappingConfiguration implements ConfigurationInterface
             ->thenInvalid('A "time" field needs a "service_date" field with the type "date".');
 
         $root->validate()
+            ->always(self::checkColumnNames(...));
+
+        $root->validate()
             ->always(self::checkKeptColumns(...));
 
         return $treeBuilder;
@@ -139,6 +142,27 @@ final class MappingConfiguration implements ConfigurationInterface
     {
         return FieldType::Date !== $mapping['fields'][FieldName::ServiceDate->value]['type']
             && array_any($mapping['fields'], static fn (array $field): bool => FieldType::Time === $field['type']);
+    }
+
+    /**
+     * The parser removes the spaces at the start and the end of the header names. A column name
+     * with such a space then never matches a header name.
+     *
+     * @param MappingConfig $mapping
+     *
+     * @return MappingConfig
+     *
+     * @throws \InvalidArgumentException if a field column, a row id column or a kept column has a space at the start or the end
+     */
+    private static function checkColumnNames(array $mapping): array
+    {
+        foreach ([...array_column($mapping['fields'], 'column'), ...$mapping['row_id'], ...$mapping['keep_columns']] as $column) {
+            if (trim($column) !== $column) {
+                throw new \InvalidArgumentException(\sprintf('The column "%s" has a space at the start or the end.', $column));
+            }
+        }
+
+        return $mapping;
     }
 
     /**

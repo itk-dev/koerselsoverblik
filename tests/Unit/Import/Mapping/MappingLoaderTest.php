@@ -202,7 +202,7 @@ final class MappingLoaderTest extends TestCase
         ];
         // The parser removes the spaces at the ends of the header names, so such a name never matches.
         yield 'field column with a space at the start' => [
-            static fn (array $raw): array => self::withField($raw, 'route', ['column' => ' Route', 'type' => 'string']),
+            static fn (array $raw): array => self::withField($raw, 'route', ['column' => ' Route', 'type' => 'string', 'required' => true]),
             'The column " Route" has a space at the start or the end.',
         ];
         yield 'row id column with a space at the end' => [

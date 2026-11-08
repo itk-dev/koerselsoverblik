@@ -134,6 +134,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   again with no new upload. A rejected row also has a copy, except a row outside the range. The
   `default` mapping keeps all the columns of the reference extract except the personal data. A
   bad value in an optional field gives an empty value and a warning, not a rejected row, and
-  `planned_solo` is optional. A formula cell gives its computed value, not the formula. The
-  validate command shows the warnings, the kept columns that are not in the file and the columns
-  that it does not read. ADR 006 is proposed.
+  `planned_solo` is optional. A formula cell gives its computed value, not the formula. A mapping
+  with a column name that has a space at the start or the end is rejected. The validate command
+  shows the warnings, the kept columns that are not in the file and the columns that it does not
+  read. ADR 006 is proposed.
