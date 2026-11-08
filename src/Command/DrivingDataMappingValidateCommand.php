@@ -87,14 +87,11 @@ final readonly class DrivingDataMappingValidateCommand
 
         // The names only. A new column can hold personal data, so it is not kept until a person
         // adds it to the mapping.
-        if ([] !== $columns->missingKeptColumns) {
-            $io->section('Kept columns that are not in the file');
-            $io->listing($columns->missingKeptColumns);
-        }
-        if ([] !== $columns->unreadColumns) {
-            $io->section('Columns that are not read');
-            $io->listing($columns->unreadColumns);
-        }
+        self::columnNames($io, 'Kept columns that are not in the file', $columns->missingKeptColumns);
+        // An excluded column with a new name in the file then shows here and as a column that is
+        // not read.
+        self::columnNames($io, 'Excluded columns that are not in the file', $columns->missingExcludedColumns);
+        self::columnNames($io, 'Columns that are not read', $columns->unreadColumns);
 
         if ([] !== $summary->preview) {
             // A row id column can be the person id column. Then the row key has the person id.
@@ -120,6 +117,17 @@ final readonly class DrivingDataMappingValidateCommand
         $io->success('The file agrees with the mapping.');
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param list<string> $columns
+     */
+    private static function columnNames(SymfonyStyle $io, string $title, array $columns): void
+    {
+        if ([] !== $columns) {
+            $io->section($title);
+            $io->listing($columns);
+        }
     }
 
     /**

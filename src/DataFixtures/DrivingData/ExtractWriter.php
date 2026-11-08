@@ -62,8 +62,9 @@ final class ExtractWriter
         for ($rowNumber = 1; $rowNumber < $mapping->headerRow; ++$rowNumber) {
             $writer->addRow(Row::fromValues(1 === $rowNumber ? [self::TITLE] : []));
         }
-        // The kept columns come last. A kept column is never a field column or a row id column.
-        $writer->addRow(Row::fromValues([...$rowIdColumns, ...$fieldColumns, ...$mapping->keepColumns]));
+        // The kept columns and then the excluded columns come last. Each of these columns is never
+        // a field column or a row id column.
+        $writer->addRow(Row::fromValues([...$rowIdColumns, ...$fieldColumns, ...$mapping->keepColumns, ...$mapping->excludeColumns]));
 
         $names = array_column(FieldName::cases(), 'value');
         $index = 0;
@@ -84,6 +85,10 @@ final class ExtractWriter
             }
             foreach ($mapping->keepColumns as $column) {
                 $cells[] = Cell::fromValue($row->kept[$column] ?? null);
+            }
+            // The fixtures have no personal data, so an excluded column is empty.
+            foreach ($mapping->excludeColumns as $ignored) {
+                $cells[] = new EmptyCell(null);
             }
             $writer->addRow(new Row($cells));
         }

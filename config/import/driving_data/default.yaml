@@ -4,8 +4,8 @@ sheet: 0
 header_row: 3
 row_id: [RouteStopID]
 # The other columns that the copy of a row keeps, so that a later task can read them with no new
-# upload. The personal data is never kept: PersonName, Adresse, Post-nr, By, Labels and Comment.
-# See ADR 006. Add a new column of the extract here only after a check for personal data.
+# upload. The personal data is never kept (see "exclude_columns" and ADR 006). Add a new column of
+# the extract here only after a check for personal data.
 keep_columns:
     - RouteGroupID
     - TripID
@@ -50,6 +50,9 @@ keep_columns:
     - SlutTidspunkt
     - tidspunkt
     - Tur
+# The personal data of the extract (ADR 004 and ADR 006). The copy of a row never keeps these
+# columns, and the validate command does not show them as not read.
+exclude_columns: [PersonName, Adresse, Post-nr, By, Labels, Comment]
 fields:
     route: { column: RouteName, type: string, required: true }
     person_id: { column: PersonID, type: string, required: true }

@@ -46,6 +46,7 @@ final class MappingLoader
             rowId: $config['row_id'],
             fields: $fields,
             keepColumns: $config['keep_columns'],
+            excludeColumns: $config['exclude_columns'],
         );
     }
 }

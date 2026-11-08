@@ -55,8 +55,10 @@ final class DrivingDataFixturesCommandTest extends KernelTestCase
         $rows = self::readRows(self::directory().'/base.xlsx');
 
         self::assertSame(self::DEFAULT_HEADER, array_slice($rows[2], 0, 13));
-        // The 43 kept columns of the default mapping follow the field columns.
-        self::assertCount(56, $rows[2]);
+        // The 43 kept columns and the 6 excluded columns of the default mapping follow the field
+        // columns.
+        self::assertCount(62, $rows[2]);
+        self::assertSame(['PersonName', 'Adresse', 'Post-nr', 'By', 'Labels', 'Comment'], array_slice($rows[2], 56));
         self::assertCount(14, array_slice($rows, 3));
     }
 
