@@ -6,7 +6,7 @@
 | **Date** | 2026-11-06 |
 | **Decision Maker** | ITK Dev developers |
 | **Stakeholders** | ITK Dev developers; the operators of the servers; the users of the overview |
-| **Status** | Proposed |
+| **Status** | Approved |
 
 ## Context
 
