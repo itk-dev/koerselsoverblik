@@ -200,6 +200,19 @@ final class MappingLoaderTest extends TestCase
             static fn (array $raw): array => self::with($raw, ['keep_columns' => ['Id']]),
             'The column "Id" in "keep_columns" is a field column or a row id column.',
         ];
+        // The parser removes the spaces at the ends of the header names, so such a name never matches.
+        yield 'field column with a space at the start' => [
+            static fn (array $raw): array => self::withField($raw, 'route', ['column' => ' Route', 'type' => 'string']),
+            'The column " Route" has a space at the start or the end.',
+        ];
+        yield 'row id column with a space at the end' => [
+            static fn (array $raw): array => self::with($raw, ['row_id' => ['Id ', 'Run']]),
+            'The column "Id " has a space at the start or the end.',
+        ];
+        yield 'kept column with a tab at the end' => [
+            static fn (array $raw): array => self::with($raw, ['keep_columns' => ["Note\t"]]),
+            "The column \"Note\t\" has a space at the start or the end.",
+        ];
         yield 'missing fields' => [
             static fn (array $raw): array => self::without($raw, 'fields'),
             'The child config "fields" under "mapping" must be configured.',
