@@ -96,8 +96,8 @@ final class StopRowDtoTest extends TestCase
     }
 
     /**
-     * The values from CellConverter are wall-clock times. The time zone of the value object is
-     * not the time zone of the extract.
+     * The values from CellConverter are wall-clock times. StopRowDto does not use the time zone of
+     * the value object.
      */
     #[DataProvider('valueTimeZones')]
     public function testDateAndTimeIsAWallClockTime(string $timeZone): void
