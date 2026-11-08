@@ -16,10 +16,10 @@ use App\Import\Mapping\FieldName;
 final readonly class RejectedRowDto
 {
     /**
-     * @param int                        $rowNumber    the 1-based row number in the sheet
-     * @param ?FieldName                 $field        the field with the problem, or null if the problem is the row id
-     * @param ?\DateTimeImmutable        $serviceDate  the service date, if the date field of the row is valid
-     * @param array<string, SourceValue> $sourceValues the copy of the row, keyed by the column name
+     * @param int                           $rowNumber    the 1-based row number in the sheet
+     * @param ?FieldName                    $field        the field with the problem, or null if the problem is the row id
+     * @param ?\DateTimeImmutable           $serviceDate  the service date, if the date field of the row is valid
+     * @param array<array-key, SourceValue> $sourceValues the copy of the row, keyed by the column name
      */
     public function __construct(
         public int $rowNumber,

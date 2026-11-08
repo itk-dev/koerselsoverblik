@@ -31,10 +31,10 @@ use App\Import\Mapping\StopType;
 final readonly class StopRowDto
 {
     /**
-     * @param int                        $rowNumber    the 1-based row number in the sheet
-     * @param ?string                    $rowKey       the values of the row id columns, or null if the mapping has no row id
-     * @param array<string, SourceValue> $sourceValues the copy of the row, keyed by the column name
-     * @param list<FieldWarningDto>      $warnings     the optional fields with a value that the parser cannot read
+     * @param int                           $rowNumber    the 1-based row number in the sheet
+     * @param ?string                       $rowKey       the values of the row id columns, or null if the mapping has no row id
+     * @param array<array-key, SourceValue> $sourceValues the copy of the row, keyed by the column name
+     * @param list<FieldWarningDto>         $warnings     the optional fields with a value that the parser cannot read
      */
     public function __construct(
         public int $rowNumber,
@@ -60,9 +60,9 @@ final readonly class StopRowDto
      * The service date is the calendar date at 00:00, and the times are wall-clock times. Both are
      * in the PHP default time zone. See ADR 005.
      *
-     * @param StopRowValues              $values       the values from CellConverter, keyed by the FieldName value
-     * @param array<string, SourceValue> $sourceValues the copy of the row, keyed by the column name
-     * @param list<FieldWarningDto>      $warnings
+     * @param StopRowValues                 $values       the values from CellConverter, keyed by the FieldName value
+     * @param array<array-key, SourceValue> $sourceValues the copy of the row, keyed by the column name
+     * @param list<FieldWarningDto>         $warnings
      */
     public static function fromValues(int $rowNumber, ?string $rowKey, array $values, array $sourceValues = [], array $warnings = []): self
     {

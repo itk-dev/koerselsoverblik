@@ -74,14 +74,14 @@ final class SourceCellsTest extends TestCase
     }
 
     /**
-     * @param array<string, Cell> $cells
+     * @param array<array-key, Cell> $cells
      */
     #[DataProvider('rows')]
     public function testCellsFromACopyGiveTheSameValues(array $cells): void
     {
         // The JSON flags of the Doctrine json type, so that 3.0 stays a decimal.
         $json = json_encode(SourceCells::copy($cells), \JSON_THROW_ON_ERROR | \JSON_PRESERVE_ZERO_FRACTION);
-        /** @var array<string, mixed> $decoded */
+        /** @var array<array-key, mixed> $decoded */
         $decoded = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
 
         $result = SourceCells::cells($decoded);
@@ -94,7 +94,7 @@ final class SourceCellsTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{array<string, Cell>}>
+     * @return iterable<string, array{array<array-key, Cell>}>
      */
     public static function rows(): iterable
     {
@@ -109,6 +109,8 @@ final class SourceCellsTest extends TestCase
         // Cell::fromValue() makes a formula cell from text that starts with "=".
         yield 'text that starts with "="' => [['Text' => new StringCell('=abc')]];
         yield 'several' => [['A' => new StringCell('x'), 'B' => new NumericCell(1)]];
+        // PHP changes the key "2026" to an int, also after json_decode().
+        yield 'numeric column name' => [['2026' => new NumericCell(5)]];
     }
 
     /**

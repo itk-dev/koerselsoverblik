@@ -33,9 +33,11 @@ final class SourceCells
     /**
      * Gives the copy of the cells. An empty cell is left out.
      *
-     * @param array<string, Cell> $cells keyed by the column name
+     * PHP gives an int key for a numeric column name, for example 2026, also after json_decode().
      *
-     * @return array<string, SourceValue>
+     * @param array<array-key, Cell> $cells keyed by the column name
+     *
+     * @return array<array-key, SourceValue>
      */
     public static function copy(array $cells): array
     {
@@ -53,9 +55,9 @@ final class SourceCells
     /**
      * Gives the cells again from a copy.
      *
-     * @param array<string, mixed> $values keyed by the column name
+     * @param array<array-key, mixed> $values keyed by the column name
      *
-     * @return array<string, Cell>
+     * @return array<array-key, Cell>
      *
      * @throws \InvalidArgumentException if a value does not have a type of the copy
      */
@@ -63,7 +65,7 @@ final class SourceCells
     {
         $cells = [];
         foreach ($values as $column => $value) {
-            $cells[$column] = self::cell($column, $value);
+            $cells[$column] = self::cell((string) $column, $value);
         }
 
         return $cells;

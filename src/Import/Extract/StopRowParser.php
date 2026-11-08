@@ -138,7 +138,7 @@ final readonly class StopRowParser
      * The copy has the field columns, the row id columns and the kept columns, in the order of the
      * header. A kept column that is not in the header is not an error.
      *
-     * @return array{array<string, int>, list<int>, array<string, int>} the field columns keyed by the FieldName value, the row id columns, and the columns of the copy keyed by the column name
+     * @return array{array<string, int>, list<int>, array<array-key, int>} the field columns keyed by the FieldName value, the row id columns, and the columns of the copy keyed by the column name
      */
     private static function columns(Row $header, MappingDto $mapping): array
     {
@@ -166,8 +166,9 @@ final readonly class StopRowParser
     /**
      * Gives the index of each column name in the header, in the order of the header. A name has no
      * spaces at the start and the end. If two columns have the same name, the first column is used.
+     * PHP gives an int key for a numeric name, for example 2026.
      *
-     * @return array<string, int>
+     * @return array<array-key, int>
      */
     private static function indexes(Row $header): array
     {
@@ -184,9 +185,9 @@ final readonly class StopRowParser
     }
 
     /**
-     * @param array<string, int> $fieldColumns
-     * @param list<int>          $rowIdColumns
-     * @param array<string, int> $copyColumns
+     * @param array<string, int>    $fieldColumns
+     * @param list<int>             $rowIdColumns
+     * @param array<array-key, int> $copyColumns
      */
     private function stopRow(int $rowNumber, Row $row, MappingDto $mapping, array $fieldColumns, array $rowIdColumns, array $copyColumns, ?ImportRangeDto $range): StopRowDto|RejectedRowDto
     {

@@ -44,6 +44,7 @@
                 '.*\\$row->rowId \\?\\? \\(string\\) \\$index.*',
                 '.*return \\(string\\) \\$code;.*',
                 '.*\\$raw\\[\\(string\\) \\$field\\].*',
+                '.*self::cell\\(\\(string\\) \\$column, \\$value\\).*',
             ],
         },
         // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
