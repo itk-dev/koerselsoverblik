@@ -4,10 +4,8 @@ namespace App\Import;
 
 use App\Entity\Route;
 use App\Entity\RouteRun;
-use App\Entity\StopRow;
-use App\Import\Mapping\StopStatus;
-use App\Import\Mapping\StopType;
-use Doctrine\DBAL\Types\Types;
+use App\Repository\RouteRunRepository;
+use App\Repository\StopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -24,6 +22,8 @@ final readonly class RouteBuilder
     private const int GROUP_SIZE = 500;
 
     public function __construct(
+        private RouteRunRepository $routeRuns,
+        private StopRowRepository $stopRows,
         private EntityManagerInterface $entityManager,
         private RouteRunCalculator $calculator,
     ) {
@@ -37,10 +37,7 @@ final readonly class RouteBuilder
      */
     public function rebuild(ImportRangeDto $range): int
     {
-        $this->entityManager->createQuery('DELETE FROM '.RouteRun::class.' run WHERE run.serviceDate BETWEEN :first AND :last')
-            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
-            ->execute();
+        $this->routeRuns->deleteInRange($range);
 
         $built = 0;
         /** @var list<RouteRun> $written the runs since the last flush */
@@ -61,33 +58,19 @@ final readonly class RouteBuilder
     }
 
     /**
-     * Reads the stop rows of one date, so that only one date is in memory. The rows are in the
-     * order of their ids, so that the calculator gives the same run each time.
+     * Builds the runs of one date, so that only one date is in memory.
      *
      * @return list<RouteRun>
      */
     private function runsOn(\DateTimeImmutable $date): array
     {
-        /** @var list<array{route: int|string, run: int, stopType: StopType, stopStatus: StopStatus, plannedTime: \DateTimeImmutable, actualTime: ?\DateTimeImmutable, delaySeconds: ?int}> $rows */
-        $rows = $this->entityManager->createQuery(
-            'SELECT IDENTITY(row.route) AS route, row.run, row.stopType, row.stopStatus, row.plannedTime, row.actualTime, row.delaySeconds'
-            .' FROM '.StopRow::class.' row WHERE row.serviceDate = :date ORDER BY row.id',
-        )
-            ->setParameter('date', $date, Types::DATE_IMMUTABLE)
-            ->getArrayResult();
-
-        /** @var array<string, list<RunStopDto>> $stops the stops of each run, keyed by the route id and the block number */
-        $stops = [];
-        foreach ($rows as $row) {
-            $stops[$row['route'].'/'.$row['run']][] = new RunStopDto($row['stopType'], $row['stopStatus'], $row['plannedTime'], $row['actualTime'], $row['delaySeconds']);
-        }
-
         $runs = [];
-        foreach ($stops as $key => $runStops) {
-            [$routeId, $run] = array_map(intval(...), explode('/', $key));
+        foreach ($this->stopRows->findRunStopsOn($date) as $routeId => $stopsOfRoute) {
             /** @var Route $route a stop row refers to the route, so the route exists */
             $route = $this->entityManager->getReference(Route::class, $routeId);
-            $runs[] = new RouteRun($route, $date, $run, $this->calculator->calculate($runStops));
+            foreach ($stopsOfRoute as $run => $stops) {
+                $runs[] = new RouteRun($route, $date, $run, $this->calculator->calculate($stops));
+            }
         }
 
         return $runs;

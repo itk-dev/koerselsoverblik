@@ -15,6 +15,8 @@ use App\Import\Mapping\MappingProvider;
 use App\Import\RouteBuilder;
 use App\Import\RouteRunCalculator;
 use App\Import\StopRowReplacer;
+use App\Repository\RouteRunRepository;
+use App\Repository\StopRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
@@ -122,8 +124,13 @@ final class RouteBuilderTest extends KernelTestCase
 
     private function builder(): RouteBuilder
     {
+        $routeRuns = $this->entityManager->getRepository(RouteRun::class);
+        self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
+        $stopRows = $this->entityManager->getRepository(StopRow::class);
+        self::assertInstanceOf(StopRowRepository::class, $stopRows);
+
         // The container removes a private service that no other service uses yet.
-        return new RouteBuilder($this->entityManager, new RouteRunCalculator());
+        return new RouteBuilder($routeRuns, $stopRows, $this->entityManager, new RouteRunCalculator());
     }
 
     /**

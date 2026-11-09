@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Import\RouteRunDto;
+use App\Repository\RouteRunRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -10,7 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
  * One route run: one route on one date with one block number. It is derived from the stop rows,
  * and `RouteBuilder` builds it again for each import. See "Data model" in docs/architecture.md.
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: RouteRunRepository::class)]
 #[ORM\UniqueConstraint(columns: ['route_id', 'service_date', 'run'])]
 #[ORM\Index(columns: ['service_date'])]
 class RouteRun
