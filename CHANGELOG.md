@@ -168,3 +168,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Q4 update, security: Symfony is updated to 8.1.11 for 15 security advisories.
 - Q4 update, direct dependencies: `composer.json` lists the 24 packages and PHP extensions that
   the code uses directly, with the installed versions.
+- Q4 update, dependencies: all packages are updated to the latest minor or patch version, for
+  example Doctrine ORM 3.7.6, PHPStan 2.3.5, PHPUnit 13.4.6 and Foundry 2.15.
