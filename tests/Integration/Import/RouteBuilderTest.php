@@ -140,7 +140,7 @@ final class RouteBuilderTest extends KernelTestCase
      */
     private function scenarioRows(): array
     {
-        return (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows;
+        return new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows;
     }
 
     /**
@@ -149,7 +149,7 @@ final class RouteBuilderTest extends KernelTestCase
     private function importRows(array $rows, ImportRangeDto $range): void
     {
         $mapping = $this->mapping();
-        (new ExtractWriter())->write($this->path, $mapping, $rows);
+        new ExtractWriter()->write($this->path, $mapping, $rows);
         $batch = new ImportBatch($mapping->name, 'extract.xlsx', null, new \DateTimeImmutable(), $range);
         $this->entityManager->persist($batch);
         $this->entityManager->flush();
@@ -158,7 +158,7 @@ final class RouteBuilderTest extends KernelTestCase
         self::assertInstanceOf(StopRowParser::class, $parser);
         $subAgreements = self::getContainer()->get(SubAgreementRepository::class);
         self::assertInstanceOf(SubAgreementRepository::class, $subAgreements);
-        (new StopRowReplacer($this->entityManager, $subAgreements))->replace($range, $mapping, $parser->parse($this->path, $mapping, $range), $batch);
+        new StopRowReplacer($this->entityManager, $subAgreements)->replace($range, $mapping, $parser->parse($this->path, $mapping, $range), $batch);
     }
 
     private function mapping(): MappingDto

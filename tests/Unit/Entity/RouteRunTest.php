@@ -17,7 +17,7 @@ final class RouteRunTest extends TestCase
 {
     public function testRouteRunHasTheValuesOfTheCalculatedRun(): void
     {
-        $route = new Route('R-01', (new SubAgreement())->setReference('R'));
+        $route = new Route('R-01', new SubAgreement()->setReference('R'));
         $serviceDate = new \DateTimeImmutable('2026-01-05');
         $values = new RouteRunDto(
             firstPickupPlanned: new \DateTimeImmutable('2026-01-05 07:00'),
@@ -47,7 +47,7 @@ final class RouteRunTest extends TestCase
     public function testCancelledRunHasNoStops(): void
     {
         $run = new RouteRun(
-            new Route('R-01', (new SubAgreement())->setReference('R')),
+            new Route('R-01', new SubAgreement()->setReference('R')),
             new \DateTimeImmutable('2026-01-05'),
             1,
             new RouteRunDto(null, null, null, null, null, null, true),

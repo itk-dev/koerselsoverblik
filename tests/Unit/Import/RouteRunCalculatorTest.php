@@ -180,7 +180,7 @@ final class RouteRunCalculatorTest extends TestCase
      */
     private static function calculate(array $stops): RouteRunDto
     {
-        return (new RouteRunCalculator())->calculate($stops);
+        return new RouteRunCalculator()->calculate($stops);
     }
 
     private static function stop(StopType $type, StopStatus $status, string $planned, ?string $actual = null): RunStopDto
@@ -198,7 +198,7 @@ final class RouteRunCalculatorTest extends TestCase
     {
         [$hours, $minutes] = array_map(intval(...), explode(':', $time));
 
-        return (new \DateTimeImmutable('2026-01-05'))->modify(\sprintf('+%d hours +%d minutes', $hours, $minutes));
+        return new \DateTimeImmutable('2026-01-05')->modify(\sprintf('+%d hours +%d minutes', $hours, $minutes));
     }
 
     private static function assertTime(string $expected, ?\DateTimeImmutable $value): void
