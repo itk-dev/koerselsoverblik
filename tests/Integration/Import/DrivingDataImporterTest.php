@@ -162,10 +162,10 @@ final class DrivingDataImporterTest extends KernelTestCase
         $this->writeScenario('base');
 
         $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
-        self::assertSame(4, $this->storedRuns());
-
+        $afterFirstImport = $this->storedRuns();
         $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
-        self::assertSame(4, $this->storedRuns());
+
+        self::assertSame([4, 4], [$afterFirstImport, $this->storedRuns()]);
     }
 
     /**
