@@ -155,7 +155,7 @@ final readonly class StopRowReplacer
         $key = mb_strtolower($reference);
         $subAgreement = $subAgreements[$key] ?? $this->subAgreements->findOneBy(['reference' => $reference]);
         if (null === $subAgreement) {
-            $subAgreement = (new SubAgreement())->setReference($reference);
+            $subAgreement = new SubAgreement()->setReference($reference);
             $this->entityManager->persist($subAgreement);
         }
         $subAgreements[$key] = $subAgreement;

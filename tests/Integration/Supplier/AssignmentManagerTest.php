@@ -60,7 +60,7 @@ final class AssignmentManagerTest extends KernelTestCase
     {
         $assignment = $this->manager()->save($this->newData('2026-01-01', null));
         $this->events = [];
-        $other = (new Supplier())->setName('Anden Vognmand');
+        $other = new Supplier()->setName('Anden Vognmand');
         $this->entityManager->persist($other);
 
         $data = AssignmentDto::forChange($assignment);
@@ -132,8 +132,8 @@ final class AssignmentManagerTest extends KernelTestCase
 
     private function newData(string $from, ?string $to): AssignmentDto
     {
-        $subAgreement = (new SubAgreement())->setReference('AB-CD');
-        $supplier = (new Supplier())->setName('Vognmand');
+        $subAgreement = new SubAgreement()->setReference('AB-CD');
+        $supplier = new Supplier()->setName('Vognmand');
         $this->entityManager->persist($subAgreement);
         $this->entityManager->persist($supplier);
 

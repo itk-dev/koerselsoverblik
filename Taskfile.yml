@@ -160,6 +160,7 @@ tasks:
   prepare-code:
     desc: Fix the coding standards, normalize composer.json and run all checks. Run it before you commit
     cmds:
+      - task: rector:apply
       - task: coding-standards-apply
       - task: coding-standards-check
       - task: code-analysis
@@ -172,6 +173,16 @@ tasks:
     desc: Analyse the code with PHPStan
     cmds:
       - '{{ .PHP }} vendor/bin/phpstan analyse'
+
+  rector:check:
+    desc: Check for Rector changes
+    cmds:
+      - '{{ .PHP }} vendor/bin/rector process --dry-run'
+
+  rector:apply:
+    desc: Apply the Rector changes
+    cmds:
+      - '{{ .PHP }} vendor/bin/rector process'
 
   # ---------------------------------------------------- Coding standards ---
 

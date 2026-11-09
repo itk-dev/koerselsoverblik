@@ -105,9 +105,9 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
      */
     public function testPreviewOfARowWithoutPlannedSolo(): void
     {
-        $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
         $values['planned_solo'] = null;
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
 
         $result = $this->validate();
 
@@ -121,9 +121,9 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
      */
     public function testPreviewOfARowWithoutActualTime(): void
     {
-        $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
         $values['actual_time'] = null;
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
 
         $result = $this->validate();
 
@@ -140,7 +140,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     {
         // The parser rejects a row id that occurs again, so the row id must be unique.
         $mapping = $this->customMapping('row_id: [RouteStopID]', 'row_id: [PersonID, RouteStopID]');
-        (new ExtractWriter())->write($this->path, $mapping, (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
+        new ExtractWriter()->write($this->path, $mapping, new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows);
 
         $result = $this->validateCustom();
 
@@ -210,7 +210,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
             ['row_id: [RouteStopID]', "    - Tur\n"],
             ['row_id: [PersonID, StopType]', "    - Tur\n    - Note\n    - Trip\n"],
         );
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
+        new ExtractWriter()->write($this->path, self::defaultMapping(), new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows);
 
         $result = $this->validateCustom();
 
@@ -245,8 +245,8 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
      */
     public function testRowWithoutRowIdIsRejected(): void
     {
-        $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), [new ExtractRow($values, '')]);
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow($values, '')]);
 
         $result = $this->validate();
 
@@ -256,7 +256,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
 
     public function testAllMissingColumnsAreShown(): void
     {
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows, [FieldName::Run, FieldName::StopType]);
+        new ExtractWriter()->write($this->path, self::defaultMapping(), new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows, [FieldName::Run, FieldName::StopType]);
 
         $result = $this->validate();
 
@@ -268,7 +268,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
 
     public function testFileWithoutStopRowsFails(): void
     {
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), []);
+        new ExtractWriter()->write($this->path, self::defaultMapping(), []);
 
         $result = $this->validate();
 
@@ -333,7 +333,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
      */
     private static function execute(array $input): CommandTester
     {
-        $tester = new CommandTester((new Application(self::bootKernel()))->find('app:driving-data:mapping:validate'));
+        $tester = new CommandTester(new Application(self::bootKernel())->find('app:driving-data:mapping:validate'));
         $tester->execute($input);
 
         return $tester;
@@ -381,8 +381,8 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
 
     private function writeScenario(string $name): void
     {
-        $scenario = (new ScenarioLoader())->load(self::SCENARIOS.'/'.$name.'.yaml');
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), $scenario->rows, $scenario->omittedFields);
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/'.$name.'.yaml');
+        new ExtractWriter()->write($this->path, self::defaultMapping(), $scenario->rows, $scenario->omittedFields);
     }
 
     private static function defaultMapping(): MappingDto

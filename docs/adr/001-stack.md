@@ -38,7 +38,7 @@ Option 1:
 - **UI:** server-rendered Twig with AssetMapper (no Node build), hand-built Symfony forms (no
   EasyAdmin), and the itkaarhus design system. Charts are inline SVG rendered by Twig components.
 - **CI and deployment:** GitHub Actions for CI, Woodpecker for deployment.
-- **Testing:** PHPUnit, Infection and PHPStan at max level.
+- **Testing:** PHPUnit, Infection, PHPStan at max level and Rector.
 
 ## Consequences
 

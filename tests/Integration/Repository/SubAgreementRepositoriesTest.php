@@ -122,7 +122,7 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
 
     private function subAgreement(string $reference): SubAgreement
     {
-        $subAgreement = (new SubAgreement())->setReference($reference);
+        $subAgreement = new SubAgreement()->setReference($reference);
         $this->entityManager->persist($subAgreement);
 
         return $subAgreement;
@@ -130,7 +130,7 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
 
     private function supplier(string $name): Supplier
     {
-        $supplier = (new Supplier())->setName($name);
+        $supplier = new Supplier()->setName($name);
         $this->entityManager->persist($supplier);
 
         return $supplier;

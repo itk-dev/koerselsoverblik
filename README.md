@@ -518,9 +518,13 @@ task coding-standards-apply
 
 # PHPStan at max level
 task code-analysis
+
+# Rector
+task rector:check
+task rector:apply
 ```
 
-`task prepare-code` runs the coding standards, code analysis, tests with the coverage check, and
+`task prepare-code` applies Rector and runs the coding standards, code analysis, tests with the coverage check, and
 mutation testing on changed lines. Run it before pushing. GitHub Actions runs the same checks on every pull
 request.
 

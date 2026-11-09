@@ -12,7 +12,7 @@ final class RouteTest extends TestCase
 {
     public function testRouteHasItsNameAndSubAgreement(): void
     {
-        $subAgreement = (new SubAgreement())->setReference('AB-CD');
+        $subAgreement = new SubAgreement()->setReference('AB-CD');
 
         $route = new Route('AB-CD-01', $subAgreement);
 
