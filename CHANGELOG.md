@@ -148,3 +148,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and creates a new route with a sub-agreement that has no assignment. `DrivingDataImporter`
   gives a preview with no changes, and imports in one transaction. The batch keeps the counts,
   the rejection reasons and the warnings, with no values.
+- [#57](https://github.com/itk-dev/koerselsoverblik/issues/57)
+  M1-17 Build the route runs: each stop row stores its delay in seconds. The new `RouteRun`
+  entity holds the first pickup and the last drop-off of each route, date and block number, with
+  the planned time, the actual time and the delay of a measured stop. `RouteBuilder` builds the
+  runs of the range again in the import transaction. The peak passengers, the distances and the
+  durations wait for an answer from the transport office.
