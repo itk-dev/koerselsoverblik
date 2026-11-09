@@ -35,6 +35,7 @@ final class StopRowDtoTest extends TestCase
         self::assertSame(7.5, $row->nextDurationMin);
         self::assertLocal('2026-01-05 07:10:00', $row->plannedTime);
         self::assertLocal('2026-01-05 07:12:00', $row->actualTime);
+        self::assertSame(120, $row->delaySeconds);
         self::assertTrue($row->plannedSolo);
     }
 
@@ -56,7 +57,46 @@ final class StopRowDtoTest extends TestCase
         self::assertNull($row->nextDistanceKm);
         self::assertNull($row->nextDurationMin);
         self::assertNull($row->actualTime);
+        self::assertNull($row->delaySeconds);
         self::assertNull($row->plannedSolo);
+    }
+
+    /**
+     * The delay keeps its seconds. The figures compare it with the tolerance in minutes × 60, so
+     * no rounding rule is necessary.
+     */
+    #[DataProvider('delays')]
+    public function testDelayKeepsItsSeconds(string $actualTime, int $expected): void
+    {
+        $values = self::values();
+        $values['planned_time'] = new \DateTimeImmutable('2026-01-05 07:10:00');
+        $values['actual_time'] = new \DateTimeImmutable($actualTime);
+
+        self::assertSame($expected, self::fromValues($values)->delaySeconds);
+    }
+
+    /**
+     * @return iterable<string, array{string, int}>
+     */
+    public static function delays(): iterable
+    {
+        yield 'exactly 5 minutes late' => ['2026-01-05 07:15:00', 300];
+        yield 'one second more' => ['2026-01-05 07:15:01', 301];
+        yield 'on the planned time' => ['2026-01-05 07:10:00', 0];
+        yield 'early' => ['2026-01-05 07:08:30', -90];
+    }
+
+    /**
+     * A planned time of 24:00 or more is on the next day. The registration of the driver has the
+     * date of the next day.
+     */
+    public function testDelayAfterMidnightIsCorrect(): void
+    {
+        $values = self::values();
+        $values['planned_time'] = new \DateInterval('PT24H30M');
+        $values['actual_time'] = new \DateTimeImmutable('2026-01-06 00:33');
+
+        self::assertSame(180, self::fromValues($values)->delaySeconds);
     }
 
     /**
@@ -179,10 +219,7 @@ final class StopRowDtoTest extends TestCase
         $values['planned_time'] = new \DateInterval('PT0H30M');
         $values['actual_time'] = new \DateInterval('PT3H30M');
 
-        $row = self::fromValues($values);
-
-        self::assertNotNull($row->actualTime);
-        self::assertSame(7200, $row->actualTime->getTimestamp() - $row->plannedTime->getTimestamp());
+        self::assertSame(7200, self::fromValues($values)->delaySeconds);
     }
 
     /**
