@@ -68,6 +68,22 @@ final class DrivingDataImporterTest extends KernelTestCase
         self::assertSame(14, $this->storedRows());
     }
 
+    /**
+     * The preview and the import agree on the rows with a duplicate row id.
+     */
+    public function testPreviewAndImportRejectTheSameDuplicateRowIds(): void
+    {
+        $this->writeScenario('duplicate_row_ids');
+
+        $preview = $this->importer()->preview($this->path, self::range('2026-01-05'), $this->mapping());
+        $batch = $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'duplicates.xlsx');
+
+        self::assertSame(2, $preview->summary->stopRows);
+        self::assertSame(1, $preview->summary->rejectedRows);
+        self::assertSame(2, $batch->getRowsInserted());
+        self::assertSame(1, $batch->getRowsRejected());
+    }
+
     public function testImportSavesTheBatch(): void
     {
         $user = new User('admin@example.com');
