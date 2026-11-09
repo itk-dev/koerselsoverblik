@@ -85,8 +85,9 @@ final class RouteBuilderTest extends KernelTestCase
     public function testRebuildChangesOnlyTheRunsInTheRange(): void
     {
         $nextDay = array_map(
-            static fn (ExtractRow $row): ExtractRow => new ExtractRow(['service_date' => new \DateTimeImmutable('2026-01-06')] + $row->values, 'next-'.$row->rowId, $row->raw, $row->kept),
+            static fn (ExtractRow $row, int $index): ExtractRow => new ExtractRow(['service_date' => new \DateTimeImmutable('2026-01-06')] + $row->values, 'next-'.$index, $row->raw, $row->kept),
             $this->scenarioRows(),
+            array_keys($this->scenarioRows()),
         );
         $this->importRows([...$this->scenarioRows(), ...$nextDay], self::range('2026-01-05', '2026-01-06'));
         self::assertSame(8, $this->builder()->rebuild(self::range('2026-01-05', '2026-01-06')));
