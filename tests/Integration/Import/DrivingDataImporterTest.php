@@ -192,12 +192,20 @@ final class DrivingDataImporterTest extends KernelTestCase
      */
     private function storedRows(): int
     {
-        return (int) $this->entityManager->getConnection()->fetchOne('SELECT COUNT(*) FROM stop_row');
+        return $this->countRows('stop_row');
     }
 
     private function storedBatches(): int
     {
-        return (int) $this->entityManager->getConnection()->fetchOne('SELECT COUNT(*) FROM import_batch');
+        return $this->countRows('import_batch');
+    }
+
+    private function countRows(string $table): int
+    {
+        $count = $this->entityManager->getConnection()->fetchOne('SELECT COUNT(*) FROM '.$table);
+        self::assertIsNumeric($count);
+
+        return (int) $count;
     }
 
     private static function range(string $firstDate, ?string $lastDate = null): ImportRangeDto
