@@ -177,3 +177,4 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The project keeps its own `AGENTS.md`.
 - Q4 update, deprecations: PHPStan uses `phpstan/phpstan-deprecation-rules`. The validator test
   calls `validate()` of the Symfony test case, not the deprecated `validate()` of the validator.
+- The itkaarhus design system is updated to 0.6.0. It adds a purple colour scale for guidance.

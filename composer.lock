@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7f4cbb9837bec0dac5f60e135587a259",
+    "content-hash": "d65c09f807d1311c08fc3f86f2ce1dff",
     "packages": [
         {
             "name": "composer/ca-bundle",
@@ -1697,16 +1697,16 @@
         },
         {
             "name": "itk-dev/itkaarhus-design-system",
-            "version": "0.5.0",
+            "version": "0.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/itk-dev/itkaarhus-design-system",
-                "reference": "9206b4731b6e4666666cfe387781b050bd930fc5"
+                "reference": "386a6eeaae4da287135dce46f57cc37bc1855b8b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/itk-dev/itkaarhus-design-system/zipball/9206b4731b6e4666666cfe387781b050bd930fc5",
-                "reference": "9206b4731b6e4666666cfe387781b050bd930fc5",
+                "url": "https://api.github.com/repos/itk-dev/itkaarhus-design-system/zipball/386a6eeaae4da287135dce46f57cc37bc1855b8b",
+                "reference": "386a6eeaae4da287135dce46f57cc37bc1855b8b",
                 "shasum": ""
             },
             "type": "library",
@@ -1725,7 +1725,7 @@
                 "issues": "https://github.com/itk-dev/itkaarhus-design-system/issues",
                 "source": "https://github.com/itk-dev/itkaarhus-design-system"
             },
-            "time": "2026-07-07T13:41:38+00:00"
+            "time": "2026-11-06T12:40:15+00:00"
         },
         {
             "name": "itk-dev/openid-connect",
