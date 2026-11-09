@@ -23,6 +23,11 @@ final class DevDatasetGenerator
     private const int CITIZENS = 150;
 
     /**
+     * The runs with a delay that grows after the pickups, in percent.
+     */
+    private const int LATE_RUNS_PERCENT = 20;
+
+    /**
      * @return list<ExtractRow>
      */
     public function month(int $seed, \DateTimeImmutable $month): array
@@ -42,16 +47,26 @@ final class DevDatasetGenerator
             }
         }
 
-        return $rows;
+        // The month is in each row id. The import of a month then keeps the row ids of the other
+        // months unique.
+        return array_map(
+            static fn (ExtractRow $row, int $index): ExtractRow => new ExtractRow($row->values, $month->format('Y-m').'-'.($index + 1)),
+            $rows,
+            array_keys($rows),
+        );
     }
 
     /**
      * Makes the stops of one run: the pickups of all trips, then the drop-offs in the same order.
      *
+     * In some runs, the delay grows after the pickups, so that the last drop-offs are in all the
+     * delay bands of the punctuality page.
+     *
      * @return list<ExtractRow>
      */
     private function run(Randomizer $random, string $route, int $run, \DateTimeImmutable $day, int $start): array
     {
+        $lateMinutes = $random->getInt(1, 100) <= self::LATE_RUNS_PERCENT ? $random->getInt(5, 45) : 0;
         $trips = [];
         for ($trip = $random->getInt(1, 3); $trip > 0; --$trip) {
             $chance = $random->getInt(1, 100);
@@ -85,7 +100,7 @@ final class DevDatasetGenerator
                     'next_duration_min' => null === $km ? null : round($km * 2.5, 1),
                     'planned_time' => new \DateInterval(\sprintf('PT%dH%dM', intdiv($minutes, 60), $minutes % 60)),
                     'actual_time' => 'completed' === $status
-                        ? $day->modify(\sprintf('+%d minutes', $minutes + $random->getInt(-2, 12)))
+                        ? $day->modify(\sprintf('+%d minutes', $minutes + $random->getInt(-2, 12) + ('drop_off' === $type ? $lateMinutes : 0)))
                         : null,
                     'planned_solo' => $solo,
                 ]);

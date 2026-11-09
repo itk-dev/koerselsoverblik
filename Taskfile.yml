@@ -77,6 +77,23 @@ tasks:
     cmds:
       - '{{ .CONSOLE }} app:fixtures:driving-data {{ .CLI_ARGS }}'
 
+  fixtures:import:
+    desc: 'Write the extracts, and import each month of invented driving data into the database — `task fixtures:import -- --seed=2`'
+    cmds:
+      - task: fixtures:extracts
+      - task: fixtures:import:months
+
+  fixtures:import:months:
+    internal: true
+    # The task reads the months from the file names after fixtures:extracts has written them.
+    vars:
+      MONTHS:
+        sh: ls var/fixtures/driving_data | sed -n 's/^dev-\(.*\)\.xlsx$/\1/p'
+    cmds:
+      # The range of each file is the first and the last date of its month.
+      - for: { var: MONTHS }
+        cmd: '{{ .CONSOLE }} app:driving-data:import var/fixtures/driving_data/dev-{{ .ITEM }}.xlsx {{ .ITEM }}-01 {{ ((toDate "2006-01-02" (print .ITEM "-01")).AddDate 0 1 -1).Format "2006-01-02" }} --no-interaction'
+
   # --------------------------------------------------------------- Tests ---
 
   test:db:setup:

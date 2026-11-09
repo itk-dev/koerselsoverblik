@@ -8,7 +8,6 @@ use App\Import\Extract\ExtractColumnsDto;
 use App\Import\Extract\ExtractSummaryDto;
 use App\Import\Extract\InvalidExtractException;
 use App\Import\Extract\MissingColumnsException;
-use App\Import\Extract\RejectionCountDto;
 use App\Import\Extract\StopRowDto;
 use App\Import\Extract\StopRowParser;
 use App\Import\Mapping\FieldName;
@@ -83,9 +82,9 @@ final readonly class DrivingDataMappingValidateCommand
             ['Dates with stop rows' => \count($summary->dates)],
         );
 
-        self::groups($io, 'Rejected rows', $summary->rejections);
+        RejectionGroupsTable::show($io, 'Rejected rows', $summary->rejections);
         // A bad value in an optional field. The field is empty, and the row is imported.
-        self::groups($io, 'Warnings', $summary->warnings);
+        RejectionGroupsTable::show($io, 'Warnings', $summary->warnings);
 
         // The names only. A new column can hold personal data, so it is not kept until a person
         // adds it to the mapping.
@@ -130,29 +129,6 @@ final readonly class DrivingDataMappingValidateCommand
             $io->section($title);
             $io->listing($columns);
         }
-    }
-
-    /**
-     * Shows the rows with the same field and reason as one line, with no values.
-     *
-     * @param list<RejectionCountDto> $groups
-     */
-    private static function groups(SymfonyStyle $io, string $title, array $groups): void
-    {
-        if ([] === $groups) {
-            return;
-        }
-
-        $io->section($title);
-        $io->table(
-            ['field', 'reason', 'rows', 'first row numbers'],
-            array_map(static fn (RejectionCountDto $group): array => [
-                $group->field->value ?? '(row id)',
-                $group->reason->value,
-                $group->count,
-                implode(', ', $group->rowNumbers),
-            ], $groups),
-        );
     }
 
     /**
