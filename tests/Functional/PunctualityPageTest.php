@@ -193,8 +193,8 @@ final class PunctualityPageTest extends WebTestCase
      */
     private static function rows(Crawler $crawler, string $test): array
     {
-        return array_values($crawler->filter(\sprintf('[data-test="%s"]', $test))->each(
+        return $crawler->filter(\sprintf('[data-test="%s"]', $test))->each(
             static fn (Crawler $row): array => $row->filter('th, td')->each(static fn (Crawler $cell): string => $cell->text()),
-        ));
+        );
     }
 }
