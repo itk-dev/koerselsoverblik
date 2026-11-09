@@ -101,7 +101,7 @@ final readonly class StopRowReplacer
             rejections: $rejections->groups(),
             warningCount: $warnings->total(),
             warnings: $warnings->groups(),
-            emptyDates: self::emptyDates($range, $dates),
+            emptyDates: array_values(array_diff($range->dates(), array_keys($dates))),
         );
     }
 
@@ -181,22 +181,5 @@ final readonly class StopRowReplacer
         foreach ($rows as $row) {
             $this->entityManager->detach($row);
         }
-    }
-
-    /**
-     * @param array<string, true> $dates the dates with rows, as Y-m-d
-     *
-     * @return list<string>
-     */
-    private static function emptyDates(ImportRangeDto $range, array $dates): array
-    {
-        $emptyDates = [];
-        for ($date = $range->firstDate; $date <= $range->lastDate; $date = $date->modify('+1 day')) {
-            if (!isset($dates[$date->format('Y-m-d')])) {
-                $emptyDates[] = $date->format('Y-m-d');
-            }
-        }
-
-        return $emptyDates;
     }
 }

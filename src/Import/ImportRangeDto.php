@@ -41,6 +41,21 @@ final readonly class ImportRangeDto
     }
 
     /**
+     * Gives each date of the range, as Y-m-d.
+     *
+     * @return list<string>
+     */
+    public function dates(): array
+    {
+        $dates = [];
+        for ($date = $this->firstDate; $date <= $this->lastDate; $date = $date->modify('+1 day')) {
+            $dates[] = $date->format('Y-m-d');
+        }
+
+        return $dates;
+    }
+
+    /**
      * Tells if the date of a date and time is in the range.
      */
     public function contains(\DateTimeInterface $date): bool
