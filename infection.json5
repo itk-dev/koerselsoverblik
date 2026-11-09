@@ -32,20 +32,9 @@
     mutators: {
         '@default': true,
         CastString: {
-            // Equivalent mutants. The code does not use strict types, so PHP changes an int to a
-            // string when it goes to a string parameter or return type, and for trim(). PHP also
-            // changes a numeric array key to an int, with or without the cast. The casts are for
-            // PHPStan.
-            ignore: [
-                'App\\Import\\Extract\\CellConverter::text',
-                'App\\Import\\Extract\\StopRowParser::text',
-            ],
-            ignoreSourceCodeByRegex: [
-                '.*\\$row->rowId \\?\\? \\(string\\) \\$index.*',
-                '.*return \\(string\\) \\$code;.*',
-                '.*\\$raw\\[\\(string\\) \\$field\\].*',
-                '.*self::cell\\(\\(string\\) \\$column, \\$value\\).*',
-            ],
+            // Equivalent mutant. PHP changes a numeric array key to an int, with or without the
+            // cast, also with strict types. The cast is for PHPStan.
+            ignoreSourceCodeByRegex: ['.*\\$raw\\[\\(string\\) \\$field\\].*'],
         },
         // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
         // the temporary files of OpenSpout, so it is necessary.
@@ -72,6 +61,16 @@
         },
         DecrementInteger: {
             ignoreSourceCodeByRegex: ['.*int \\$rows = 5,.*'],
+        },
+        // A change to the visibility of a public method of a service changes the class signature,
+        // with the same problem as above. The tests call the method, so they kill the mutant when
+        // it runs alone.
+        PublicVisibility: {
+            ignore: [
+                'App\\Import\\StopRowReplacer::replace',
+                'App\\Import\\DrivingDataImporter::preview',
+                'App\\Import\\DrivingDataImporter::import',
+            ],
         },
     },
     minCoveredMsi: 80,

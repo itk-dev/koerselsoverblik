@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Unit\Import\Extract;
 
 use App\Import\Extract\SourceCells;
@@ -88,8 +90,8 @@ final class SourceCellsTest extends TestCase
 
         self::assertSame(array_keys($cells), array_keys($result));
         foreach ($cells as $column => $cell) {
-            self::assertInstanceOf($cell::class, $result[$column], $column);
-            self::assertEquals($cell->getValue(), $result[$column]->getValue(), $column);
+            self::assertInstanceOf($cell::class, $result[$column], (string) $column);
+            self::assertEquals($cell->getValue(), $result[$column]->getValue(), (string) $column);
         }
     }
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Import\Extract;
 
 /**
@@ -23,4 +25,6 @@ enum RejectionReason: string
     case OutsideRange = 'outside_range';
     // The row id is empty, or it is not text or a whole number.
     case InvalidRowId = 'invalid_row_id';
+    // An earlier row of the file has the same row id. The import rejects the later rows.
+    case DuplicateRowId = 'duplicate_row_id';
 }

@@ -157,6 +157,7 @@ flowchart TB
     subgraph import["Import/DrivingData"]
         mapping["MappingLoader → MappingDto<br/>config/import/driving_data/*.yaml"]
         importrange["ImportRangeDto<br/>max APP_DRIVING_DATA_MAX_DAYS"]
+        importer["DrivingDataImporter<br/>preview, import"]
         parser["StopRowParser"]
         replacer["StopRowReplacer"]
         builder["RouteBuilder"]
@@ -180,8 +181,10 @@ flowchart TB
     guards --> controllers
     authenticators --> guards
 
-    controllers -- "upload: preview, confirm" --> parser
-    commands --> parser
+    controllers -- "upload: preview, confirm" --> importer
+    commands --> importer
+    importer --> parser
+    importer --> replacer
     mapping --> parser
     importrange --> replacer
     parser --> replacer --> builder --> aggregator
@@ -231,6 +234,7 @@ erDiagram
     ROUTE ||--o{ ROUTE_RUN : "runs"
     ROUTE ||--o{ STOP_ROW : "has"
     IMPORT_BATCH ||--o{ STOP_ROW : "inserted"
+    IMPORT_BATCH ||--o{ REJECTED_STOP_ROW : "rejected"
     SUPPLIER |o--o{ DAILY_STATS : "aggregated per"
 
     USER {
@@ -263,14 +267,16 @@ erDiagram
         int id PK
         string mapping_name
         string file_name
-        int uploaded_by FK
+        int uploaded_by FK "null = the console or a deleted user"
         datetime uploaded_at
         date first_date "first date of the replaced range"
         date last_date "last date of the replaced range"
         int rows_deleted
         int rows_inserted
         int rows_rejected
-        json errors "no field values"
+        int warning_count
+        json errors "groups of field and reason, no field values"
+        json warnings "groups of field and reason, no field values"
     }
     STOP_ROW {
         int id PK
@@ -288,7 +294,17 @@ erDiagram
         datetime actual_time
         bool planned_solo
         string person_id "from the extract (ADR 004)"
+        json source_values "the copy of the row (ADR 006)"
         int import_batch_id FK
+    }
+    REJECTED_STOP_ROW {
+        int id PK
+        int import_batch_id FK
+        int sheet_row_number "row_number is a reserved word in MariaDB"
+        string reason "RejectionReason code"
+        string field "null = the row id"
+        date service_date "null if the date field is not valid"
+        json source_values "the copy of the row (ADR 006)"
     }
     ROUTE_RUN {
         int id PK
@@ -354,8 +370,9 @@ erDiagram
 | `SubAgreement` | A sub-agreement. `SubAgreementReference::fromRouteName()` finds it from a route name |
 | `Route` | A route from the extract, with its sub-agreement. The import creates it |
 | `SubAgreementSupplierAssignment` | The supplier that drives the routes of a sub-agreement from `valid_from` to `valid_to` (empty = no end date) |
-| `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, rejection reasons |
-| `StopRow` | One stop from the extract, with an optional row key from the mapping. See [open decisions](#open-decisions) |
+| `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, and the rejection reasons and warnings as groups of field and reason |
+| `StopRow` | One stop from the extract, with an optional row key from the mapping and the copy of the row. See [open decisions](#open-decisions) |
+| `RejectedStopRow` | A rejected row in the range of its upload, with the row number, the reason and the copy of the row. A later read through a corrected mapping can import it |
 | `RouteRun` | Derived: one route run with its last drop-off, delay, peak passengers and distances |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
@@ -416,10 +433,10 @@ sequenceDiagram
     P-->>C: rows, rejected rows
     C->>DB: begin transaction, create ImportBatch
     C->>U: replace(range, rows)
-    U->>DB: delete all StopRow rows in the range
-    U->>DB: insert the rows of the file
+    U->>DB: delete the StopRow and RejectedStopRow rows in the range
+    U->>DB: insert the rows and the rejected rows of the file, with their copies
     Note over U,DB: each date in the range holds only the rows of the file
-    U-->>C: deleted, inserted, rejected
+    U-->>C: ImportResultDto: counts, reasons, warnings, empty dates
     C->>B: rebuild(range)
     B->>DB: replace RouteRun rows in the range
     C->>A: rebuild(range)
@@ -593,6 +610,11 @@ The user enters the first and the last date of the export, together with the fil
 
 ### Pipeline
 
+`DrivingDataImporter` is the one service for the upload page and the import command.
+`preview()` does step 1, and `import()` does steps 3 to 7 in one transaction
+(`EntityManager::wrapInTransaction()`). The replacement assumes that each extract holds whole
+days and all routes of a day (questions 3 and 4 in [open decisions](#open-decisions)).
+
 1. **Preview.** The upload keeps the file in `var/` with a random name, and keeps its token in
    the session. The parser reads the file, and the page shows the range, the rows to delete,
    insert and reject, and the dates that become empty. No data changes.
@@ -604,24 +626,43 @@ The user enters the first and the last date of the export, together with the fil
    `ExtractLimitsDto` limits. See "Data protection" in [Security](#security). Then
    `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
    with their row number and a reason. A row with a date that `ImportRangeDto::contains()` does
-   not accept is also rejected. A bad value in an optional field gives a warning, not a rejection.
+   not accept is also rejected. A row key that occurs again in the file is rejected after the
+   first stop row with the key, with the reason `duplicate_row_id`. The preview, the validate
+   command and the import then reject the same rows. A bad value in an optional field gives a
+   warning, not a rejection.
    The reason and the warning are `RejectionReason` codes, so field values are never written to
    messages or logs. The person id is kept as it is in the extract
    ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed). Each row, and each rejected
    row in the range, has a copy of its columns (see
    [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row)).
 4. **Replace.** `StopRowReplacer` deletes all `StopRow` rows in the range, from all mappings, and
-   then inserts the parsed rows. It does not check the range again. Rows that are not in the new
-   file are removed, and two uploads can never count the same date twice. A row key that occurs
-   more than once in the file is rejected after the first occurrence, and a unique index on
-   `(mapping_name, row_key)` makes this sure. It returns the deleted and inserted counts.
+   then inserts the parsed rows. It does not check the range or the row keys again. Rows that are
+   not in the new file are removed, and two uploads can never count the same date twice. A unique
+   index on `(mapping_name, row_key)` makes sure that a row key is stored one time.
+   - The replacer also deletes the `RejectedStopRow` rows with a date in the range, and the
+     rejected rows with no date of the earlier batches whose whole range is in the new range. Then
+     it stores the rejected rows of the file with their copies. A row outside the range is not
+     stored, because the upload for its date imports it.
+   - It finds each route by its name, or creates it. A new route finds or creates its
+     sub-agreement with `SubAgreementReference`. A new sub-agreement has no assignment, so its
+     routes count as "Unknown". MariaDB compares text with no regard to case, so two route names
+     that differ only in case are one route.
+   - It saves the rows in groups of 500, and then the entity manager forgets them, so the memory
+     use does not grow with the file.
+   - It returns an `ImportResultDto`: the deleted and inserted counts, the rejected rows and the
+     warnings as `RejectionGroups` (field, reason, count and the first 10 row numbers), and the
+     dates of the range with no rows.
+   - A row key that is stored on a date outside the range breaks the unique index, and the whole
+     import fails with no change. `DrivingDataImporter` then throws `RowIdConflictException`, with
+     no value from the extract. With whole days and unique row ids, this does not occur.
 5. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the range. It groups the
    stops by route, date and run (the block number in the extract), and orders the stops of each
    run by planned time.
 6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
    supplier.
-7. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts
-   and the range.
+7. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts,
+   the rejection reasons and the warnings (`ImportBatch::complete()`). They never have a field
+   value.
 
 Steps 3 to 7 run in one database transaction. A failed import leaves the data as it was.
 

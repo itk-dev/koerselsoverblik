@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Import;
 
 /**
@@ -38,6 +40,21 @@ final readonly class ImportRangeDto
     public function days(): int
     {
         return $this->firstDate->diff($this->lastDate)->days + 1;
+    }
+
+    /**
+     * Gives each date of the range, as Y-m-d.
+     *
+     * @return list<string>
+     */
+    public function dates(): array
+    {
+        $dates = [];
+        for ($date = $this->firstDate; $date <= $this->lastDate; $date = $date->modify('+1 day')) {
+            $dates[] = $date->format('Y-m-d');
+        }
+
+        return $dates;
     }
 
     /**

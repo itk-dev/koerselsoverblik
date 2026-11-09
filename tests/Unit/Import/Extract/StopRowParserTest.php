@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Unit\Import\Extract;
 
 use App\DataFixtures\DrivingData\ExtractRow;
@@ -368,8 +370,9 @@ final class StopRowParserTest extends TestCase
     }
 
     /**
-     * The parser gives each row its key. The replacement of the stop rows rejects a key that
-     * occurs more than once.
+     * The parser gives each row its key, and rejects a key that occurs again in the file. Then the
+     * preview, the validate command and the import show the same rejected rows. The rejected row
+     * has its copy and its service date.
      */
     public function testDuplicateRowIdsScenario(): void
     {
@@ -377,8 +380,27 @@ final class StopRowParserTest extends TestCase
 
         [$rows, $rejected] = $this->parse(self::defaultMapping(), self::range($scenario));
 
-        self::assertSame(['D-1', 'D-2', 'D-1'], array_map(static fn (StopRowDto $row): ?string => $row->rowKey, $rows));
-        self::assertSame([], $rejected);
+        self::assertSame(['D-1', 'D-2'], array_map(static fn (StopRowDto $row): ?string => $row->rowKey, $rows));
+        self::assertSame([[6, RejectionReason::DuplicateRowId, null]], self::reasons($rejected));
+        self::assertSame('2026-01-05', $rejected[0]->serviceDate?->format('Y-m-d'));
+        self::assertSame('D-1', $rejected[0]->sourceValues['RouteStopID']);
+    }
+
+    /**
+     * A rejected row does not count as the first row with its key.
+     */
+    public function testKeyOfARejectedRowIsNotADuplicate(): void
+    {
+        $values = self::scenarioValues();
+        (new ExtractWriter())->write($this->path, self::defaultMapping(), [
+            new ExtractRow($values, 'D-1', raw: ['run' => 'abc']),
+            new ExtractRow($values, 'D-1'),
+        ]);
+
+        [$rows, $rejected] = $this->parse(self::defaultMapping());
+
+        self::assertSame(['D-1'], array_map(static fn (StopRowDto $row): ?string => $row->rowKey, $rows));
+        self::assertSame([[4, RejectionReason::NotWholeNumber, FieldName::Run]], self::reasons($rejected));
     }
 
     public function testEmptyFieldThatTheMappingRequiresIsRejected(): void
