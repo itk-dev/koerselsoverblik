@@ -35,6 +35,26 @@ final class ImportRangeDtoTest extends TestCase
         self::assertSame(3, $range->days());
     }
 
+    /**
+     * Each date of the range occurs one time, also on the days of the changes to and from summer
+     * time.
+     */
+    public function testDatesAcrossTheChangesOfTime(): void
+    {
+        $spring = ImportRangeDto::create(new \DateTimeImmutable('2026-03-28'), new \DateTimeImmutable('2026-03-30'), 31);
+        $autumn = ImportRangeDto::create(new \DateTimeImmutable('2026-10-24'), new \DateTimeImmutable('2026-10-26'), 31);
+
+        self::assertSame(['2026-03-28', '2026-03-29', '2026-03-30'], $spring->dates());
+        self::assertSame(['2026-10-24', '2026-10-25', '2026-10-26'], $autumn->dates());
+    }
+
+    public function testRangeOfOneDayHasOneDate(): void
+    {
+        $range = ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31);
+
+        self::assertSame(['2026-01-05'], $range->dates());
+    }
+
     public function testRangeOfOneDayIsAccepted(): void
     {
         $range = ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31);
