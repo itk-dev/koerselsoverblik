@@ -104,7 +104,7 @@ final class PunctualityPageDtoTest extends TestCase
     }
 
     /**
-     * @param list<PunctualityFiguresDto> $figures the figures of each month, the oldest first
+     * @param non-empty-list<PunctualityFiguresDto> $figures the figures of each month, the oldest first
      */
     private static function page(array $figures): PunctualityPageDto
     {

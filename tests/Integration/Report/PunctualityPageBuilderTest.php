@@ -40,7 +40,7 @@ final class PunctualityPageBuilderTest extends KernelTestCase
         self::assertCount(12, $page->months);
         self::assertSame('2025-03', $page->months[0]->query());
         // The base scenario is on 5 January, the month before the month of the page.
-        self::assertEquals(new PunctualityCountDto(5, 6), $page->previous()->total->dropOffPerCitizen);
+        self::assertEquals(new PunctualityCountDto(5, 6), $page->previous()?->total->dropOffPerCitizen);
         self::assertEquals(new PunctualityCountDto(0, 0), $page->current()->total->dropOffPerCitizen);
         self::assertSame(90, $page->target);
     }

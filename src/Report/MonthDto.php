@@ -77,7 +77,9 @@ final readonly class MonthDto
     /**
      * Gives the months up to and including this month, the oldest first.
      *
-     * @return list<self>
+     * @param positive-int $count
+     *
+     * @return non-empty-list<self>
      */
     public function trailing(int $count): array
     {
