@@ -59,9 +59,10 @@ final class DrivingDataImporterTest extends KernelTestCase
         $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
         $this->writeScenario('range_edges');
 
-        $preview = $this->importer()->preview($this->path, self::range('2026-01-05', '2026-01-07'), $this->mapping());
+        $preview = $this->importer()->preview($this->path, self::range('2026-01-05', '2026-01-07'), $this->mapping(), 3);
 
         self::assertSame(4, $preview->summary->stopRows);
+        self::assertCount(3, $preview->summary->preview);
         self::assertSame(1, $preview->summary->rejectedRows);
         self::assertSame(14, $preview->rowsToDelete);
         self::assertSame(['2026-01-06'], $preview->emptyDates);
@@ -75,7 +76,7 @@ final class DrivingDataImporterTest extends KernelTestCase
     {
         $this->writeScenario('duplicate_row_ids');
 
-        $preview = $this->importer()->preview($this->path, self::range('2026-01-05'), $this->mapping());
+        $preview = $this->importer()->preview($this->path, self::range('2026-01-05'), $this->mapping(), 5);
         $batch = $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'duplicates.xlsx');
 
         self::assertSame(2, $preview->summary->stopRows);

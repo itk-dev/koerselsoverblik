@@ -37,7 +37,7 @@ final readonly class DrivingDataImporter
      * @throws MissingColumnsException if the extract does not have all the columns of the mapping
      * @throws InvalidExtractException if the extract is above a limit, or is not a valid extract
      */
-    public function preview(string $path, ImportRangeDto $range, MappingDto $mapping, int $previewSize = 5): ImportPreviewDto
+    public function preview(string $path, ImportRangeDto $range, MappingDto $mapping, int $previewSize): ImportPreviewDto
     {
         $summary = ExtractSummaryDto::fromRows($this->parser->parse($path, $mapping, $range), $previewSize);
 

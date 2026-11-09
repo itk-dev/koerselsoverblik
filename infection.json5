@@ -77,7 +77,11 @@
         // with the same problem as above. The tests call the method, so they kill the mutant when
         // it runs alone.
         PublicVisibility: {
-            ignore: ['App\\Import\\StopRowReplacer::replace'],
+            ignore: [
+                'App\\Import\\StopRowReplacer::replace',
+                'App\\Import\\DrivingDataImporter::preview',
+                'App\\Import\\DrivingDataImporter::import',
+            ],
         },
     },
     minCoveredMsi: 80,
