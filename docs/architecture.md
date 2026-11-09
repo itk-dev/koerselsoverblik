@@ -616,6 +616,10 @@ The user enters the first and the last date of the export, together with the fil
 (`EntityManager::wrapInTransaction()`). The replacement assumes that each extract holds whole
 days and all routes of a day (questions 3 and 4 in [open decisions](#open-decisions)).
 
+`app:driving-data:import` shows the same preview in the console, and asks for a confirmation
+with "no" as the default. It refuses a file with no stop rows in the range, because the import
+would only delete data. The batch has no user. The command does not delete the file.
+
 1. **Preview.** The upload keeps the file in `var/` with a random name, and keeps its token in
    the session. The parser reads the file, and the page shows the range, the rows to delete,
    insert and reject, and the dates that become empty. No data changes.
@@ -986,11 +990,16 @@ The tests and the local site use generated extracts. No real extract is committe
 - **Development dataset:** `DevDatasetGenerator` makes 13 months of data from a seed, one file
   for each calendar month. The routes and the suppliers are the same as in the development
   fixtures, so the overview shows figures for each supplier.
+  - Each row id has the month, so that the import of one month keeps the row ids of the other
+    months unique.
+  - In one run of five, the delay grows after the pickups. Then the last drop-offs are in all the
+    delay bands of the punctuality page.
 - **Maximum range:** a development file holds one calendar month, so it has at most 31 days. This
   is the default of `APP_DRIVING_DATA_MAX_DAYS`. If the setting is less than 31, the upload
   rejects these files.
 - **Files:** `task fixtures:extracts` writes all files to `var/fixtures/driving_data/`. Upload
-  them by hand to test the upload page.
+  them by hand to test the upload page. `task fixtures:import` also imports each month file with
+  `app:driving-data:import`, for the dates of its month.
 
 ## Deployment
 

@@ -219,7 +219,9 @@ task console -- app:driving-data:import <PATH_TO_FILE> <FROM_DATE> <TO_DATE> [--
 ```
 
 The command shows the same preview, and asks for confirmation unless `--no-interaction` is
-given.
+given. The default answer is no. The dates have the format `YYYY-MM-DD`. The default mapping is
+the value of `APP_DRIVING_DATA_MAPPING`. A file with no stop rows in the range is not imported,
+because the import would only delete data. The command does not delete the file.
 
 ### Clear driving data
 
@@ -550,6 +552,16 @@ task fixtures:extracts
 
 This writes the test scenarios and one file for each of the 13 months to
 `var/fixtures/driving_data/`. The data is invented.
+
+To import the 13 months into the local database:
+
+```shell
+task fixtures:import
+```
+
+This writes the files, and imports each month file for the dates of its month with
+`app:driving-data:import --no-interaction`. A second run replaces the same months. It does not
+import the test scenarios.
 
 Each month file has at most 31 days. If `APP_DRIVING_DATA_MAX_DAYS` is less than 31, the upload
 rejects these files.

@@ -184,3 +184,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Q4 update, deprecations: PHPStan uses `phpstan/phpstan-deprecation-rules`. The validator test
   calls `validate()` of the Symfony test case, not the deprecated `validate()` of the validator.
 - The itkaarhus design system is updated to 0.6.0. It adds a purple colour scale for guidance.
+- [#58](https://github.com/itk-dev/koerselsoverblik/issues/58)
+  M1-19a Import driving data from the console: `app:driving-data:import` shows the preview of the
+  upload page, asks for a confirmation and imports with `DrivingDataImporter`. The output has no
+  person id and no cell value. `task fixtures:import` imports the 13 months of the dev dataset.
+  The dev dataset now has a unique row id for each row, and late runs in all delay bands.
