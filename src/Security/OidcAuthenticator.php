@@ -56,9 +56,13 @@ final class OidcAuthenticator extends OpenIdLoginAuthenticator
      */
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
+        // Only a callback after the redirect gets here. A login that fails in the identity
+        // provider does not come back. Thus this records the failures at the application step,
+        // for example an invalid state, a failed token request or a missing upn.
+        //
         // The bundle throws in onAuthenticationFailure(). AuthenticatorManager calls it before it
-        // dispatches LoginFailureEvent, so the audit subscriber of the bundle never sees a failed
-        // OIDC login. Write the record here. Remove this when the bundle records the failure.
+        // dispatches LoginFailureEvent, so the audit subscriber of the bundle never sees these
+        // failures. Write the record here. Remove this when the bundle records the failure.
         $provider = $request->attributes->get(AuthenticationAuditSubscriber::PROVIDER_ATTRIBUTE);
         $this->auditLogger->loginFailed(
             AuthenticationAuditLogger::METHOD_OIDC,
