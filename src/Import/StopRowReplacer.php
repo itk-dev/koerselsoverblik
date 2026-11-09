@@ -39,8 +39,8 @@ final readonly class StopRowReplacer
 
     /**
      * The parse of the rows starts after the delete. A parse error then also undoes the delete,
-     * when the caller rolls back the transaction. The replacer does not check the range again,
-     * because the parser rejects the rows outside it.
+     * when the caller rolls back the transaction. The replacer does not check the range or the row
+     * keys again, because the parser rejects the rows outside the range and the duplicate keys.
      *
      * @param iterable<StopRowDto|RejectedRowDto> $rows  the rows of the file
      * @param ImportBatch                         $batch a saved batch, so that the rows can refer to it
@@ -51,8 +51,6 @@ final readonly class StopRowReplacer
 
         $rejections = new RejectionGroups();
         $warnings = new RejectionGroups();
-        /** @var array<string, true> $rowKeys the row keys of the file */
-        $rowKeys = [];
         /** @var array<string, Route> $routes the routes of the file, keyed by the route name */
         $routes = [];
         /** @var array<string, SubAgreement> $subAgreements the sub-agreements of the file, keyed by the reference */
@@ -64,10 +62,6 @@ final readonly class StopRowReplacer
         $written = [];
 
         foreach ($rows as $row) {
-            if ($row instanceof StopRowDto && null !== $row->rowKey && isset($rowKeys[$row->rowKey])) {
-                $row = new RejectedRowDto($row->rowNumber, RejectionReason::DuplicateRowId, null, $row->serviceDate, $row->sourceValues);
-            }
-
             if ($row instanceof RejectedRowDto) {
                 $rejections->add($row->field, $row->reason, $row->rowNumber);
                 // The upload for the date of a row outside the range imports it.
@@ -75,9 +69,6 @@ final readonly class StopRowReplacer
                     $written[] = new RejectedStopRow($row, $batch);
                 }
             } else {
-                if (null !== $row->rowKey) {
-                    $rowKeys[$row->rowKey] = true;
-                }
                 foreach ($row->warnings as $warning) {
                     $warnings->add($warning->field, $warning->reason, $row->rowNumber);
                 }

@@ -626,17 +626,19 @@ days and all routes of a day (questions 3 and 4 in [open decisions](#open-decisi
    `ExtractLimitsDto` limits. See "Data protection" in [Security](#security). Then
    `StopRowParser` reads each row and converts the fields. Invalid rows are rejected
    with their row number and a reason. A row with a date that `ImportRangeDto::contains()` does
-   not accept is also rejected. A bad value in an optional field gives a warning, not a rejection.
+   not accept is also rejected. A row key that occurs again in the file is rejected after the
+   first stop row with the key, with the reason `duplicate_row_id`. The preview, the validate
+   command and the import then reject the same rows. A bad value in an optional field gives a
+   warning, not a rejection.
    The reason and the warning are `RejectionReason` codes, so field values are never written to
    messages or logs. The person id is kept as it is in the extract
    ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed). Each row, and each rejected
    row in the range, has a copy of its columns (see
    [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row)).
 4. **Replace.** `StopRowReplacer` deletes all `StopRow` rows in the range, from all mappings, and
-   then inserts the parsed rows. It does not check the range again. Rows that are not in the new
-   file are removed, and two uploads can never count the same date twice. A row key that occurs
-   more than once in the file is rejected after the first occurrence, with the reason
-   `duplicate_row_id`, and a unique index on `(mapping_name, row_key)` makes this sure.
+   then inserts the parsed rows. It does not check the range or the row keys again. Rows that are
+   not in the new file are removed, and two uploads can never count the same date twice. A unique
+   index on `(mapping_name, row_key)` makes sure that a row key is stored one time.
    - The replacer also deletes the `RejectedStopRow` rows with a date in the range, and the
      rejected rows with no date of the earlier batches whose whole range is in the new range. Then
      it stores the rejected rows of the file with their copies. A row outside the range is not

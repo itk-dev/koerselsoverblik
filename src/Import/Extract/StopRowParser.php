@@ -41,6 +41,9 @@ final readonly class StopRowParser
      * The parser checks and opens the file when the caller asks for the first row. Then it can
      * throw the exception. A file above a limit gives no rows.
      *
+     * A row key that occurs again in the file gives a rejected row, after the first stop row with
+     * the key. Then the preview, the validate command and the import reject the same rows.
+     *
      * @param ?ImportRangeDto $range the dates of the upload, or null to accept all dates
      *
      * @return \Generator<int, StopRowDto|RejectedRowDto>
@@ -52,11 +55,21 @@ final readonly class StopRowParser
     {
         // The columns are null until the header row. The rows above the header are not read.
         $columns = null;
+        /** @var array<string, true> $rowKeys the keys of the stop rows so far */
+        $rowKeys = [];
         foreach ($this->rows($path, $mapping) as $rowNumber => $row) {
             if ($rowNumber === $mapping->headerRow) {
                 $columns = self::columns($row, $mapping);
             } elseif (null !== $columns && !self::isEmpty($row)) {
-                yield $this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $columns[2], $range);
+                $stopRow = $this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $columns[2], $range);
+                if ($stopRow instanceof StopRowDto && null !== $stopRow->rowKey) {
+                    if (isset($rowKeys[$stopRow->rowKey])) {
+                        $stopRow = new RejectedRowDto($rowNumber, RejectionReason::DuplicateRowId, null, $stopRow->serviceDate, $stopRow->sourceValues);
+                    } else {
+                        $rowKeys[$stopRow->rowKey] = true;
+                    }
+                }
+                yield $stopRow;
             }
         }
 

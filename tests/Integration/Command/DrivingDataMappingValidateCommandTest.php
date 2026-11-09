@@ -136,7 +136,8 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
      */
     public function testRowKeyWithThePersonIdIsHidden(): void
     {
-        $mapping = $this->customMapping('row_id: [RouteStopID]', 'row_id: [PersonID, Date]');
+        // The parser rejects a row id that occurs again, so the row id must be unique.
+        $mapping = $this->customMapping('row_id: [RouteStopID]', 'row_id: [PersonID, RouteStopID]');
         (new ExtractWriter())->write($this->path, $mapping, (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
 
         $result = $this->validateCustom();
@@ -202,9 +203,10 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
      */
     public function testColumnsThatAreMissingOrNotRead(): void
     {
+        // Each person in the base scenario has one pickup and one drop-off, so the row id is unique.
         $this->customMapping(
             ['row_id: [RouteStopID]', "    - Tur\n"],
-            ['row_id: [blocknumber]', "    - Tur\n    - Note\n    - Trip\n"],
+            ['row_id: [PersonID, StopType]', "    - Tur\n    - Note\n    - Trip\n"],
         );
         (new ExtractWriter())->write($this->path, self::defaultMapping(), (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows);
 
@@ -224,7 +226,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     {
         $this->customMapping(
             ['row_id: [RouteStopID]', 'exclude_columns: [PersonName,'],
-            ['row_id: [blocknumber]', 'exclude_columns: [RouteStopID, Ghost, PersonName,'],
+            ['row_id: [PersonID, StopType]', 'exclude_columns: [RouteStopID, Ghost, PersonName,'],
         );
         $this->writeScenario('base');
 
