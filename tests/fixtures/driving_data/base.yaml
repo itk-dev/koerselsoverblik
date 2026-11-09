@@ -134,3 +134,13 @@ expected:
   on_time: 3
   driven_km: 39.5
   empty_km: 10.0
+  # The four measures as [on time, measured], with a tolerance of 5 minutes. P-003 is picked up
+  # exactly 5 minutes late, which is on time. P-005 is picked up with no registration, and P-006
+  # is cancelled, so they are not measured. The bands of the last drop-offs are on time, more than
+  # 5 to 15, more than 15 to 30 and more than 30 minutes.
+  punctuality:
+    pickup_per_citizen: [5, 5]
+    drop_off_per_citizen: [5, 6]
+    pickup_per_run: [4, 4]
+    drop_off_per_run: [3, 4]
+    bands: [3, 1, 0, 0]

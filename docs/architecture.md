@@ -772,6 +772,34 @@ object.
 or worse for that figure. `Tone` maps a value to ok, warn or danger using thresholds from one
 config file.
 
+### Punctuality
+
+`PunctualityCalculator` gives the figures of the "Rettidighed" page for a `DateRangeDto`. It
+reads `StopRow` and `RouteRun` directly. The daily stats can replace these queries later.
+
+| Measure (Danish label) | Measured rows |
+| --- | --- |
+| Afhentning pr. borger | All completed pickups with a delay |
+| Afsætning pr. borger | All completed drop-offs with a delay |
+| Afhentning pr. vognløb | The first pickup of each route run, if it is measured |
+| Afsætning pr. vognløb | The last drop-off of each route run, if it is measured |
+
+- **On time:** a delay of at most `APP_PUNCTUALITY_TOLERANCE_MINUTES` × 60 seconds. An early stop
+  is on time. Each measure is on time ÷ measured × 100. No measured rows give no value, not 0 %.
+- **No delay in SQL:** the import calculates `delay_seconds` in PHP ([Times](#times)). The queries
+  only compare it with the limits, and count.
+- **Delay bands** of the measured last drop-offs: on time, more than the tolerance to 15 minutes,
+  more than 15 to 30 minutes, and more than 30 minutes. A delay on the edge is in the lower band.
+- **Supplier:** the queries count for each route and date. `SubAgreement::getAssignmentOn()` then
+  gives the supplier of the route on the date, so a supplier change in the period splits the
+  figures on that date. A route with no assignment counts as "Unknown". The suppliers are in the
+  order of the name, with "Unknown" last.
+- **Worst routes:** the 10 routes with the lowest punctuality at the last drop-off, for each
+  route and supplier. On the same punctuality, the route with more measured runs is first. A
+  route with no measured last drop-off is not in the list.
+- **Tone:** `PunctualityTone` is ok at or above `APP_PUNCTUALITY_TARGET`, warn at or above 70 %,
+  and danger below.
+
 ## Security
 
 ```mermaid

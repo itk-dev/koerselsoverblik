@@ -9,6 +9,7 @@ use App\Import\ImportRangeDto;
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
 use App\Import\RunStopDto;
+use App\Report\DateRangeDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
@@ -60,5 +61,45 @@ class StopRowRepository extends ServiceEntityRepository
         }
 
         return $stops;
+    }
+
+    /**
+     * Counts the measured stops of each route, date and stop type in the range, and those of them
+     * that are on time. A measured stop is completed, and it has a delay (an actual time).
+     *
+     * @param int $onTimeSeconds the highest delay that is on time
+     *
+     * @return list<array{route: int, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int, measured: int}>
+     */
+    public function countMeasuredStops(DateRangeDto $range, int $onTimeSeconds): array
+    {
+        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
+        $rows = $this->createQueryBuilder('row')
+            ->select(
+                'IDENTITY(row.route) AS route',
+                'row.serviceDate AS serviceDate',
+                'row.stopType AS stopType',
+                'SUM(CASE WHEN row.delaySeconds <= :onTime THEN 1 ELSE 0 END) AS onTime',
+                'COUNT(row.id) AS measured',
+            )
+            ->where('row.serviceDate BETWEEN :first AND :last')
+            ->andWhere('row.stopStatus = :completed')
+            ->andWhere('row.delaySeconds IS NOT NULL')
+            ->groupBy('row.route, row.serviceDate, row.stopType')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
+            ->setParameter('completed', StopStatus::Completed)
+            ->setParameter('onTime', $onTimeSeconds)
+            ->getQuery()
+            ->getArrayResult();
+
+        // MariaDB gives a sum as text.
+        return array_map(static fn (array $row): array => [
+            'route' => (int) $row['route'],
+            'serviceDate' => $row['serviceDate'],
+            'stopType' => $row['stopType'],
+            'onTime' => (int) $row['onTime'],
+            'measured' => (int) $row['measured'],
+        ], $rows);
     }
 }

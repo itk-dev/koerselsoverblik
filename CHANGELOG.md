@@ -189,3 +189,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   upload page, asks for a confirmation and imports with `DrivingDataImporter`. The output has no
   person id and no cell value. `task fixtures:import` imports the 13 months of the dev dataset.
   The dev dataset now has a unique row id for each row, and late runs in all delay bands.
+- [#59](https://github.com/itk-dev/koerselsoverblik/issues/59)
+  Calculate the punctuality figures: `PunctualityCalculator` gives the four punctuality measures,
+  the delay bands of the last drop-off and the 10 worst routes for a period, in total and for
+  each supplier on each date. `PunctualityTone` gives the tone of a measure.
+  `APP_PUNCTUALITY_TOLERANCE_MINUTES` and `APP_PUNCTUALITY_TARGET` are new settings.

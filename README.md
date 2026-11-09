@@ -69,7 +69,7 @@ averages of daily percentages.
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
 | Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
 | Solo routes | Route runs where no more than one citizen was in the vehicle at any time. Shown with the share of all route runs | Driving data |
-| Punctuality (%) | Share of completed route runs whose last drop-off was within the tolerance of the planned time. Cancelled runs are excluded | Driving data |
+| Punctuality (%) | Share of the measured stops that were within the tolerance of the planned time. Four measures: all pickups, all drop-offs, the first pickup of each route run and the last drop-off of each route run. A stop is measured when the driver registered it as completed. Cancelled stops and stops with no registration are excluded | Driving data |
 | Complaints | Complaints received. Shown with complaints per 1,000 trips | Manual entry |
 | Mails | Citizen enquiries received by mail | Manual entry |
 | Phone calls | Phone calls received | Manual entry |
@@ -168,8 +168,8 @@ Set these in `.env.local`:
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
 | `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |
 | `TRUSTED_PROXIES` | The proxies whose `X-Forwarded-*` headers are trusted, so that URLs use https behind Traefik | `127.0.0.1,REMOTE_ADDR` |
-| `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a last drop-off may be late and still count as on time | `5` |
-| `APP_PUNCTUALITY_TARGET` | Target for punctuality, in percent. Drawn as a line on the chart | `90` |
+| `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time | `5` |
+| `APP_PUNCTUALITY_TARGET` | Target for all four punctuality measures, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 | `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
 | `APP_DRIVING_DATA_MAX_FILE_SIZE` | The maximum size in bytes of an extract | `20971520` (20 MiB) |
