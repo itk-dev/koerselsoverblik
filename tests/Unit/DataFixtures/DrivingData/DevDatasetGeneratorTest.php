@@ -132,10 +132,49 @@ final class DevDatasetGeneratorTest extends TestCase
      */
     public function testLastDropOffsAreInAllDelayBands(): void
     {
-        $rows = new DevDatasetGenerator()->month(7, new \DateTimeImmutable('2026-02-01'));
+        $bands = array_count_values(array_map(static fn (int $delay): string => match (true) {
+            $delay <= 300 => 'on time',
+            $delay <= 900 => 'more than 5 to 15',
+            $delay <= 1800 => 'more than 15 to 30',
+            default => 'more than 30',
+        }, self::lastDropOffDelays('2026-02-01')));
+        ksort($bands);
 
-        $lastDelays = [];
-        foreach ($rows as $row) {
+        self::assertSame(['more than 15 to 30', 'more than 30', 'more than 5 to 15', 'on time'], array_keys($bands));
+    }
+
+    /**
+     * The months have different punctuality, so that the page shows the tones "ok" (90 % or more),
+     * "warn" (70 % or more) and "danger". The month number gives the profile.
+     */
+    public function testMonthsHaveDifferentPunctuality(): void
+    {
+        self::assertGreaterThanOrEqual(90.0, self::onTimePercent('2026-03-01'));
+        $fair = self::onTimePercent('2026-01-01');
+        self::assertGreaterThanOrEqual(70.0, $fair);
+        self::assertLessThan(90.0, $fair);
+        self::assertLessThan(70.0, self::onTimePercent('2026-02-01'));
+    }
+
+    /**
+     * Gives the last drop-offs of the month that are at most 5 minutes late, in percent.
+     */
+    private static function onTimePercent(string $month): float
+    {
+        $delays = self::lastDropOffDelays($month);
+
+        return \count(array_filter($delays, static fn (int $delay): bool => $delay <= 300)) / \count($delays) * 100;
+    }
+
+    /**
+     * Gives the delay in seconds of the last completed drop-off of each run of the month.
+     *
+     * @return array<string, int> keyed by the route, the date and the run
+     */
+    private static function lastDropOffDelays(string $month): array
+    {
+        $delays = [];
+        foreach (new DevDatasetGenerator()->month(7, new \DateTimeImmutable($month)) as $row) {
             if ('drop_off' !== self::string($row, 'stop_type') || 'completed' !== self::string($row, 'stop_status')) {
                 continue;
             }
@@ -145,17 +184,10 @@ final class DevDatasetGeneratorTest extends TestCase
             $run = $row->values['run'];
             self::assertIsInt($run);
             // The drop-offs of a run are in the order of their planned times.
-            $lastDelays[self::string($row, 'route').'|'.$serviceDate->format('Y-m-d').'|'.$run] = self::date($row, 'actual_time')->getTimestamp() - $serviceDate->add($planned)->getTimestamp();
+            $delays[self::string($row, 'route').'|'.$serviceDate->format('Y-m-d').'|'.$run] = self::date($row, 'actual_time')->getTimestamp() - $serviceDate->add($planned)->getTimestamp();
         }
-        $bands = array_count_values(array_map(static fn (int $delay): string => match (true) {
-            $delay <= 300 => 'on time',
-            $delay <= 900 => 'more than 5 to 15',
-            $delay <= 1800 => 'more than 15 to 30',
-            default => 'more than 30',
-        }, $lastDelays));
-        ksort($bands);
 
-        self::assertSame(['more than 15 to 30', 'more than 30', 'more than 5 to 15', 'on time'], array_keys($bands));
+        return $delays;
     }
 
     /**
