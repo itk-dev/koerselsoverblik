@@ -140,6 +140,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   mapping names the six personal columns. The validate command shows the warnings, the kept and
   the excluded columns that are not in the file, and the columns that it does not read. ADR 006
   is proposed.
+- [#63](https://github.com/itk-dev/koerselsoverblik/issues/63)
+  OIDC review follow-up: a stale login callback gives 400, not 500. A refusal from the identity
+  provider with a 4xx status, and a stale callback, are logged as warnings. The authentication
+  log now records a failed login, because the bundle does not. The failure page has a neutral
+  text. The dead `password_hashers` and CSRF token ids are removed. `.env.test` sets
+  `OIDC_CLIENT_SECRET_EXPIRES_AT`. The compose override is `docker-compose.override.yml`.
+  ADR 002 tells that guest accounts are not expected.
 - [#50](https://github.com/itk-dev/koerselsoverblik/issues/50)
   M1-16 Replace the stop rows for the date range of an upload: the new `StopRow`,
   `RejectedStopRow` and `ImportBatch` entities store the rows, the rejected rows in the range and
@@ -154,3 +161,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the planned time, the actual time and the delay of a measured stop. `RouteBuilder` builds the
   runs of the range again in the import transaction. The peak passengers, the distances and the
   durations wait for an answer from the transport office.
+- [#46](https://github.com/itk-dev/koerselsoverblik/issues/46)
+  Strict types: PHP CS Fixer adds `declare(strict_types=1);` to our PHP files and checks it. It
+  excludes the files from Symfony and Flex. Infection no longer ignores the `CastString` mutants
+  that depended on type coercion.

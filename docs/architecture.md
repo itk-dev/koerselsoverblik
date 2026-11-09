@@ -807,8 +807,10 @@ flowchart TD
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
-- A failed login shows a page with a "Prøv igen" link (`OidcLoginFailureListener`): 403 when the
-  identity provider refused, and 500 otherwise. It does not redirect, so a broken login cannot
+- A failed login shows a page with a "Prøv igen" link (`OidcLoginFailureListener`). The status is
+  400 for a stale callback (invalid state or no nonce), and 403 when the identity provider
+  refused. These are logged as warnings. Any other failure is 500 or 503, and is logged as
+  critical. It does not redirect, so a broken login cannot
   loop.
 - **Authentication log:** the bundle's audit trail records each successful login. It also
   records each login that the identity provider approved but the application rejected, with the

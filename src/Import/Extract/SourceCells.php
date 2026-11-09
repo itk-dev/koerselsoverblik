@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Import\Extract;
 
 use OpenSpout\Common\Entity\Cell;
