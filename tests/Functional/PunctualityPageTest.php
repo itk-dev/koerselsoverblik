@@ -101,6 +101,10 @@ final class PunctualityPageTest extends WebTestCase
             self::assertSame('–', self::value($crawler, 'measure-'.$measure));
         }
         self::assertSame('0 af 4 målinger når målet', $crawler->filter('[data-test="goal-status"]')->text());
+        // No data is not "no late runs", so the count tiles have no value and no tone.
+        self::assertSame('–', self::value($crawler, 'late-runs'));
+        self::assertSame('–', self::value($crawler, 'over-30'));
+        self::assertSame('tile__value', $crawler->filter('[data-test="over-30-value"]')->attr('class'));
         self::assertSame([], self::rows($crawler, 'supplier-row'));
         self::assertSame([], self::rows($crawler, 'worst-route-row'));
         self::assertCount(2, $crawler->filter('[data-test="no-data"]'));

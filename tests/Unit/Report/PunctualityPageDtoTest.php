@@ -95,6 +95,24 @@ final class PunctualityPageDtoTest extends TestCase
         self::assertNull($page->over30()->change);
     }
 
+    /**
+     * A month with no measured last drop-offs has no data, not 0 late runs. The history has a gap
+     * for it.
+     */
+    public function testLateLastDropOffsOfAMonthWithNoData(): void
+    {
+        $page = self::page([
+            self::figures([0, 0], [0, 0], [0, 0], [3, 5], [3, 1, 0, 1]),
+            PunctualityFiguresDto::empty(),
+        ]);
+
+        self::assertNull($page->lateRuns()->current);
+        self::assertNull($page->lateRuns()->change);
+        self::assertSame([2.0, null], $page->lateRuns()->history);
+        self::assertNull($page->over30()->current);
+        self::assertSame([1.0, null], $page->over30()->history);
+    }
+
     public function testPageOfOneMonthHasNoPreviousMonth(): void
     {
         $page = self::page([self::figures([1, 1], [1, 1], [1, 1], [1, 1], [1, 0, 0, 0])]);
