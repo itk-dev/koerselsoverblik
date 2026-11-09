@@ -11,6 +11,7 @@ use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;
@@ -163,7 +164,7 @@ final class DrivingDataImportCommandTest extends KernelTestCase
     /**
      * @param array<string, string> $dates
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('invalidRanges')]
+    #[DataProvider('invalidRanges')]
     public function testInvalidRangeIsRejected(array $dates, string $message): void
     {
         $this->writeScenario('base');
