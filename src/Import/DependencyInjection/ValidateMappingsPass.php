@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Import\DependencyInjection;
 
 use App\Import\Mapping\MappingLoader;

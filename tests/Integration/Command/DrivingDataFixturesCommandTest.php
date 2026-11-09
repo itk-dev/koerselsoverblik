@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Integration\Command;
 
 use OpenSpout\Reader\XLSX\Options;
