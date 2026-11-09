@@ -144,7 +144,7 @@ final class SourceCellsTest extends TestCase
     public function testInvalidCopyIsRejected(array $values): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The copy has a value of an unknown type in the column "Bad".');
+        $this->expectExceptionMessageIsOrContains('The copy has a value of an unknown type in the column "Bad".');
 
         SourceCells::cells($values);
     }

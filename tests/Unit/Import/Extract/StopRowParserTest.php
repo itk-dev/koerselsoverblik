@@ -392,7 +392,7 @@ final class StopRowParserTest extends TestCase
     public function testKeyOfARejectedRowIsNotADuplicate(): void
     {
         $values = self::scenarioValues();
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), [
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [
             new ExtractRow($values, 'D-1', raw: ['run' => 'abc']),
             new ExtractRow($values, 'D-1'),
         ]);
@@ -407,7 +407,7 @@ final class StopRowParserTest extends TestCase
     {
         $values = self::scenarioValues();
         $values['passengers_after'] = null;
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
 
         [, $rejected] = $this->parse(self::defaultMapping());
 
@@ -416,7 +416,7 @@ final class StopRowParserTest extends TestCase
 
     public function testRowIdHasNoSpacesAtTheStartAndTheEnd(): void
     {
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), [
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [
             new ExtractRow(self::scenarioValues(), rowId: ' D-1 '),
             new ExtractRow(self::scenarioValues(), rowId: '  '),
         ]);
@@ -451,10 +451,10 @@ final class StopRowParserTest extends TestCase
 
     public function testMissingColumnRejectsTheFile(): void
     {
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), [new ExtractRow(self::scenarioValues())], [FieldName::Run]);
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow(self::scenarioValues())], [FieldName::Run]);
 
         $this->expectException(MissingColumnsException::class);
-        $this->expectExceptionMessage('The extract has no columns "blocknumber".');
+        $this->expectExceptionMessageIsOrContains('The extract has no columns "blocknumber".');
 
         $this->parse(self::defaultMapping());
     }
@@ -500,7 +500,7 @@ final class StopRowParserTest extends TestCase
         $this->writeRows([self::HEADER, self::ROW]);
 
         $this->expectException(MissingColumnsException::class);
-        $this->expectExceptionMessage('The extract has no columns "Id".');
+        $this->expectExceptionMessageIsOrContains('The extract has no columns "Id".');
 
         $this->parse(self::simpleMapping(rowId: ['Id']));
     }
@@ -551,7 +551,7 @@ final class StopRowParserTest extends TestCase
         $this->writeRows([self::HEADER, self::ROW]);
 
         $this->expectException(InvalidExtractException::class);
-        $this->expectExceptionMessage('The extract has no sheet with the index 1.');
+        $this->expectExceptionMessageIsOrContains('The extract has no sheet with the index 1.');
 
         $this->parse(self::simpleMapping(sheet: 1));
     }
@@ -561,7 +561,7 @@ final class StopRowParserTest extends TestCase
         $this->writeRows([self::HEADER, self::ROW]);
 
         $this->expectException(InvalidExtractException::class);
-        $this->expectExceptionMessage('The extract has no header row 5.');
+        $this->expectExceptionMessageIsOrContains('The extract has no header row 5.');
 
         $this->parse(self::simpleMapping(headerRow: 5));
     }
@@ -603,7 +603,7 @@ final class StopRowParserTest extends TestCase
         $this->writeRows([self::HEADER]);
 
         $this->expectException(InvalidExtractException::class);
-        $this->expectExceptionMessage('The extract has no header row 2.');
+        $this->expectExceptionMessageIsOrContains('The extract has no header row 2.');
 
         $this->parser()->header($this->path, self::simpleMapping(headerRow: 2));
     }
@@ -613,7 +613,7 @@ final class StopRowParserTest extends TestCase
         $this->writeRows([self::HEADER, self::ROW, self::ROW]);
 
         $this->expectException(InvalidExtractException::class);
-        $this->expectExceptionMessage('The extract has more than 2 rows.');
+        $this->expectExceptionMessageIsOrContains('The extract has more than 2 rows.');
 
         $this->parser(new ExtractLimitsDto(1_000_000, 1_000_000, 2, 100))->header($this->path, self::simpleMapping());
     }
@@ -626,7 +626,7 @@ final class StopRowParserTest extends TestCase
         $zip->close();
 
         $this->expectException(InvalidExtractException::class);
-        $this->expectExceptionMessage('The extract is not a valid xlsx file.');
+        $this->expectExceptionMessageIsOrContains('The extract is not a valid xlsx file.');
 
         $this->parse(self::simpleMapping());
     }
@@ -661,8 +661,8 @@ final class StopRowParserTest extends TestCase
 
     private function writeScenario(string $name): Scenario
     {
-        $scenario = (new ScenarioLoader())->load(self::SCENARIOS.'/'.$name.'.yaml');
-        (new ExtractWriter())->write($this->path, self::defaultMapping(), $scenario->rows, $scenario->omittedFields);
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/'.$name.'.yaml');
+        new ExtractWriter()->write($this->path, self::defaultMapping(), $scenario->rows, $scenario->omittedFields);
 
         return $scenario;
     }
@@ -731,12 +731,12 @@ final class StopRowParserTest extends TestCase
      */
     private static function scenarioValues(): array
     {
-        return (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        return new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
     }
 
     private static function defaultMapping(): MappingDto
     {
-        return (new MappingLoader())->load(self::DEFAULT_MAPPING);
+        return new MappingLoader()->load(self::DEFAULT_MAPPING);
     }
 
     /**

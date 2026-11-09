@@ -165,3 +165,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the planned time, the actual time and the delay of a measured stop. `RouteBuilder` builds the
   runs of the range again in the import transaction. The peak passengers, the distances and the
   durations wait for an answer from the transport office.
+- Q4 update, templates: the ITK Dev `symfony-8` template is updated. PHP is 8.5 and the nginx
+  image is `nginx/nginx-unprivileged`. The MariaDB service keeps `TZ=Europe/Copenhagen`. The
+  Prettier tasks ignore `.editorconfig`, as the template workflows do, so the JavaScript and the
+  CSS have 2 spaces.
+- CI: the tests workflow runs on all pull requests, not only on pull requests to `develop` and
+  `main`. The mutation tests compare with the base branch of the pull request.
+- Q4 update, security: Symfony is updated to 8.1.11 for 15 security advisories.
+- Q4 update, direct dependencies: `composer.json` lists the 24 packages and PHP extensions that
+  the code uses directly, with the installed versions.
+- Q4 update, dependencies: all packages are updated to the latest minor or patch version, for
+  example Doctrine ORM 3.7.6, PHPStan 2.3.5, PHPUnit 13.4.6 and Foundry 2.15.
+- Q4 update, Rector: Rector 2.8 uses the PHP level from `composer.json` and the sets of the
+  installed packages. `task prepare-code` applies it, and CI checks it. The first run changes 28
+  files, for example `new` without parentheses and the PHPUnit 13 method names.
+- Q4 update, recipes: the Flex recipes of DoctrineBundle, FrameworkBundle and Foundry are updated.
+  The project keeps its own `AGENTS.md`.
+- Q4 update, deprecations: PHPStan uses `phpstan/phpstan-deprecation-rules`. The validator test
+  calls `validate()` of the Symfony test case, not the deprecated `validate()` of the validator.
+- The itkaarhus design system is updated to 0.6.0. It adds a purple colour scale for guidance.

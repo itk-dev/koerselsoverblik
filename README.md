@@ -503,9 +503,9 @@ task test:mutation:full
   review checks the reason.
 - **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
   Each mutant has 30 seconds.
-- **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
-  full run over the whole code base runs on `release/*` and `hotfix/*` branches and is required
-  before a release is merged to `main`.
+- **When mutation testing runs:** pull requests that do not go to `main` run it on the lines that
+  changed since their base branch. A full run over the whole code base runs on `release/*` and
+  `hotfix/*` branches and is required before a release is merged to `main`.
 - **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
   tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
@@ -518,9 +518,13 @@ task coding-standards-apply
 
 # PHPStan at max level
 task code-analysis
+
+# Rector
+task rector:check
+task rector:apply
 ```
 
-`task prepare-code` runs the coding standards, code analysis, tests with the coverage check, and
+`task prepare-code` applies Rector and runs the coding standards, code analysis, tests with the coverage check, and
 mutation testing on changed lines. Run it before pushing. GitHub Actions runs the same checks on every pull
 request.
 
@@ -611,7 +615,7 @@ To set up a new server:
 1. Make sure that PHP and MariaDB use the time zone of the driving data, `Europe/Copenhagen`. The
    application supports one time zone only, and does not check it yet
    ([ADR 005](docs/adr/005-dates-and-times-in-one-time-zone.md)):
-   - `date.timezone` in `php.ini`. The `itkdev/php8.4-fpm` image sets it from `PHP_TIMEZONE`.
+   - `date.timezone` in `php.ini`. The `itkdev/php8.5-fpm` image sets it from `PHP_TIMEZONE`.
    - `@@global.time_zone` in MariaDB, or the time zone of the host when the value is `SYSTEM`.
 1. Set these in `.env.local` (staging included):
    - `APP_ENV=prod`

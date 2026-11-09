@@ -74,7 +74,7 @@ final class ImportRangeDtoTest extends TestCase
     public function testRangeOfOneDayMoreThanTheMaximumIsRejected(): void
     {
         $this->expectException(InvalidImportRangeException::class);
-        $this->expectExceptionMessage('The range has more than 31 days.');
+        $this->expectExceptionMessageIsOrContains('The range has more than 31 days.');
 
         ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-02-01'), 31);
     }
@@ -82,7 +82,7 @@ final class ImportRangeDtoTest extends TestCase
     public function testLastDateBeforeTheFirstDateIsRejected(): void
     {
         $this->expectException(InvalidImportRangeException::class);
-        $this->expectExceptionMessage('The last date is before the first date.');
+        $this->expectExceptionMessageIsOrContains('The last date is before the first date.');
 
         ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-04'), 31);
     }

@@ -23,7 +23,7 @@ final class MappingLoader
     {
         try {
             /** @var MappingConfig $config */
-            $config = (new Processor())->processConfiguration(new MappingConfiguration(), [Yaml::parseFile($path)]);
+            $config = new Processor()->processConfiguration(new MappingConfiguration(), [Yaml::parseFile($path)]);
         } catch (ParseException|InvalidConfigurationException $exception) {
             throw new InvalidMappingException(\sprintf('The import mapping "%s" is not valid: %s', $path, $exception->getMessage()), previous: $exception);
         }

@@ -179,8 +179,8 @@ final class DrivingDataImporterTest extends KernelTestCase
     {
         $this->writeScenario('base');
         $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
-        $scenario = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml');
-        (new ExtractWriter())->write($this->path, $this->mapping(), $scenario->rows, [FieldName::PlannedSolo]);
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml');
+        new ExtractWriter()->write($this->path, $this->mapping(), $scenario->rows, [FieldName::PlannedSolo]);
 
         try {
             $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'broken.xlsx');
@@ -205,9 +205,9 @@ final class DrivingDataImporterTest extends KernelTestCase
         $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
         $rows = array_map(
             static fn (ExtractRow $row): ExtractRow => new ExtractRow(['service_date' => new \DateTimeImmutable('2026-01-06')] + $row->values, $row->rowId, $row->raw, $row->kept),
-            (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows,
+            new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows,
         );
-        (new ExtractWriter())->write($this->path, $this->mapping(), $rows);
+        new ExtractWriter()->write($this->path, $this->mapping(), $rows);
 
         try {
             $this->importer()->import($this->path, self::range('2026-01-06'), $this->mapping(), null, 'next-day.xlsx');
@@ -245,8 +245,8 @@ final class DrivingDataImporterTest extends KernelTestCase
 
     private function writeScenario(string $name): void
     {
-        $scenario = (new ScenarioLoader())->load(self::SCENARIOS.'/'.$name.'.yaml');
-        (new ExtractWriter())->write($this->path, $this->mapping(), $scenario->rows, $scenario->omittedFields);
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/'.$name.'.yaml');
+        new ExtractWriter()->write($this->path, $this->mapping(), $scenario->rows, $scenario->omittedFields);
     }
 
     private function mapping(): MappingDto

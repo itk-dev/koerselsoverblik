@@ -33,12 +33,12 @@ with storage, login, uploads and forms, built and run by the ITK Dev team.
 
 Option 1:
 
-- **Framework and database:** Symfony 8 on PHP 8.4, with MariaDB, on the ITK Dev `symfony-8`
+- **Framework and database:** Symfony 8 on PHP 8.5, with MariaDB, on the ITK Dev `symfony-8`
   template.
 - **UI:** server-rendered Twig with AssetMapper (no Node build), hand-built Symfony forms (no
   EasyAdmin), and the itkaarhus design system. Charts are inline SVG rendered by Twig components.
 - **CI and deployment:** GitHub Actions for CI, Woodpecker for deployment.
-- **Testing:** PHPUnit, Infection and PHPStan at max level.
+- **Testing:** PHPUnit, Infection, PHPStan at max level and Rector.
 
 ## Consequences
 

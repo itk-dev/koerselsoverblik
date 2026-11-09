@@ -27,7 +27,7 @@ final readonly class OidcRoleMapper
      * @param array<string, list<string>> $roleHierarchy
      */
     public function __construct(
-        #[Autowire('%security.role_hierarchy.roles%')]
+        #[Autowire(param: 'security.role_hierarchy.roles')]
         array $roleHierarchy,
         #[Autowire(env: 'OIDC_ROLE_CLAIM')]
         private string $roleClaim,

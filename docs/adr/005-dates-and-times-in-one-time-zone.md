@@ -22,7 +22,7 @@ All parts of the system use `Europe/Copenhagen`, except the parser output:
 | Part | Time zone |
 | --- | --- |
 | The driving data | Local wall-clock times. One source. A time can be 24:00 or more on the service date. |
-| PHP, in development and on the servers | `Europe/Copenhagen`. All environments use the `itkdev/php8.4-fpm` image, with `PHP_TIMEZONE=Europe/Copenhagen`. |
+| PHP, in development and on the servers | `Europe/Copenhagen`. All environments use the `itkdev/php8.5-fpm` image, with `PHP_TIMEZONE=Europe/Copenhagen`. |
 | MariaDB on the servers | `SYSTEM`, and the host is `Europe/Copenhagen`. MariaDB has no time zone for each database. |
 | MariaDB in development | `Europe/Copenhagen`, with `TZ` on the `mariadb` service. This is the same as [devops_itkdev-docker#164](https://github.com/itk-dev/devops_itkdev-docker/pull/164). |
 
@@ -65,7 +65,7 @@ sources with different time zones. This project has one source with local wall-c
 The operators must make sure that these three are the same time zone, `Europe/Copenhagen`:
 
 - The time zone of the wall-clock times in the driving data.
-- `date.timezone` in `php.ini`. The `itkdev/php8.4-fpm` image sets it from `PHP_TIMEZONE`.
+- `date.timezone` in `php.ini`. The `itkdev/php8.5-fpm` image sets it from `PHP_TIMEZONE`.
 - The time zone of MariaDB: `@@global.time_zone`, or the system time zone of the host when the
   value is `SYSTEM`.
 

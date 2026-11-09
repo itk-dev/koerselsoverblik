@@ -42,7 +42,7 @@ final class ExtractWriterTest extends TestCase
 
     public function testRowsAboveTheHeaderAndTheHeaderFollowTheMapping(): void
     {
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), []);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), []);
 
         self::assertSame([], $this->readSheet(0));
         $rows = $this->readSheet(1);
@@ -54,7 +54,7 @@ final class ExtractWriterTest extends TestCase
 
     public function testHeaderIsTheFirstRowWhenTheMappingSaysSo(): void
     {
-        (new ExtractWriter())->write($this->path, self::mapping('valid_without_row_id'), []);
+        new ExtractWriter()->write($this->path, self::mapping('valid_without_row_id'), []);
 
         $rows = $this->readSheet(0);
 
@@ -65,7 +65,7 @@ final class ExtractWriterTest extends TestCase
 
     public function testKeptColumnsHaveTheValuesOfTheRow(): void
     {
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [
             new ExtractRow(self::values(), kept: ['Trip' => 7, 'Note' => 'first']),
             new ExtractRow(self::values()),
         ]);
@@ -80,7 +80,7 @@ final class ExtractWriterTest extends TestCase
      */
     public function testExcludedColumnsComeLastAndAreEmpty(): void
     {
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values())]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow(self::values())]);
 
         $rows = $this->readSheet(1);
         self::assertSame('Name', $rows[1][15]);
@@ -93,14 +93,14 @@ final class ExtractWriterTest extends TestCase
     public function testValueForAColumnThatIsNotKeptIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The row has a value for the column "Colour", which is not kept.');
+        $this->expectExceptionMessageIsOrContains('The row has a value for the column "Colour", which is not kept.');
 
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values(), kept: ['Colour' => 'red'])]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow(self::values(), kept: ['Colour' => 'red'])]);
     }
 
     public function testValuesReadBackWithTheirTypes(): void
     {
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values())]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow(self::values())]);
 
         $row = $this->readSheet(1)[2];
 
@@ -117,7 +117,7 @@ final class ExtractWriterTest extends TestCase
         $values = self::values();
         $values['planned_solo'] = false;
 
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
 
         self::assertSame('N', $this->readSheet(1)[2][12]);
     }
@@ -127,7 +127,7 @@ final class ExtractWriterTest extends TestCase
         $values = self::values();
         $values['stop_status'] = 'completed';
 
-        (new ExtractWriter())->write($this->path, self::mapping('valid_without_row_id'), [new ExtractRow($values)]);
+        new ExtractWriter()->write($this->path, self::mapping('valid_without_row_id'), [new ExtractRow($values)]);
 
         $day = $this->readSheet(0)[1][2];
 
@@ -141,7 +141,7 @@ final class ExtractWriterTest extends TestCase
         $values['next_distance_km'] = null;
         unset($values['actual_time']);
 
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
 
         $row = $this->readSheet(1)[2];
         self::assertSame('', $row[8]);
@@ -152,7 +152,7 @@ final class ExtractWriterTest extends TestCase
     {
         $rows = [new ExtractRow(self::values()), new ExtractRow(self::values(), rowId: 'X-9'), new ExtractRow(self::values())];
 
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), $rows);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), $rows);
 
         self::assertSame(['1', 'X-9', '3'], array_column(array_slice($this->readSheet(1), 2), 0));
     }
@@ -166,12 +166,12 @@ final class ExtractWriterTest extends TestCase
         $mappingPath = sys_get_temp_dir().'/'.uniqid('mapping_', true).'.yaml';
         file_put_contents($mappingPath, $yaml);
         try {
-            $mapping = (new MappingLoader())->load($mappingPath);
+            $mapping = new MappingLoader()->load($mappingPath);
         } finally {
             unlink($mappingPath);
         }
 
-        (new ExtractWriter())->write($this->path, $mapping, [new ExtractRow(self::values())]);
+        new ExtractWriter()->write($this->path, $mapping, [new ExtractRow(self::values())]);
 
         $rows = $this->readSheet(1);
         self::assertSame(self::HEADER, $rows[1]);
@@ -180,14 +180,14 @@ final class ExtractWriterTest extends TestCase
 
     public function testRawValueReplacesTheValue(): void
     {
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values(), raw: ['run' => 'abc'])]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow(self::values(), raw: ['run' => 'abc'])]);
 
         self::assertSame('abc', $this->readSheet(1)[2][4]);
     }
 
     public function testOmittedFieldHasNoColumn(): void
     {
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values())], [FieldName::PlannedSolo]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow(self::values())], [FieldName::PlannedSolo]);
 
         $rows = $this->readSheet(1);
         self::assertSame([...array_slice(self::HEADER, 0, 12), 'Note', 'Trip', 'Name'], $rows[1]);
@@ -200,9 +200,9 @@ final class ExtractWriterTest extends TestCase
         $values['stop_type'] = 'boarding';
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The value of "stop_type" is not in the mapping.');
+        $this->expectExceptionMessageIsOrContains('The value of "stop_type" is not in the mapping.');
 
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
     }
 
     /**
@@ -214,17 +214,17 @@ final class ExtractWriterTest extends TestCase
         $values['persond_id'] = 'P-001';
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The row has a value for "persond_id", which is not a field.');
+        $this->expectExceptionMessageIsOrContains('The row has a value for "persond_id", which is not a field.');
 
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
     }
 
     public function testRawValueForANameThatIsNotAFieldIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The row has a value for "rnu", which is not a field.');
+        $this->expectExceptionMessageIsOrContains('The row has a value for "rnu", which is not a field.');
 
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow(self::values(), raw: ['rnu' => 'abc'])]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow(self::values(), raw: ['rnu' => 'abc'])]);
     }
 
     #[DataProvider('valuesWithTheWrongType')]
@@ -234,9 +234,9 @@ final class ExtractWriterTest extends TestCase
         $values[$field] = $value;
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage(\sprintf('The value of "%s" does not have the type of the field.', $field));
+        $this->expectExceptionMessageIsOrContains(\sprintf('The value of "%s" does not have the type of the field.', $field));
 
-        (new ExtractWriter())->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow($values)]);
     }
 
     /**
@@ -277,7 +277,7 @@ final class ExtractWriterTest extends TestCase
 
     private static function mapping(string $name): MappingDto
     {
-        return (new MappingLoader())->load(self::MAPPINGS.'/'.$name.'.yaml');
+        return new MappingLoader()->load(self::MAPPINGS.'/'.$name.'.yaml');
     }
 
     /**

@@ -30,7 +30,7 @@ final class NoOverlappingAssignmentValidatorTest extends ConstraintValidatorTest
 
     public function testAssignmentWithoutOtherAssignmentsIsValid(): void
     {
-        $this->validator->validate(self::data(new SubAgreement(), '2026-01-01', null), new NoOverlappingAssignment());
+        $this->validate(self::data(new SubAgreement(), '2026-01-01', null), new NoOverlappingAssignment());
 
         $this->assertNoViolation();
     }
@@ -40,7 +40,7 @@ final class NoOverlappingAssignmentValidatorTest extends ConstraintValidatorTest
         $subAgreement = new SubAgreement();
         self::assign($subAgreement, '2026-01-01', '2026-03-31');
 
-        $this->validator->validate(self::data($subAgreement, '2026-03-01', null), new NoOverlappingAssignment());
+        $this->validate(self::data($subAgreement, '2026-03-01', null), new NoOverlappingAssignment());
 
         $this->buildViolation('assignment.overlap')->atPath('property.path.validFrom')->assertRaised();
     }
@@ -50,7 +50,7 @@ final class NoOverlappingAssignmentValidatorTest extends ConstraintValidatorTest
         $subAgreement = new SubAgreement();
         self::assign($subAgreement, '2026-01-01', '2026-03-31');
 
-        $this->validator->validate(self::data($subAgreement, '2026-04-01', null), new NoOverlappingAssignment());
+        $this->validate(self::data($subAgreement, '2026-04-01', null), new NoOverlappingAssignment());
 
         $this->assertNoViolation();
     }
@@ -67,7 +67,7 @@ final class NoOverlappingAssignmentValidatorTest extends ConstraintValidatorTest
         $data = AssignmentDto::forChange($changed);
         $data->validFrom = new \DateTimeImmutable('2026-02-01');
 
-        $this->validator->validate($data, new NoOverlappingAssignment());
+        $this->validate($data, new NoOverlappingAssignment());
 
         $this->assertNoViolation();
     }
@@ -80,7 +80,7 @@ final class NoOverlappingAssignmentValidatorTest extends ConstraintValidatorTest
         $data = AssignmentDto::forChange($changed);
         $data->validFrom = new \DateTimeImmutable('2025-12-31');
 
-        $this->validator->validate($data, new NoOverlappingAssignment());
+        $this->validate($data, new NoOverlappingAssignment());
 
         $this->buildViolation('assignment.overlap')->atPath('property.path.validFrom')->assertRaised();
     }
@@ -93,7 +93,7 @@ final class NoOverlappingAssignmentValidatorTest extends ConstraintValidatorTest
         $subAgreement = new SubAgreement();
         self::assign($subAgreement, '2026-01-01', null);
 
-        $this->validator->validate(AssignmentDto::forNew($subAgreement), new NoOverlappingAssignment());
+        $this->validate(AssignmentDto::forNew($subAgreement), new NoOverlappingAssignment());
 
         $this->assertNoViolation();
     }
@@ -102,14 +102,14 @@ final class NoOverlappingAssignmentValidatorTest extends ConstraintValidatorTest
     {
         $this->expectException(UnexpectedTypeException::class);
 
-        $this->validator->validate(AssignmentDto::forNew(new SubAgreement()), new NotNull());
+        $this->validate(AssignmentDto::forNew(new SubAgreement()), new NotNull());
     }
 
     public function testOtherValueIsRejected(): void
     {
         $this->expectException(UnexpectedValueException::class);
 
-        $this->validator->validate(new SubAgreement(), new NoOverlappingAssignment());
+        $this->validate(new SubAgreement(), new NoOverlappingAssignment());
     }
 
     private static function assign(SubAgreement $subAgreement, string $from, ?string $to): SubAgreementSupplierAssignment

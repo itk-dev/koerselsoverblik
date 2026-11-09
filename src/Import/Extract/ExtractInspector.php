@@ -172,7 +172,7 @@ final readonly class ExtractInspector
 
         return array_reduce(
             str_split($letters),
-            static fn (int $number, string $letter): int => $number * 26 + \ord($letter) - \ord('A') + 1,
+            static fn (int $number, string $letter): int => $number * 26 + \ord($letter[0]) - \ord('A') + 1,
             0,
         );
     }

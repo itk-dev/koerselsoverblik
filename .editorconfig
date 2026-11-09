@@ -10,7 +10,8 @@ indent_style = space
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{yml,yaml}]
+# Follow the Prettier configuration from the ITK Dev template: 2 spaces, except in config/.
+[*.{js,css,scss,yml,yaml}]
 indent_size = 2
 
 [config/**.{yml,yaml}]

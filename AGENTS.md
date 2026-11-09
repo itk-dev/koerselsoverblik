@@ -5,7 +5,7 @@ Instructions for coding agents in this project. Read them before you change code
 ## The project
 
 Kørselsoverblik shows key figures for citizen transport. It is a Symfony 8 application on
-PHP 8.4, with Doctrine ORM and MariaDB. It runs in Docker with the ITK Dev `symfony-8` template.
+PHP 8.5, with Doctrine ORM and MariaDB. It runs in Docker with the ITK Dev `symfony-8` template.
 
 Read these documents before you start a task:
 
@@ -28,6 +28,7 @@ task db:migrate                # Run the database migrations
 task coding-standards-check    # Check all coding standards
 task coding-standards-apply    # Fix the coding standards
 task code-analysis             # PHPStan at max level
+task rector:apply              # Apply the Rector changes
 ```
 
 `.env` holds defaults only. Put secrets and local values in `.env.local`. Do not commit

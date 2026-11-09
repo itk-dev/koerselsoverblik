@@ -99,7 +99,7 @@ final class StopRowReplacerTest extends KernelTestCase
 
     public function testExistingRouteAndSubAgreementAreUsedAgain(): void
     {
-        $subAgreement = (new SubAgreement())->setReference('R');
+        $subAgreement = new SubAgreement()->setReference('R');
         $route = new Route('R-01', $subAgreement);
         $this->entityManager->persist($subAgreement);
         $this->entityManager->persist($route);
@@ -120,8 +120,8 @@ final class StopRowReplacerTest extends KernelTestCase
      */
     public function testRouteNamesThatDifferOnlyInCaseAreOneRoute(): void
     {
-        $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
-        (new ExtractWriter())->write($this->path, $this->mapping(), [
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        new ExtractWriter()->write($this->path, $this->mapping(), [
             new ExtractRow(['route' => 'R-01'] + $values),
             new ExtractRow(['route' => 'r-01'] + $values),
             new ExtractRow(['route' => 'r-02'] + $values),
@@ -154,7 +154,7 @@ final class StopRowReplacerTest extends KernelTestCase
     {
         $rows = $this->writeScenario('base');
         $this->import(self::range('2026-01-05'));
-        (new ExtractWriter())->write($this->path, $this->mapping(), \array_slice($rows, 0, 13));
+        new ExtractWriter()->write($this->path, $this->mapping(), \array_slice($rows, 0, 13));
 
         $result = $this->import(self::range('2026-01-05'));
 
@@ -306,9 +306,9 @@ final class StopRowReplacerTest extends KernelTestCase
      */
     public function testMoreRowsThanOneGroupAreAllStored(): void
     {
-        $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
         $rows = array_map(static fn (int $index): ExtractRow => new ExtractRow($values, 'S-'.$index), range(1, 1001));
-        (new ExtractWriter())->write($this->path, $this->mapping(), $rows);
+        new ExtractWriter()->write($this->path, $this->mapping(), $rows);
 
         $result = $this->import(self::range('2026-01-05'));
 
@@ -322,8 +322,8 @@ final class StopRowReplacerTest extends KernelTestCase
      */
     private function writeScenario(string $name): array
     {
-        $scenario = (new ScenarioLoader())->load(self::SCENARIOS.'/'.$name.'.yaml');
-        (new ExtractWriter())->write($this->path, $this->mapping(), $scenario->rows, $scenario->omittedFields);
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/'.$name.'.yaml');
+        new ExtractWriter()->write($this->path, $this->mapping(), $scenario->rows, $scenario->omittedFields);
 
         return $scenario->rows;
     }
