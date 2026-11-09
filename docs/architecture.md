@@ -104,7 +104,7 @@ flowchart LR
     subgraph server["Docker host (itkdev-docker-compose)"]
         traefik["Traefik<br/>TLS and routing"]
         nginx["nginx<br/>static assets, FastCGI"]
-        phpfpm["phpfpm<br/>Symfony 8 / PHP 8.4"]
+        phpfpm["phpfpm<br/>Symfony 8 / PHP 8.5"]
         mariadb[("MariaDB<br/>application data")]
     end
 
@@ -126,7 +126,7 @@ The application runs on the ITK Dev Docker setup (`symfony-8` template):
 | --- | --- |
 | Traefik | TLS termination and routing to the site |
 | nginx | Serves static assets and passes PHP requests to phpfpm |
-| phpfpm | The Symfony 8 application on PHP 8.4 |
+| phpfpm | The Symfony 8 application on PHP 8.5 |
 | MariaDB | All application data |
 | idp | Local development only: an OIDC mock service (`ghcr.io/geigerzaehler/oidc-provider-mock`) with test users |
 
