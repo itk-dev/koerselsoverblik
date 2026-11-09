@@ -69,7 +69,7 @@ averages of daily percentages.
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
 | Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
 | Solo routes | Route runs where no more than one citizen was in the vehicle at any time. Shown with the share of all route runs | Driving data |
-| Punctuality (%) | Share of completed route runs whose last drop-off was within the tolerance of the planned time. Cancelled runs are excluded | Driving data |
+| Punctuality (%) | Share of the measured stops that were within the tolerance of the planned time. Four measures: all pickups, all drop-offs, the first pickup of each route run and the last drop-off of each route run. A stop is measured when the driver registered it as completed. Cancelled stops and stops with no registration are excluded | Driving data |
 | Complaints | Complaints received. Shown with complaints per 1,000 trips | Manual entry |
 | Mails | Citizen enquiries received by mail | Manual entry |
 | Phone calls | Phone calls received | Manual entry |
