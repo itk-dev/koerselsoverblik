@@ -18,19 +18,20 @@ final class SparklineGeometry
 
     /**
      * Gives the "d" attribute of the SVG path, or null if the line has fewer than two values. No
-     * value breaks the line.
+     * value breaks the line. Equal values give a flat line in the middle, because a line at the
+     * bottom looks like the worst result.
      *
      * @param list<float|null> $values
      */
     public static function path(array $values): ?string
     {
-        $known = array_filter($values, is_float(...));
+        $known = array_filter($values, static fn (?float $value): bool => null !== $value);
         if (\count($known) < 2) {
             return null;
         }
 
         $low = min($known);
-        $span = max($known) - $low ?: 1.0;
+        $span = max($known) - $low;
         $step = self::WIDTH / (\count($values) - 1);
 
         $path = [];
@@ -40,7 +41,9 @@ final class SparklineGeometry
                 $command = 'M';
                 continue;
             }
-            $y = self::HEIGHT - self::MARGIN - ($value - $low) / $span * (self::HEIGHT - 2 * self::MARGIN);
+            $y = 0.0 === $span
+                ? self::HEIGHT / 2
+                : self::HEIGHT - self::MARGIN - ($value - $low) / $span * (self::HEIGHT - 2 * self::MARGIN);
             $path[] = \sprintf('%s%.1f,%.1f', $command, $step * $index, $y);
             $command = 'L';
         }
