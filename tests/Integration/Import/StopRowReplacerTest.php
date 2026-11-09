@@ -112,6 +112,26 @@ final class StopRowReplacerTest extends KernelTestCase
         self::assertContains($route->getId(), $routeIds);
     }
 
+    /**
+     * MariaDB compares text with no regard to case. Two route names that differ only in case are
+     * one route, also in one group of rows that is not saved yet.
+     */
+    public function testRouteNamesThatDifferOnlyInCaseAreOneRoute(): void
+    {
+        $values = (new ScenarioLoader())->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        (new ExtractWriter())->write($this->path, $this->mapping(), [
+            new ExtractRow(['route' => 'R-01'] + $values),
+            new ExtractRow(['route' => 'r-01'] + $values),
+            new ExtractRow(['route' => 'r-02'] + $values),
+        ]);
+
+        $result = $this->import(self::range('2026-01-05'));
+
+        self::assertSame(3, $result->insertedRows);
+        self::assertSame(2, $this->stored(Route::class));
+        self::assertSame(1, $this->stored(SubAgreement::class));
+    }
+
     public function testSecondImportOfTheSameFileGivesTheSameRows(): void
     {
         $this->writeScenario('base');
