@@ -267,7 +267,7 @@ erDiagram
         int id PK
         string mapping_name
         string file_name
-        int uploaded_by FK "null = the console"
+        int uploaded_by FK "null = the console or a deleted user"
         datetime uploaded_at
         date first_date "first date of the replaced range"
         date last_date "last date of the replaced range"

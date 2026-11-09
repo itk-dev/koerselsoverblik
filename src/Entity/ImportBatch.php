@@ -61,8 +61,9 @@ class ImportBatch
         private string $mappingName,
         #[ORM\Column(length: 255)]
         private string $fileName,
+        // A deleted user leaves the batch with no user, as the console does.
         #[ORM\ManyToOne]
-        #[ORM\JoinColumn(nullable: true)]
+        #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
         private ?User $uploadedBy,
         #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
         private \DateTimeImmutable $uploadedAt,
