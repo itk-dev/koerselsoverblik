@@ -89,6 +89,49 @@ final readonly class PunctualityExtension
         return PunctualityTone::fromPercent($value, $this->target)?->value;
     }
 
+    /**
+     * Tells if a change is good ("up"), bad ("down"), no change ("neutral") or not known ("none").
+     *
+     * @param bool $higherIsBetter false for a count of late runs
+     */
+    #[AsTwigFunction('trend_tone')]
+    public function trendTone(?float $change, bool $higherIsBetter = true): string
+    {
+        return match (true) {
+            null === $change => 'none',
+            abs($change) < self::NO_CHANGE => 'neutral',
+            $change > 0 === $higherIsBetter => 'up',
+            default => 'down',
+        };
+    }
+
+    /**
+     * Gives the arrow of the direction of a change, or null if the change is not known.
+     */
+    #[AsTwigFunction('trend_icon')]
+    public function trendIcon(?float $change): ?string
+    {
+        return match (true) {
+            null === $change => null,
+            abs($change) < self::NO_CHANGE => 'lucide:minus',
+            $change > 0 => 'lucide:arrow-up-right',
+            default => 'lucide:arrow-down-right',
+        };
+    }
+
+    /**
+     * Gives a change of a count with its sign.
+     */
+    #[AsTwigFilter('signed_number')]
+    public function signedNumber(?int $change): string
+    {
+        return match (true) {
+            null === $change => self::NO_VALUE,
+            0 === $change => '±0',
+            default => ($change > 0 ? '+' : self::MINUS).number_format(abs($change), 0, ',', '.'),
+        };
+    }
+
     private function shown(float $value): float
     {
         $whole = round($value);

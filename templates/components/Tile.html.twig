@@ -1,13 +1,13 @@
-{% props label, value, tone = null, change = null, changeTone = 'neutral', spark = [], sparkClass = 'series-blue', note = null, test = null %}
+{% props label, value, tone = null, change = null, changeTone = 'neutral', changeIcon = null, spark = [], sparkClass = 'series-blue', note = null, test = null %}
+{# The tone of the change tells if it is good or bad. The arrow tells its direction. #}
 {% set trendTone = change is null ? 'none' : changeTone %}
-{% set trendIcons = {up: 'lucide:arrow-up-right', down: 'lucide:arrow-down-right', neutral: 'lucide:minus'} %}
 <div class="tile"{% if test %} data-test="{{ test }}"{% endif %}>
     <div class="tile__body">
         <span class="tile__label">{{ label }}</span>
         <span class="tile__value{{ tone ? ' is-' ~ tone }}"{% if test %} data-test="{{ test }}-value"{% endif %}>{{ value }}</span>
         <span class="tile__foot">
             <span class="trend trend--{{ trendTone }}">
-                {% if trendIcons[trendTone] is defined %}{{ ux_icon(trendIcons[trendTone], {class: 'icon trend__icon', 'aria-hidden': 'true'}) }}{% endif %}
+                {% if change is not null and changeIcon %}{{ ux_icon(changeIcon, {class: 'icon trend__icon', 'aria-hidden': 'true'}) }}{% endif %}
                 <span{% if test %} data-test="{{ test }}-change"{% endif %}>{{ change ?? 'chart.no_comparison'|trans }}</span>
             </span>
             <twig:Sparkline :values="spark" :cssClass="sparkClass"/>
