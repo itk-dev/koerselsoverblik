@@ -3,6 +3,7 @@
 namespace App\EventListener;
 
 use App\Security\OidcAuthenticator;
+use App\Security\OidcCallbackRejectedException;
 use ItkDev\OpenIdConnectBundle\Exception\AuthenticationFailedException;
 use ItkDev\OpenIdConnectBundle\Exception\ProviderErrorException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -24,7 +25,8 @@ use Twig\Environment;
 #[AsEventListener(
     event: KernelEvents::EXCEPTION,
     method: 'onKernelException',
-    // After the error listener logs the exception (0), and before it renders the error page (-128).
+    // After the error listener logs the exception (0 in Symfony 8, 2048 in earlier versions), and
+    // before it renders the error page (-128).
     priority: -64,
 )]
 final readonly class OidcLoginFailureListener
@@ -42,17 +44,21 @@ final readonly class OidcLoginFailureListener
             return;
         }
 
+        // OidcAuthenticator wraps a refusal from the identity provider.
+        $refusal = $exception instanceof OidcCallbackRejectedException ? $exception->getPrevious() : $exception;
+
         // The page does not show the exception message. It holds the identity provider's text,
         // which belongs in the log.
         $content = $this->twig->render('security/login_failed.html.twig', [
             'login_url' => $this->urlGenerator->generate('itkdev_openid_connect_login', [
                 'providerKey' => OidcAuthenticator::PROVIDER_KEY,
             ]),
-            'declined' => $exception instanceof ProviderErrorException
-                && ProviderErrorException::ACCESS_DENIED === $exception->getError(),
+            'declined' => $refusal instanceof ProviderErrorException
+                && ProviderErrorException::ACCESS_DENIED === $refusal->getError(),
         ]);
 
-        // A refusal has its own status, for example 403. Anything else is an error on this side.
+        // A rejected callback has its own status, for example 400 or 403. Anything else is an error
+        // on this side.
         $status = $exception instanceof HttpExceptionInterface
             ? $exception->getStatusCode()
             : Response::HTTP_INTERNAL_SERVER_ERROR;

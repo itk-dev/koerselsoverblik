@@ -5,10 +5,10 @@ namespace App\Security;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use ItkDev\OpenIdConnect\Exception\ClaimsException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 
 /**
  * Creates or updates the user from the claims of a validated OIDC login.
@@ -35,7 +35,8 @@ final readonly class OidcLogin
     {
         $upn = $claims['upn'] ?? null;
         if (!is_string($upn) || '' === trim($upn)) {
-            throw new CustomUserMessageAuthenticationException('The upn claim is missing.');
+            // OidcAuthenticator wraps it in an authentication exception.
+            throw new ClaimsException('The upn claim is missing.');
         }
 
         $user = $this->userRepository->findOneByEmail($upn);
