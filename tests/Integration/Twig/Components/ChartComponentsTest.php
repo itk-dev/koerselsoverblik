@@ -135,6 +135,7 @@ final class ChartComponentsTest extends KernelTestCase
             'tone' => 'warn',
             'change' => '+2,0 pct.point',
             'changeTone' => 'up',
+            'changeIcon' => 'lucide:arrow-up-right',
             'spark' => [80.0, 89.6],
             'sparkClass' => 'series-info',
             'note' => 'Mål 90 %',

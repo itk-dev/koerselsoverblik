@@ -104,6 +104,67 @@ final class PunctualityExtensionTest extends TestCase
         yield 'no value' => [null, null];
     }
 
+    /**
+     * The tone tells if a change is good or bad. A rise in punctuality is good, and a rise in late
+     * runs is bad.
+     */
+    #[DataProvider('trendTones')]
+    public function testTrendTone(?float $change, bool $higherIsBetter, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->trendTone($change, $higherIsBetter));
+    }
+
+    /**
+     * @return iterable<string, array{?float, bool, string}>
+     */
+    public static function trendTones(): iterable
+    {
+        yield 'no value' => [null, true, 'none'];
+        yield 'no change' => [0.04, true, 'neutral'];
+        yield 'a small fall, no change' => [-0.04, false, 'neutral'];
+        yield 'a rise in punctuality' => [2.0, true, 'up'];
+        yield 'a fall in punctuality' => [-0.05, true, 'down'];
+        yield 'a rise in late runs' => [3.0, false, 'down'];
+        yield 'a fall in late runs' => [-1.0, false, 'up'];
+    }
+
+    /**
+     * The arrow shows the direction of the change, also when the change is bad.
+     */
+    #[DataProvider('trendIcons')]
+    public function testTrendIcon(?float $change, ?string $expected): void
+    {
+        self::assertSame($expected, self::extension()->trendIcon($change));
+    }
+
+    /**
+     * @return iterable<string, array{?float, ?string}>
+     */
+    public static function trendIcons(): iterable
+    {
+        yield 'no value' => [null, null];
+        yield 'no change' => [0.04, 'lucide:minus'];
+        yield 'a rise' => [0.05, 'lucide:arrow-up-right'];
+        yield 'a fall' => [-0.05, 'lucide:arrow-down-right'];
+    }
+
+    #[DataProvider('signedNumbers')]
+    public function testSignedNumber(?int $change, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->signedNumber($change));
+    }
+
+    /**
+     * @return iterable<string, array{?int, string}>
+     */
+    public static function signedNumbers(): iterable
+    {
+        yield 'no value' => [null, '–'];
+        yield 'no change' => [0, '±0'];
+        yield 'a rise' => [3, '+3'];
+        yield 'a fall' => [-1200, '−1.200'];
+    }
+
     public function testTargetComesFromTheSetting(): void
     {
         $extension = new PunctualityExtension(80);
