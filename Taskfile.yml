@@ -231,22 +231,22 @@ tasks:
   coding-standards-javascript-check:
     desc: Check the JavaScript coding standards
     cmds:
-      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.js' --check"
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig 'assets/**/*.js' --check"
 
   coding-standards-javascript-apply:
     desc: Apply the JavaScript coding standards
     cmds:
-      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.js' --write"
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig 'assets/**/*.js' --write"
 
   coding-standards-styles-check:
     desc: Check the CSS coding standards
     cmds:
-      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.{css,scss}' --check"
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig 'assets/**/*.{css,scss}' --check"
 
   coding-standards-styles-apply:
     desc: Apply the CSS coding standards
     cmds:
-      - "{{ .DOCKER_COMPOSE }} run --rm prettier 'assets/**/*.{css,scss}' --write"
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig 'assets/**/*.{css,scss}' --write"
 
   coding-standards-markdown-check:
     desc: Check the Markdown coding standards
@@ -261,9 +261,9 @@ tasks:
   coding-standards-yaml-check:
     desc: Check the YAML coding standards
     cmds:
-      - "{{ .DOCKER_COMPOSE }} run --rm prettier '**/*.{yml,yaml}' --check"
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig '**/*.{yml,yaml}' --check"
 
   coding-standards-yaml-apply:
     desc: Apply the YAML coding standards
     cmds:
-      - "{{ .DOCKER_COMPOSE }} run --rm prettier '**/*.{yml,yaml}' --write"
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig '**/*.{yml,yaml}' --write"

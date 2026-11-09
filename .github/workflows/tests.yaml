@@ -13,9 +13,6 @@ env:
 
 on:
   pull_request:
-    branches:
-      - develop
-      - main
   push:
     branches:
       - develop
@@ -60,13 +57,15 @@ jobs:
 
   mutation:
     name: Mutation testing on changed lines
-    # Feature PRs go to develop. Release PRs to main get the full run in mutation-full.yml.
-    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    # Release PRs to main get the full run in mutation-full.yml.
+    if: github.event_name == 'pull_request' && github.base_ref != 'main'
     runs-on: ubuntu-latest
+    env:
+      # Infection compares the changed lines with the base branch of the PR.
+      TASK_MUTATION_BASE: origin/${{ github.base_ref }}
     steps:
       - uses: actions/checkout@v7
         with:
-          # Infection compares the changed lines with origin/develop.
           fetch-depth: 0
 
       - uses: go-task/setup-task@v1

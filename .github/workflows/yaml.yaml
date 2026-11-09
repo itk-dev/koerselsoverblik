@@ -42,4 +42,4 @@ jobs:
           docker network create frontend
 
       - run: |
-          docker compose run --rm prettier '**/*.{yml,yaml}' --check
+          docker compose run --rm prettier --no-editorconfig '**/*.{yml,yaml}' --check
