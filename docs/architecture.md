@@ -653,7 +653,8 @@ days and all routes of a day (questions 3 and 4 in [open decisions](#open-decisi
      warnings as `RejectionGroups` (field, reason, count and the first 10 row numbers), and the
      dates of the range with no rows.
    - A row key that is stored on a date outside the range breaks the unique index, and the whole
-     import fails with no change. With whole days and unique row ids, this does not occur.
+     import fails with no change. `DrivingDataImporter` then throws `RowIdConflictException`, with
+     no value from the extract. With whole days and unique row ids, this does not occur.
 5. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the range. It groups the
    stops by route, date and run (the block number in the extract), and orders the stops of each
    run by planned time.

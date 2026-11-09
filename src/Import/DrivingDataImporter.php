@@ -10,6 +10,7 @@ use App\Import\Extract\MissingColumnsException;
 use App\Import\Extract\StopRowParser;
 use App\Import\Mapping\MappingDto;
 use App\Repository\StopRowRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -49,15 +50,28 @@ final readonly class DrivingDataImporter
 
     /**
      * Replaces the stop rows of the range with the rows of the file, and saves the batch. All in
-     * one transaction, so a failed import leaves the data as it was.
+     * one transaction, so a failed import leaves the data as it was. After an exception, Doctrine
+     * has closed the entity manager.
      *
      * @param ?User  $user     the user of the upload page, or null for the console
      * @param string $fileName the name of the uploaded file, not the path of the temporary file
      *
      * @throws MissingColumnsException if the extract does not have all the columns of the mapping
      * @throws InvalidExtractException if the extract is above a limit, or is not a valid extract
+     * @throws RowIdConflictException  if a row id of the file is already stored on a date outside the range
      */
     public function import(string $path, ImportRangeDto $range, MappingDto $mapping, ?User $user, string $fileName): ImportBatch
+    {
+        try {
+            return $this->replaceInTransaction($path, $range, $mapping, $user, $fileName);
+        } catch (UniqueConstraintViolationException) {
+            // The index of the row keys is the only unique index that the import can break. The
+            // replacer creates one route and one sub-agreement for each name.
+            throw new RowIdConflictException();
+        }
+    }
+
+    private function replaceInTransaction(string $path, ImportRangeDto $range, MappingDto $mapping, ?User $user, string $fileName): ImportBatch
     {
         return $this->entityManager->wrapInTransaction(function () use ($path, $range, $mapping, $user, $fileName): ImportBatch {
             $batch = new ImportBatch($mapping->name, $fileName, $user, $this->clock->now(), $range);
