@@ -12,7 +12,7 @@ final readonly class PunctualityPageDto
     /**
      * @param non-empty-list<MonthDto>             $months  the months, the oldest first. The last is the month of the page.
      * @param non-empty-list<PunctualityReportDto> $reports one report for each month
-     * @param int                        $target  the value of APP_PUNCTUALITY_TARGET
+     * @param int                                  $target  the value of APP_PUNCTUALITY_TARGET
      */
     public function __construct(
         public array $months,

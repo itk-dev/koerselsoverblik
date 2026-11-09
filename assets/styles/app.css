@@ -638,7 +638,8 @@ body {
   min-width: 0;
 }
 .panel__head {
-  padding: var(--itkaarhus-space-4) var(--itkaarhus-space-5) var(--itkaarhus-space-3);
+  padding: var(--itkaarhus-space-4) var(--itkaarhus-space-5)
+    var(--itkaarhus-space-3);
   border-bottom: var(--hairline);
 }
 .panel__title {
