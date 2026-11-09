@@ -1,0 +1,25 @@
+{% set geometry = this.geometry %}
+<figure class="chart" id="{{ id }}" role="group" aria-labelledby="{{ id }}-caption">
+    <figcaption id="{{ id }}-caption" class="sr-only">{{ caption }}</figcaption>
+    <svg class="chart__svg" viewBox="0 0 840 280" aria-hidden="true" focusable="false">
+        {% for line in geometry.gridLines %}
+            <line class="ch-grid" x1="62" x2="824" y1="{{ line.y }}" y2="{{ line.y }}"/>
+            <text class="ch-ytick" x="52" y="{{ line.y + 4 }}">{{ line.value|number_format }}{{ unit == 'percent' ? ' %' }}</text>
+        {% endfor %}
+        {% if geometry.targetY is not null %}
+            <line class="ch-target" x1="62" x2="824" y1="{{ geometry.targetY }}" y2="{{ geometry.targetY }}"/>
+            <text class="ch-target-label" x="824" y="{{ geometry.targetY - 7 }}">{{ targetLabel }}</text>
+        {% endif %}
+        {% for line in geometry.lines %}
+            <path class="ch-line {{ line.cssClass }}{{ line.dashed ? ' ch-line--dashed' }}" d="{{ line.path }}"/>
+            {% for point in line.points %}
+                <circle class="ch-hit {{ line.cssClass }}" cx="{{ point.x }}" cy="{{ point.y }}" r="9"><title>{{ point.label }} · {{ line.name }}: {{ unit == 'percent' ? point.value|punctuality_percent : point.value|number_format }}</title></circle>
+            {% endfor %}
+        {% endfor %}
+        {% for label in geometry.xLabels %}
+            <text class="ch-xtick" x="{{ label.x }}" y="266">{{ label.label }}</text>
+        {% endfor %}
+    </svg>
+    {{ include('components/_legend.html.twig') }}
+    {{ include('components/_data_table.html.twig') }}
+</figure>

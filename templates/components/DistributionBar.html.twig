@@ -1,0 +1,23 @@
+{% set geometry = this.geometry %}
+<figure class="dist" id="{{ id }}" role="group" aria-labelledby="{{ id }}-caption">
+    <figcaption id="{{ id }}-caption" class="dist__caption">
+        <span class="dist__label-text">{{ caption }}</span>
+        <span class="dist__total">{{ total }}</span>
+    </figcaption>
+    {# The parts are SVG rectangles, because a style attribute with a width is not allowed. #}
+    <svg class="dist__bar" viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        {% for segment in geometry.barSegments %}
+            <rect class="{{ segment.cssClass }}" x="{{ segment.x }}" y="0" width="{{ segment.share }}" height="14"><title>{{ segment.label }}: {{ segment.value|number_format }} ({{ segment.share|number_format(1) }} %)</title></rect>
+        {% endfor %}
+    </svg>
+    <ul class="dist__legend">
+        {% for segment in geometry.segments %}
+            <li class="dist__item">
+                <span class="dist__swatch {{ segment.cssClass }}" aria-hidden="true"></span>
+                <span class="dist__label">{{ segment.label }}</span>
+                <span class="dist__value">{{ segment.value|number_format }}</span>
+                <span class="dist__share">{{ segment.share|number_format(1) }} %</span>
+            </li>
+        {% endfor %}
+    </ul>
+</figure>

@@ -166,7 +166,7 @@ final class ChartComponentsTest extends KernelTestCase
 
     public function testPanel(): void
     {
-        $crawler = $this->renderTwigComponent('Panel', ['title' => 'Den valgte periode', 'subtitle' => 'Sidste afsætning'], null, ['content' => 'Indhold', 'foot' => 'Kilde'])->crawler();
+        $crawler = $this->renderTwigComponent('Panel', ['title' => 'Den valgte periode', 'subtitle' => 'Sidste afsætning'], 'Indhold', ['foot' => 'Kilde'])->crawler();
 
         self::assertSame('Den valgte periode', $crawler->filter('h2.panel__title')->text());
         self::assertSame('Sidste afsætning', $crawler->filter('.panel__sub')->text());

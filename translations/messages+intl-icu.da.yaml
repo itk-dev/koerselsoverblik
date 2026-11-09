@@ -21,6 +21,13 @@ overview:
   title: Overblik
   placeholder: Nøgletallene kommer her.
 
+chart:
+  period: Periode
+  no_comparison: ingen sammenligning
+
+help:
+  how: Sådan er {title} regnet ud
+
 common:
   actions: Handlinger
   edit: Redigér

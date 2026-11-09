@@ -1,0 +1,26 @@
+{# The values of a chart as a table for screen readers. The chart itself is hidden from them. #}
+<div class="sr-only">
+    <table>
+        <caption>{{ caption }}</caption>
+        <thead>
+            <tr>
+                <th scope="col">{{ 'chart.period'|trans }}</th>
+                {% for item in series %}
+                    <th scope="col">{{ item.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for label in labels %}
+                {% set index = loop.index0 %}
+                <tr>
+                    <th scope="row">{{ label }}</th>
+                    {% for item in series %}
+                        {% set value = item.values[index] %}
+                        <td>{{ unit == 'percent' ? value|punctuality_percent : (value is null ? '–' : value|number_format) }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
