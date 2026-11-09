@@ -160,4 +160,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   excludes the files from Symfony and Flex. Infection no longer ignores the `CastString` mutants
   that depended on type coercion.
 - Q4 update, templates: the ITK Dev `symfony-8` template is updated. PHP is 8.5 and the nginx
-  image is `nginx/nginx-unprivileged`. The MariaDB service keeps `TZ=Europe/Copenhagen`.
+  image is `nginx/nginx-unprivileged`. The MariaDB service keeps `TZ=Europe/Copenhagen`. The
+  Prettier tasks ignore `.editorconfig`, as the template workflows do, so the JavaScript and the
+  CSS have 2 spaces.

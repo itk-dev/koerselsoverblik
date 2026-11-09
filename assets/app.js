@@ -13,70 +13,70 @@ const nav = document.querySelector("[data-nav]");
 const wideScreen = window.matchMedia("(min-width: 1024px)");
 
 function isNavOpen() {
-    return shell.classList.contains("is-nav-open");
+  return shell.classList.contains("is-nav-open");
 }
 
 function setNavOpen(open) {
-    shell.classList.toggle("is-nav-open", open);
-    toggle.setAttribute("aria-expanded", String(open));
+  shell.classList.toggle("is-nav-open", open);
+  toggle.setAttribute("aria-expanded", String(open));
 }
 
 if (shell && rail && toggle && nav) {
-    toggle.addEventListener("click", () => {
-        setNavOpen(!isNavOpen());
-    });
+  toggle.addEventListener("click", () => {
+    setNavOpen(!isNavOpen());
+  });
 
-    // On small screens, a click on a link closes the drawer.
-    nav.addEventListener("click", (event) => {
-        if (event.target.closest("a")) {
-            setNavOpen(false);
-        }
-    });
+  // On small screens, a click on a link closes the drawer.
+  nav.addEventListener("click", (event) => {
+    if (event.target.closest("a")) {
+      setNavOpen(false);
+    }
+  });
 
-    // A click outside the drawer, for example on the backdrop, closes it.
-    document.addEventListener("click", (event) => {
-        if (
-            isNavOpen() &&
-            !rail.contains(event.target) &&
-            !toggle.contains(event.target)
-        ) {
-            setNavOpen(false);
-        }
-    });
+  // A click outside the drawer, for example on the backdrop, closes it.
+  document.addEventListener("click", (event) => {
+    if (
+      isNavOpen() &&
+      !rail.contains(event.target) &&
+      !toggle.contains(event.target)
+    ) {
+      setNavOpen(false);
+    }
+  });
 
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && isNavOpen()) {
-            setNavOpen(false);
-            toggle.focus();
-        }
-    });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && isNavOpen()) {
+      setNavOpen(false);
+      toggle.focus();
+    }
+  });
 
-    // On a wide screen, the rail is always visible, so the drawer must not stay open.
-    wideScreen.addEventListener("change", (event) => {
-        if (event.matches) {
-            setNavOpen(false);
-        }
-    });
+  // On a wide screen, the rail is always visible, so the drawer must not stay open.
+  wideScreen.addEventListener("change", (event) => {
+    if (event.matches) {
+      setNavOpen(false);
+    }
+  });
 }
 
 const aboutOpen = document.querySelector("[data-about-open]");
 const aboutDialog = document.querySelector("[data-about-dialog]");
 
 if (aboutOpen && aboutDialog) {
-    aboutOpen.addEventListener("click", () => {
-        aboutDialog.showModal();
-    });
+  aboutOpen.addEventListener("click", () => {
+    aboutDialog.showModal();
+  });
 
-    // A click on the backdrop closes the dialog. The form fills the dialog box, so only a click
-    // outside the box has the dialog itself as its target. The press must also start there, so
-    // that a text selection that ends outside the box does not close the dialog.
-    let pressOnBackdrop = false;
-    aboutDialog.addEventListener("pointerdown", (event) => {
-        pressOnBackdrop = event.target === aboutDialog;
-    });
-    aboutDialog.addEventListener("click", (event) => {
-        if (pressOnBackdrop && event.target === aboutDialog) {
-            aboutDialog.close();
-        }
-    });
+  // A click on the backdrop closes the dialog. The form fills the dialog box, so only a click
+  // outside the box has the dialog itself as its target. The press must also start there, so
+  // that a text selection that ends outside the box does not close the dialog.
+  let pressOnBackdrop = false;
+  aboutDialog.addEventListener("pointerdown", (event) => {
+    pressOnBackdrop = event.target === aboutDialog;
+  });
+  aboutDialog.addEventListener("click", (event) => {
+    if (pressOnBackdrop && event.target === aboutDialog) {
+      aboutDialog.close();
+    }
+  });
 }
