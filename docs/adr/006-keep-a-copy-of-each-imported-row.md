@@ -84,7 +84,7 @@ upload it again.
 
 ### Follow-up Actions
 
-- [ ] Store the copies with the stop rows and the rejected rows (task M1-16).
+- [x] Store the copies with the stop rows and the rejected rows (task M1-16).
 - [ ] Add a command that reads the stored copies again through a changed mapping. A copy leaves
   out the empty cells, so it has no header. The command needs its own rule for a column that is
   in no copy: the column can be empty in all the rows, or not in the extract.
