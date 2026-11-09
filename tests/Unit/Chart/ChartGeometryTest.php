@@ -180,8 +180,9 @@ final class ChartGeometryTest extends TestCase
         self::assertSame('M0.0,29.0 L60.0,3.0 L120.0,16.0', SparklineGeometry::path([1.0, 3.0, 2.0]));
         // No value breaks the line.
         self::assertSame('M0.0,29.0 M120.0,3.0', SparklineGeometry::path([1.0, null, 3.0]));
-        // The same values give a flat line at the bottom.
-        self::assertSame('M0.0,29.0 L120.0,29.0', SparklineGeometry::path([5.0, 5.0]));
+        // The same values give a flat line in the middle. At the bottom, twelve months at 100 %
+        // would look like the worst result.
+        self::assertSame('M0.0,16.0 L120.0,16.0', SparklineGeometry::path([5.0, 5.0]));
     }
 
     /**
