@@ -14,6 +14,6 @@ final class MissingColumnsException extends InvalidExtractException
      */
     public function __construct(public readonly array $columns)
     {
-        parent::__construct(\sprintf('The extract has no columns "%s".', implode('", "', $columns)));
+        parent::__construct(ExtractProblem::MissingColumns, message: \sprintf('The extract has no columns "%s".', implode('", "', $columns)));
     }
 }

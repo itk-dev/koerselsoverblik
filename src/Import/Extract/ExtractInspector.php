@@ -37,19 +37,19 @@ final readonly class ExtractInspector
     public function inspect(string $path): void
     {
         if (!is_file($path)) {
-            throw new InvalidExtractException('The extract is not a file.');
+            throw new InvalidExtractException(ExtractProblem::NotFile);
         }
         if (filesize($path) > $this->limits->maxFileSize) {
-            throw new InvalidExtractException(\sprintf('The extract is larger than %d bytes.', $this->limits->maxFileSize));
+            throw new InvalidExtractException(ExtractProblem::TooLarge, $this->limits->maxFileSize);
         }
 
         // PHP closes the archive when it frees $zip at the end of the method.
         $zip = new \ZipArchive();
         if (true !== $zip->open($path, \ZipArchive::RDONLY)) {
-            throw new InvalidExtractException('The extract is not an xlsx file.');
+            throw new InvalidExtractException(ExtractProblem::NotXlsx);
         }
         if ($zip->numFiles > self::MAX_FILES) {
-            throw new InvalidExtractException(\sprintf('The extract has more than %d files.', self::MAX_FILES));
+            throw new InvalidExtractException(ExtractProblem::TooManyFiles, self::MAX_FILES);
         }
 
         // libzip does not check the uncompressed size that the archive gives for a file. Thus the
@@ -76,10 +76,10 @@ final readonly class ExtractInspector
         // data gives a warning and false. The exception replaces the warning.
         $size = false === $stream ? false : @stream_copy_to_stream($stream, $copy, $remaining + 1);
         if (false === $size) {
-            throw new InvalidExtractException('The extract has a file that cannot be read.');
+            throw new InvalidExtractException(ExtractProblem::Unreadable);
         }
         if ($size > $remaining) {
-            throw new InvalidExtractException(\sprintf('The extract is larger than %d bytes when it is not compressed.', $this->limits->maxUncompressedSize));
+            throw new InvalidExtractException(ExtractProblem::TooLargeUncompressed, $this->limits->maxUncompressedSize);
         }
 
         rewind($copy);
@@ -107,7 +107,7 @@ final readonly class ExtractInspector
             while ($reader->read()) {
                 $isXml = true;
                 if (\XMLReader::DOC_TYPE === $reader->nodeType) {
-                    throw new InvalidExtractException('The extract has a DOCTYPE.');
+                    throw new InvalidExtractException(ExtractProblem::Doctype);
                 }
                 if (\XMLReader::ELEMENT !== $reader->nodeType) {
                     continue;
@@ -127,7 +127,7 @@ final readonly class ExtractInspector
                         $number = $reader->getAttribute('r');
                         $row = null === $number ? $row + 1 : (int) $number;
                         if ($row > $this->limits->maxRows) {
-                            throw new InvalidExtractException(\sprintf('The extract has more than %d rows.', $this->limits->maxRows));
+                            throw new InvalidExtractException(ExtractProblem::TooManyRows, $this->limits->maxRows);
                         }
                         $column = 0;
                         // For example "1:5". OpenSpout uses (int) on the value after the colon.
@@ -145,7 +145,7 @@ final readonly class ExtractInspector
 
             // A file that is not XML gives no nodes. OpenSpout cannot read it as a sheet.
             if ($isXml && [] !== libxml_get_errors()) {
-                throw new InvalidExtractException('The extract has an XML file that is not valid.');
+                throw new InvalidExtractException(ExtractProblem::InvalidXml);
             }
         } finally {
             libxml_clear_errors();
@@ -156,7 +156,7 @@ final readonly class ExtractInspector
     private function checkColumn(int $column): void
     {
         if ($column > $this->limits->maxColumns) {
-            throw new InvalidExtractException(\sprintf('The extract has more than %d columns.', $this->limits->maxColumns));
+            throw new InvalidExtractException(ExtractProblem::TooManyColumns, $this->limits->maxColumns);
         }
     }
 
@@ -167,7 +167,7 @@ final readonly class ExtractInspector
     {
         $letters = substr($reference, 0, strspn($reference, self::LETTERS));
         if (\strlen($letters) > self::MAX_COLUMN_LETTERS) {
-            throw new InvalidExtractException('The extract has a cell reference that is not valid.');
+            throw new InvalidExtractException(ExtractProblem::InvalidCellReference);
         }
 
         return array_reduce(
