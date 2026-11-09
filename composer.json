@@ -17,7 +17,7 @@
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.7.6",
         "doctrine/persistence": "^4.2.1",
-        "itk-dev/itkaarhus-design-system": "^0.5.0",
+        "itk-dev/itkaarhus-design-system": "^0.6.0",
         "itk-dev/openid-connect": "^5.1",
         "itk-dev/openid-connect-bundle": "^6.1",
         "nelmio/security-bundle": "^3.9",
