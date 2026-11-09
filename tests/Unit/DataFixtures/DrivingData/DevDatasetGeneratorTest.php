@@ -109,6 +109,56 @@ final class DevDatasetGeneratorTest extends TestCase
     }
 
     /**
+     * The import of a month replaces only the rows of that month. A row id that is also in another
+     * month then breaks the unique index of the row keys.
+     */
+    public function testRowIdsAreUniqueAcrossMonths(): void
+    {
+        $generator = new DevDatasetGenerator();
+        $rows = [
+            ...$generator->month(7, new \DateTimeImmutable('2026-01-01')),
+            ...$generator->month(7, new \DateTimeImmutable('2026-02-01')),
+        ];
+
+        $ids = array_map(static fn (ExtractRow $row): ?string => $row->rowId, $rows);
+
+        self::assertNotContains(null, $ids);
+        self::assertCount(\count($rows), array_unique($ids));
+    }
+
+    /**
+     * The punctuality page shows the last drop-offs in four delay bands. The dataset has a last
+     * drop-off in each band, so that the page shows all of them.
+     */
+    public function testLastDropOffsAreInAllDelayBands(): void
+    {
+        $rows = new DevDatasetGenerator()->month(7, new \DateTimeImmutable('2026-02-01'));
+
+        $lastDelays = [];
+        foreach ($rows as $row) {
+            if ('drop_off' !== self::string($row, 'stop_type') || 'completed' !== self::string($row, 'stop_status')) {
+                continue;
+            }
+            $serviceDate = self::date($row, 'service_date');
+            $planned = $row->values['planned_time'];
+            self::assertInstanceOf(\DateInterval::class, $planned);
+            $run = $row->values['run'];
+            self::assertIsInt($run);
+            // The drop-offs of a run are in the order of their planned times.
+            $lastDelays[self::string($row, 'route').'|'.$serviceDate->format('Y-m-d').'|'.$run] = self::date($row, 'actual_time')->getTimestamp() - $serviceDate->add($planned)->getTimestamp();
+        }
+        $bands = array_count_values(array_map(static fn (int $delay): string => match (true) {
+            $delay <= 300 => 'on time',
+            $delay <= 900 => 'more than 5 to 15',
+            $delay <= 1800 => 'more than 15 to 30',
+            default => 'more than 30',
+        }, $lastDelays));
+        ksort($bands);
+
+        self::assertSame(['more than 15 to 30', 'more than 30', 'more than 5 to 15', 'on time'], array_keys($bands));
+    }
+
+    /**
      * The rows have values that the default mapping accepts.
      */
     public function testDefaultMappingCanWriteTheRows(): void
