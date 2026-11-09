@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\DataFixtures\DrivingData;
 
 use App\Import\Mapping\FieldMappingDto;

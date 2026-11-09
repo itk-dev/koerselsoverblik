@@ -148,3 +148,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and creates a new route with a sub-agreement that has no assignment. `DrivingDataImporter`
   gives a preview with no changes, and imports in one transaction. The batch keeps the counts,
   the rejection reasons and the warnings, with no values.
+- [#46](https://github.com/itk-dev/koerselsoverblik/issues/46)
+  Strict types: PHP CS Fixer adds `declare(strict_types=1);` to our PHP files and checks it. It
+  excludes the files from Symfony and Flex. Infection no longer ignores the `CastString` mutants
+  that depended on type coercion.
