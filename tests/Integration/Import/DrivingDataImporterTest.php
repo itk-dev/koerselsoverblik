@@ -14,6 +14,8 @@ use App\Import\ImportRangeDto;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
+use App\Import\RouteBuilder;
+use App\Import\RouteRunCalculator;
 use App\Import\RowIdConflictException;
 use App\Import\StopRowReplacer;
 use App\Repository\StopRowRepository;
@@ -152,6 +154,21 @@ final class DrivingDataImporterTest extends KernelTestCase
     }
 
     /**
+     * The import builds the route runs of the range in the same transaction. A second import of
+     * the same range builds them again.
+     */
+    public function testImportBuildsTheRouteRuns(): void
+    {
+        $this->writeScenario('base');
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        self::assertSame(4, $this->storedRuns());
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        self::assertSame(4, $this->storedRuns());
+    }
+
+    /**
      * The parse starts after the delete. A file with a missing column then also undoes the delete.
      */
     public function testFailedImportLeavesTheDataAsItWas(): void
@@ -168,6 +185,7 @@ final class DrivingDataImporterTest extends KernelTestCase
         }
 
         self::assertSame(14, $this->storedRows());
+        self::assertSame(4, $this->storedRuns());
         self::assertSame(1, $this->storedBatches());
     }
 
@@ -212,6 +230,7 @@ final class DrivingDataImporterTest extends KernelTestCase
         return new DrivingDataImporter(
             $parser,
             new StopRowReplacer($this->entityManager, $subAgreements),
+            new RouteBuilder($this->entityManager, new RouteRunCalculator()),
             $stopRows,
             $this->entityManager,
             new MockClock('2026-01-07 10:15:00'),
@@ -238,6 +257,11 @@ final class DrivingDataImporterTest extends KernelTestCase
     private function storedRows(): int
     {
         return $this->countRows('stop_row');
+    }
+
+    private function storedRuns(): int
+    {
+        return $this->countRows('route_run');
     }
 
     private function storedBatches(): int
