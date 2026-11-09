@@ -785,6 +785,14 @@ the 11 months before it, for the sparklines and the charts. `PunctualityPageDto`
 change of each measure from the previous month. The page does not show the driver changes, the
 no-shows and the locations of the prototype, because the import does not read their columns.
 
+**Cost:** the page runs `PunctualityCalculator` for each of the 12 months, so one request runs
+36 queries. The page uses only the totals of the 11 earlier months. This is sufficient for the
+data of today. When the data grows, a query grouped by month, or the daily stats, can replace
+the 11 calculations.
+
+A month with no measured last drop-off has no data. The tiles of the late runs then show "–",
+not 0, and the sparklines have a gap.
+
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
 value shows as "–".

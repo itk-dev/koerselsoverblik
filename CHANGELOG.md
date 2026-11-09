@@ -199,4 +199,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the late last drop-offs in delay bands, the figures for each supplier and the ten worst routes,
   with 12-month charts. The tile, panel, help, sparkline, line chart, column chart and
   distribution bar of the prototype are Twig components (`symfony/ux-twig-component`), with the
-  geometry in `src/Chart/`.
+  geometry in `src/Chart/`. The `number_format` filter of Twig now has Danish defaults in all
+  templates: no decimals, a decimal comma and a point between the thousands. The months of the
+  dev dataset have different punctuality, so that the page shows all tones.
