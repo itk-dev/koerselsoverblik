@@ -19,7 +19,19 @@ final readonly class PunctualityPageDto
         public array $reports,
         public int $target,
     ) {
+        // The page reads the measures several times, so they are calculated one time.
+        $this->measures = [
+            $this->measure('pickup_per_citizen', 'series-info', false, static fn (PunctualityFiguresDto $figures): PunctualityCountDto => $figures->pickupPerCitizen),
+            $this->measure('drop_off_per_citizen', 'series-blue', false, static fn (PunctualityFiguresDto $figures): PunctualityCountDto => $figures->dropOffPerCitizen),
+            $this->measure('pickup_per_run', 'series-info', true, static fn (PunctualityFiguresDto $figures): PunctualityCountDto => $figures->pickupPerRun),
+            $this->measure('drop_off_per_run', 'series-blue', true, static fn (PunctualityFiguresDto $figures): PunctualityCountDto => $figures->dropOffPerRun),
+        ];
     }
+
+    /**
+     * @var list<MeasureDto>
+     */
+    private array $measures;
 
     public function month(): MonthDto
     {
@@ -47,12 +59,7 @@ final readonly class PunctualityPageDto
      */
     public function measures(): array
     {
-        return [
-            $this->measure('pickup_per_citizen', 'series-info', false, static fn (PunctualityFiguresDto $figures): PunctualityCountDto => $figures->pickupPerCitizen),
-            $this->measure('drop_off_per_citizen', 'series-blue', false, static fn (PunctualityFiguresDto $figures): PunctualityCountDto => $figures->dropOffPerCitizen),
-            $this->measure('pickup_per_run', 'series-info', true, static fn (PunctualityFiguresDto $figures): PunctualityCountDto => $figures->pickupPerRun),
-            $this->measure('drop_off_per_run', 'series-blue', true, static fn (PunctualityFiguresDto $figures): PunctualityCountDto => $figures->dropOffPerRun),
-        ];
+        return $this->measures;
     }
 
     /**

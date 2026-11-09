@@ -5,9 +5,10 @@
         <span class="dist__total">{{ total }}</span>
     </figcaption>
     {# The parts are SVG rectangles, because a style attribute with a width is not allowed. #}
-    <svg class="dist__bar" viewBox="0 0 100 14" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    {% set height = constant('App\\Chart\\DistributionGeometry::HEIGHT') %}
+    <svg class="dist__bar" viewBox="0 0 {{ constant('App\\Chart\\DistributionGeometry::WIDTH') }} {{ height }}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         {% for segment in geometry.barSegments %}
-            <rect class="{{ segment.cssClass }}" x="{{ segment.x }}" y="0" width="{{ segment.share }}" height="14"><title>{{ segment.label }}: {{ segment.value|number_format }} ({{ segment.share|number_format(1) }} %)</title></rect>
+            <rect class="{{ segment.cssClass }}" x="{{ segment.x }}" y="0" width="{{ segment.share }}" height="{{ height }}"><title>{{ segment.label }}: {{ segment.value|number_format }} ({{ segment.share|number_format(1) }} %)</title></rect>
         {% endfor %}
     </svg>
     <ul class="dist__legend">

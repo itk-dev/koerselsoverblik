@@ -58,7 +58,7 @@ punctuality:
   goal:
     label: Servicemål
     rule: Højst {minutes} minutter for sent · {target} % rettidighed
-    status: "{count} af 4 målinger når målet"
+    status: "{count} af {total} målinger når målet"
   target_note: Mål {target} %
   target_met: Målet er nået
   target_gap: "{gap} pct.point under målet"

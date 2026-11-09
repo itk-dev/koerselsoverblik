@@ -12,6 +12,14 @@ namespace App\Chart;
 final readonly class DistributionGeometry
 {
     /**
+     * The width of the view box. The shares and the positions are in percent, so 100 is the
+     * whole bar.
+     */
+    public const int WIDTH = 100;
+
+    public const int HEIGHT = 14;
+
+    /**
      * @param list<SegmentDto> $segments one for each series, also with no share
      */
     private function __construct(

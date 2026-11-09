@@ -32,7 +32,7 @@ final readonly class LineChartGeometry
      */
     public static function build(array $labels, array $series, ?float $max = null, ?float $target = null): self
     {
-        $values = array_filter(array_merge(...array_map(static fn (ChartSeriesDto $item): array => $item->values, $series)), is_float(...));
+        $values = array_filter(array_merge(...array_map(static fn (ChartSeriesDto $item): array => $item->values, $series)), static fn (?float $value): bool => null !== $value);
         $top = $max ?? Scale::niceMax(([] === $values ? 0.0 : max($values)) * Scale::HEADROOM);
         $step = \count($labels) > 1 ? Scale::plotWidth() / (\count($labels) - 1) : 0;
 

@@ -26,6 +26,27 @@ final class Scale
     public const int BOTTOM = 244;
 
     /**
+     * The right edge of the values of the vertical axis.
+     */
+    public const int TICK_X = self::LEFT - 10;
+
+    /**
+     * The distance from a grid line down to the baseline of its value, so that the value is level
+     * with the line.
+     */
+    public const int TICK_Y_OFFSET = 4;
+
+    /**
+     * The baseline of the labels of the horizontal axis.
+     */
+    public const int LABEL_Y = self::HEIGHT - 14;
+
+    /**
+     * The distance from the target line up to the baseline of its label.
+     */
+    public const int TARGET_LABEL_GAP = 7;
+
+    /**
      * The extra space above the highest value, so that a line does not touch the top.
      */
     public const float HEADROOM = 1.08;

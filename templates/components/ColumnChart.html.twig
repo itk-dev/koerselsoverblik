@@ -2,17 +2,12 @@
 {% set unit = 'count' %}
 <figure class="chart" id="{{ id }}" role="group" aria-labelledby="{{ id }}-caption">
     <figcaption id="{{ id }}-caption" class="sr-only">{{ caption }}</figcaption>
-    <svg class="chart__svg" viewBox="0 0 840 280" aria-hidden="true" focusable="false">
-        {% for line in geometry.gridLines %}
-            <line class="ch-grid" x1="62" x2="824" y1="{{ line.y }}" y2="{{ line.y }}"/>
-            <text class="ch-ytick" x="52" y="{{ line.y + 4 }}">{{ line.value|number_format }}</text>
-        {% endfor %}
+    <svg class="chart__svg" viewBox="0 0 {{ constant('App\\Chart\\Scale::WIDTH') }} {{ constant('App\\Chart\\Scale::HEIGHT') }}" aria-hidden="true" focusable="false">
+        {{ include('components/_axes.html.twig') }}
         {% for bar in geometry.bars %}
             <rect class="ch-bar {{ bar.cssClass }}" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.width }}" height="{{ bar.height }}"><title>{{ bar.label }} · {{ bar.name }}: {{ bar.value|number_format }}</title></rect>
         {% endfor %}
-        {% for label in geometry.xLabels %}
-            <text class="ch-xtick" x="{{ label.x }}" y="266">{{ label.label }}</text>
-        {% endfor %}
+        {{ include('components/_x_labels.html.twig') }}
     </svg>
     {{ include('components/_legend.html.twig') }}
     {{ include('components/_data_table.html.twig') }}

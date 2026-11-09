@@ -100,7 +100,7 @@ final readonly class PunctualityExtension
         return match (true) {
             null === $change => 'none',
             abs($change) < self::NO_CHANGE => 'neutral',
-            $change > 0 === $higherIsBetter => 'up',
+            ($change > 0) === $higherIsBetter => 'up',
             default => 'down',
         };
     }

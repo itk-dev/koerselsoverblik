@@ -34,7 +34,8 @@
                 <span class="goal__label">{{ 'punctuality.goal.label'|trans }}</span>
                 <span class="goal__rule">{{ 'punctuality.goal.rule'|trans({minutes: tolerance_minutes, target: target}) }}</span>
             </h2>
-            <p class="goal__status{{ page.measuresAtTarget == 4 ? ' is-ok' }}" data-test="goal-status">{{ 'punctuality.goal.status'|trans({count: page.measuresAtTarget}) }}</p>
+            {% set total = page.measures|length %}
+            <p class="goal__status{{ page.measuresAtTarget == total ? ' is-ok' }}" data-test="goal-status">{{ 'punctuality.goal.status'|trans({count: page.measuresAtTarget, total: total}) }}</p>
         </header>
         <div class="panel__body">
             <div class="tiles tiles--4">
