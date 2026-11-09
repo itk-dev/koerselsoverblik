@@ -3,8 +3,8 @@
 namespace App\Tests\Unit\Import;
 
 use App\Import\Mapping\StopStatus;
-use App\Import\RunStopDto;
 use App\Import\Mapping\StopType;
+use App\Import\RunStopDto;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
