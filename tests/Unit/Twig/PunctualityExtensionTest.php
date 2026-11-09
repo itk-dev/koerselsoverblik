@@ -58,7 +58,9 @@ final class PunctualityExtensionTest extends TestCase
         yield 'no change' => [0.0, '±0'];
         yield 'a very small rise' => [0.04, '±0'];
         yield 'a very small fall' => [-0.04, '±0'];
+        yield 'the smallest change' => [0.05, '+0,1'];
         yield 'a small rise' => [2.0, '+2,0'];
+        yield 'the smallest large change' => [10.0, '+10'];
         yield 'a small fall' => [-1.44, '−1,4'];
         yield 'a large rise' => [12.3, '+12'];
         yield 'a large fall' => [-15.6, '−16'];

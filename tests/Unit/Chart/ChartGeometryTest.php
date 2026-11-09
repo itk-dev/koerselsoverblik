@@ -37,8 +37,10 @@ final class ChartGeometryTest extends TestCase
         yield 'below one' => [0.7, 1.0];
         yield 'one' => [1.0, 1.0];
         yield 'up to two' => [1.5, 2.0];
+        yield 'two' => [2.0, 2.0];
         yield 'up to two and a half' => [2.2, 2.5];
         yield 'up to five' => [3.0, 5.0];
+        yield 'five' => [5.0, 5.0];
         yield 'up to ten' => [7.0, 10.0];
         yield 'twenty five' => [25.0, 25.0];
         yield 'two hundred' => [108.0, 200.0];
@@ -85,6 +87,19 @@ final class ChartGeometryTest extends TestCase
 
         self::assertSame(25.0, $geometry->gridLines[4]->value);
         self::assertNull($geometry->targetY);
+        self::assertEquals([new AxisLabelDto('a', 62.0), new AxisLabelDto('b', 824.0)], $geometry->xLabels);
+    }
+
+    /**
+     * One label is at the left of the plot area.
+     */
+    public function testLineChartWithOneLabel(): void
+    {
+        $geometry = LineChartGeometry::build(['a'], [new ChartSeriesDto('S', 'series-info', [10.0])]);
+
+        self::assertEquals([new AxisLabelDto('a', 62.0)], $geometry->xLabels);
+        // 10 plus 8 % gives a scale of 20, so 10 is in the middle.
+        self::assertSame('M62.0,130.0', $geometry->lines[0]->path);
     }
 
     public function testLineChartWithNoValues(): void
@@ -132,6 +147,32 @@ final class ChartGeometryTest extends TestCase
 
         self::assertSame(2.0, $geometry->gridLines[4]->value);
         self::assertSame([], $geometry->bars);
+        // One label fills the plot area.
+        self::assertSame(443.0, $geometry->xLabels[0]->x);
+    }
+
+    /**
+     * The scale comes from the highest total, also when it is not the first. A label with no value
+     * in a series has no bar.
+     */
+    public function testColumnChartScaleFromTheHighestTotal(): void
+    {
+        $geometry = ColumnChartGeometry::build(['a', 'b'], [new ChartSeriesDto('S', 'series-warning', [1.0])]);
+
+        self::assertSame(2.0, $geometry->gridLines[4]->value);
+        self::assertCount(1, $geometry->bars);
+
+        $geometry = ColumnChartGeometry::build(['a', 'b'], [new ChartSeriesDto('S', 'series-warning', [1.0, 4.0])]);
+
+        self::assertSame(5.0, $geometry->gridLines[4]->value);
+    }
+
+    public function testColumnChartWithNoLabels(): void
+    {
+        $geometry = ColumnChartGeometry::build([], []);
+
+        self::assertSame([], $geometry->xLabels);
+        self::assertSame([], $geometry->bars);
     }
 
     public function testSparkline(): void
@@ -171,8 +212,25 @@ final class ChartGeometryTest extends TestCase
         self::assertSame(25.0, $second->share);
         self::assertSame(75.0, $second->x);
         self::assertSame(0.0, $third->share);
+        self::assertSame(100.0, $third->x);
         // A segment with no share is in the legend, but not in the bar.
         self::assertSame([$first, $second], $geometry->barSegments());
+    }
+
+    /**
+     * The bar is a list with no gap, also when a part in the middle has no share. A series with no
+     * value has no share.
+     */
+    public function testDistributionWithNoShareInTheMiddle(): void
+    {
+        $geometry = DistributionGeometry::build([
+            new ChartSeriesDto('Til tiden', 'series-success', [3.0]),
+            new ChartSeriesDto('5–15', 'series-warning', []),
+            new ChartSeriesDto('Over 30', 'series-danger', [1.0]),
+        ]);
+
+        self::assertSame(0.0, $geometry->segments[1]->share);
+        self::assertSame([$geometry->segments[0], $geometry->segments[2]], $geometry->barSegments());
     }
 
     public function testDistributionWithNoValues(): void
