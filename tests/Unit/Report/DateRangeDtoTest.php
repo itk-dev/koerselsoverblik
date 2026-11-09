@@ -32,7 +32,7 @@ final class DateRangeDtoTest extends TestCase
     public function testLastDateBeforeTheFirstDateIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The last date is before the first date.');
+        $this->expectExceptionMessageIsOrContains('The last date is before the first date.');
 
         DateRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-04 23:59'));
     }
