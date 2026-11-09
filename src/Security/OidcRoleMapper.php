@@ -12,6 +12,9 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * It keeps ROLE_ADMIN and the permission roles, and ignores all other values. The permission
  * roles are the roles that ROLE_ADMIN gives in the role hierarchy in
  * config/packages/security.yaml.
+ *
+ * Put each new permission role under ROLE_ADMIN. A role under another parent is not a permission
+ * role: this class ignores it at login, and RouteGuardTest does not accept it on a route.
  */
 final readonly class OidcRoleMapper
 {

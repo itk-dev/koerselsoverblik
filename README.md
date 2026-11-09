@@ -131,7 +131,10 @@ Every page requires a permission role. Anonymous users are sent to the identity 
    ([`oidc-provider-mock`](https://github.com/geigerzaehler/oidc-provider-mock)) at
    <http://idp.koerselsoverblik.local.itkdev.dk>. It has one test user with `ROLE_ADMIN`, one
    test user for each permission role, and `user` with no role. The users are in
-   `docker-compose.override.yaml`.
+   `docker-compose.override.yml`.
+
+   The repository tracks `docker-compose.override.yml`, because it holds the `idp` service. Do not
+   put personal changes in it.
 
 4. Open the site at <https://koerselsoverblik.local.itkdev.dk>:
 

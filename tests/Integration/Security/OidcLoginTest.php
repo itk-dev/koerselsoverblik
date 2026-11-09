@@ -8,12 +8,12 @@ use App\Repository\UserRepository;
 use App\Security\OidcLogin;
 use App\Security\OidcRoleMapper;
 use Doctrine\ORM\EntityManagerInterface;
+use ItkDev\OpenIdConnect\Exception\ClaimsException;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use Monolog\LogRecord;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
-use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
 final class OidcLoginTest extends KernelTestCase
 {
@@ -93,7 +93,7 @@ final class OidcLoginTest extends KernelTestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidClaimsProvider')]
     public function testALoginWithoutAValidUpnIsRejected(array $claims): void
     {
-        $this->expectException(AuthenticationException::class);
+        $this->expectException(ClaimsException::class);
 
         try {
             $this->login->login($claims);
