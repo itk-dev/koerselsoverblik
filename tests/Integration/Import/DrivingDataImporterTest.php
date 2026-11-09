@@ -14,10 +14,10 @@ use App\Import\ImportRangeDto;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
+use App\Import\RowIdConflictException;
 use App\Import\StopRowReplacer;
 use App\Repository\StopRowRepository;
 use App\Repository\SubAgreementRepository;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -148,7 +148,9 @@ final class DrivingDataImporterTest extends KernelTestCase
 
     /**
      * Each extract holds whole days, so a row id is not stored on a date outside the range. If it
-     * is, the unique index stops the import, and no data changes.
+     * is, the unique index stops the import, and no data changes. The caller gets an exception of
+     * the import, with no value from the extract. The message of the database has the row id, so
+     * it is not kept.
      */
     public function testRowIdThatIsStoredOutsideTheRangeStopsTheImport(): void
     {
@@ -163,7 +165,9 @@ final class DrivingDataImporterTest extends KernelTestCase
         try {
             $this->importer()->import($this->path, self::range('2026-01-06'), $this->mapping(), null, 'next-day.xlsx');
             self::fail('The import did not fail.');
-        } catch (UniqueConstraintViolationException) {
+        } catch (RowIdConflictException $exception) {
+            self::assertSame('A row id of the file is already stored on a date outside the range. The import changed no data.', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
         }
 
         self::assertSame(14, $this->storedRows());
