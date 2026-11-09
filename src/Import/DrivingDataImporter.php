@@ -79,8 +79,8 @@ final readonly class DrivingDataImporter
             $this->entityManager->persist($batch);
             $this->entityManager->flush();
 
+            // wrapInTransaction() flushes the completed batch before the commit.
             $batch->complete($this->replacer->replace($range, $mapping, $this->parser->parse($path, $mapping, $range), $batch));
-            $this->entityManager->flush();
 
             return $batch;
         });

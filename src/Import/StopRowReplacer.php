@@ -102,6 +102,10 @@ final readonly class StopRowReplacer
      * Deletes the stop rows and the rejected rows of the range. A rejected row with no date belongs
      * to the range when the whole range of its import is in the range.
      *
+     * Thus a rejected row with no date of a larger import stays until an import covers the whole
+     * range of that import. Such rows can collect, but the date of a row is not known, so a smaller
+     * import must not delete it.
+     *
      * @return int the number of deleted stop rows
      */
     private function deleteRange(ImportRangeDto $range): int

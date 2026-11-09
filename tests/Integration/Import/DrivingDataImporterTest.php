@@ -111,6 +111,11 @@ final class DrivingDataImporterTest extends KernelTestCase
             self::assertStringNotContainsString($value, $errors);
         }
         self::assertSame(4, $this->storedRows());
+        // The counts are saved, not only set on the object.
+        self::assertEquals(
+            ['rows_inserted' => 4, 'rows_rejected' => 5, 'warning_count' => 3],
+            $this->entityManager->getConnection()->fetchAssociative('SELECT rows_inserted, rows_rejected, warning_count FROM import_batch WHERE id = ?', [$batch->getId()]),
+        );
     }
 
     /**
