@@ -25,6 +25,7 @@ final readonly class DrivingDataImporter
     public function __construct(
         private StopRowParser $parser,
         private StopRowReplacer $replacer,
+        private RouteBuilder $routeBuilder,
         private StopRowRepository $stopRows,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
@@ -51,8 +52,9 @@ final readonly class DrivingDataImporter
     }
 
     /**
-     * Replaces the stop rows of the range with the rows of the file, and saves the batch. All in
-     * one transaction, so a failed import leaves the data as it was. After an exception, Doctrine
+     * Replaces the stop rows of the range with the rows of the file, builds the route runs of the
+     * range again, and saves the batch. All in one transaction, so a failed import leaves the data
+     * as it was. After an exception, Doctrine
      * has closed the entity manager.
      *
      * @param ?User  $user     the user of the upload page, or null for the console
@@ -83,6 +85,7 @@ final readonly class DrivingDataImporter
 
             // wrapInTransaction() flushes the completed batch before the commit.
             $batch->complete($this->replacer->replace($range, $mapping, $this->parser->parse($path, $mapping, $range), $batch));
+            $this->routeBuilder->rebuild($range);
 
             return $batch;
         });

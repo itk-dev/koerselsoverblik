@@ -292,6 +292,7 @@ erDiagram
         float next_duration_min
         datetime planned_time
         datetime actual_time
+        int delay_seconds "actual_time minus planned_time, null = no actual time"
         bool planned_solo
         string person_id "from the extract (ADR 004)"
         json source_values "the copy of the row (ADR 006)"
@@ -308,18 +309,16 @@ erDiagram
     }
     ROUTE_RUN {
         int id PK
-        int route_id FK
+        int route_id FK "unique with service_date and run"
         date service_date
         int run "block number in the extract"
+        datetime first_pickup_planned
+        datetime first_pickup_actual "null = not measured"
+        int first_pickup_delay_seconds "null = not measured"
         datetime last_drop_planned
-        datetime last_drop_actual
-        int delay_minutes
-        int peak_passengers
-        bool cancelled
-        float driven_km
-        float empty_km
-        float driven_min
-        float empty_min
+        datetime last_drop_actual "null = not measured"
+        int last_drop_delay_seconds "null = not measured"
+        bool cancelled "all stops are cancelled"
     }
     DAILY_STATS {
         int id PK
@@ -373,7 +372,7 @@ erDiagram
 | `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, and the rejection reasons and warnings as groups of field and reason |
 | `StopRow` | One stop from the extract, with an optional row key from the mapping and the copy of the row. See [open decisions](#open-decisions) |
 | `RejectedStopRow` | A rejected row in the range of its upload, with the row number, the reason and the copy of the row. A later read through a corrected mapping can import it |
-| `RouteRun` | Derived: one route run with its last drop-off, delay, peak passengers and distances |
+| `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay. The daily stats add the peak passengers, the distances and the durations. See [open decisions](#open-decisions) |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
@@ -591,6 +590,8 @@ MariaDB must use the same time zone. The import stores the times with no convers
   time (the second one).
 - Calculate a delay from `getTimestamp()`. A delay across a change to or from summer time is
   then correct.
+- Store a delay in seconds. A figure compares it with a tolerance in minutes × 60, so no rounding
+  rule is necessary. `StopRowDto` calculates `delay_seconds` at the import.
 
 The browser shows the times as they are stored.
 
@@ -655,9 +656,16 @@ days and all routes of a day (questions 3 and 4 in [open decisions](#open-decisi
    - A row key that is stored on a date outside the range breaks the unique index, and the whole
      import fails with no change. `DrivingDataImporter` then throws `RowIdConflictException`, with
      no value from the extract. With whole days and unique row ids, this does not occur.
-5. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the range. It groups the
-   stops by route, date and run (the block number in the extract), and orders the stops of each
-   run by planned time.
+5. **Build route runs.** `RouteBuilder` replaces `RouteRun` rows for the range.
+   - It reads the stop rows of one date at a time, so that the memory use does not grow with the
+     range. It groups the stops by route and run (the block number in the extract).
+   - `RouteRunCalculator` finds the first pickup and the last drop-off of each run. The first
+     pickup is the pickup with the earliest planned time that is not cancelled. The last drop-off
+     is the drop-off with the latest planned time that is not cancelled.
+   - A stop is measured when its status is `completed` and it has an actual time. For a stop that
+     is not measured, the run keeps the planned time, and the actual time and the delay are null.
+   - A run is cancelled when all its stops are cancelled.
+   - It saves the runs in groups of 500, as the replacer does.
 6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
    supplier.
 7. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts,
@@ -1037,6 +1045,13 @@ testing and the diagram check on every pull request.
   registration from the driver (`pending`)? The proposal: it counts as a trip, because it is not
   cancelled. A run whose last drop-off has no actual time is not counted for punctuality. The
   product owner in the transport office answers before the daily stats are built.
+- **Passengers and distances of a run.** The peak passengers, the empty kilometres and the solo
+  runs need the number of passengers after each stop. In the reference extract,
+  `passengersaftercancel` is not 0 after the last stop that is not cancelled in 7 of 80 runs. It
+  does not always remove a cancelled pickup. Also, 55 cancelled stops have a distance to the next
+  stop. Is the count from the stops correct (+1 for each pickup that is not cancelled, −1 for each
+  drop-off)? Does a cancelled stop add to the driven kilometres? The product owner in the
+  transport office answers before the daily stats are built.
 - **Actual time.** Is `StatusUpdateTime` the actual time of the stop? It is the time of the
   status registration by the driver. The mapping uses it until the product owner answers.
 - **Role claim.** Which claim holds the roles, and which values does the identity provider

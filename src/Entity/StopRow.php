@@ -58,6 +58,13 @@ class StopRow
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $actualTime;
 
+    /**
+     * The actual time minus the planned time. The import calculates it in PHP, because SQL gives
+     * the wall-clock difference of two local times (ADR 005).
+     */
+    #[ORM\Column(nullable: true)]
+    private ?int $delaySeconds;
+
     #[ORM\Column(nullable: true)]
     private ?bool $plannedSolo;
 
@@ -91,6 +98,7 @@ class StopRow
         $this->nextDurationMin = $row->nextDurationMin;
         $this->plannedTime = $row->plannedTime;
         $this->actualTime = $row->actualTime;
+        $this->delaySeconds = $row->delaySeconds;
         $this->plannedSolo = $row->plannedSolo;
         $this->personId = $row->personId;
         $this->sourceValues = $row->sourceValues;
@@ -159,6 +167,11 @@ class StopRow
     public function getActualTime(): ?\DateTimeImmutable
     {
         return $this->actualTime;
+    }
+
+    public function getDelaySeconds(): ?int
+    {
+        return $this->delaySeconds;
     }
 
     public function getPlannedSolo(): ?bool

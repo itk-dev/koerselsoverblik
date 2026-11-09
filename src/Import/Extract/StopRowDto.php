@@ -33,6 +33,13 @@ use App\Import\Mapping\StopType;
 final readonly class StopRowDto
 {
     /**
+     * The actual time minus the planned time, or null if the stop has no actual time. The figures
+     * compare it with the tolerance in minutes × 60, so no rounding rule is necessary. The
+     * timestamps make a delay across a change to or from summer time correct (ADR 005).
+     */
+    public ?int $delaySeconds;
+
+    /**
      * @param int                           $rowNumber    the 1-based row number in the sheet
      * @param ?string                       $rowKey       the values of the row id columns, or null if the mapping has no row id
      * @param array<array-key, SourceValue> $sourceValues the copy of the row, keyed by the column name
@@ -56,6 +63,7 @@ final readonly class StopRowDto
         public array $sourceValues = [],
         public array $warnings = [],
     ) {
+        $this->delaySeconds = null === $actualTime ? null : $actualTime->getTimestamp() - $plannedTime->getTimestamp();
     }
 
     /**

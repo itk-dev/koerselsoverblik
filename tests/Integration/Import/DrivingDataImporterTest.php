@@ -7,6 +7,7 @@ namespace App\Tests\Integration\Import;
 use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\RouteRun;
 use App\Entity\StopRow;
 use App\Entity\User;
 use App\Import\DrivingDataImporter;
@@ -16,8 +17,11 @@ use App\Import\ImportRangeDto;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
+use App\Import\RouteBuilder;
+use App\Import\RouteRunCalculator;
 use App\Import\RowIdConflictException;
 use App\Import\StopRowReplacer;
+use App\Repository\RouteRunRepository;
 use App\Repository\StopRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -154,6 +158,21 @@ final class DrivingDataImporterTest extends KernelTestCase
     }
 
     /**
+     * The import builds the route runs of the range in the same transaction. A second import of
+     * the same range builds them again.
+     */
+    public function testImportBuildsTheRouteRuns(): void
+    {
+        $this->writeScenario('base');
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $afterFirstImport = $this->storedRuns();
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+
+        self::assertSame([4, 4], [$afterFirstImport, $this->storedRuns()]);
+    }
+
+    /**
      * The parse starts after the delete. A file with a missing column then also undoes the delete.
      */
     public function testFailedImportLeavesTheDataAsItWas(): void
@@ -170,6 +189,7 @@ final class DrivingDataImporterTest extends KernelTestCase
         }
 
         self::assertSame(14, $this->storedRows());
+        self::assertSame(4, $this->storedRuns());
         self::assertSame(1, $this->storedBatches());
     }
 
@@ -209,11 +229,14 @@ final class DrivingDataImporterTest extends KernelTestCase
         self::assertInstanceOf(SubAgreementRepository::class, $subAgreements);
         $stopRows = $this->entityManager->getRepository(StopRow::class);
         self::assertInstanceOf(StopRowRepository::class, $stopRows);
+        $routeRuns = $this->entityManager->getRepository(RouteRun::class);
+        self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
 
         // The container removes a private service that no other service uses yet.
         return new DrivingDataImporter(
             $parser,
             new StopRowReplacer($this->entityManager, $subAgreements),
+            new RouteBuilder($routeRuns, $stopRows, $this->entityManager, new RouteRunCalculator()),
             $stopRows,
             $this->entityManager,
             new MockClock('2026-01-07 10:15:00'),
@@ -240,6 +263,11 @@ final class DrivingDataImporterTest extends KernelTestCase
     private function storedRows(): int
     {
         return $this->countRows('stop_row');
+    }
+
+    private function storedRuns(): int
+    {
+        return $this->countRows('route_run');
     }
 
     private function storedBatches(): int
