@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Import;
 
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
 
 /**
- * Finds the first pickup and the last drop-off of one route run. See "Punctuality rules" in
- * docs/architecture.md.
+ * Finds the first pickup and the last drop-off of one route run. See "Build route runs" in
+ * "Pipeline" in docs/architecture.md.
  */
 final readonly class RouteRunCalculator
 {

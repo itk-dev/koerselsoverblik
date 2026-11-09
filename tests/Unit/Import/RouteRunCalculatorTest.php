@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Unit\Import;
 
 use App\Import\Mapping\StopStatus;
@@ -11,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Checks the first pickup and the last drop-off of one route run. The punctuality page measures
- * them. See "Punctuality rules" in docs/architecture.md.
+ * them. See "Build route runs" in "Pipeline" in docs/architecture.md.
  */
 final class RouteRunCalculatorTest extends TestCase
 {
