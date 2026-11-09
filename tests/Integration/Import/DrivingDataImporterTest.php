@@ -114,6 +114,25 @@ final class DrivingDataImporterTest extends KernelTestCase
     }
 
     /**
+     * A user can be deleted. The batches of the user stay, with no user.
+     */
+    public function testDeletedUserLeavesTheBatchWithNoUser(): void
+    {
+        $user = new User('admin@example.com');
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+        $this->writeScenario('base');
+        $batch = $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), $user, 'base.xlsx');
+
+        $this->entityManager->createQuery('DELETE FROM '.User::class.' user WHERE user.id = :id')
+            ->setParameter('id', $user->getId())
+            ->execute();
+
+        self::assertNull($this->entityManager->getConnection()->fetchOne('SELECT uploaded_by_id FROM import_batch WHERE id = ?', [$batch->getId()]));
+        self::assertSame(1, $this->storedBatches());
+    }
+
+    /**
      * The import command has no user.
      */
     public function testImportFromTheConsoleHasNoUser(): void
