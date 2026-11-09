@@ -166,3 +166,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CI: the tests workflow runs on all pull requests, not only on pull requests to `develop` and
   `main`. The mutation tests compare with the base branch of the pull request.
 - Q4 update, security: Symfony is updated to 8.1.11 for 15 security advisories.
+- Q4 update, direct dependencies: `composer.json` lists the 24 packages and PHP extensions that
+  the code uses directly, with the installed versions.
