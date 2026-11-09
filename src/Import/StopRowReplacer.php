@@ -133,8 +133,8 @@ final readonly class StopRowReplacer
         }
         $deleteRejected->execute();
 
+        /** @var int $deleted a DQL delete gives the number of deleted rows */
         $deleted = $deleteRows->execute();
-        \assert(\is_int($deleted));
 
         return $deleted;
     }
