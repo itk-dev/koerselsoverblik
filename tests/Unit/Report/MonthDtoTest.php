@@ -64,7 +64,7 @@ final class MonthDtoTest extends TestCase
     {
         self::assertSame('2025-12', self::fromQuery('2026-01')->previous()->query());
         self::assertSame('2026-02', self::fromQuery('2026-01')->next()->query());
-        self::assertSame('2027-01', self::fromQuery('2026-11')->next()->query());
+        self::assertSame('2026-01', self::fromQuery('2025-12')->next()->query());
     }
 
     public function testIsBefore(): void
