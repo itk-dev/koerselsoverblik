@@ -173,3 +173,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Q4 update, Rector: Rector 2.8 uses the PHP level from `composer.json` and the sets of the
   installed packages. `task prepare-code` applies it, and CI checks it. The first run changes 28
   files, for example `new` without parentheses and the PHPUnit 13 method names.
+- Q4 update, recipes: the Flex recipes of DoctrineBundle, FrameworkBundle and Foundry are updated.
+  The project keeps its own `AGENTS.md`.

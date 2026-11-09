@@ -4,5 +4,9 @@ when@dev: &dev
         persistence:
             # Flush only once per call of `PersistentObjectFactory::create()`
             flush_once: true
+        orm:
+            reset:
+                # Reset the database with migrations if the app has any, otherwise with the schema
+                mode: auto
 
 when@test: *dev
