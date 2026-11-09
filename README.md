@@ -29,6 +29,13 @@ The user interface is in Danish.
   period and a 12-month trend.
   - Punctuality over 12 months, against the target.
   - The figures per supplier, side by side.
+- **Rettidighed (punctuality):** the four punctuality measures of a month against the service
+  target: pickups and drop-offs, for each citizen and for each route run.
+  - Each measure has its tone, the change from the previous month, the distance to the target
+    and a 12-month sparkline.
+  - A 12-month chart of the four measures, and the late last drop-offs in delay bands.
+  - The figures for each supplier, and the ten routes with the lowest punctuality.
+  - Links to the previous and the next month.
 - **Filters:**
   - period: day, week, month or year, with previous/next navigation
   - comparison: previous period, or the same period last year

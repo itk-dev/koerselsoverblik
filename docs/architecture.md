@@ -208,7 +208,8 @@ flowchart TB
 | `Import\DrivingData` | Reads an extract through a mapping and turns it into stored data and aggregates |
 | `Supplier` | The periods of the supplier assignments, the overlap check, and the change event |
 | `Report` | Period handling and the calculation of every figure |
-| `Twig` | Formatting helpers and server-rendered components: tiles, sparklines, line charts, panels |
+| `Twig` | Formatting helpers and server-rendered components: tiles, panels, help texts, sparklines, line charts, column charts, distribution bars |
+| `Chart` | The geometry of the charts in plain PHP: scales, paths, bars and parts. The templates only draw it |
 | `Command` | Console commands for imports and clearing |
 | `Entity`, `Repository` | Doctrine entities and the aggregate queries |
 
@@ -777,6 +778,17 @@ config file.
 `PunctualityCalculator` gives the figures of the "Rettidighed" page for a `DateRangeDto`. It
 reads `StopRow` and `RouteRun` directly. The daily stats can replace these queries later.
 
+The page is `/punctuality` (`PunctualityController`, `ROLE_VIEW_OVERVIEW`). `MonthDto` reads the
+month from `?month=YYYY-MM`. No value, an invalid value and a month after the current month
+give the current month from `LocalCalendar`. `PunctualityPageBuilder` calculates the month and
+the 11 months before it, for the sparklines and the charts. `PunctualityPageDto` gives the
+change of each measure from the previous month. The page does not show the driver changes, the
+no-shows and the locations of the prototype, because the import does not read their columns.
+
+**Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
+to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
+value shows as "–".
+
 | Measure (Danish label) | Measured rows |
 | --- | --- |
 | Afhentning pr. borger | All completed pickups with a delay |
@@ -954,6 +966,11 @@ issue adds the header.
   the prototype's stylesheet ported to `assets/styles/app.css`.
 - Charts are Twig components that render inline SVG on the server. Each chart includes a hidden
   data table for screen readers. No chart JavaScript is used.
+  - The classes in `src/Chart/` calculate the geometry, with the sizes of the prototype. Unit
+    tests check the exact positions.
+  - The Content Security Policy does not allow `style` attributes. A series class, for example
+    `series-info`, sets the colour, and the SVG parts use `currentColor`. The distribution bar is
+    an SVG with one rectangle for each part, not HTML with a width in a `style` attribute.
 - Help texts (**?**) use the native HTML `popover` attribute.
 - Icons are Lucide icons with Symfony UX Icons (`ux_icon('lucide:car')`). The SVG files are in
   `assets/icons/` and in git, so the application makes no calls to the Iconify API. To add an
