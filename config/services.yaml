@@ -16,6 +16,9 @@ parameters:
     app.driving_data_max_uncompressed_size: '%env(int:APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE)%'
     app.driving_data_max_rows: '%env(int:APP_DRIVING_DATA_MAX_ROWS)%'
     app.driving_data_max_columns: '%env(int:APP_DRIVING_DATA_MAX_COLUMNS)%'
+    # The punctuality rules. See "Configuration" in the README.
+    app.punctuality_tolerance_minutes: '%env(int:APP_PUNCTUALITY_TOLERANCE_MINUTES)%'
+    app.punctuality_target: '%env(int:APP_PUNCTUALITY_TARGET)%'
 
 services:
     # default configuration for services in *this* file
