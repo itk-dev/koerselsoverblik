@@ -163,3 +163,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   image is `nginx/nginx-unprivileged`. The MariaDB service keeps `TZ=Europe/Copenhagen`. The
   Prettier tasks ignore `.editorconfig`, as the template workflows do, so the JavaScript and the
   CSS have 2 spaces.
+- CI: the tests workflow runs on all pull requests, not only on pull requests to `develop` and
+  `main`. The mutation tests compare with the base branch of the pull request.

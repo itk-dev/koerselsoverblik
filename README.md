@@ -503,9 +503,9 @@ task test:mutation:full
   review checks the reason.
 - **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
   Each mutant has 30 seconds.
-- **When mutation testing runs:** feature pull requests to `develop` run it on changed lines only. A
-  full run over the whole code base runs on `release/*` and `hotfix/*` branches and is required
-  before a release is merged to `main`.
+- **When mutation testing runs:** pull requests that do not go to `main` run it on the lines that
+  changed since their base branch. A full run over the whole code base runs on `release/*` and
+  `hotfix/*` branches and is required before a release is merged to `main`.
 - **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
   tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
