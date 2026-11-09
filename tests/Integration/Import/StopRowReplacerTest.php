@@ -123,13 +123,16 @@ final class StopRowReplacerTest extends KernelTestCase
             new ExtractRow(['route' => 'R-01'] + $values),
             new ExtractRow(['route' => 'r-01'] + $values),
             new ExtractRow(['route' => 'r-02'] + $values),
+            // A letter that is not ASCII also has a lower case.
+            new ExtractRow(['route' => 'Ø4-VB-01'] + $values),
+            new ExtractRow(['route' => 'ø4-vb-02'] + $values),
         ]);
 
         $result = $this->import(self::range('2026-01-05'));
 
-        self::assertSame(3, $result->insertedRows);
-        self::assertSame(2, $this->stored(Route::class));
-        self::assertSame(1, $this->stored(SubAgreement::class));
+        self::assertSame(5, $result->insertedRows);
+        self::assertSame(4, $this->stored(Route::class));
+        self::assertSame(2, $this->stored(SubAgreement::class));
     }
 
     public function testSecondImportOfTheSameFileGivesTheSameRows(): void

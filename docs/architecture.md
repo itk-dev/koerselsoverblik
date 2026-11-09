@@ -645,7 +645,8 @@ days and all routes of a day (questions 3 and 4 in [open decisions](#open-decisi
      stored, because the upload for its date imports it.
    - It finds each route by its name, or creates it. A new route finds or creates its
      sub-agreement with `SubAgreementReference`. A new sub-agreement has no assignment, so its
-     routes count as "Unknown".
+     routes count as "Unknown". MariaDB compares text with no regard to case, so two route names
+     that differ only in case are one route.
    - It saves the rows in groups of 500, and then the entity manager forgets them, so the memory
      use does not grow with the file.
    - It returns an `ImportResultDto`: the deleted and inserted counts, the rejected rows and the

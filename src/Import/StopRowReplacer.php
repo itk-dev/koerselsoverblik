@@ -51,9 +51,11 @@ final readonly class StopRowReplacer
 
         $rejections = new RejectionGroups();
         $warnings = new RejectionGroups();
-        /** @var array<string, Route> $routes the routes of the file, keyed by the route name */
+        // MariaDB compares text with no regard to case, so the maps use the names in lower case.
+        // Then two names that differ only in case are one route, also before the flush.
+        /** @var array<string, Route> $routes the routes of the file, keyed by the route name in lower case */
         $routes = [];
-        /** @var array<string, SubAgreement> $subAgreements the sub-agreements of the file, keyed by the reference */
+        /** @var array<string, SubAgreement> $subAgreements the sub-agreements of the file, keyed by the reference in lower case */
         $subAgreements = [];
         /** @var array<string, true> $dates the dates with rows, as Y-m-d */
         $dates = [];
@@ -72,8 +74,8 @@ final readonly class StopRowReplacer
                 foreach ($row->warnings as $warning) {
                     $warnings->add($warning->field, $warning->reason, $row->rowNumber);
                 }
-                $routes[$row->route] ??= $this->route($row->route, $subAgreements);
-                $written[] = new StopRow($row, $mapping->name, $routes[$row->route], $batch);
+                $route = $routes[mb_strtolower($row->route)] ??= $this->route($row->route, $subAgreements);
+                $written[] = new StopRow($row, $mapping->name, $route, $batch);
                 $dates[$row->serviceDate->format('Y-m-d')] = true;
                 ++$insertedRows;
             }
@@ -134,7 +136,7 @@ final readonly class StopRowReplacer
      * Finds the route by its name, or creates it. A new route finds or creates its sub-agreement.
      * A new sub-agreement has no assignment, so its routes count as "Unknown".
      *
-     * @param array<string, SubAgreement> $subAgreements the sub-agreements of the file, keyed by the reference. A new sub-agreement is not saved yet, so the repository cannot find it.
+     * @param array<string, SubAgreement> $subAgreements the sub-agreements of the file, keyed by the reference in lower case. A new sub-agreement is not saved yet, so the repository cannot find it.
      */
     private function route(string $name, array &$subAgreements): Route
     {
@@ -144,12 +146,13 @@ final readonly class StopRowReplacer
         }
 
         $reference = SubAgreementReference::fromRouteName($name);
-        $subAgreement = $subAgreements[$reference] ?? $this->subAgreements->findOneBy(['reference' => $reference]);
+        $key = mb_strtolower($reference);
+        $subAgreement = $subAgreements[$key] ?? $this->subAgreements->findOneBy(['reference' => $reference]);
         if (null === $subAgreement) {
             $subAgreement = (new SubAgreement())->setReference($reference);
             $this->entityManager->persist($subAgreement);
         }
-        $subAgreements[$reference] = $subAgreement;
+        $subAgreements[$key] = $subAgreement;
 
         $route = new Route($name, $subAgreement);
         $this->entityManager->persist($route);
