@@ -3,8 +3,3 @@ framework:
     form:
         csrf_protection:
             enabled: true
-
-    csrf_protection:
-        stateless_token_ids:
-            - authenticate
-            - logout

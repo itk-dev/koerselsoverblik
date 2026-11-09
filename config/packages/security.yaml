@@ -1,8 +1,4 @@
 security:
-    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
-    password_hashers:
-        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
-
     # ROLE_ADMIN gives all permission roles. Controllers check only the permission roles.
     # See "Security" in docs/architecture.md.
     role_hierarchy:
@@ -41,14 +37,3 @@ security:
         - { path: ^/openid-connect/generic$, roles: PUBLIC_ACCESS }
         - { path: ^/assets/, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
-
-when@test:
-    security:
-        password_hashers:
-            # Password hashers are resource-intensive by design to ensure security.
-            # In tests, it's safe to reduce their cost to improve performance.
-            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
-                algorithm: auto
-                cost: 4 # Lowest possible value for bcrypt
-                time_cost: 3 # Lowest possible value for argon
-                memory_cost: 10 # Lowest possible value for argon
