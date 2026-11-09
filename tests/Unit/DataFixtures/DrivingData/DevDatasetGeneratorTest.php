@@ -23,8 +23,8 @@ final class DevDatasetGeneratorTest extends TestCase
         $month = new \DateTimeImmutable('2026-02-01');
 
         self::assertEquals(
-            (new DevDatasetGenerator())->month(7, $month),
-            (new DevDatasetGenerator())->month(7, $month),
+            new DevDatasetGenerator()->month(7, $month),
+            new DevDatasetGenerator()->month(7, $month),
         );
     }
 
@@ -33,8 +33,8 @@ final class DevDatasetGeneratorTest extends TestCase
         $month = new \DateTimeImmutable('2026-02-01');
 
         self::assertNotEquals(
-            (new DevDatasetGenerator())->month(7, $month),
-            (new DevDatasetGenerator())->month(8, $month),
+            new DevDatasetGenerator()->month(7, $month),
+            new DevDatasetGenerator()->month(8, $month),
         );
     }
 
@@ -50,7 +50,7 @@ final class DevDatasetGeneratorTest extends TestCase
 
     public function testEachDayOfTheMonthHasRowsAndNoOtherDayHas(): void
     {
-        $rows = (new DevDatasetGenerator())->month(7, new \DateTimeImmutable('2026-02-01'));
+        $rows = new DevDatasetGenerator()->month(7, new \DateTimeImmutable('2026-02-01'));
 
         $days = array_unique(array_map(static fn (ExtractRow $row): string => self::date($row, 'service_date')->format('Y-m-d'), $rows));
         sort($days);
@@ -62,7 +62,7 @@ final class DevDatasetGeneratorTest extends TestCase
 
     public function testRowsUseTheRoutesOfTheDataset(): void
     {
-        $rows = (new DevDatasetGenerator())->month(7, new \DateTimeImmutable('2026-02-01'));
+        $rows = new DevDatasetGenerator()->month(7, new \DateTimeImmutable('2026-02-01'));
 
         $routes = array_unique(array_map(static fn (ExtractRow $row): string => self::string($row, 'route'), $rows));
         sort($routes);
@@ -74,7 +74,7 @@ final class DevDatasetGeneratorTest extends TestCase
 
     public function testEachTripHasAPickupAndADropOff(): void
     {
-        $rows = (new DevDatasetGenerator())->month(7, new \DateTimeImmutable('2026-02-01'));
+        $rows = new DevDatasetGenerator()->month(7, new \DateTimeImmutable('2026-02-01'));
 
         $types = array_count_values(array_map(static fn (ExtractRow $row): string => self::string($row, 'stop_type'), $rows));
 
@@ -83,7 +83,7 @@ final class DevDatasetGeneratorTest extends TestCase
 
     public function testEachRunEndsWithNoPassengers(): void
     {
-        $rows = (new DevDatasetGenerator())->month(7, new \DateTimeImmutable('2026-02-01'));
+        $rows = new DevDatasetGenerator()->month(7, new \DateTimeImmutable('2026-02-01'));
 
         $last = [];
         foreach ($rows as $row) {
@@ -100,7 +100,7 @@ final class DevDatasetGeneratorTest extends TestCase
 
     public function testRowsHaveCancelledAndPendingStops(): void
     {
-        $rows = (new DevDatasetGenerator())->month(7, new \DateTimeImmutable('2026-02-01'));
+        $rows = new DevDatasetGenerator()->month(7, new \DateTimeImmutable('2026-02-01'));
 
         $statuses = array_unique(array_map(static fn (ExtractRow $row): string => self::string($row, 'stop_status'), $rows));
         sort($statuses);
@@ -114,9 +114,9 @@ final class DevDatasetGeneratorTest extends TestCase
     public function testDefaultMappingCanWriteTheRows(): void
     {
         $path = sys_get_temp_dir().'/'.uniqid('dev_dataset_', true).'.xlsx';
-        $rows = (new DevDatasetGenerator())->month(7, new \DateTimeImmutable('2026-02-01'));
+        $rows = new DevDatasetGenerator()->month(7, new \DateTimeImmutable('2026-02-01'));
 
-        (new ExtractWriter())->write($path, (new MappingLoader())->load(self::DEFAULT_MAPPING), $rows);
+        new ExtractWriter()->write($path, new MappingLoader()->load(self::DEFAULT_MAPPING), $rows);
 
         self::assertFileExists($path);
         unlink($path);

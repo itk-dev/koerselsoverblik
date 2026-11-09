@@ -24,13 +24,13 @@ use OpenSpout\Writer\XLSX\Writer;
  * The tests and the local site use these files, so that no real extract is necessary. The rows
  * have application values. The writer changes them to the cell values of the mapping.
  */
-final class ExtractWriter
+final readonly class ExtractWriter
 {
     public const string TITLE = 'Generated driving data';
 
-    private readonly Style $dateStyle;
-    private readonly Style $dateTimeStyle;
-    private readonly Style $timeStyle;
+    private Style $dateStyle;
+    private Style $dateTimeStyle;
+    private Style $timeStyle;
 
     public function __construct()
     {

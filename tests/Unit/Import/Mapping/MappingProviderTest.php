@@ -46,7 +46,7 @@ final class MappingProviderTest extends TestCase
     public function testInvalidNameIsRejected(string $name): void
     {
         $this->expectException(InvalidMappingException::class);
-        $this->expectExceptionMessage(\sprintf('The import mapping name "%s" is not valid.', $name));
+        $this->expectExceptionMessageIsOrContains(\sprintf('The import mapping name "%s" is not valid.', $name));
 
         $this->provider()->get($name);
     }

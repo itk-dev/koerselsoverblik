@@ -12,6 +12,7 @@ use ItkDev\OpenIdConnect\Exception\ClaimsException;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use Monolog\LogRecord;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -90,7 +91,7 @@ final class OidcLoginTest extends KernelTestCase
     /**
      * @param array<string, mixed> $claims
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('invalidClaimsProvider')]
+    #[DataProvider('invalidClaimsProvider')]
     public function testALoginWithoutAValidUpnIsRejected(array $claims): void
     {
         $this->expectException(ClaimsException::class);

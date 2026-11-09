@@ -110,7 +110,7 @@ final readonly class StopRowDto
         // UTC has no change to summer time. setTime() then gives the wall-clock time exactly, also
         // for a time of 24:00 or more.
         $wallClock = $value instanceof \DateInterval
-            ? (new \DateTimeImmutable($serviceDate->format('Y-m-d'), new \DateTimeZone('UTC')))->setTime($value->h, $value->i, $value->s)
+            ? new \DateTimeImmutable($serviceDate->format('Y-m-d'), new \DateTimeZone('UTC'))->setTime($value->h, $value->i, $value->s)
             : $value;
 
         // The constructor and setTime() read a time in the hour that occurs two times

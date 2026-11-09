@@ -43,7 +43,7 @@ final class ValidateMappingsPassTest extends TestCase
         file_put_contents($this->directory.'/notes.txt', self::INVALID_YAML);
         $container = $this->container();
 
-        (new ValidateMappingsPass())->process($container);
+        new ValidateMappingsPass()->process($container);
 
         self::assertContainsEquals(new DirectoryResource($this->directory, '/\.yaml$/'), $container->getResources());
     }
@@ -56,7 +56,7 @@ final class ValidateMappingsPassTest extends TestCase
         $this->expectException(InvalidMappingException::class);
         $this->expectExceptionMessageMatches('/second\.yaml/');
 
-        (new ValidateMappingsPass())->process($this->container());
+        new ValidateMappingsPass()->process($this->container());
     }
 
     public function testDirectoryThatIsNotAStringStopsTheBuild(): void
@@ -65,9 +65,9 @@ final class ValidateMappingsPassTest extends TestCase
         $container->setParameter('app.driving_data_mapping_dir', [$this->directory]);
 
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('The parameter "app.driving_data_mapping_dir" must be a string.');
+        $this->expectExceptionMessageIsOrContains('The parameter "app.driving_data_mapping_dir" must be a string.');
 
-        (new ValidateMappingsPass())->process($container);
+        new ValidateMappingsPass()->process($container);
     }
 
     /**

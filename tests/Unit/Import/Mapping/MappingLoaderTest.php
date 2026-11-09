@@ -34,7 +34,7 @@ final class MappingLoaderTest extends TestCase
 
     public function testValidMappingLoads(): void
     {
-        $mapping = (new MappingLoader())->load(self::FIXTURES.'/valid.yaml');
+        $mapping = new MappingLoader()->load(self::FIXTURES.'/valid.yaml');
 
         self::assertSame('valid', $mapping->name);
         self::assertSame(1, $mapping->sheet);
@@ -69,7 +69,7 @@ final class MappingLoaderTest extends TestCase
 
     public function testEachFieldHasItsOwnColumn(): void
     {
-        $mapping = (new MappingLoader())->load(self::FIXTURES.'/valid.yaml');
+        $mapping = new MappingLoader()->load(self::FIXTURES.'/valid.yaml');
 
         $columns = array_map(
             static fn (FieldName $name): string => $mapping->field($name)->column,
@@ -84,7 +84,7 @@ final class MappingLoaderTest extends TestCase
 
     public function testMappingWithoutRowIdLoads(): void
     {
-        $mapping = (new MappingLoader())->load(self::FIXTURES.'/valid_without_row_id.yaml');
+        $mapping = new MappingLoader()->load(self::FIXTURES.'/valid_without_row_id.yaml');
 
         self::assertSame('valid_without_row_id', $mapping->name);
         self::assertSame(0, $mapping->sheet);
@@ -368,7 +368,7 @@ final class MappingLoaderTest extends TestCase
         $this->expectException(InvalidMappingException::class);
         $this->expectExceptionMessageMatches('/missing\.yaml.*does not exist/s');
 
-        (new MappingLoader())->load(self::FIXTURES.'/missing.yaml');
+        new MappingLoader()->load(self::FIXTURES.'/missing.yaml');
     }
 
     public function testFileThatIsNotValidYamlIsRejected(): void
@@ -376,7 +376,7 @@ final class MappingLoaderTest extends TestCase
         $this->expectException(InvalidMappingException::class);
         $this->expectExceptionMessageMatches('/The import mapping ".*test_mapping_.*\.yaml" is not valid: /');
 
-        (new MappingLoader())->load($this->writeFile("header_row: [1\n"));
+        new MappingLoader()->load($this->writeFile("header_row: [1\n"));
     }
 
     public function testFileThatIsNotAMapIsRejected(): void
@@ -402,7 +402,7 @@ final class MappingLoaderTest extends TestCase
      */
     private function loadArray(array $raw): MappingDto
     {
-        return (new MappingLoader())->load($this->writeFile(Yaml::dump($raw, 4)));
+        return new MappingLoader()->load($this->writeFile(Yaml::dump($raw, 4)));
     }
 
     /**

@@ -28,7 +28,7 @@ final class CellConverterTest extends TestCase
     public function testEmptyCellGivesNull(\Closure $cell): void
     {
         foreach (FieldType::cases() as $type) {
-            self::assertNull((new CellConverter())->convert(self::field($type), $cell()), $type->value);
+            self::assertNull(new CellConverter()->convert(self::field($type), $cell()), $type->value);
         }
     }
 
@@ -56,7 +56,7 @@ final class CellConverterTest extends TestCase
     #[DataProvider('formulaCells')]
     public function testFormulaCellGivesTheComputedValue(FieldType $type, \DateInterval|int|string $computed, mixed $expected): void
     {
-        $value = (new CellConverter())->convert(self::field($type), new FormulaCell('=A1', $computed));
+        $value = new CellConverter()->convert(self::field($type), new FormulaCell('=A1', $computed));
 
         self::assertEquals($expected, $value);
     }
@@ -272,13 +272,13 @@ final class CellConverterTest extends TestCase
 
     private static function convert(FieldMappingDto $field, \DateInterval|\DateTimeInterface|float|int|string $value): mixed
     {
-        return (new CellConverter())->convert($field, Cell::fromValue($value));
+        return new CellConverter()->convert($field, Cell::fromValue($value));
     }
 
     private static function assertRejected(RejectionReason $reason, FieldMappingDto $field, Cell $cell): void
     {
         try {
-            (new CellConverter())->convert($field, $cell);
+            new CellConverter()->convert($field, $cell);
             self::fail(\sprintf('The value was not rejected with "%s".', $reason->value));
         } catch (RejectedValueException $exception) {
             self::assertSame($reason, $exception->reason);

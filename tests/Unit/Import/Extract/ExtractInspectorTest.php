@@ -458,13 +458,13 @@ final class ExtractInspectorTest extends TestCase
 
     private function inspect(ExtractLimitsDto $limits): void
     {
-        (new ExtractInspector($limits))->inspect($this->path);
+        new ExtractInspector($limits)->inspect($this->path);
     }
 
     private function expectRejection(string $message): void
     {
         $this->expectException(InvalidExtractException::class);
-        $this->expectExceptionMessage($message);
+        $this->expectExceptionMessageIsOrContains($message);
     }
 
     private function uncompressedSize(): int

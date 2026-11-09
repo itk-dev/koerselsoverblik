@@ -1000,7 +1000,7 @@ hold the connection details.
 **Cron:** a cron job on the server runs `app:driving-data:purge-uploads` every 15 minutes in the
 phpfpm container.
 
-**CI:** GitHub Actions runs coding standards, PHPStan, tests with the coverage gate, mutation
+**CI:** GitHub Actions runs coding standards, PHPStan, Rector, tests with the coverage gate, mutation
 testing and the diagram check on every pull request.
 
 ## Open decisions

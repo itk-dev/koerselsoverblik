@@ -227,7 +227,7 @@ final class ScenarioLoaderTest extends TestCase
     public function testRunThatIsNotANumberIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('A run must be a whole number.');
+        $this->expectExceptionMessageIsOrContains('A run must be a whole number.');
 
         $this->load(<<<'YAML'
             date: 2026-01-05
@@ -243,7 +243,7 @@ final class ScenarioLoaderTest extends TestCase
     public function testNumberFieldWithTextIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('"km" must be a number.');
+        $this->expectExceptionMessageIsOrContains('"km" must be a number.');
 
         $this->load(<<<'YAML'
             date: 2026-01-05
@@ -274,7 +274,7 @@ final class ScenarioLoaderTest extends TestCase
     public function testWholeNumberFieldWithTextIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('"passengers_after" must be a whole number.');
+        $this->expectExceptionMessageIsOrContains('"passengers_after" must be a whole number.');
 
         $this->load(<<<'YAML'
             date: 2026-01-05
@@ -309,7 +309,7 @@ final class ScenarioLoaderTest extends TestCase
     public function testRawValueThatIsNotTextOrANumberIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('"raw" must have text or numbers.');
+        $this->expectExceptionMessageIsOrContains('"raw" must have text or numbers.');
 
         $this->load(<<<'YAML'
             date: 2026-01-05
@@ -328,7 +328,7 @@ final class ScenarioLoaderTest extends TestCase
     #[DataProvider('scenarioFiles')]
     public function testScenarioFileLoads(string $path): void
     {
-        $scenario = (new ScenarioLoader())->load($path);
+        $scenario = new ScenarioLoader()->load($path);
 
         self::assertNotSame([], $scenario->rows);
         self::assertNotSame([], $scenario->expected);
@@ -340,8 +340,8 @@ final class ScenarioLoaderTest extends TestCase
     #[DataProvider('scenarioFiles')]
     public function testScenarioRowHasAtMostOneDefect(string $path): void
     {
-        $mapping = (new MappingLoader())->load(self::DEFAULT_MAPPING);
-        $scenario = (new ScenarioLoader())->load($path);
+        $mapping = new MappingLoader()->load(self::DEFAULT_MAPPING);
+        $scenario = new ScenarioLoader()->load($path);
 
         foreach ($scenario->rows as $index => $row) {
             self::assertLessThanOrEqual(1, \count($row->raw), \sprintf('Row %d has more than one raw value.', $index));
@@ -369,6 +369,6 @@ final class ScenarioLoaderTest extends TestCase
         file_put_contents($path, $yaml);
         $this->paths[] = $path;
 
-        return (new ScenarioLoader())->load($path);
+        return new ScenarioLoader()->load($path);
     }
 }

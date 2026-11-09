@@ -1,6 +1,6 @@
 ### ### Tests and code analysis
 ###
-### Runs PHPStan, the tests with the coverage gate, and mutation testing on the
+### Runs PHPStan, Rector, the tests with the coverage gate, and mutation testing on the
 ### changed lines of a feature PR. The jobs use the same Taskfile tasks as local
 ### development.
 ###
@@ -36,6 +36,24 @@ jobs:
       - run: |
           task composer -- install
           task code-analysis
+
+  rector:
+    name: Rector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task rector:check
 
   tests:
     name: Tests with coverage gate

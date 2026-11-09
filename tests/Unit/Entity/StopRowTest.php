@@ -21,7 +21,7 @@ final class StopRowTest extends TestCase
 {
     public function testStopRowHasTheValuesOfTheParsedRow(): void
     {
-        $route = new Route('R-01', (new SubAgreement())->setReference('R'));
+        $route = new Route('R-01', new SubAgreement()->setReference('R'));
         $batch = new ImportBatch('default', 'extract.xlsx', null, new \DateTimeImmutable(), ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31));
         $row = new StopRowDto(
             rowNumber: 4,
