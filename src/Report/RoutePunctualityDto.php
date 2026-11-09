@@ -10,8 +10,8 @@ namespace App\Report;
 final readonly class RoutePunctualityDto
 {
     /**
-     * @param string  $route       the route name
-     * @param ?string $supplier    the name of the supplier, or null for "Unknown"
+     * @param string              $route       the route name
+     * @param ?string             $supplier    the name of the supplier, or null for "Unknown"
      * @param PunctualityCountDto $lastDropOff the measured last drop-offs of the runs of the route
      */
     public function __construct(
