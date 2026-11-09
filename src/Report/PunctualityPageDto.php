@@ -119,18 +119,22 @@ final readonly class PunctualityPageDto
     }
 
     /**
+     * A month with no measured last drop-offs has no data, so its count is null, not 0.
+     *
      * @param \Closure(DelayBandsDto): int $count
      */
     private function countTrend(\Closure $count): CountTrendDto
     {
-        $current = $count($this->current()->total->bands);
-        $previous = $this->previous();
-        $hasPrevious = null !== $previous && $previous->total->dropOffPerRun->measured > 0;
+        $countOf = static fn (?PunctualityReportDto $report): ?int => null === $report || 0 === $report->total->dropOffPerRun->measured
+            ? null
+            : $count($report->total->bands);
+        $current = $countOf($this->current());
+        $before = $countOf($this->previous());
 
         return new CountTrendDto(
             $current,
-            $hasPrevious ? $current - $count($previous->total->bands) : null,
-            array_map(static fn (PunctualityReportDto $report): float => $count($report->total->bands), $this->reports),
+            null === $current || null === $before ? null : $current - $before,
+            array_map(static fn (PunctualityReportDto $report): ?float => null === ($value = $countOf($report)) ? null : (float) $value, $this->reports),
         );
     }
 }

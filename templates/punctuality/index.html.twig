@@ -74,7 +74,7 @@
         {% set late = page.lateRuns %}
         <twig:Tile
             :label="'punctuality.late_runs'|trans"
-            :value="late.current|number_format"
+            :value="late.current is null ? '–' : late.current|number_format"
             :change="late.change is null ? null : late.change|signed_number"
             :changeTone="trend_tone(late.change, false)"
             :changeIcon="trend_icon(late.change)"
@@ -86,8 +86,8 @@
         {% set over30 = page.over30 %}
         <twig:Tile
             :label="'punctuality.over_30'|trans"
-            :value="over30.current|number_format"
-            :tone="over30.current == 0 ? 'ok' : 'danger'"
+            :value="over30.current is null ? '–' : over30.current|number_format"
+            :tone="over30.current is null ? null : (over30.current == 0 ? 'ok' : 'danger')"
             :change="over30.change is null ? null : over30.change|signed_number"
             :changeTone="trend_tone(over30.change, false)"
             :changeIcon="trend_icon(over30.change)"
