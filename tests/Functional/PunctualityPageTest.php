@@ -111,12 +111,13 @@ final class PunctualityPageTest extends WebTestCase
      */
     public function testLinksToThePreviousAndTheNextMonth(): void
     {
-        $crawler = $this->page('viewer', '?month=2025-12');
+        $client = $this->client('viewer');
+        $crawler = $client->request('GET', '/punctuality?month=2025-12');
 
         self::assertSame('/punctuality?month=2025-11', $crawler->filter('a[data-test="previous-month"]')->attr('href'));
         self::assertSame('/punctuality?month=2026-01', $crawler->filter('a[data-test="next-month"]')->attr('href'));
 
-        $crawler = $this->page('viewer');
+        $crawler = $client->request('GET', '/punctuality');
 
         self::assertSame('/punctuality?month=2025-12', $crawler->filter('a[data-test="previous-month"]')->attr('href'));
         self::assertCount(0, $crawler->filter('a[data-test="next-month"]'));
@@ -127,8 +128,10 @@ final class PunctualityPageTest extends WebTestCase
      */
     public function testInvalidMonthGivesTheCurrentMonth(): void
     {
-        self::assertSame('januar 2026', $this->page('viewer', '?month=abc')->filter('[data-test="month"]')->text());
-        self::assertSame('januar 2026', $this->page('viewer', '?month[]=2025-12')->filter('[data-test="month"]')->text());
+        $client = $this->client('viewer');
+
+        self::assertSame('januar 2026', $client->request('GET', '/punctuality?month=abc')->filter('[data-test="month"]')->text());
+        self::assertSame('januar 2026', $client->request('GET', '/punctuality?month[]=2025-12')->filter('[data-test="month"]')->text());
     }
 
     /**

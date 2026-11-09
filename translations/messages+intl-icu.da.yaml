@@ -9,6 +9,7 @@ layout:
 menu:
   label: Hovedmenu
   overview: Overblik
+  punctuality: Rettidighed
   daily_counts: Daglige tal
   suppliers: Leverandører og delaftaler
 
@@ -20,6 +21,110 @@ about:
 overview:
   title: Overblik
   placeholder: Nøgletallene kommer her.
+
+month:
+  long:
+    1: januar
+    2: februar
+    3: marts
+    4: april
+    5: maj
+    6: juni
+    7: juli
+    8: august
+    9: september
+    10: oktober
+    11: november
+    12: december
+  short:
+    1: jan
+    2: feb
+    3: mar
+    4: apr
+    5: maj
+    6: jun
+    7: jul
+    8: aug
+    9: sep
+    10: okt
+    11: nov
+    12: dec
+
+punctuality:
+  title: Rettidighed
+  lede: '{month} sammenlignet med {previous}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb.'
+  previous_month: Forrige måned
+  next_month: Næste måned
+  goal:
+    label: Servicemål
+    rule: Højst {minutes} minutter for sent · {target} % rettidighed
+    status: '{count} af 4 målinger når målet'
+  target_note: Mål {target} %
+  target_met: Målet er nået
+  target_gap: '{gap} pct.point under målet'
+  points: '{change} pct.point'
+  measure:
+    pickup_per_citizen: Afhentning pr. borger
+    drop_off_per_citizen: Afsætning pr. borger
+    pickup_per_run: Afhentning pr. vognløb
+    drop_off_per_run: Afsætning pr. vognløb
+  help:
+    pickup_per_citizen:
+      title: Rettidig afhentning pr. borger
+      body: Andelen af borgerne, der blev hentet højst {minutes} minutter efter det planlagte tidspunkt. Hver afhentning tæller for sig. Målingen sammenligner chaufførens indtastning med den planlagte afgangstid. Kommer bilen før tid, tæller det som til tiden. Aflyste stop og stop uden indtastning indgår ikke.
+    drop_off_per_citizen:
+      title: Rettidig afsætning pr. borger
+      body: Andelen af borgerne, der blev sat af højst {minutes} minutter efter det planlagte tidspunkt. Hver afsætning tæller for sig. Det er det tal, der ligger tættest på, hvad den enkelte borger oplever. Aflyste stop og stop uden indtastning indgår ikke.
+    pickup_per_run:
+      title: Rettidig afhentning pr. vognløb
+      body: Andelen af vognløb, hvor den første borger blev hentet højst {minutes} minutter efter det planlagte tidspunkt. Et vognløb er en blok i udtrækket. Den første afhentning er afhentningen med det tidligste planlagte tidspunkt, som ikke er aflyst. Målingen viser, om bilen kommer af sted til tiden.
+    drop_off_per_run:
+      title: Rettidig afsætning pr. vognløb
+      body: Andelen af vognløb, hvor den sidste borger i bilen blev sat af højst {minutes} minutter efter det planlagte tidspunkt. Den sidste afsætning er afsætningen med det seneste planlagte tidspunkt, som ikke er aflyst. Forsinkelser tidligere i vognløbet tæller ikke med her. Dem viser rettidigheden pr. borger.
+  late_runs: Forsinkede afsætninger
+  late_runs_note: af {count} vognløb
+  over_30: Over 30 minutter
+  over_30_note: Den halve time hvor en pårørende ringer
+  trend:
+    title: Rettidighed måned for måned
+    subtitle: Afhentning og afsætning, pr. borger og pr. vognløb, mod servicemålet. Stiplet er pr. vognløb.
+    caption: Rettidighed pr. måned ved afhentning og afsætning, pr. borger og pr. vognløb
+  split:
+    title: Den valgte periode
+    caption: Sidste afsætning pr. vognløb i perioden
+    total: '{count} vognløb'
+    foot: Afsætninger inden for {minutes} minutter tælles som til tiden og udgør den grønne andel.
+  band:
+    on_time: Til tiden (inden for {minutes} min.)
+    up_to_15: '{minutes}–15 min. forsinket'
+    up_to_30: 15–30 min. forsinket
+    over_30: Over 30 min. forsinket
+  severity:
+    title: Forsinkelser fordelt på intervaller
+    subtitle: De store forsinkelser er ikke bare flere minutter. Det er en anden slags hændelse.
+    caption: Forsinkede afsætninger fordelt på interval pr. måned
+    up_to_15: '{minutes}–15 min'
+    up_to_30: 15–30 min
+    over_30: Over 30 min
+  suppliers:
+    title: Rettidighed pr. leverandør
+    subtitle: Det tal en kontraktopfølgning kan tages på.
+    caption: Rettidighed pr. leverandør i perioden
+    supplier: Leverandør
+    runs: Vognløb
+    unknown: Ukendt
+  routes:
+    title: De ti vognløb med lavest rettidighed
+    subtitle: Klageproceduren beder om mønstre på tværs af vognløb. Her er indgangen til dem.
+    caption: De ti vognløb med lavest rettidighed ved sidste afsætning
+    route: Vognløb
+    supplier: Leverandør
+    runs: Vognløb kørt
+    punctuality: Rettidighed
+    late: Forsinkede
+    foot: Rettidighed ved sidste afsætning.
+  source: 'Kilde: Optiruns · chaufførens indtastning mod planlagt tid, kun gennemførte stop'
+  no_data: Ingen data i perioden.
 
 chart:
   period: Periode
