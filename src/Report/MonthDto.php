@@ -1,0 +1,93 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Report;
+
+/**
+ * One calendar month of a page. The first date is at 00:00 in the PHP default time zone.
+ */
+final readonly class MonthDto
+{
+    private const string FORMAT = 'Y-m';
+
+    private function __construct(
+        private \DateTimeImmutable $firstDate,
+    ) {
+    }
+
+    /**
+     * Reads a month as YYYY-MM. No value, an invalid value and a month after the current month
+     * give the current month, so that a link always works.
+     */
+    public static function fromQuery(?string $value, \DateTimeImmutable $today): self
+    {
+        $current = new self(new \DateTimeImmutable($today->format('Y-m-01')));
+        $date = null === $value ? false : \DateTimeImmutable::createFromFormat('!'.self::FORMAT, $value);
+        if (false === $date || $date->format(self::FORMAT) !== $value) {
+            return $current;
+        }
+
+        $month = new self(new \DateTimeImmutable($date->format('Y-m-01')));
+
+        return $current->isBefore($month) ? $current : $month;
+    }
+
+    public function query(): string
+    {
+        return $this->firstDate->format(self::FORMAT);
+    }
+
+    /**
+     * @return int<1, 12>
+     */
+    public function number(): int
+    {
+        /** @var int<1, 12> $number */
+        $number = (int) $this->firstDate->format('n');
+
+        return $number;
+    }
+
+    public function year(): int
+    {
+        return (int) $this->firstDate->format('Y');
+    }
+
+    public function range(): DateRangeDto
+    {
+        return DateRangeDto::create($this->firstDate, $this->firstDate->modify('last day of this month'));
+    }
+
+    public function previous(): self
+    {
+        return new self($this->firstDate->modify('-1 month'));
+    }
+
+    public function next(): self
+    {
+        return new self($this->firstDate->modify('+1 month'));
+    }
+
+    public function isBefore(self $other): bool
+    {
+        return $this->firstDate < $other->firstDate;
+    }
+
+    /**
+     * Gives the months up to and including this month, the oldest first.
+     *
+     * @param positive-int $count
+     *
+     * @return non-empty-list<self>
+     */
+    public function trailing(int $count): array
+    {
+        $months = [];
+        for ($index = $count - 1; $index >= 0; --$index) {
+            $months[] = new self($this->firstDate->modify(\sprintf('-%d months', $index)));
+        }
+
+        return $months;
+    }
+}

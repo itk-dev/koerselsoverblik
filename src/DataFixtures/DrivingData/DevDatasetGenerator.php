@@ -23,9 +23,17 @@ final class DevDatasetGenerator
     private const int CITIZENS = 150;
 
     /**
-     * The runs with a delay that grows after the pickups, in percent.
+     * The punctuality profiles of the months, so that the punctuality page shows the tones "ok",
+     * "warn" and "danger". The month number modulo 3 selects the profile.
+     *
+     * - most: the most minutes that a stop is late, with no late run
+     * - late runs: the runs with a delay that grows after the pickups, in percent
      */
-    private const int LATE_RUNS_PERCENT = 20;
+    private const array PROFILES = [
+        0 => ['most' => 5, 'late runs' => 4],
+        1 => ['most' => 6, 'late runs' => 10],
+        2 => ['most' => 12, 'late runs' => 25],
+    ];
 
     /**
      * @return list<ExtractRow>
@@ -34,6 +42,7 @@ final class DevDatasetGenerator
     {
         $day = new \DateTimeImmutable($month->format('Y-m-01'));
         $random = new Randomizer(new Mt19937(crc32($seed.'-'.$day->format('Y-m'))));
+        $profile = self::PROFILES[(int) $day->format('n') % 3];
 
         $rows = [];
         for ($next = $day->modify('+1 month'); $day < $next; $day = $day->modify('+1 day')) {
@@ -42,7 +51,7 @@ final class DevDatasetGenerator
                 for ($run = 1; $run <= $runs; ++$run) {
                     // The runs of a route start in the morning, at noon and in the afternoon.
                     $start = (6 + 4 * ($run - 1)) * 60 + $random->getInt(0, 120);
-                    array_push($rows, ...$this->run($random, $route, $run, $day, $start));
+                    array_push($rows, ...$this->run($random, $profile, $route, $run, $day, $start));
                 }
             }
         }
@@ -62,11 +71,13 @@ final class DevDatasetGenerator
      * In some runs, the delay grows after the pickups, so that the last drop-offs are in all the
      * delay bands of the punctuality page.
      *
+     * @param array{most: int, 'late runs': int} $profile the punctuality profile of the month
+     *
      * @return list<ExtractRow>
      */
-    private function run(Randomizer $random, string $route, int $run, \DateTimeImmutable $day, int $start): array
+    private function run(Randomizer $random, array $profile, string $route, int $run, \DateTimeImmutable $day, int $start): array
     {
-        $lateMinutes = $random->getInt(1, 100) <= self::LATE_RUNS_PERCENT ? $random->getInt(5, 45) : 0;
+        $lateMinutes = $random->getInt(1, 100) <= $profile['late runs'] ? $random->getInt(5, 45) : 0;
         $trips = [];
         for ($trip = $random->getInt(1, 3); $trip > 0; --$trip) {
             $chance = $random->getInt(1, 100);
@@ -100,7 +111,7 @@ final class DevDatasetGenerator
                     'next_duration_min' => null === $km ? null : round($km * 2.5, 1),
                     'planned_time' => new \DateInterval(\sprintf('PT%dH%dM', intdiv($minutes, 60), $minutes % 60)),
                     'actual_time' => 'completed' === $status
-                        ? $day->modify(\sprintf('+%d minutes', $minutes + $random->getInt(-2, 12) + ('drop_off' === $type ? $lateMinutes : 0)))
+                        ? $day->modify(\sprintf('+%d minutes', $minutes + $random->getInt(-2, $profile['most']) + ('drop_off' === $type ? $lateMinutes : 0)))
                         : null,
                     'planned_solo' => $solo,
                 ]);

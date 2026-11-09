@@ -194,3 +194,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the delay bands of the last drop-off and the 10 worst routes for a period, in total and for
   each supplier on each date. `PunctualityTone` gives the tone of a measure.
   `APP_PUNCTUALITY_TOLERANCE_MINUTES` and `APP_PUNCTUALITY_TARGET` are new settings.
+- [#60](https://github.com/itk-dev/koerselsoverblik/issues/60)
+  Show the punctuality page: "Rettidighed" at `/punctuality` shows the four measures of a month,
+  the late last drop-offs in delay bands, the figures for each supplier and the ten worst routes,
+  with 12-month charts. The tile, panel, help, sparkline, line chart, column chart and
+  distribution bar of the prototype are Twig components (`symfony/ux-twig-component`), with the
+  geometry in `src/Chart/`. The `number_format` filter of Twig now has Danish defaults in all
+  templates: no decimals, a decimal comma and a point between the thousands. The months of the
+  dev dataset have different punctuality, so that the page shows all tones.

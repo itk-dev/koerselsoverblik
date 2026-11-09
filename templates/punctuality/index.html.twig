@@ -1,0 +1,222 @@
+{% extends 'base.html.twig' %}
+
+{% macro month_label(month) %}{{ ('month.long.' ~ month.number)|trans }} {{ month.year }}{% endmacro %}
+
+{% block title %}{{ 'punctuality.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    {% set month = page.month %}
+    {% set report = page.current %}
+    {% set figures = report.total %}
+    {% set target = page.target %}
+    {% set labels = page.months|map(item => ('month.short.' ~ item.number)|trans) %}
+
+    <header class="page-head">
+        <div>
+            <h1 class="page-head__title">{{ 'punctuality.title'|trans }}</h1>
+            <p class="page-head__lede">{{ 'punctuality.lede'|trans({month: _self.month_label(month)|trim, previous: _self.month_label(month.previous)|trim}) }}</p>
+        </div>
+        <nav class="month-nav" aria-label="{{ 'punctuality.title'|trans }}">
+            <a class="month-nav__step" href="{{ path('punctuality', {month: month.previous.query}) }}" aria-label="{{ 'punctuality.previous_month'|trans }}" data-test="previous-month">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+            <span class="month-nav__label" data-test="month">{{ _self.month_label(month)|trim }}</span>
+            {% if has_next_month %}
+                <a class="month-nav__step" href="{{ path('punctuality', {month: month.next.query}) }}" aria-label="{{ 'punctuality.next_month'|trans }}" data-test="next-month">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+            {% else %}
+                <span class="month-nav__step is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
+            {% endif %}
+        </nav>
+    </header>
+
+    {# The service target heads the four measures. #}
+    <section class="panel goal-panel" aria-labelledby="goal-title">
+        <header class="goal">
+            <h2 class="goal__text" id="goal-title">
+                <span class="goal__label">{{ 'punctuality.goal.label'|trans }}</span>
+                <span class="goal__rule">{{ 'punctuality.goal.rule'|trans({minutes: tolerance_minutes, target: target}) }}</span>
+            </h2>
+            {% set total = page.measures|length %}
+            <p class="goal__status{{ page.measuresAtTarget == total ? ' is-ok' }}" data-test="goal-status">{{ 'punctuality.goal.status'|trans({count: page.measuresAtTarget, total: total}) }}</p>
+        </header>
+        <div class="panel__body">
+            <div class="tiles tiles--4">
+                {% for measure in page.measures %}
+                    {% set value = measure.percent %}
+                    {% set gap = punctuality_gap(value) %}
+                    {% set note = 'punctuality.target_note'|trans({target: target}) %}
+                    {% if gap is not null %}
+                        {% set note = note ~ ' · ' ~ 'punctuality.target_gap'|trans({gap: gap}) %}
+                    {% elseif value is not null %}
+                        {% set note = note ~ ' · ' ~ 'punctuality.target_met'|trans %}
+                    {% endif %}
+                    <twig:Tile
+                        :label="('punctuality.measure.' ~ measure.key)|trans"
+                        :value="value|punctuality_percent"
+                        :tone="punctuality_tone(value)"
+                        :change="measure.change is null ? null : 'punctuality.points'|trans({change: measure.change|percentage_points})"
+                        :changeTone="trend_tone(measure.change)"
+                        :changeIcon="trend_icon(measure.change)"
+                        :spark="measure.history"
+                        :sparkClass="measure.cssClass"
+                        :note="note"
+                        :test="'measure-' ~ measure.key"
+                    >
+                        <twig:block name="help">
+                            <twig:HelpPopover :id="'help-' ~ measure.key" :title="('punctuality.help.' ~ measure.key ~ '.title')|trans">
+                                <p>{{ ('punctuality.help.' ~ measure.key ~ '.body')|trans({minutes: tolerance_minutes}) }}</p>
+                            </twig:HelpPopover>
+                        </twig:block>
+                    </twig:Tile>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <div class="tiles tiles--2">
+        {% set late = page.lateRuns %}
+        <twig:Tile
+            :label="'punctuality.late_runs'|trans"
+            :value="late.current is null ? '–' : late.current|number_format"
+            :change="late.change is null ? null : late.change|signed_number"
+            :changeTone="trend_tone(late.change, false)"
+            :changeIcon="trend_icon(late.change)"
+            :spark="late.history"
+            sparkClass="series-coral"
+            :note="'punctuality.late_runs_note'|trans({count: figures.dropOffPerRun.measured})"
+            test="late-runs"
+        />
+        {% set over30 = page.over30 %}
+        <twig:Tile
+            :label="'punctuality.over_30'|trans"
+            :value="over30.current is null ? '–' : over30.current|number_format"
+            :tone="over30.current is null ? null : (over30.current == 0 ? 'ok' : 'danger')"
+            :change="over30.change is null ? null : over30.change|signed_number"
+            :changeTone="trend_tone(over30.change, false)"
+            :changeIcon="trend_icon(over30.change)"
+            :spark="over30.history"
+            sparkClass="series-danger"
+            :note="'punctuality.over_30_note'|trans"
+            test="over-30"
+        />
+    </div>
+
+    <twig:Panel :title="'punctuality.trend.title'|trans" :subtitle="'punctuality.trend.subtitle'|trans">
+        <twig:LineChart
+            id="trend"
+            :caption="'punctuality.trend.caption'|trans"
+            :labels="labels"
+            :series="page.measures|map(measure => {name: ('punctuality.measure.' ~ measure.key)|trans, cssClass: measure.cssClass, values: measure.history, dashed: measure.dashed})"
+            :max="100.0"
+            :target="target * 1.0"
+            :targetLabel="'punctuality.target_note'|trans({target: target})"
+            unit="percent"
+        />
+        <twig:block name="foot">{{ 'punctuality.source'|trans }}</twig:block>
+    </twig:Panel>
+
+    <div class="grid-2">
+        <twig:Panel :title="'punctuality.split.title'|trans">
+            <div data-test="bands">
+                <twig:DistributionBar
+                    id="split"
+                    :caption="'punctuality.split.caption'|trans"
+                    :total="'punctuality.split.total'|trans({count: figures.dropOffPerRun.measured})"
+                    :segments="[
+                        {name: 'punctuality.band.on_time'|trans({minutes: tolerance_minutes}), cssClass: 'series-success', value: figures.bands.onTime},
+                        {name: 'punctuality.band.up_to_15'|trans({minutes: tolerance_minutes}), cssClass: 'series-warning', value: figures.bands.upTo15},
+                        {name: 'punctuality.band.up_to_30'|trans, cssClass: 'series-coral', value: figures.bands.upTo30},
+                        {name: 'punctuality.band.over_30'|trans, cssClass: 'series-danger', value: figures.bands.over30},
+                    ]"
+                />
+            </div>
+            <twig:block name="foot"><span class="muted">{{ 'punctuality.split.foot'|trans({minutes: tolerance_minutes}) }}</span></twig:block>
+        </twig:Panel>
+
+        {% set bands = page.lateBandHistory %}
+        <twig:Panel :title="'punctuality.severity.title'|trans" :subtitle="'punctuality.severity.subtitle'|trans">
+            <twig:ColumnChart
+                id="severity"
+                :caption="'punctuality.severity.caption'|trans"
+                :labels="labels"
+                :series="[
+                    {name: 'punctuality.severity.up_to_15'|trans({minutes: tolerance_minutes}), cssClass: 'series-warning', values: bands[0]},
+                    {name: 'punctuality.severity.up_to_30'|trans, cssClass: 'series-coral', values: bands[1]},
+                    {name: 'punctuality.severity.over_30'|trans, cssClass: 'series-danger', values: bands[2]},
+                ]"
+            />
+        </twig:Panel>
+    </div>
+
+    <twig:Panel :title="'punctuality.suppliers.title'|trans" :subtitle="'punctuality.suppliers.subtitle'|trans">
+        {% if report.suppliers is empty %}
+            <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'punctuality.suppliers.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'punctuality.suppliers.supplier'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.suppliers.runs'|trans }}</th>
+                            {% for key in ['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] %}
+                                <th scope="col" class="num">{{ ('punctuality.measure.' ~ key)|trans }}</th>
+                            {% endfor %}
+                            <th scope="col" class="num">{{ 'punctuality.severity.up_to_30'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.severity.over_30'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in report.suppliers %}
+                            {% set row = supplier.figures %}
+                            <tr data-test="supplier-row">
+                                <th scope="row">{{ supplier.supplier ?? 'punctuality.suppliers.unknown'|trans }}</th>
+                                <td class="num">{{ row.dropOffPerRun.measured|number_format }}</td>
+                                {% for count in [row.pickupPerCitizen, row.dropOffPerCitizen, row.pickupPerRun, row.dropOffPerRun] %}
+                                    {% set tone = punctuality_tone(count.percent) %}
+                                    <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
+                                {% endfor %}
+                                <td class="num">{{ row.bands.upTo30|number_format }}</td>
+                                <td class="num {{ row.bands.over30 > 0 ? 't-danger' : 't-ok' }}">{{ row.bands.over30|number_format }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">{{ 'punctuality.source'|trans }}</twig:block>
+    </twig:Panel>
+
+    <twig:Panel :title="'punctuality.routes.title'|trans" :subtitle="'punctuality.routes.subtitle'|trans">
+        {% if report.worstRoutes is empty %}
+            <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'punctuality.routes.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'punctuality.routes.route'|trans }}</th>
+                            <th scope="col">{{ 'punctuality.routes.supplier'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.routes.runs'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.routes.punctuality'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.routes.late'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for route in report.worstRoutes %}
+                            {% set count = route.lastDropOff %}
+                            {% set tone = punctuality_tone(count.percent) %}
+                            <tr data-test="worst-route-row">
+                                <th scope="row">{{ route.route }}</th>
+                                <td>{{ route.supplier ?? 'punctuality.suppliers.unknown'|trans }}</td>
+                                <td class="num">{{ count.measured|number_format }}</td>
+                                <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
+                                <td class="num">{{ (count.measured - count.onTime)|number_format }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">{{ 'punctuality.routes.foot'|trans }}</twig:block>
+    </twig:Panel>
+{% endblock %}

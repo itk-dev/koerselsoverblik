@@ -1,0 +1,14 @@
+{% set geometry = this.geometry %}
+{% set unit = 'count' %}
+<figure class="chart" id="{{ id }}" role="group" aria-labelledby="{{ id }}-caption">
+    <figcaption id="{{ id }}-caption" class="sr-only">{{ caption }}</figcaption>
+    <svg class="chart__svg" viewBox="0 0 {{ constant('App\\Chart\\Scale::WIDTH') }} {{ constant('App\\Chart\\Scale::HEIGHT') }}" aria-hidden="true" focusable="false">
+        {{ include('components/_axes.html.twig') }}
+        {% for bar in geometry.bars %}
+            <rect class="ch-bar {{ bar.cssClass }}" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.width }}" height="{{ bar.height }}"><title>{{ bar.label }} · {{ bar.name }}: {{ bar.value|number_format }}</title></rect>
+        {% endfor %}
+        {{ include('components/_x_labels.html.twig') }}
+    </svg>
+    {{ include('components/_legend.html.twig') }}
+    {{ include('components/_data_table.html.twig') }}
+</figure>

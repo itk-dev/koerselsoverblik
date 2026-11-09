@@ -18,6 +18,7 @@ final class MainMenu
     {
         return [
             new MenuItem('menu.overview', 'overview', 'ROLE_VIEW_OVERVIEW', 'lucide:layout-dashboard'),
+            new MenuItem('menu.punctuality', 'punctuality', 'ROLE_VIEW_OVERVIEW', 'lucide:clock'),
             new MenuItem('menu.daily_counts', 'daily_counts', 'ROLE_EDIT_DAILY_COUNTS', 'lucide:calendar'),
             new MenuItem('menu.suppliers', 'admin_supplier_index', 'ROLE_MANAGE_SUPPLIERS', 'lucide:car'),
         ];

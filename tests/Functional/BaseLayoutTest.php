@@ -23,16 +23,15 @@ final class BaseLayoutTest extends WebTestCase
         self::assertSame('da', $crawler->filter('html')->attr('lang'));
     }
 
-    public function testViewerSeesOnlyTheOverviewInTheMenu(): void
+    public function testViewerSeesOnlyTheFiguresInTheMenu(): void
     {
         $client = static::createClient();
         $this->loginAs($client, 'viewer');
 
         $crawler = $client->request('GET', '/');
 
-        $items = $crawler->filter('[data-test="menu-item"]');
-        self::assertCount(1, $items);
-        self::assertSame('Overblik', trim($items->text()));
+        $labels = $crawler->filter('[data-test="menu-item"]')->each(static fn ($item): string => trim($item->text()));
+        self::assertSame(['Overblik', 'Rettidighed'], $labels);
     }
 
     /**
@@ -47,7 +46,7 @@ final class BaseLayoutTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         $labels = $crawler->filter('[data-test="menu-item"]')->each(static fn ($item): string => trim($item->text()));
-        self::assertSame(['Overblik', 'Leverandører og delaftaler'], $labels);
+        self::assertSame(['Overblik', 'Rettidighed', 'Leverandører og delaftaler'], $labels);
     }
 
     public function testBrandLinksToTheFirstMenuItem(): void

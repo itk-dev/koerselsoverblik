@@ -1,6 +1,11 @@
 twig:
     file_name_pattern: '*.twig'
     form_themes: ['form/theme.html.twig']
+    # The user interface is in Danish: a decimal comma and a point between the thousands.
+    number_format:
+        decimals: 0
+        decimal_point: ','
+        thousands_separator: '.'
 
 when@test:
     twig:
