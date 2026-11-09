@@ -175,3 +175,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   files, for example `new` without parentheses and the PHPUnit 13 method names.
 - Q4 update, recipes: the Flex recipes of DoctrineBundle, FrameworkBundle and Foundry are updated.
   The project keeps its own `AGENTS.md`.
+- Q4 update, deprecations: PHPStan uses `phpstan/phpstan-deprecation-rules`. The validator test
+  calls `validate()` of the Symfony test case, not the deprecated `validate()` of the validator.
