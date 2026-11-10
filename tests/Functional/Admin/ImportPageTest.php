@@ -16,6 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\DomCrawler\Field\FileFormField;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -210,12 +211,7 @@ final class ImportPageTest extends WebTestCase
         $path = sys_get_temp_dir().'/'.$fileName;
         copy($this->path, $path);
 
-        $crawler = $this->client->request('GET', '/admin/import');
-        $form = $crawler->filter('[data-test="upload-form"]')->form();
-        $form['import[file]']->upload($path);
-        $form['import[firstDate]'] = $dates['first'];
-        $form['import[lastDate]'] = $dates['last'];
-        $crawler = $this->client->submit($form);
+        $crawler = $this->submitUpload($path, $dates['first'], $dates['last']);
         unlink($path);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -245,7 +241,7 @@ final class ImportPageTest extends WebTestCase
         $constraints = $factory->create(\App\Form\ImportType::class)->get('file')->getConfig()->getOption('constraints');
 
         self::assertIsArray($constraints);
-        $file = array_values(array_filter($constraints, static fn (object $constraint): bool => $constraint instanceof \Symfony\Component\Validator\Constraints\File))[0] ?? null;
+        $file = array_values(array_filter($constraints, static fn (mixed $constraint): bool => $constraint instanceof \Symfony\Component\Validator\Constraints\File))[0] ?? null;
         self::assertInstanceOf(\Symfony\Component\Validator\Constraints\File::class, $file);
         self::assertSame(20971520, $file->maxSize);
     }
@@ -384,14 +380,22 @@ final class ImportPageTest extends WebTestCase
 
     private function upload(string $firstDate, string $lastDate, bool $follow = true): Crawler
     {
-        $crawler = $this->client->request('GET', '/admin/import');
-        $form = $crawler->filter('[data-test="upload-form"]')->form();
-        $form['import[file]']->upload($this->path);
-        $form['import[firstDate]'] = $firstDate;
-        $form['import[lastDate]'] = $lastDate;
-        $crawler = $this->client->submit($form);
+        $crawler = $this->submitUpload($this->path, $firstDate, $lastDate);
 
         return $follow && $this->client->getResponse()->isRedirect() ? $this->client->followRedirect() : $crawler;
+    }
+
+    private function submitUpload(string $path, string $firstDate, string $lastDate): Crawler
+    {
+        $crawler = $this->client->request('GET', '/admin/import');
+        $form = $crawler->filter('[data-test="upload-form"]')->form();
+        $file = $form['import[file]'];
+        self::assertInstanceOf(FileFormField::class, $file);
+        $file->upload($path);
+        $form['import[firstDate]'] = $firstDate;
+        $form['import[lastDate]'] = $lastDate;
+
+        return $this->client->submit($form);
     }
 
     private function writeScenario(string $name): void
@@ -414,10 +418,7 @@ final class ImportPageTest extends WebTestCase
 
     private function uploadDirectory(): string
     {
-        $directory = self::getContainer()->getParameter('kernel.project_dir');
-        self::assertIsString($directory);
-
-        return $directory.'/var/uploads/driving_data';
+        return self::getContainer()->getParameter('kernel.project_dir').'/var/uploads/driving_data';
     }
 
     private function stored(string $table): int

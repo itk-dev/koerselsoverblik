@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+{% import 'admin/import/_macros.html.twig' as upload_macros %}
+
+{% block title %}{{ 'upload.result_title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    {% set rejections = batch.errors|map(group => {field: group.field, reason: group.reason, count: group.count, rowNumbers: group.row_numbers}) %}
+    {% set warnings = batch.warnings|map(group => {field: group.field, reason: group.reason, count: group.count, rowNumbers: group.row_numbers}) %}
+
+    <h1>{{ 'upload.result_title'|trans }}</h1>
+
+    <dl class="upload-summary">
+        <dt>{{ 'upload.summary.file'|trans }}</dt>
+        <dd>{{ batch.fileName }}</dd>
+        <dt>{{ 'upload.summary.range'|trans }}</dt>
+        <dd data-test="result-range">{{ upload_macros.date(batch.firstDate) }} – {{ upload_macros.date(batch.lastDate) }}</dd>
+        <dt>{{ 'upload.summary.inserted'|trans }}</dt>
+        <dd data-test="result-insert">{{ batch.rowsInserted|number_format }}</dd>
+        <dt>{{ 'upload.summary.deleted'|trans }}</dt>
+        <dd data-test="result-delete">{{ batch.rowsDeleted|number_format }}</dd>
+        <dt>{{ 'upload.summary.reject'|trans }}</dt>
+        <dd data-test="result-reject">{{ batch.rowsRejected|number_format }}</dd>
+        <dt>{{ 'upload.summary.warnings'|trans }}</dt>
+        <dd>{{ batch.warningCount|number_format }}</dd>
+    </dl>
+
+    {{ upload_macros.groups('upload.rejected_rows'|trans, rejections, 'rejection-row') }}
+    {{ upload_macros.groups('upload.warnings'|trans, warnings, 'warning-row') }}
+
+    <p><a class="itkaarhus-btn itkaarhus-btn--secondary" href="{{ path('admin_import') }}">{{ 'upload.again'|trans }}</a></p>
+{% endblock %}
