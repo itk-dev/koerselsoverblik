@@ -101,6 +101,46 @@ final class UploadStoreTest extends TestCase
         self::assertFileExists($upload->path);
     }
 
+    /**
+     * The import of a file can take time. The purge must not delete the file during the import, so
+     * the confirmation makes the file new.
+     */
+    public function testTakeMakesTheFileNew(): void
+    {
+        $upload = $this->store()->save($this->uploadedFile('a.xlsx'), self::range(), 'default');
+        touch($upload->path, $this->clock->now()->getTimestamp() - 3601);
+
+        $this->store()->take($upload->token);
+        clearstatcache();
+
+        self::assertSame($this->clock->now()->getTimestamp(), filemtime($upload->path));
+        self::assertSame(0, $this->store()->purge());
+    }
+
+    /**
+     * The session does not keep an upload that has expired.
+     */
+    public function testFindForgetsAnUploadWithNoFile(): void
+    {
+        $upload = $this->store()->save($this->uploadedFile('a.xlsx'), self::range(), 'default');
+        unlink($upload->path);
+        $this->store()->find($upload->token);
+
+        file_put_contents($upload->path, 'content');
+
+        self::assertNull($this->store()->find($upload->token));
+    }
+
+    /**
+     * The batch stores at most 255 characters of the file name.
+     */
+    public function testLongFileNameIsCut(): void
+    {
+        $upload = $this->store()->save($this->uploadedFile(str_repeat('æ', 300).'.xlsx'), self::range(), 'default');
+
+        self::assertSame(str_repeat('æ', 255), $upload->fileName);
+    }
+
     public function testDeleteRemovesTheFileAndTheUpload(): void
     {
         $upload = $this->store()->save($this->uploadedFile('a.xlsx'), self::range(), 'default');
