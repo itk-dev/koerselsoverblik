@@ -20,6 +20,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\FileFormField;
+use Symfony\Component\DomCrawler\Field\InputFormField;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Constraints\File;
@@ -217,7 +218,9 @@ final class ImportPageTest extends WebTestCase
         $this->client->submit($crawler->filter('[data-test="confirm"]')->form());
         $crawler = $this->upload('2026-01-06', '2026-01-06');
         $cancel = $crawler->filter('[data-test="cancel"]')->form();
-        $token = (string) $cancel->get('_token')->getValue();
+        $field = $cancel->get('_token');
+        self::assertInstanceOf(InputFormField::class, $field);
+        $token = $field->getValue();
         $confirm = str_replace('/cancel', '/confirm', (string) $cancel->getUri());
 
         $this->client->request('POST', $confirm, ['_token' => $token]);
