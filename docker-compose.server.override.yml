@@ -1,0 +1,13 @@
+# Project settings for the server. docker-compose.server.yml is a file of the ITK Dev template, so
+# a template update can replace it.
+services:
+  # The upload of driving data accepts an extract of up to APP_DRIVING_DATA_MAX_FILE_SIZE
+  # (20 MiB). The limits of PHP and nginx must be higher.
+  phpfpm:
+    environment:
+      - PHP_UPLOAD_MAX_FILESIZE=25M
+      - PHP_POST_MAX_SIZE=25M
+
+  nginx:
+    environment:
+      NGINX_MAX_BODY_SIZE: 25M
