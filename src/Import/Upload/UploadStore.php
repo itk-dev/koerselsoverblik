@@ -26,6 +26,8 @@ final readonly class UploadStore
 
     private const int TOKEN_BYTES = 16;
 
+    private const int MAX_FILE_NAME_LENGTH = 255;
+
     public function __construct(
         private RequestStack $requestStack,
         private ClockInterface $clock,
@@ -43,7 +45,9 @@ final readonly class UploadStore
 
         $token = bin2hex(random_bytes(self::TOKEN_BYTES));
         $moved = $file->move($this->directory, $token.'.xlsx');
-        $upload = new PendingUploadDto($token, $moved->getPathname(), $file->getClientOriginalName(), $range, $mappingName, $this->clock->now());
+        // The batch stores at most 255 characters of the file name.
+        $fileName = mb_substr($file->getClientOriginalName(), 0, self::MAX_FILE_NAME_LENGTH);
+        $upload = new PendingUploadDto($token, $moved->getPathname(), $fileName, $range, $mappingName, $this->clock->now());
 
         $uploads = $this->uploads();
         $uploads[$token] = $upload;
@@ -53,23 +57,32 @@ final readonly class UploadStore
     }
 
     /**
-     * Gives the upload, or null if the token is unknown or the file is deleted.
+     * Gives the upload, or null if the token is unknown or the file is deleted. The session forgets
+     * an upload with no file.
      */
     public function find(string $token): ?PendingUploadDto
     {
         $upload = $this->uploads()[$token] ?? null;
+        if (null !== $upload && !is_file($upload->path)) {
+            $this->forget($token);
 
-        return null !== $upload && is_file($upload->path) ? $upload : null;
+            return null;
+        }
+
+        return $upload;
     }
 
     /**
      * Gives the upload and removes it from the session, so that the next request cannot use it.
-     * The file stays.
+     * The file stays, and becomes new, so that the purge does not delete it during the import.
      */
     public function take(string $token): ?PendingUploadDto
     {
         $upload = $this->find($token);
         $this->forget($token);
+        if (null !== $upload) {
+            touch($upload->path, $this->clock->now()->getTimestamp());
+        }
 
         return $upload;
     }
