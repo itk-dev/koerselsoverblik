@@ -12,6 +12,7 @@ upload:
   file_required: Vælg en fil.
   not_xlsx: Filen skal være et Excel-udtræk (.xlsx).
   too_large: Filen er for stor.
+  request_too_large: Uploaden er for stor. Vælg en mindre fil.
   date_required: Vælg en dato.
   end_before_start: Den sidste dato er før den første dato.
   range_too_long: Perioden må højst være {max} dage.

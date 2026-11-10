@@ -30,12 +30,23 @@ final class ImportType extends AbstractType
     ];
 
     /**
+     * @var positive-int
+     */
+    private readonly int $maxFileSize;
+
+    /**
      * @param int $maxFileSize the value of APP_DRIVING_DATA_MAX_FILE_SIZE
+     *
+     * @throws \InvalidArgumentException if the size limit is below one byte
      */
     public function __construct(
         #[Autowire(param: 'app.driving_data_max_file_size')]
-        private readonly int $maxFileSize,
+        int $maxFileSize,
     ) {
+        if ($maxFileSize < 1) {
+            throw new \InvalidArgumentException('APP_DRIVING_DATA_MAX_FILE_SIZE must be at least 1.');
+        }
+        $this->maxFileSize = $maxFileSize;
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -47,7 +58,7 @@ final class ImportType extends AbstractType
                 'attr' => ['accept' => '.xlsx'],
                 'constraints' => [
                     new File(
-                        maxSize: max(1, $this->maxFileSize),
+                        maxSize: $this->maxFileSize,
                         extensions: ['xlsx' => self::XLSX_MIME_TYPES],
                         extensionsMessage: 'upload.not_xlsx',
                         maxSizeMessage: 'upload.too_large',
@@ -68,6 +79,10 @@ final class ImportType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => UploadDto::class]);
+        $resolver->setDefaults([
+            'data_class' => UploadDto::class,
+            // PHP drops the body of a request above post_max_size. The form then shows this error.
+            'post_max_size_message' => 'upload.request_too_large',
+        ]);
     }
 }
