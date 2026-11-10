@@ -63,6 +63,7 @@ final readonly class DrivingDataImporter
      * @throws MissingColumnsException if the extract does not have all the columns of the mapping
      * @throws InvalidExtractException if the extract is above a limit, or is not a valid extract
      * @throws RowIdConflictException  if a row id of the file is already stored on a date outside the range
+     * @throws NoStopRowsException     if the file has no stop rows in the range
      */
     public function import(string $path, ImportRangeDto $range, MappingDto $mapping, ?User $user, string $fileName): ImportBatch
     {
@@ -83,8 +84,13 @@ final readonly class DrivingDataImporter
             $this->entityManager->persist($batch);
             $this->entityManager->flush();
 
+            $result = $this->replacer->replace($range, $mapping, $this->parser->parse($path, $mapping, $range), $batch);
+            // The exception rolls back the delete of the range.
+            if (0 === $result->insertedRows) {
+                throw new NoStopRowsException();
+            }
             // wrapInTransaction() flushes the completed batch before the commit.
-            $batch->complete($this->replacer->replace($range, $mapping, $this->parser->parse($path, $mapping, $range), $batch));
+            $batch->complete($result);
             $this->routeBuilder->rebuild($range);
 
             return $batch;
