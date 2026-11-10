@@ -20,8 +20,11 @@ vars:
   # A fixed number of threads gives the same result on all computers. With one thread for each
   # core, the integration tests are slow on a computer with many cores, and mutants time out.
   INFECTION_THREADS: '{{ .TASK_INFECTION_THREADS | default "4" }}'
-  # A timed-out mutant counts as killed in the MSI. "--max-timeouts=0" fails the run instead.
-  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations --max-timeouts=0'
+  # A timed-out mutant counts as killed in the MSI. bin/mutation-core-check.php fails on a
+  # timeout in src/Import and src/Report.
+  # "--only-covering-test-cases" runs only the tests that cover the mutated line, not all tests
+  # of their classes. The database tests are slow, so the full classes made mutants time out.
+  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations --only-covering-test-cases'
   MUTATION_LOG: var/infection/infection.json
   MUTATION_TEXT_LOG: var/infection/infection.log
   # The changed-lines run compares with this git reference.

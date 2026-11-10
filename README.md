@@ -509,8 +509,9 @@ task test:mutation:full
   The HTML report is written to `var/infection/`.
 - **How the two thresholds work:** Infection has one threshold for each run, so
   `infection.json5` sets 80 % for all mutated code. Then `bin/mutation-core-check.php` reads the
-  JSON log and fails if a mutant escaped in `src/Report` or `src/Import`. It also reads the text
-  log, and fails if Infection skipped a mutant there, because a skipped mutant is not tested.
+  JSON log and fails if a mutant escaped or timed out in `src/Report` or `src/Import`. It also
+  reads the text log, and fails if Infection skipped a mutant there, because a skipped mutant is
+  not tested.
 - **Threads:** Infection runs 4 mutants at the same time on all computers, so the result does not
   depend on the number of cores. To use a different number, set `TASK_INFECTION_THREADS`, for
   example `TASK_INFECTION_THREADS=2 task test:mutation`.
@@ -521,10 +522,12 @@ task test:mutation:full
   `docker compose run --rm --env TEST_TOKEN=1 phpfpm php vendor/bin/phpunit <TEST_FILE>`.
 - **Equivalent mutants:** list each one with a reason in `infection.json5`. The pull request
   review checks the reason.
-- **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
-  Each mutant has 60 seconds. The mutant processes run with Xdebug and share the CPU and the
-  database server, so the database tests are slow. Infection skips a mutant if all its tests took
-  more than 60 seconds in the initial run.
+- **Timeouts:** a mutant that times out in `src/Report` or `src/Import` fails the run, because
+  nobody knows if a test kills it. In the rest of the code, a timeout counts as detected, as
+  Infection counts it. Each mutant has 60 seconds. The mutant processes run with Xdebug and share the CPU and the
+  database server, so the database tests are slow. Thus Infection runs only the tests that cover
+  the mutated line (`--only-covering-test-cases`), not all tests of their classes. Infection
+  skips a mutant if all its tests took more than 60 seconds in the initial run.
 - **When mutation testing runs:** pull requests that do not go to `main` run it on the lines that
   changed since their base branch. A full run over the whole code base runs on `release/*` and
   `hotfix/*` branches and is required before a release is merged to `main`.

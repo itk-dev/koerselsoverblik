@@ -4,11 +4,13 @@
 declare(strict_types=1);
 
 /*
- * Fails when a covered mutant escaped, or was skipped, in the code that makes the figures.
+ * Fails when a covered mutant escaped, timed out or was skipped in the code that makes the
+ * figures.
  *
  * Infection has one threshold for each run. This script adds a covered MSI gate of 100 % for
- * the directories below. Infection counts timed-out and errored mutants as detected, so the
- * covered MSI is 100 % when no mutant escaped.
+ * the directories below. Infection counts a timed-out mutant as detected, but nobody knows if a
+ * test kills it, so a timeout in these directories fails the gate. Outside them, a timeout
+ * counts as detected for the threshold of Infection.
  *
  * Infection skips a mutant when all its tests took more than the timeout in the initial run. A
  * skipped mutant is not tested, so it also fails the gate. The JSON log has only the number of
@@ -50,16 +52,29 @@ if (false === $textLog) {
     exit(2);
 }
 
-$escaped = [];
-foreach ($log['escaped'] as $result) {
-    $mutator = is_array($result) && is_array($result['mutator'] ?? null) ? $result['mutator'] : [];
-    $file = corePath(is_string($mutator['originalFilePath'] ?? null) ? $mutator['originalFilePath'] : '', $projectDir);
-    if (null !== $file) {
-        $line = is_int($mutator['originalStartLine'] ?? null) ? $mutator['originalStartLine'] : 0;
-        $name = is_string($mutator['mutatorName'] ?? null) ? $mutator['mutatorName'] : '';
-        $escaped[] = sprintf('%s:%d %s', $file, $line, $name);
+/**
+ * Gives the mutants of a list in the JSON log that are in a core directory.
+ *
+ * @return list<string>
+ */
+function coreMutants(mixed $results, string $projectDir): array
+{
+    $mutants = [];
+    foreach (is_array($results) ? $results : [] as $result) {
+        $mutator = is_array($result) && is_array($result['mutator'] ?? null) ? $result['mutator'] : [];
+        $file = corePath(is_string($mutator['originalFilePath'] ?? null) ? $mutator['originalFilePath'] : '', $projectDir);
+        if (null !== $file) {
+            $line = is_int($mutator['originalStartLine'] ?? null) ? $mutator['originalStartLine'] : 0;
+            $name = is_string($mutator['mutatorName'] ?? null) ? $mutator['mutatorName'] : '';
+            $mutants[] = sprintf('%s:%d %s', $file, $line, $name);
+        }
     }
+
+    return $mutants;
 }
+
+$escaped = coreMutants($log['escaped'], $projectDir);
+$timedOut = coreMutants($log['timeouted'] ?? [], $projectDir);
 
 // The text log lists each skipped mutant as "1) /app/src/File.php:84    [M] InstanceOf_ [ID] ...".
 $skipped = [];
@@ -80,7 +95,7 @@ if (($stats['skippedCount'] ?? 0) > 0 && [] === $matches) {
 }
 
 $failed = false;
-foreach (['Escaped' => $escaped, 'Skipped' => $skipped] as $label => $mutants) {
+foreach (['Escaped' => $escaped, 'Timed-out' => $timedOut, 'Skipped' => $skipped] as $label => $mutants) {
     if ([] !== $mutants) {
         fwrite(\STDERR, sprintf(
             "The covered MSI must be 100 %% in %s. %s mutants: %d\n  %s\n",
@@ -97,4 +112,4 @@ if ($failed) {
     exit(1);
 }
 
-echo sprintf("No mutants escaped or were skipped in %s.\n", implode(' and ', CORE_DIRECTORIES));
+echo sprintf("No mutants escaped, timed out or were skipped in %s.\n", implode(' and ', CORE_DIRECTORIES));
