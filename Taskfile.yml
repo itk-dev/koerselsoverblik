@@ -23,6 +23,7 @@ vars:
   # A timed-out mutant counts as killed in the MSI. "--max-timeouts=0" fails the run instead.
   INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations --max-timeouts=0'
   MUTATION_LOG: var/infection/infection.json
+  MUTATION_TEXT_LOG: var/infection/infection.log
   # The changed-lines run compares with this git reference.
   MUTATION_BASE: '{{ .TASK_MUTATION_BASE | default "origin/develop" }}'
 
@@ -155,7 +156,7 @@ tasks:
       - task: test:db:setup
       - task: test:db:setup:threads
       - task: test:cache:warmup
-      - rm -f {{ .MUTATION_LOG }}
+      - rm -f {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}
       - '{{ .INFECTION }} --git-diff-lines --git-diff-base={{ .MUTATION_BASE }} {{ .CLI_ARGS }}'
       - task: test:mutation:core-check
 
@@ -165,7 +166,7 @@ tasks:
       - task: test:db:setup
       - task: test:db:setup:threads
       - task: test:cache:warmup
-      - rm -f {{ .MUTATION_LOG }}
+      - rm -f {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}
       # The filter "src/" matches all source files. Infection fails on an unfiltered run with no
       # source files, but a filtered run with no files passes. This is necessary while src/ has no
       # mutated code. Do not use the positional path "src/" instead: Infection then applies no filter.
@@ -188,7 +189,7 @@ tasks:
     status:
       - test ! -f {{ .MUTATION_LOG }}
     cmds:
-      - '{{ .PHP }} bin/mutation-core-check.php {{ .MUTATION_LOG }}'
+      - '{{ .PHP }} bin/mutation-core-check.php {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}'
 
   prepare-code:
     desc: Fix the coding standards, normalize composer.json and run all checks. Run it before you commit

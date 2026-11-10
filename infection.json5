@@ -74,7 +74,10 @@
         },
     },
     minCoveredMsi: 80,
-    // The default of 10 seconds is too short when all threads run. The Taskfile fails the run on
-    // a timeout, because a timed-out mutant is not known to be killed.
-    timeout: 30,
+    // The default of 10 seconds is too short when all threads run. Each mutant process runs with
+    // Xdebug, and the threads share the CPU and the test databases, so a database test is slow.
+    // The Taskfile fails the run on a timeout, because a timed-out mutant is not known to be
+    // killed. Infection also skips a mutant if all its tests took more than this time in the
+    // initial run, and bin/mutation-core-check.php fails on a skipped mutant in the gate.
+    timeout: 60,
 }
