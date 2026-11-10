@@ -513,6 +513,11 @@ task test:mutation:full
 - **Threads:** Infection runs 4 mutants at the same time on all computers, so the result does not
   depend on the number of cores. To use a different number, set `TASK_INFECTION_THREADS`, for
   example `TASK_INFECTION_THREADS=2 task test:mutation`.
+- **Mutation databases:** Infection sets `TEST_TOKEN` to the thread number in each mutant
+  process, and the name of the test database ends with it. So each thread has its own database,
+  `db_test1` to `db_test4`. The mutation tasks create and migrate these databases before the run.
+  To run one test as a mutant process does, set the token, for example
+  `docker compose run --rm --env TEST_TOKEN=1 phpfpm php vendor/bin/phpunit <TEST_FILE>`.
 - **Equivalent mutants:** list each one with a reason in `infection.json5`. The pull request
   review checks the reason.
 - **Timeouts:** a mutant that times out fails the run, because nobody knows if a test kills it.
