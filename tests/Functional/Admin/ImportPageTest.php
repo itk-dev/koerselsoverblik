@@ -8,16 +8,21 @@ use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\User;
+use App\Form\ImportType;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
 use App\Tests\Functional\LoginTrait;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\FileFormField;
+use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Validator\Constraints\File;
 
 /**
  * Checks the upload of driving data: the form, the preview, the confirmation, the cancel and the
@@ -203,7 +208,7 @@ final class ImportPageTest extends WebTestCase
     /**
      * @param array<string, string> $dates
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('invalidForms')]
+    #[DataProvider('invalidForms')]
     public function testInvalidFormShowsAnError(string $fileName, array $dates, string $message): void
     {
         $this->loginAs($this->client, 'admin');
@@ -236,13 +241,13 @@ final class ImportPageTest extends WebTestCase
     public function testFormHasTheSizeLimit(): void
     {
         $factory = self::getContainer()->get('form.factory');
-        self::assertInstanceOf(\Symfony\Component\Form\FormFactoryInterface::class, $factory);
+        self::assertInstanceOf(FormFactoryInterface::class, $factory);
 
-        $constraints = $factory->create(\App\Form\ImportType::class)->get('file')->getConfig()->getOption('constraints');
+        $constraints = $factory->create(ImportType::class)->get('file')->getConfig()->getOption('constraints');
 
         self::assertIsArray($constraints);
-        $file = array_values(array_filter($constraints, static fn (mixed $constraint): bool => $constraint instanceof \Symfony\Component\Validator\Constraints\File))[0] ?? null;
-        self::assertInstanceOf(\Symfony\Component\Validator\Constraints\File::class, $file);
+        $file = array_first(array_filter($constraints, static fn (mixed $constraint): bool => $constraint instanceof File)) ?? null;
+        self::assertInstanceOf(File::class, $file);
         self::assertSame(20971520, $file->maxSize);
     }
 
@@ -429,7 +434,7 @@ final class ImportPageTest extends WebTestCase
         return (int) $count;
     }
 
-    private function connection(): \Doctrine\DBAL\Connection
+    private function connection(): Connection
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
