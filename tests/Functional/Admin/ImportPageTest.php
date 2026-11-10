@@ -277,6 +277,29 @@ final class ImportPageTest extends WebTestCase
     }
 
     /**
+     * A size limit below one byte is a configuration error. It must not give a silent limit.
+     */
+    public function testSizeLimitBelowOneIsAnError(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('APP_DRIVING_DATA_MAX_FILE_SIZE must be at least 1.');
+
+        new \App\Form\ImportType(0);
+    }
+
+    /**
+     * PHP drops the body of a request above post_max_size. The form then shows a Danish message.
+     */
+    public function testRequestAbovePostMaxSizeShowsAnError(): void
+    {
+        $this->loginAs($this->client, 'admin');
+
+        $crawler = $this->client->request('POST', '/admin/import', [], [], ['CONTENT_LENGTH' => '1073741824']);
+
+        self::assertStringContainsString('Uploaden er for stor.', $crawler->filter('[data-test="upload-form"]')->text());
+    }
+
+    /**
      * A file with a missing column cannot be read. The page shows the column names, and deletes
      * the file.
      */
