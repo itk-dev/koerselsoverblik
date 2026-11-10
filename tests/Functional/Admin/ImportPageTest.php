@@ -206,6 +206,31 @@ final class ImportPageTest extends WebTestCase
     }
 
     /**
+     * The confirmation checks the rule too. The cancel form has a valid token for the same upload,
+     * so a direct POST to the confirmation would else delete the stored rows of the range.
+     */
+    public function testConfirmationOfAFileWithNoStopRowsInTheRangeChangesNoData(): void
+    {
+        $this->loginAs($this->client, 'admin');
+        $this->writeScenario('base');
+        $crawler = $this->upload('2026-01-05', '2026-01-05');
+        $this->client->submit($crawler->filter('[data-test="confirm"]')->form());
+        $crawler = $this->upload('2026-01-06', '2026-01-06');
+        $cancel = $crawler->filter('[data-test="cancel"]')->form();
+        $token = (string) $cancel->get('_token')->getValue();
+        $confirm = str_replace('/cancel', '/confirm', (string) $cancel->getUri());
+
+        $this->client->request('POST', $confirm, ['_token' => $token]);
+
+        self::assertResponseRedirects('/admin/import');
+        $crawler = $this->client->followRedirect();
+        self::assertSame('Filen har ingen stoprækker i perioden. Den kan ikke importeres.', $crawler->filter('[data-test="flash-error"]')->text());
+        self::assertSame(14, $this->stored('stop_row'));
+        self::assertSame(1, $this->stored('import_batch'));
+        self::assertSame([], glob($this->uploadDirectory().'/*.xlsx') ?: []);
+    }
+
+    /**
      * @param array<string, string> $dates
      */
     #[DataProvider('invalidForms')]
