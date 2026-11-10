@@ -287,7 +287,7 @@ final class ImportPageTest extends WebTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessageIsOrContains('APP_DRIVING_DATA_MAX_FILE_SIZE must be at least 1.');
 
-        new \App\Form\ImportType(0);
+        new ImportType(0);
     }
 
     /**
