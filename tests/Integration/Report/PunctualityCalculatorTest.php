@@ -190,6 +190,47 @@ final class PunctualityCalculatorTest extends KernelTestCase
     }
 
     /**
+     * The figures of a supplier and of a route add all the dates of the range. On the same
+     * punctuality and the same number of runs, the supplier name decides the order of one route,
+     * and the route with no supplier is first.
+     */
+    public function testFiguresAddTheDatesOfTheRange(): void
+    {
+        $vikingbus = $this->supplier('Vikingbus');
+        $aarhusTaxa = $this->supplier('Aarhus Taxa');
+        $onTime = $this->route('S-01', $this->subAgreement('S', [[$vikingbus, '2026-01-01', null]]));
+        $late = $this->route('T-01', $this->subAgreement('T', [
+            [$vikingbus, '2026-01-01', '2026-01-05'],
+            [$aarhusTaxa, '2026-01-06', '2026-01-06'],
+        ]));
+        foreach (['2026-01-05', '2026-01-06'] as $date) {
+            $this->stop($onTime, $date, 1, StopType::Pickup, StopStatus::Completed, 0);
+            $this->stop($onTime, $date, 1, StopType::DropOff, StopStatus::Completed, 0, 1800);
+        }
+        foreach (['2026-01-05', '2026-01-06', '2026-01-07'] as $date) {
+            $this->stop($late, $date, 1, StopType::Pickup, StopStatus::Completed, 0);
+            $this->stop($late, $date, 1, StopType::DropOff, StopStatus::Completed, 600, 1800);
+        }
+
+        $report = $this->calculate('2026-01-05', '2026-01-07');
+
+        self::assertEquals([
+            'Aarhus Taxa' => new PunctualityCountDto(0, 1),
+            'Vikingbus' => new PunctualityCountDto(2, 3),
+            '' => new PunctualityCountDto(0, 1),
+        ], array_column(array_map(
+            static fn (SupplierPunctualityDto $supplier): array => [$supplier->supplier ?? '', $supplier->figures->dropOffPerRun],
+            $report->suppliers,
+        ), 1, 0));
+        self::assertEquals([
+            new RoutePunctualityDto('T-01', null, new PunctualityCountDto(0, 1)),
+            new RoutePunctualityDto('T-01', 'Aarhus Taxa', new PunctualityCountDto(0, 1)),
+            new RoutePunctualityDto('T-01', 'Vikingbus', new PunctualityCountDto(0, 1)),
+            new RoutePunctualityDto('S-01', 'Vikingbus', new PunctualityCountDto(2, 2)),
+        ], $report->worstRoutes);
+    }
+
+    /**
      * The worst routes have the lowest punctuality at the last drop-off. On the same punctuality,
      * the route with more runs is first, and then the route name decides. Only 10 routes are
      * given.

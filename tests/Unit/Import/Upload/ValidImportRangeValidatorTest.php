@@ -51,6 +51,22 @@ final class ValidImportRangeValidatorTest extends ConstraintValidatorTestCase
     }
 
     /**
+     * The message names the real problem: a range of one day has no last date before the first
+     * date, so it is too long when the maximum is less than one day.
+     */
+    public function testOneDayAboveTheMaximumIsTooLong(): void
+    {
+        $this->validator = new ValidImportRangeValidator(0);
+
+        $this->validate(self::upload('2026-01-01', '2026-01-01'), new ValidImportRange());
+
+        $this->buildViolation('upload.range_too_long')
+            ->setParameter('{max}', '0')
+            ->atPath('property.path.lastDate')
+            ->assertRaised();
+    }
+
+    /**
      * A missing date has its own violation from NotNull.
      */
     public function testMissingDateHasNoViolation(): void
@@ -93,6 +109,16 @@ final class ValidImportRangeValidatorTest extends ConstraintValidatorTestCase
         $this->expectException(\LogicException::class);
 
         new UploadDto()->range(31);
+    }
+
+    public function testRangeOfAnUploadWithNoLastDateIsAnError(): void
+    {
+        $upload = new UploadDto();
+        $upload->firstDate = new \DateTimeImmutable('2026-01-01');
+
+        $this->expectException(\LogicException::class);
+
+        $upload->range(31);
     }
 
     private static function upload(string $firstDate, string $lastDate): UploadDto

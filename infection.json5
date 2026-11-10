@@ -36,6 +36,19 @@
             // cast, also with strict types. The cast is for PHPStan.
             ignoreSourceCodeByRegex: ['.*\\$raw\\[\\(string\\) \\$field\\].*'],
         },
+        // Equivalent: these arrays are sets. The code reads only the keys, with isset() and
+        // array_keys(), so the value of an item is not used.
+        TrueValue: {
+            ignoreSourceCodeByRegex: [
+                '.*\\$rowKeys\\[\\$stopRow->rowKey\\] = true;.*',
+                ".*\\$dates\\[\\$row->serviceDate->format\\('Y-m-d'\\)\\] = true;.*",
+            ],
+        },
+        // Equivalent mutant. PHP changes an int to a float for a float return type, also with
+        // strict types. The cast is for PHPStan.
+        CastFloat: {
+            ignoreSourceCodeByRegex: ['.*\\? null : \\(float\\) \\$value, \\$this->reports\\),.*'],
+        },
         // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
         // the temporary files of OpenSpout, so it is necessary.
         UnwrapFinally: {
@@ -72,12 +85,38 @@
                 'App\\Import\\DrivingDataImporter::import',
             ],
         },
+        // Equivalent: the calculator uses a key only to add the figures of the same route and
+        // date, or of the same route and supplier. The order of the parts does not change this.
+        // A route id is a number in front of a date of fixed length, so the separator is not
+        // necessary there. With no line break, two route keys are the same only if a route name
+        // and a supplier name together give another route name and supplier name, for example
+        // "R-1" + "0 Taxi" and "R-10" + " Taxi". Real names do not do this.
+        Concat: {
+            ignoreSourceCodeByRegex: [
+                '.*\\$key = \\$route->getSourceKey\\(\\)\\."..?"\\.\\$supplier;.*',
+                ".*\\$key = \\$route\\.'/'\\.\\$date->format\\('Y-m-d'\\);.*",
+            ],
+        },
+        ConcatOperandRemoval: {
+            ignoreSourceCodeByRegex: [
+                '.*\\$key = \\$route->getSourceKey\\(\\)\\."..?"\\.\\$supplier;.*',
+                ".*\\$key = \\$route\\.'/'\\.\\$date->format\\('Y-m-d'\\);.*",
+            ],
+        },
+        // Equivalent: the query finds each route one time, also when an id is in the list two
+        // times or the list has other keys. array_unique() keeps the query short.
+        UnwrapArrayUnique: {
+            ignoreSourceCodeByRegex: ['.*findWithAssignments\\(array_values\\(array_unique\\(.*'],
+        },
+        UnwrapArrayValues: {
+            ignoreSourceCodeByRegex: ['.*findWithAssignments\\(array_values\\(array_unique\\(.*'],
+        },
     },
     minCoveredMsi: 80,
     // The default of 10 seconds is too short when all threads run. Each mutant process runs with
     // Xdebug, and the threads share the CPU and the test databases, so a database test is slow.
-    // The Taskfile fails the run on a timeout, because a timed-out mutant is not known to be
-    // killed. Infection also skips a mutant if all its tests took more than this time in the
-    // initial run, and bin/mutation-core-check.php fails on a skipped mutant in the gate.
+    // Infection also skips a mutant if all its tests took more than this time in the initial
+    // run. bin/mutation-core-check.php fails on a timed-out or skipped mutant in the gate,
+    // because nobody knows if a test kills it.
     timeout: 60,
 }

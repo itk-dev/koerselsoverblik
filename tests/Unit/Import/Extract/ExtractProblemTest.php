@@ -45,6 +45,8 @@ final class ExtractProblemTest extends TestCase
         yield 'not a valid workbook' => [ExtractProblem::InvalidWorkbook, null, 'The extract is not a valid xlsx file.'];
         yield 'no header row' => [ExtractProblem::NoHeaderRow, 3, 'The extract has no header row 3.'];
         yield 'no sheet' => [ExtractProblem::NoSheet, 2, 'The extract has no sheet with the index 2.'];
+        yield 'missing columns' => [ExtractProblem::MissingColumns, null, 'The extract does not have all the columns of the mapping.'];
+        yield 'no limit' => [ExtractProblem::TooLarge, null, 'The extract is larger than 0 bytes.'];
     }
 
     public function testMissingColumnsHaveTheirProblem(): void

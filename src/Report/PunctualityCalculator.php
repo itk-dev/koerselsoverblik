@@ -154,7 +154,8 @@ final readonly class PunctualityCalculator
      */
     private static function worstRoutes(array $byRoute): array
     {
-        $routes = array_values(array_filter($byRoute, static fn (RoutePunctualityDto $route): bool => $route->lastDropOff->measured > 0));
+        // usort() gives a list, so the keys of the filter do not stay.
+        $routes = array_filter($byRoute, static fn (RoutePunctualityDto $route): bool => $route->lastDropOff->measured > 0);
         usort($routes, static fn (RoutePunctualityDto $a, RoutePunctualityDto $b): int => [$a->lastDropOff->percent(), $b->lastDropOff->measured, $a->route, $a->supplier ?? '']
             <=> [$b->lastDropOff->percent(), $a->lastDropOff->measured, $b->route, $b->supplier ?? '']);
 
