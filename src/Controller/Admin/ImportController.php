@@ -11,6 +11,7 @@ use App\Import\DrivingDataImporter;
 use App\Import\Extract\InvalidExtractException;
 use App\Import\Extract\MissingColumnsException;
 use App\Import\Mapping\MappingProvider;
+use App\Import\NoStopRowsException;
 use App\Import\RowIdConflictException;
 use App\Import\Upload\PendingUploadDto;
 use App\Import\Upload\UploadDto;
@@ -96,7 +97,7 @@ final class ImportController extends AbstractController
         $user = $this->getUser();
         try {
             $batch = $this->importer->import($upload->path, $upload->range, $this->mappings->get($upload->mappingName), $user instanceof User ? $user : null, $upload->fileName);
-        } catch (InvalidExtractException|RowIdConflictException $exception) {
+        } catch (InvalidExtractException|RowIdConflictException|NoStopRowsException $exception) {
             // Doctrine closes the entity manager after a failed transaction.
             $this->doctrine->resetManager();
 
@@ -144,7 +145,7 @@ final class ImportController extends AbstractController
      * Deletes the upload, and shows the problem in Danish. The log line has no value from the
      * extract.
      */
-    private function failed(PendingUploadDto $upload, InvalidExtractException|RowIdConflictException $exception): Response
+    private function failed(PendingUploadDto $upload, InvalidExtractException|RowIdConflictException|NoStopRowsException $exception): Response
     {
         $this->uploads->delete($upload);
         $this->logger->warning('An upload of driving data failed: {message}', [
@@ -155,6 +156,7 @@ final class ImportController extends AbstractController
         $this->addFlash('error', match (true) {
             $exception instanceof MissingColumnsException => new TranslatableMessage('upload.missing_columns', ['columns' => implode(', ', $exception->columns)]),
             $exception instanceof InvalidExtractException => new TranslatableMessage('upload.problem.'.$exception->problem->value, ['limit' => $exception->limit ?? 0]),
+            $exception instanceof NoStopRowsException => new TranslatableMessage('upload.no_stop_rows'),
             default => new TranslatableMessage('upload.row_id_conflict'),
         });
 
