@@ -23,7 +23,8 @@ doctrine:
 when@test:
     doctrine:
         dbal:
-            # "TEST_TOKEN" is typically set by ParaTest
+            # Infection sets "TEST_TOKEN" to the thread number in each mutant process. The
+            # mutation tasks in Taskfile.yml create and migrate one database for each thread.
             dbname_suffix: '_test%env(default::TEST_TOKEN)%'
 
 when@prod:

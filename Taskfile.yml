@@ -106,6 +106,20 @@ tasks:
         vars:
           CLI_ARGS: doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
 
+  test:db:setup:threads:
+    internal: true
+    # Infection sets TEST_TOKEN to the thread number (1 to INFECTION_THREADS) in each mutant
+    # process, and config/packages/doctrine.yaml adds it to the database name. Each thread uses
+    # its own database, db_test1 to db_test4. If the database does not exist, a database test
+    # fails, and Infection counts the mutant as killed. One container creates all databases.
+    cmds:
+      - >-
+        {{ .DOCKER_COMPOSE }} run --rm phpfpm sh -c 'set -e;
+        for token in $(seq 1 {{ .INFECTION_THREADS }}); do
+        TEST_TOKEN=$token bin/console doctrine:database:create --env=test --if-not-exists;
+        TEST_TOKEN=$token bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration;
+        done'
+
   test:
     desc: Run all tests
     cmds:
@@ -139,6 +153,7 @@ tasks:
     desc: Run mutation testing on the lines that changed since develop. The reports are in var/infection/.
     cmds:
       - task: test:db:setup
+      - task: test:db:setup:threads
       - task: test:cache:warmup
       - rm -f {{ .MUTATION_LOG }}
       - '{{ .INFECTION }} --git-diff-lines --git-diff-base={{ .MUTATION_BASE }} {{ .CLI_ARGS }}'
@@ -148,6 +163,7 @@ tasks:
     desc: Run mutation testing on all code. The reports are in var/infection/.
     cmds:
       - task: test:db:setup
+      - task: test:db:setup:threads
       - task: test:cache:warmup
       - rm -f {{ .MUTATION_LOG }}
       # The filter "src/" matches all source files. Infection fails on an unfiltered run with no
