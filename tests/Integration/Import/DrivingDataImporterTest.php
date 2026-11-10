@@ -17,6 +17,7 @@ use App\Import\ImportRangeDto;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
+use App\Import\NoStopRowsException;
 use App\Import\RouteBuilder;
 use App\Import\RouteRunCalculator;
 use App\Import\RowIdConflictException;
@@ -190,6 +191,33 @@ final class DrivingDataImporterTest extends KernelTestCase
 
         self::assertSame(14, $this->storedRows());
         self::assertSame(4, $this->storedRuns());
+        self::assertSame(1, $this->storedBatches());
+    }
+
+    /**
+     * A wrong range gives a file with no stop rows in it. The import would then only delete the
+     * stored rows of the range, so it stops, and no data changes. The upload page and the command
+     * share the rule.
+     */
+    public function testFileWithNoStopRowsInTheRangeStopsTheImport(): void
+    {
+        $this->writeScenario('base');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        // A file of the next day, uploaded for the date of the stored rows.
+        $rows = array_map(
+            static fn (ExtractRow $row): ExtractRow => new ExtractRow(['service_date' => new \DateTimeImmutable('2026-01-06')] + $row->values, $row->rowId, $row->raw, $row->kept),
+            new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows,
+        );
+        new ExtractWriter()->write($this->path, $this->mapping(), $rows);
+
+        try {
+            $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'next-day.xlsx');
+            self::fail('The import did not fail.');
+        } catch (NoStopRowsException $exception) {
+            self::assertSame('The file has no stop rows in the range. The import changed no data.', $exception->getMessage());
+        }
+
+        self::assertSame(14, $this->storedRows());
         self::assertSame(1, $this->storedBatches());
     }
 

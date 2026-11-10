@@ -12,4 +12,15 @@ namespace App\Import\Extract;
  */
 class InvalidExtractException extends \RuntimeException
 {
+    /**
+     * @param ?int    $limit   the limit, the header row or the sheet index of the problem
+     * @param ?string $message the message, or null for the message of the problem
+     */
+    public function __construct(
+        public readonly ExtractProblem $problem,
+        public readonly ?int $limit = null,
+        ?string $message = null,
+    ) {
+        parent::__construct($message ?? $problem->message($limit));
+    }
 }

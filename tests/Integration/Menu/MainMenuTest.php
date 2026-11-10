@@ -24,7 +24,7 @@ final class MainMenuTest extends KernelTestCase
     public function testAdminSeesEveryItem(): void
     {
         self::assertSame(
-            ['menu.overview', 'menu.punctuality', 'menu.daily_counts', 'menu.suppliers'],
+            ['menu.overview', 'menu.punctuality', 'menu.daily_counts', 'menu.upload', 'menu.suppliers'],
             $this->labelsFor(['ROLE_ADMIN']),
         );
     }

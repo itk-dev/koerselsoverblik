@@ -1,5 +1,17 @@
 # Local development only.
 services:
+  # The upload of driving data accepts an extract of up to APP_DRIVING_DATA_MAX_FILE_SIZE
+  # (20 MiB). The limits of PHP and nginx must be higher. docker-compose.server.override.yml has
+  # the same values for the server.
+  phpfpm:
+    environment:
+      - PHP_UPLOAD_MAX_FILESIZE=25M
+      - PHP_POST_MAX_SIZE=25M
+
+  nginx:
+    environment:
+      NGINX_MAX_BODY_SIZE: 25M
+
   # A mock OIDC identity provider: https://github.com/geigerzaehler/oidc-provider-mock
   #
   # The container name is the external host name, so that the browser and the application reach

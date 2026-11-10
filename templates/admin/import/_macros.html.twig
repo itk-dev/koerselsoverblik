@@ -1,0 +1,32 @@
+{# A date in Danish, for example "5. januar 2026". #}
+{% macro date(date) %}{{ date|date('j') }}. {{ ('month.long.' ~ date|date('n'))|trans }} {{ date|date('Y') }}{% endmacro %}
+
+{#
+ # The rejected rows or the warnings, in groups of field and reason, with no values.
+ # Each group has "field" (null for the row id), "reason", "count" and "rowNumbers".
+ #}
+{% macro groups(title, groups, test) %}
+    {% if groups is not empty %}
+        <h2>{{ title }}</h2>
+        <table class="itkaarhus-table data-table">
+            <thead>
+                <tr>
+                    <th scope="col">{{ 'upload.group.field'|trans }}</th>
+                    <th scope="col">{{ 'upload.group.reason'|trans }}</th>
+                    <th scope="col" class="num">{{ 'upload.group.rows'|trans }}</th>
+                    <th scope="col">{{ 'upload.group.row_numbers'|trans }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in groups %}
+                    <tr data-test="{{ test }}">
+                        <td>{{ group.field is null ? 'upload.field.row_id'|trans : ('upload.field.' ~ group.field)|trans }}</td>
+                        <td>{{ ('upload.reason.' ~ group.reason)|trans }}</td>
+                        <td class="num">{{ group.count|number_format }}</td>
+                        <td>{{ group.rowNumbers|join(', ') }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endmacro %}

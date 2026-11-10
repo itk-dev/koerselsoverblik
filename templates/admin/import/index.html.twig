@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'upload.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'upload.title'|trans }}</h1>
+
+    <p>{{ 'upload.intro'|trans }}</p>
+    <div class="itkaarhus-callout itkaarhus-callout--warn">
+        <ul>
+            <li>{{ 'upload.caution.range'|trans }}</li>
+            <li>{{ 'upload.caution.whole_days'|trans }}</li>
+            <li>{{ 'upload.caution.no_undo'|trans }}</li>
+        </ul>
+    </div>
+
+    {{ form_start(form, {attr: {class: 'admin-form', 'data-test': 'upload-form'}}) }}
+        {{ form_widget(form) }}
+        <div class="admin-form__buttons">
+            <button class="itkaarhus-btn itkaarhus-btn--primary" type="submit">{{ 'upload.submit'|trans }}</button>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

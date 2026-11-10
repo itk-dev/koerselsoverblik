@@ -10,6 +10,7 @@ menu:
   label: Hovedmenu
   overview: Overblik
   punctuality: Rettidighed
+  upload: Upload kørselsdata
   daily_counts: Daglige tal
   suppliers: Leverandører og delaftaler
 
@@ -125,6 +126,91 @@ punctuality:
     foot: Rettidighed ved sidste afsætning.
   source: "Kilde: Optiruns · chaufførens indtastning mod planlagt tid, kun gennemførte stop"
   no_data: Ingen data i perioden.
+
+upload:
+  title: Upload kørselsdata
+  intro: Upload et udtræk fra planlægningssystemet for en periode. Uploaden erstatter alle kørselsdata i perioden. Du ser ændringerne, før du bekræfter.
+  caution:
+    range: Angiv perioden for udtrækket. En periode, der er længere end udtrækket, tømmer de ekstra datoer.
+    whole_days: Upload kun hele dage. En fil med kun en del af en dag fjerner de andre rækker for dagen.
+    no_undo: En upload kan ikke fortrydes. Upload den rigtige fil for den samme periode for at rette en forkert upload.
+  file: Udtræk (.xlsx)
+  file_help: Filen fra planlægningssystemet.
+  first_date: Første dato
+  last_date: Sidste dato
+  submit: Upload og vis ændringerne
+  preview_title: Kontrollér uploaden
+  preview_intro: Ingen data er ændret endnu. Kontrollér ændringerne, og bekræft eller annullér.
+  summary:
+    file: Fil
+    range: Periode
+    insert: Rækker der indsættes
+    delete: Gemte rækker der slettes
+    reject: Afviste rækker
+    warnings: Advarsler
+    inserted: Indsatte rækker
+    deleted: Slettede rækker
+  empty_dates: Datoer i perioden uden rækker i filen. De bliver tomme.
+  rejected_rows: Afviste rækker
+  warnings: Advarsler
+  group:
+    field: Felt
+    reason: Årsag
+    rows: Rækker
+    row_numbers: De første rækkenumre
+  confirm: Erstat kørselsdata for perioden
+  cancel: Annullér
+  cancelled: Uploaden er annulleret. Ingen data er ændret.
+  no_stop_rows: Filen har ingen stoprækker i perioden. Den kan ikke importeres.
+  expired: Uploaden er udløbet. Upload filen igen.
+  missing_columns: "Filen mangler disse kolonner fra opsætningen: {columns}."
+  row_id_conflict: Et række-id i filen findes allerede på en dato uden for perioden. Importen ændrede ingen data.
+  result_title: Kørselsdata er importeret
+  again: Upload en fil mere
+  problem:
+    not_file: Filen findes ikke.
+    too_large: Filen er større end {limit} bytes.
+    not_xlsx: Filen er ikke en xlsx-fil.
+    too_many_files: Filen har flere end {limit} dele.
+    unreadable: Filen har en del, der ikke kan læses.
+    too_large_uncompressed: Filen er større end {limit} bytes, når den er pakket ud.
+    doctype: Filen har en DOCTYPE og kan ikke læses.
+    too_many_rows: Filen har flere end {limit} rækker.
+    invalid_xml: Filen har en del, der ikke er gyldig XML.
+    too_many_columns: Filen har flere end {limit} kolonner.
+    invalid_cell_reference: Filen har en ugyldig cellereference.
+    invalid_workbook: Filen er ikke et gyldigt Excel-udtræk.
+    no_header_row: Filen har ingen overskriftsrække {limit}.
+    no_sheet: Filen har intet ark nummer {limit}.
+    missing_columns: Filen mangler kolonner fra opsætningen.
+  field:
+    row_id: Række-id
+    route: Vognløb
+    person_id: Borger-id
+    service_date: Dato
+    run: Blok
+    stop_type: Stoptype
+    stop_status: Status
+    passengers_after: Passagerer efter stoppet
+    next_distance_km: Afstand til næste stop
+    next_duration_min: Køretid til næste stop
+    planned_time: Planlagt tid
+    actual_time: Faktisk tid
+    planned_solo: Planlagt solo
+  reason:
+    empty: Feltet er tomt.
+    error_value: Cellen har en fejlværdi.
+    not_text: Værdien er ikke tekst.
+    unknown_code: Koden findes ikke i opsætningen.
+    not_whole_number: Værdien er ikke et helt tal.
+    not_number: Værdien er ikke et tal.
+    unknown_bool_value: Værdien er ikke ja eller nej i opsætningen.
+    not_date: Værdien er ikke en dato.
+    not_date_time: Værdien er ikke en dato og et tidspunkt.
+    not_time: Værdien er ikke et tidspunkt.
+    outside_range: Datoen er uden for perioden.
+    invalid_row_id: Række-id er tomt eller ugyldigt.
+    duplicate_row_id: En tidligere række har det samme række-id.
 
 chart:
   period: Periode

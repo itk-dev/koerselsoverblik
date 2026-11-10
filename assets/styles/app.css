@@ -378,6 +378,21 @@ body {
 .actions {
   justify-content: flex-end;
 }
+/* The summary of an upload: the labels in the first column, the values in the second. */
+.upload-summary {
+  display: grid;
+  grid-template-columns: max-content auto;
+  gap: var(--itkaarhus-space-2) var(--itkaarhus-space-5);
+  margin: 0 0 var(--itkaarhus-space-5);
+}
+.upload-summary dt {
+  font-weight: 600;
+  color: var(--itkaarhus-gray-700);
+}
+.upload-summary dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
 
 /*
  * -- Figures and charts ----------------------------------------

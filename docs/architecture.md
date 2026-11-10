@@ -683,6 +683,30 @@ Steps 3 to 7 run in one database transaction. A failed import leaves the data as
 than one hour. A cron job on the server runs it every 15 minutes, and each new upload also runs
 it. A confirmation after the purge shows that the upload has expired, and imports nothing.
 
+**The upload page** (`Admin\ImportController`, `ROLE_MANAGE_DRIVING_DATA`) uses Post/Redirect/Get,
+so that a reload never uploads or imports again:
+
+1. `POST /admin/import`: `ImportType` checks the file (`.xlsx`, `APP_DRIVING_DATA_MAX_FILE_SIZE`)
+   and the date range (`ValidImportRange`). `UploadStore` saves the file with a random name in
+   `var/uploads/driving_data/`, and keeps a `PendingUploadDto` in the session under a random
+   token. The page redirects to the preview.
+2. `GET /admin/import/preview/{token}`: the preview. A file with no stop rows in the range has no
+   confirm button. `DrivingDataImporter::import()` also refuses such a file with
+   `NoStopRowsException`, and rolls back the delete of the range. Thus a direct POST to the
+   confirmation, and the import command, cannot only delete data.
+3. `POST /admin/import/preview/{token}/confirm` (CSRF): `UploadStore::take()` removes the upload
+   from the session, the import runs, and the page redirects to the result.
+4. `GET /admin/import/{id}`: the result, from the saved `ImportBatch`.
+
+`UploadStore::take()` makes the file new, so that the purge does not delete it during the
+import. `find()` forgets an upload whose file is gone.
+
+An unknown token, a token of another session and a deleted file give "Uploaden er udløbet". An
+error deletes the file, logs a warning with no value, and shows the problem in Danish. Each
+`InvalidExtractException` has an `ExtractProblem` code for the translation. The English message
+stays for the command and the logs. After a failed import, Doctrine has closed the entity
+manager, so the controller resets it.
+
 **Whole days and the date range:** a file that holds only part of a day removes the other rows of
 that day. A range that is longer than the export empties the extra dates. Users must upload whole
 days and enter the range of the export. The preview lists the dates that become empty.

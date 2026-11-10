@@ -124,7 +124,7 @@ final readonly class StopRowParser
             }
         } catch (OpenSpoutException) {
             // The message of OpenSpout can contain text from the file, so it is not kept.
-            throw new InvalidExtractException('The extract is not a valid xlsx file.');
+            throw new InvalidExtractException(ExtractProblem::InvalidWorkbook);
         } finally {
             $reader->close();
         }
@@ -132,7 +132,7 @@ final readonly class StopRowParser
 
     private static function noHeaderRow(MappingDto $mapping): InvalidExtractException
     {
-        return new InvalidExtractException(\sprintf('The extract has no header row %d.', $mapping->headerRow));
+        return new InvalidExtractException(ExtractProblem::NoHeaderRow, $mapping->headerRow);
     }
 
     private static function sheet(Reader $reader, int $index): Sheet
@@ -143,7 +143,7 @@ final readonly class StopRowParser
             }
         }
 
-        throw new InvalidExtractException(\sprintf('The extract has no sheet with the index %d.', $index));
+        throw new InvalidExtractException(ExtractProblem::NoSheet, $index);
     }
 
     /**

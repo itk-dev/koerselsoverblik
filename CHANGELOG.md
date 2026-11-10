@@ -202,3 +202,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   geometry in `src/Chart/`. The `number_format` filter of Twig now has Danish defaults in all
   templates: no decimals, a decimal comma and a point between the thousands. The months of the
   dev dataset have different punctuality, so that the page shows all tones.
+- [#79](https://github.com/itk-dev/koerselsoverblik/issues/79)
+  M1-19b Upload driving data with a preview: "Upload kørselsdata" at `/admin/import` uploads an
+  extract for a date range, shows the preview, and imports after the confirmation. The result
+  page shows the saved import. `app:driving-data:purge-uploads` deletes the upload files that are
+  older than one hour. Each problem of an extract has an `ExtractProblem` code, so that the page
+  shows it in Danish. The upload limits of PHP and nginx are 25 MB, in
+  `docker-compose.override.yml` and the new `docker-compose.server.override.yml`. The import
+  refuses a file with no stop rows in the range (`NoStopRowsException`), so that a wrong range
+  cannot only delete data.
