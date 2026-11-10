@@ -198,9 +198,14 @@ from the real identity provider.
    - the date range
    - how many rows will be deleted, inserted and rejected, with a reason for each rejected row
    - the dates in the range that have no rows in the file, and become empty
-5. Confirm, or cancel. Nothing changes before you confirm.
+5. Confirm, or cancel. Nothing changes before you confirm. If the file has no rows in the date
+   range, the preview has no confirm button.
 6. The result page shows the replaced date range and how many rows were deleted, inserted and
    rejected.
+
+An upload waits for the confirmation for one hour. After that, upload the file again. If the
+file cannot be read, for example because a column is missing, the page shows the problem and
+nothing changes.
 
 The upload replaces all stored driving data in the date range. A date in the range with no rows
 in the file becomes empty. A row with a date outside the range is rejected. Uploading the same
@@ -641,6 +646,9 @@ To set up a new server:
    - `APP_SECRET`
    - the `OIDC_*` settings from the identity provider
    - the database settings
+1. Make sure that the deployment reads `docker-compose.server.override.yml`. It sets the upload
+   limits of PHP and nginx (25 MB) above `APP_DRIVING_DATA_MAX_FILE_SIZE`. The template file
+   `docker-compose.server.yml` keeps the defaults of the template.
 1. Deploy.
 1. Add a cron job that deletes the upload files that nobody confirmed. Run it every 15 minutes:
 
