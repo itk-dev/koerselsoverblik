@@ -649,6 +649,12 @@ To set up a new server:
 1. Make sure that the deployment reads `docker-compose.server.override.yml`. It sets the upload
    limits of PHP and nginx (25 MB) above `APP_DRIVING_DATA_MAX_FILE_SIZE`. The template file
    `docker-compose.server.yml` keeps the defaults of the template.
+
+   The upload imports the file in the request. The server keeps the PHP limits of the template:
+   30 seconds and 128 MB. These limits are not measured with a file at the row limit
+   (`APP_DRIVING_DATA_MAX_ROWS`). If a large upload fails with an error 500, the import rolled
+   back, and no data changed. Then raise `PHP_MAX_EXECUTION_TIME` and `PHP_MEMORY_LIMIT` in
+   `docker-compose.server.override.yml`.
 1. Deploy.
 1. Add a cron job that deletes the upload files that nobody confirmed. Run it every 15 minutes:
 

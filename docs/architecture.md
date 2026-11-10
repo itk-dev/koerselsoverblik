@@ -691,10 +691,15 @@ so that a reload never uploads or imports again:
    `var/uploads/driving_data/`, and keeps a `PendingUploadDto` in the session under a random
    token. The page redirects to the preview.
 2. `GET /admin/import/preview/{token}`: the preview. A file with no stop rows in the range has no
-   confirm button.
+   confirm button. `DrivingDataImporter::import()` also refuses such a file with
+   `NoStopRowsException`, and rolls back the delete of the range. Thus a direct POST to the
+   confirmation, and the import command, cannot only delete data.
 3. `POST /admin/import/preview/{token}/confirm` (CSRF): `UploadStore::take()` removes the upload
    from the session, the import runs, and the page redirects to the result.
 4. `GET /admin/import/{id}`: the result, from the saved `ImportBatch`.
+
+`UploadStore::take()` makes the file new, so that the purge does not delete it during the
+import. `find()` forgets an upload whose file is gone.
 
 An unknown token, a token of another session and a deleted file give "Uploaden er udløbet". An
 error deletes the file, logs a warning with no value, and shows the problem in Danish. Each

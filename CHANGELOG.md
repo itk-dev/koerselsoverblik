@@ -208,4 +208,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   page shows the saved import. `app:driving-data:purge-uploads` deletes the upload files that are
   older than one hour. Each problem of an extract has an `ExtractProblem` code, so that the page
   shows it in Danish. The upload limits of PHP and nginx are 25 MB, in
-  `docker-compose.override.yml` and the new `docker-compose.server.override.yml`.
+  `docker-compose.override.yml` and the new `docker-compose.server.override.yml`. The import
+  refuses a file with no stop rows in the range (`NoStopRowsException`), so that a wrong range
+  cannot only delete data.
