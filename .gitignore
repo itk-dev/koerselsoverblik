@@ -24,14 +24,7 @@
 /assets/vendor/
 ###< symfony/asset-mapper ###
 
-# Local planning notes. The GitHub issues hold the task specifications.
-/docs/plan.md
-/docs/tasks.md
-
 ###> phpunit/phpunit ###
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
-
-# The local plan for the data import. The README and docs/architecture.md hold the specification.
-/docs/plan-data-import.md

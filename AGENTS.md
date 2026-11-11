@@ -12,6 +12,8 @@ Read these documents before you start a task:
 - [README.md](README.md): the specification. The application must do what the README says.
 - The GitHub issue: the task specification. Each task is one issue, one branch and one pull
   request.
+- [docs/plans/](docs/plans/README.md): the features that remain, and a plan for each feature
+  with the implementation details that are not in the issue.
 - [docs/architecture.md](docs/architecture.md): the design, the diagrams and the security rules.
 - [docs/adr/](docs/adr/): the architecture decisions.
 
@@ -106,6 +108,15 @@ To find how the project is configured, use these commands. Do not guess:
   `feat: replace stop rows for the date range of an upload (M1-16)`.
 - Add `Closes #<ISSUE_NUMBER>` to the pull request description.
 - Add an entry to `CHANGELOG.md` under "Unreleased".
+- In the pull request that closes a feature, delete its plan file in `docs/plans/`, and move its
+  row to "Done" in [docs/plans/README.md](docs/plans/README.md).
+
+## Plans
+
+- Write a plan for new work in `docs/plans/`. Follow the rules in
+  [docs/plans/README.md](docs/plans/README.md).
+- A plan for new work starts with the issue text. The user creates the issue on GitHub. Wait
+  for the issue number before you create the branch.
 
 ## Writing
 

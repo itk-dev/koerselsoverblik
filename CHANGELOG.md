@@ -215,3 +215,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   One test database for each Infection thread: the mutation tasks create and migrate `db_test1`
   to `db_test4`. Before, a database test failed in a mutant process, and Infection counted the
   mutant as killed. So the 100 % gate did not check the code that only database tests cover.
+- [#88](https://github.com/itk-dev/koerselsoverblik/issues/88)
+  Plans: `docs/plans/README.md` lists the features that remain, with the status, the issue and
+  the plan file, and the merged features. A plan file holds only the text that is not in the
+  issue. The issue stays the task specification. The pull request that closes a feature deletes
+  its plan file. "Open decisions" in `docs/architecture.md` has the open questions that were
+  missing, and "Actual time" is answered. The docs can give counts of rows from the reference
+  extract, but no cell values.

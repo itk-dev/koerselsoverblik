@@ -143,8 +143,8 @@ title: Components (milestone 1)
 ---
 flowchart TB
     subgraph web["Web layer"]
-        controllers["Controllers<br/>Overview, DailyCount, Security,<br/>Admin/Import, Admin/ClearDrivingData,<br/>Admin/Supplier, Admin/Route"]
-        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, Route"]
+        controllers["Controllers<br/>Overview, Punctuality, DailyCount, Security,<br/>Admin/Import, Admin/ClearDrivingData,<br/>Admin/Supplier, Admin/SubAgreement, Admin/Assignment"]
+        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, SubAgreement, Assignment"]
         twig["Twig templates and components<br/>Tile, Sparkline, LineChart, Panel"]
         format["FormatExtension"]
     end
@@ -513,7 +513,8 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
 ### The reference extract
 
 A reference extract from the planning system gives the layout for the `default` mapping. The
-extract is not in Git, and the docs contain no values from it.
+extract is not in Git, and the docs contain no cell values from it. Counts of rows are
+permitted, for example "7 of 80 runs".
 
 **Layout:**
 
@@ -1109,26 +1110,25 @@ testing and the diagram check on every pull request.
   - The parser implements the proposal. The decision must be accepted before go-live.
 - **Whole days.** Does each extract hold whole days? The replacement of the date range depends
   on it. A partial day removes the other rows of that day. The product owner in the transport
-  office answers before the replacement is built.
+  office answers before go-live.
 - **All routes in one extract.** Does one extract hold all the routes of a day, or only one area
   or contract? The import replaces all stop rows in the date range. If the extracts are per
   area, an upload for one area deletes the other areas. Then the replacement must be limited to
   the routes or the area of the file ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)).
-  The product owner in the transport office answers before the replacement is built.
+  The product owner in the transport office answers before go-live.
 - **Maximum range.** What can the planning system export? Evaluate the default of
   `APP_DRIVING_DATA_MAX_DAYS` (31 days) after a test export. The developer answers this with the
   transport office before go-live.
 - **Route column.** Which column identifies a route: the route name or the route id? The route id
   can be an id for one day only. The `default` mapping uses the route name until this is
-  confirmed. The product owner in the transport office answers before the route administration
-  is built.
+  confirmed. The product owner in the transport office answers before go-live.
 - **Supplier mapping (answered).** A route belongs to the sub-agreement in its name: the part
   before the last `-nn` or `_nn`. An administrator assigns each sub-agreement to a supplier for a
   date range. See the terms in [Data model](#data-model).
 - **Booked trips.** Some trips are booked outside the fixed routes, and have a common route name.
   Who drives them? Can more than one supplier drive them? With one route for all of them, they
-  get one supplier assignment. The product owner in the transport office answers before the
-  route administration is built.
+  get one supplier assignment. The product owner in the transport office answers before
+  go-live.
 - **Stops with no registration.** How do the figures treat a stop that has no status
   registration from the driver (`pending`)? The proposal: it counts as a trip, because it is not
   cancelled. A run whose last drop-off has no actual time is not counted for punctuality. The
@@ -1140,8 +1140,33 @@ testing and the diagram check on every pull request.
   stop. Is the count from the stops correct (+1 for each pickup that is not cancelled, −1 for each
   drop-off)? Does a cancelled stop add to the driven kilometres? The product owner in the
   transport office answers before the daily stats are built.
-- **Actual time.** Is `StatusUpdateTime` the actual time of the stop? It is the time of the
-  status registration by the driver. The mapping uses it until the product owner answers.
+- **Actual time (answered).** The actual time of a stop is `StatusUpdateTime`, the status
+  registration by the driver.
+- **Route names and test routes.** Do all route names end with `-` or `_` and a number? Is
+  `TEST_01` a test route that the figures must not count? If so, what is the rule to find a test
+  route? An answer can change `SubAgreementReference`. The product owner in the transport office
+  answers before go-live.
+- **Solo column.** What is the column `kørselstype` (solo or shared) for? The solo runs count
+  the passengers in the car, not this column. Must a figure show the trips that could not share
+  a car? The product owner in the transport office answers before a figure uses `planned_solo`.
+- **Run from the block or the flags.** The application finds a route run from the block number.
+  The concept uses the flags `blokstart` and `blokslut`. In the reference extract, the flags are
+  on cancelled stops in 8 runs, are missing in 2 runs, and split one block in two. The two rules
+  give a small difference in the measures for each route run. Is the block rule correct, or must
+  the figures agree with a report from the planning system? The product owner in the transport
+  office answers before go-live.
+- **Booked time.** Must a pickup be measured against the time that the citizen booked
+  (`RequestTimePref`), not the planned departure? In the reference extract, the booked time is in
+  only 70 of 139 pickups. The product owner in the transport office answers before go-live.
+- **Driver changes.** The prototype shows how many times another driver than the fixed driver
+  drove a route run. The extract has no column for the driver. Can the planning system export
+  one? The application must not store data about a driver as a person. The product owner in the
+  transport office answers before the punctuality page can show the driver changes.
+- **No-shows.** The prototype shows, for each supplier, the trips where the car came but the
+  citizen was not there. The extract has the status `Served`, `Cancelled` and `Pending`. Is a
+  no-show one of these, a cancellation code, or a column that the extract does not have? The
+  product owner in the transport office answers before the punctuality page can show the
+  no-shows.
 - **Role claim.** Which claim holds the roles, and which values does the identity provider
   send? Which group is assigned to the application? IT operations sets this up before go-live.
 
