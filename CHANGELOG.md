@@ -222,3 +222,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   its plan file. "Open decisions" in `docs/architecture.md` has the open questions that were
   missing, and "Actual time" is answered. The docs can give counts of rows from the reference
   extract, but no cell values.
+- Plans for [#91](https://github.com/itk-dev/koerselsoverblik/issues/91) (one supplier for each
+  sub-agreement, with no dated assignments) and
+  [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) (ignore a sub-agreement, for
+  example "Turbestilling", in the figures).
