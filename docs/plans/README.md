@@ -65,6 +65,9 @@ feature that has an issue or an issue text.
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
 | Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #75 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
 | Calculate the 12 months in one query | Blocked | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | #82 | [punctuality-months-query.md](punctuality-months-query.md) |
+| Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
+| Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
+| Fix the month chooser, the chart labels and the number format | Ready | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | – | – |
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
 

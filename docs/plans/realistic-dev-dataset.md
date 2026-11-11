@@ -8,16 +8,17 @@ See the [rules for plans](README.md#rules).
 
 - **Profile:** `var/optiruns/profile.php` reads the exports in a local folder, and prints only
   counts and distributions. It is not committed. Run it again when more exports are downloaded.
-- **Shape:** put the shares in constants of `DevDatasetGenerator` as weighted lists, and select
-  with `Randomizer`. Do not read a profile file at run time, so that each developer gets the same
-  data.
+- **Shape:** put invented shares in constants of `DevDatasetGenerator` as weighted lists, and
+  select with `Randomizer`. Use values near the local profile, but never the real values: the
+  repository is public. Do not read a profile file at run time, so that each developer gets the
+  same data.
 - **Citizens:** make the citizens of a route once for each seed. Then the same citizens ride on
   the same route each day, as in the real data.
 - **Institutions:** invented names, for example "Skole 1" to "Skole 40" and "Center 1" to
   "Center 20". #87 needs them.
-- **Import time:** 13 months are about 57 week files and 1.1 million stop rows. At 15 s for each
-  week, `task fixtures:import` takes about 15 minutes. Run the import in `prod` with no debug, or
-  the dev environment runs out of memory.
+- **Import time:** 13 months are about 57 week files. The import of one week takes some seconds,
+  so `task fixtures:import` takes some minutes. Run the import in `prod` with no debug, or the dev
+  environment runs out of memory.
 
 ## Open points
 
