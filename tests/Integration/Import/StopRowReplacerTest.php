@@ -316,8 +316,8 @@ final class StopRowReplacerTest extends KernelTestCase
 
         $result = $this->import(self::range('2026-01-05'));
 
-        // One flush for the batch, one for each full group and one for the last row.
-        self::assertSame(4, $flushes->count);
+        // One flush for each full group, and one for the last row.
+        self::assertSame(3, $flushes->count);
         self::assertSame(1001, $result->insertedRows);
         self::assertSame(1001, $this->stored(StopRow::class));
         self::assertSame(1, $this->stored(Route::class));
@@ -334,8 +334,7 @@ final class StopRowReplacerTest extends KernelTestCase
 
         $this->import(self::range('2026-01-05'));
 
-        // The import flushes the batch one time before the rows.
-        self::assertSame(2, $flushes->count);
+        self::assertSame(1, $flushes->count);
         $identityMap = $this->entityManager->getUnitOfWork()->getIdentityMap();
         self::assertSame([], $identityMap[StopRow::class] ?? []);
         self::assertSame([], $identityMap[RejectedStopRow::class] ?? []);
@@ -356,8 +355,8 @@ final class StopRowReplacerTest extends KernelTestCase
     {
         $mapping = $this->mapping();
         $batch = new ImportBatch($mapping->name, 'extract.xlsx', null, new \DateTimeImmutable(), $range);
+        // DrivingDataImporter does not flush the batch. The first flush of the replacer inserts it.
         $this->entityManager->persist($batch);
-        $this->entityManager->flush();
 
         $parser = self::getContainer()->get(StopRowParser::class);
         self::assertInstanceOf(StopRowParser::class, $parser);
