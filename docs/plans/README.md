@@ -65,6 +65,7 @@ feature that has an issue or an issue text.
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
 | Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #75 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
 | Calculate the 12 months in one query | Blocked | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | #82 | [punctuality-months-query.md](punctuality-months-query.md) |
+| Show the ignored sub-agreements on the punctuality page | Ready | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | – | [ignored-sub-agreements-note.md](ignored-sub-agreements-note.md) |
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
 
@@ -79,12 +80,6 @@ feature that has an issue or an issue text.
 | Keep the copy of a row in its own entity | Ready | [#95](https://github.com/itk-dev/koerselsoverblik/issues/95) | – | [source-row-entity.md](source-row-entity.md) |
 | Show the imported stop rows and rejected rows of a date range | Blocked | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | #95 | [driving-data-view.md](driving-data-view.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
-
-### Suppliers and sub-agreements
-
-| Feature | Status | Issue | Needs | Plan |
-| --- | --- | --- | --- | --- |
-| Ignore a sub-agreement in the figures | Ready | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | – | [ignore-sub-agreements.md](ignore-sub-agreements.md) |
 
 ### Release
 
@@ -131,3 +126,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Upload driving data with a preview | [#79](https://github.com/itk-dev/koerselsoverblik/issues/79) | [#80](https://github.com/itk-dev/koerselsoverblik/pull/80) |
 | Give each Infection thread its own test database | [#83](https://github.com/itk-dev/koerselsoverblik/issues/83) | [#84](https://github.com/itk-dev/koerselsoverblik/pull/84) |
 | Give each sub-agreement one supplier | [#91](https://github.com/itk-dev/koerselsoverblik/issues/91) | [#93](https://github.com/itk-dev/koerselsoverblik/pull/93) |
+| Ignore a sub-agreement in the figures | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | [#94](https://github.com/itk-dev/koerselsoverblik/pull/94) |

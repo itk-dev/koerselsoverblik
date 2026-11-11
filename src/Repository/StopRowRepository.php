@@ -65,7 +65,8 @@ class StopRowRepository extends ServiceEntityRepository
 
     /**
      * Counts the measured stops of each route, date and stop type in the range, and those of them
-     * that are on time. A measured stop is completed, and it has a delay (an actual time).
+     * that are on time. A measured stop is completed, and it has a delay (an actual time). The
+     * stops of an ignored sub-agreement are not counted.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      *
@@ -73,8 +74,7 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function countMeasuredStops(DateRangeDto $range, int $onTimeSeconds): array
     {
-        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
-        $rows = $this->createQueryBuilder('row')
+        $builder = $this->createQueryBuilder('row')
             ->select(
                 'IDENTITY(row.route) AS route',
                 'row.serviceDate AS serviceDate',
@@ -89,7 +89,10 @@ class StopRowRepository extends ServiceEntityRepository
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
             ->setParameter('completed', StopStatus::Completed)
-            ->setParameter('onTime', $onTimeSeconds)
+            ->setParameter('onTime', $onTimeSeconds);
+
+        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
+        $rows = IgnoredSubAgreementFilter::apply($builder, 'row.route')
             ->getQuery()
             ->getArrayResult();
 

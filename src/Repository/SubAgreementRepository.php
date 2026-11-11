@@ -19,20 +19,20 @@ class SubAgreementRepository extends ServiceEntityRepository
     }
 
     /**
-     * Gives all sub-agreements with their supplier. The sub-agreements with no supplier come
-     * first, because an administrator must give them a supplier. Each group is sorted by the
-     * reference.
+     * Gives all sub-agreements with their supplier. The sub-agreements that need a supplier come
+     * first, because an administrator must give them a supplier. An ignored sub-agreement needs
+     * no supplier. Each group is sorted by the reference.
      *
      * @return list<SubAgreement>
      */
-    public function findAllWithoutSupplierFirst(): array
+    public function findAllNeedingSupplierFirst(): array
     {
         /** @var list<SubAgreement> $subAgreements */
         $subAgreements = $this->createQueryBuilder('subAgreement')
             ->select('subAgreement', 'supplier')
             ->leftJoin('subAgreement.supplier', 'supplier')
-            ->addSelect('CASE WHEN subAgreement.supplier IS NULL THEN 0 ELSE 1 END AS HIDDEN hasSupplier')
-            ->orderBy('hasSupplier', 'ASC')
+            ->addSelect('CASE WHEN subAgreement.supplier IS NULL AND subAgreement.ignored = false THEN 0 ELSE 1 END AS HIDDEN supplierGroup')
+            ->orderBy('supplierGroup', 'ASC')
             ->addOrderBy('subAgreement.reference', 'ASC')
             ->getQuery()
             ->getResult();

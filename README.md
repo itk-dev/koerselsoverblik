@@ -407,14 +407,26 @@ To give a sub-agreement a supplier:
 1. Go to **Leverandører og delaftaler** (requires `ROLE_MANAGE_SUPPLIERS`).
 2. Create the suppliers on the **Leverandører** tab.
 3. On the **Delaftaler** tab, open a sub-agreement, or create it.
-4. Click **Skift leverandør**.
+4. Click **Redigér delaftale**.
 5. Select the supplier, and click **Gem**.
 
 The import creates a sub-agreement with no supplier. The routes of a sub-agreement with no
-supplier count as "Unknown". Sub-agreements with no supplier are listed at the top.
+supplier count as "Unknown". Sub-agreements with no supplier are listed at the top, unless they
+are ignored (see below).
 
 When you change the supplier of a sub-agreement, the figures for all dates of its routes change
 to the new supplier. A supplier with sub-agreements cannot be deleted.
+
+Some routes are not route runs. For example, the booked trips have the route name
+"Turbestilling". To leave such a sub-agreement out of the figures:
+
+1. On the **Delaftaler** tab, open the sub-agreement.
+2. Click **Redigér delaftale**.
+3. Select **Ignorér i beregningerne**, and click **Gem**.
+
+The import still stores the driving data of an ignored sub-agreement. When you clear
+**Ignorér i beregningerne**, the figures include its routes again. An ignored sub-agreement needs
+no supplier, so it is not listed at the top.
 
 ### Enter daily counts
 

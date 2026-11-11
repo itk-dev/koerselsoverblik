@@ -250,6 +250,7 @@ erDiagram
         int id PK
         string reference UK "for example AB-CD"
         int supplier_id FK "null = Unknown"
+        bool ignored "not in the figures"
     }
     ROUTE {
         int id PK
@@ -349,7 +350,9 @@ erDiagram
   because not all names have the same format. A reference can itself end in a number, for example
   `TEST-2` from `TEST-2-01`. Thus the form does not apply the route name rule to a typed
   reference. An administrator gives each sub-agreement one supplier. The supplier applies to all
-  dates. The routes of a sub-agreement with no supplier count as "Unknown".
+  dates. The routes of a sub-agreement with no supplier count as "Unknown". An administrator can
+  ignore a sub-agreement whose routes are not route runs, for example "Turbestilling". The
+  figures leave out its routes.
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day. The extract gives each
   run a block number. Punctuality and solo routes are measured per run.
@@ -359,7 +362,7 @@ erDiagram
 | --- | --- |
 | `User` | An account from the identity provider: email (the `upn` claim), roles from the last login, time of the last login. No password |
 | `Supplier` | A transport supplier |
-| `SubAgreement` | A sub-agreement, with the supplier that drives its routes (empty = "Unknown"). `SubAgreementReference::fromRouteName()` finds it from a route name |
+| `SubAgreement` | A sub-agreement, with the supplier that drives its routes (empty = "Unknown"), and a flag that leaves its routes out of the figures. `SubAgreementReference::fromRouteName()` finds it from a route name |
 | `Route` | A route from the extract, with its sub-agreement. The import creates it |
 | `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, and the rejection reasons and warnings as groups of field and reason |
 | `StopRow` | One stop from the extract, with an optional row key from the mapping and the copy of the row. See [open decisions](#open-decisions) |
@@ -373,10 +376,15 @@ applies to all dates, also to the dates before the change. The import creates a 
 with no supplier, so the database accepts a sub-agreement with no supplier. The foreign key has
 no `ON DELETE`, so the database blocks the delete of a supplier with sub-agreements.
 
+**An ignored sub-agreement is left out in the queries, not in the import.** The import stores
+its stop rows and builds its route runs. Each query that counts driving data for the figures
+calls `IgnoredSubAgreementFilter::apply()`. It joins the sub-agreement and skips the rows of an
+ignored sub-agreement. Thus a change of the flag needs no new import.
+
 **Derived tables are always rebuildable.** `RouteRun` and `DailyStats` are rebuilt from `StopRow`
-for the dates an import touched. When the supplier of a sub-agreement changes, `DailyStats` is
-rebuilt for all dates of the routes of the sub-agreement. The derived tables hold no information
-that can't be recalculated.
+for the dates an import touched. When the supplier or the ignored flag of a sub-agreement
+changes, `DailyStats` is rebuilt for all dates of the routes of the sub-agreement. The derived
+tables hold no information that can't be recalculated.
 
 ## Importing driving data
 
@@ -813,6 +821,8 @@ value shows as "–".
   is on time. Each measure is on time ÷ measured × 100. No measured rows give no value, not 0 %.
 - **No delay in SQL:** the import calculates `delay_seconds` in PHP ([Times](#times)). The queries
   only compare it with the limits, and count.
+- **Ignored sub-agreements:** the queries do not count the stops and the runs of the routes of an
+  ignored sub-agreement.
 - **Delay bands** of the measured last drop-offs: on time, more than the tolerance to 15 minutes,
   more than 15 to 30 minutes, and more than 30 minutes. A delay on the edge is in the lower band.
 - **Supplier:** the queries count for each route and date, and the calculator adds the dates of
@@ -1105,9 +1115,10 @@ testing and the diagram check on every pull request.
 - **Supplier mapping (answered).** A route belongs to the sub-agreement in its name: the part
   before the last `-nn` or `_nn`. An administrator gives each sub-agreement one supplier. The
   supplier applies to all dates. See the terms in [Data model](#data-model).
-- **Booked trips.** Some trips are booked outside the fixed routes, and have a common route name.
-  Who drives them? Can more than one supplier drive them? With one route for all of them, they
-  get one supplier. The product owner in the transport office answers before go-live.
+- **Booked trips (answered).** Some trips are booked outside the fixed routes, and have the
+  common route name "Turbestilling". They are not route runs. An administrator ignores this
+  sub-agreement, so the figures leave out its routes. The import still stores the rows. Open:
+  does the transport office know other route names that are not route runs?
 - **Stops with no registration.** How do the figures treat a stop that has no status
   registration from the driver (`pending`)? The proposal: it counts as a trip, because it is not
   cancelled. A run whose last drop-off has no actual time is not counted for punctuality. The
