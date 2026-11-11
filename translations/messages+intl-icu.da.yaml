@@ -251,10 +251,13 @@ sub_agreement:
   back: Tilbage til delaftalerne
   none: Der er ingen delaftaler endnu.
   created: Delaftalen er oprettet.
-  edit: Skift leverandør
+  edit: Redigér delaftale
   edit_title: Redigér delaftale {reference}
   saved: Delaftalen er gemt.
   supplier: Leverandør
   no_supplier: Ingen leverandør – vises som "Ukendt"
+  ignored: Ignorér i beregningerne
+  ignored_help: Vognløbene i delaftalen indgår ikke i tallene. Importen gemmer stadig kørselsdata.
+  ignored_tag: Ignoreret
   routes: Vognløb
   no_routes: Der er ingen vognløb endnu. Importen af kørselsdata opretter dem.

@@ -38,7 +38,8 @@ class RouteRunRepository extends ServiceEntityRepository
     /**
      * Counts the measured first pickups and last drop-offs of each route and date in the range,
      * and the last drop-offs in each delay band. A delay on the edge of a band is in the lower
-     * band. A run with no delay at the stop is not measured there.
+     * band. A run with no delay at the stop is not measured there. The runs of an ignored
+     * sub-agreement are not counted.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      * @param int $upTo15Seconds the highest delay of the second band
@@ -61,7 +62,10 @@ class RouteRunRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN run.lastDropDelaySeconds > :upTo15 AND run.lastDropDelaySeconds <= :upTo30 THEN 1 ELSE 0 END) AS lastDropUpTo30',
                 'SUM(CASE WHEN run.lastDropDelaySeconds > :upTo30 THEN 1 ELSE 0 END) AS lastDropOver30',
             )
+            ->join('run.route', 'runRoute')
+            ->join('runRoute.subAgreement', 'subAgreement')
             ->where('run.serviceDate BETWEEN :first AND :last')
+            ->andWhere('subAgreement.ignored = false')
             ->groupBy('run.route, run.serviceDate')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)

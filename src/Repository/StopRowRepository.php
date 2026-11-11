@@ -65,7 +65,8 @@ class StopRowRepository extends ServiceEntityRepository
 
     /**
      * Counts the measured stops of each route, date and stop type in the range, and those of them
-     * that are on time. A measured stop is completed, and it has a delay (an actual time).
+     * that are on time. A measured stop is completed, and it has a delay (an actual time). The
+     * stops of an ignored sub-agreement are not counted.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      *
@@ -82,9 +83,12 @@ class StopRowRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN row.delaySeconds <= :onTime THEN 1 ELSE 0 END) AS onTime',
                 'COUNT(row.id) AS measured',
             )
+            ->join('row.route', 'stopRoute')
+            ->join('stopRoute.subAgreement', 'subAgreement')
             ->where('row.serviceDate BETWEEN :first AND :last')
             ->andWhere('row.stopStatus = :completed')
             ->andWhere('row.delaySeconds IS NOT NULL')
+            ->andWhere('subAgreement.ignored = false')
             ->groupBy('row.route, row.serviceDate, row.stopType')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)

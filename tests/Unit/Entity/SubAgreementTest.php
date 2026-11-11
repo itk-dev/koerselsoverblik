@@ -26,4 +26,20 @@ final class SubAgreementTest extends TestCase
         $subAgreement->setSupplier(null);
         self::assertNull($subAgreement->getSupplier());
     }
+
+    public function testNewSubAgreementIsNotIgnored(): void
+    {
+        self::assertFalse(new SubAgreement()->isIgnored());
+    }
+
+    public function testIgnoredFlagCanBeSetAndCleared(): void
+    {
+        $subAgreement = new SubAgreement();
+
+        self::assertSame($subAgreement, $subAgreement->setIgnored(true));
+        self::assertTrue($subAgreement->isIgnored());
+
+        $subAgreement->setIgnored(false);
+        self::assertFalse($subAgreement->isIgnored());
+    }
 }

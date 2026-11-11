@@ -30,8 +30,9 @@ figures from these rows.
     minutes
 - Add `DailyStatsAggregator::rebuild()`. It finds the supplier of each route from the
   sub-agreement of the route, and replaces the rows of the range.
-- When the supplier of a sub-agreement changes, rebuild all dates of the routes of the
-  sub-agreement. `SubAgreementController::new()` and `edit()` save the supplier.
+- The aggregator skips the routes of an ignored sub-agreement.
+- When the supplier or the ignored flag of a sub-agreement changes, rebuild all dates of the
+  routes of the sub-agreement. `SubAgreementController::new()` and `edit()` save both.
 - Add the step to `DrivingDataImporter::import()`, in the same transaction as the other steps.
 - Add `DailyStats` to `DrivingDataClearer` (#81).
 - The `base` scenario must give its `expected` totals.

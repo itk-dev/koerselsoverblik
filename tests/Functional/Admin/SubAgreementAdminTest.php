@@ -135,6 +135,43 @@ final class SubAgreementAdminTest extends WebTestCase
         self::assertSelectorTextContains('[data-test="supplier"]', 'Ingen leverandør');
     }
 
+    public function testAdminCanIgnoreASubAgreementAndIncludeItAgain(): void
+    {
+        $subAgreement = $this->subAgreement('AB-CD');
+        $this->entityManager()->flush();
+
+        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/edit');
+        $this->client->submitForm('Gem', ['sub_agreement[ignored]' => true]);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('[data-test="ignored"]', 'Ignoreret');
+
+        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/edit');
+        $this->client->submitForm('Gem', ['sub_agreement[ignored]' => false]);
+        $this->client->followRedirect();
+        self::assertSelectorNotExists('[data-test="ignored"]');
+    }
+
+    /**
+     * An ignored sub-agreement needs no supplier, so the list shows the ignored tag and no
+     * warning.
+     */
+    public function testAdminCanCreateAnIgnoredSubAgreement(): void
+    {
+        $this->client->request('GET', '/admin/sub-agreements/new');
+        $this->client->submitForm('Gem', [
+            'sub_agreement[reference]' => 'BOOKED',
+            'sub_agreement[ignored]' => true,
+        ]);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('[data-test="ignored"]', 'Ignoreret');
+
+        $crawler = $this->client->request('GET', '/admin/sub-agreements');
+
+        $row = $crawler->filter('[data-test="sub-agreement-row"]');
+        self::assertCount(1, $row->filter('[data-test="ignored"]'));
+        self::assertCount(0, $row->filter('[data-test="no-supplier"]'));
+    }
+
     /**
      * The import finds the sub-agreement of a route by the reference, so the reference does not
      * change after the create.

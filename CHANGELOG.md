@@ -231,3 +231,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   assignments are removed. The supplier applies to all dates. The sub-agreement page has an edit
   page for the supplier, and the list shows the sub-agreements with no supplier first. The
   punctuality calculator adds the figures for each route, not for each route and date.
+- [#90](https://github.com/itk-dev/koerselsoverblik/issues/90)
+  Ignore a sub-agreement in the figures: `SubAgreement` has an `ignored` flag, and the edit page
+  has a checkbox for it. The punctuality queries skip the stops and the runs of an ignored
+  sub-agreement. The import still stores them. The list does not show an ignored sub-agreement
+  with no supplier at the top. The open decision "Booked trips" is answered: an administrator
+  ignores "Turbestilling".

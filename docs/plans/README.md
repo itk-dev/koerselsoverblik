@@ -78,12 +78,6 @@ feature that has an issue or an issue text.
 | Move the deletes of the stop row replacer to the repositories | Draft | – | – | [stop-row-replacer-deletes.md](stop-row-replacer-deletes.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
-### Suppliers and sub-agreements
-
-| Feature | Status | Issue | Needs | Plan |
-| --- | --- | --- | --- | --- |
-| Ignore a sub-agreement in the figures | Ready | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | – | [ignore-sub-agreements.md](ignore-sub-agreements.md) |
-
 ## Done
 
 The table lists each merged pull request that closes an issue. It does not list the chores and
@@ -123,3 +117,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Upload driving data with a preview | [#79](https://github.com/itk-dev/koerselsoverblik/issues/79) | [#80](https://github.com/itk-dev/koerselsoverblik/pull/80) |
 | Give each Infection thread its own test database | [#83](https://github.com/itk-dev/koerselsoverblik/issues/83) | [#84](https://github.com/itk-dev/koerselsoverblik/pull/84) |
 | Give each sub-agreement one supplier | [#91](https://github.com/itk-dev/koerselsoverblik/issues/91) | [#93](https://github.com/itk-dev/koerselsoverblik/pull/93) |
+| Ignore a sub-agreement in the figures | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | – |
