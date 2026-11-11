@@ -1,8 +1,6 @@
 # Move the deletes of the stop row replacer to the repositories
 
-| Issue | Status | Needs |
-| --- | --- | --- |
-| Not created | Draft | – |
+**Issue:** not created
 
 See the [rules for plans](README.md#rules).
 
@@ -19,12 +17,13 @@ for the same work on the route runs. The queries of an entity belong in its repo
 
 ## Tasks
 
-- Add `StopRowRepository::deleteInRange(ImportRangeDto $range): int`. It gives the number of
-  deleted rows.
 - Add `RejectedStopRowRepository` with `deleteInRange(ImportRangeDto $range): void`. It
   deletes the rejected rows with a date in the range, and the rejected rows with no date of the
   earlier batches whose whole range is in the range.
-- Let `StopRowReplacer` call the two methods, in the same order as now.
+- Add `StopRowRepository::deleteInRange(ImportRangeDto $range): int`. It gives the number of
+  deleted rows.
+- Let `StopRowReplacer` call the two methods. Delete the rejected rows first, then the stop
+  rows, as `deleteRange()` does now.
 - Add integration tests for the two repository methods.
 
 **Out of scope:** a change of the behaviour.

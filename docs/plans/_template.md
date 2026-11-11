@@ -1,8 +1,6 @@
 # <FEATURE_TITLE>
 
-| Issue | Status | Needs |
-| --- | --- | --- |
-| Not created | Draft | – |
+**Issue:** not created
 
 See the [rules for plans](README.md#rules).
 

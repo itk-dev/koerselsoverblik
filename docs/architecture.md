@@ -513,7 +513,8 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
 ### The reference extract
 
 A reference extract from the planning system gives the layout for the `default` mapping. The
-extract is not in Git, and the docs contain no values from it.
+extract is not in Git, and the docs contain no cell values from it. Counts of rows are
+permitted, for example "7 of 80 runs".
 
 **Layout:**
 
@@ -1109,12 +1110,12 @@ testing and the diagram check on every pull request.
   - The parser implements the proposal. The decision must be accepted before go-live.
 - **Whole days.** Does each extract hold whole days? The replacement of the date range depends
   on it. A partial day removes the other rows of that day. The product owner in the transport
-  office answers before the replacement is built.
+  office answers before go-live.
 - **All routes in one extract.** Does one extract hold all the routes of a day, or only one area
   or contract? The import replaces all stop rows in the date range. If the extracts are per
   area, an upload for one area deletes the other areas. Then the replacement must be limited to
   the routes or the area of the file ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)).
-  The product owner in the transport office answers before the replacement is built.
+  The product owner in the transport office answers before go-live.
 - **Maximum range.** What can the planning system export? Evaluate the default of
   `APP_DRIVING_DATA_MAX_DAYS` (31 days) after a test export. The developer answers this with the
   transport office before go-live.

@@ -1,16 +1,8 @@
 # Read a stop row from its stored copy
 
-| Issue | Status | Needs |
-| --- | --- | --- |
-| [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | Ready | – |
+**Issue:** [#61](https://github.com/itk-dev/koerselsoverblik/issues/61)
 
 See the [rules for plans](README.md#rules).
-
-## Implementation
-
-- Add `StopRowParser::fromCopy()`. It reads one copy through a mapping, with `SourceCells`.
-- Let `parse()` read each row of a file through its copy. Then a file and a stored copy give the
-  same `StopRowDto`.
 
 ## Open points
 

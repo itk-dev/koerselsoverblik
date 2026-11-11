@@ -1,8 +1,6 @@
 # Make the late drop-offs clear on the punctuality page
 
-| Issue | Status | Needs |
-| --- | --- | --- |
-| [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | Ready | – |
+**Issue:** [#86](https://github.com/itk-dev/koerselsoverblik/issues/86)
 
 See the [rules for plans](README.md#rules).
 
