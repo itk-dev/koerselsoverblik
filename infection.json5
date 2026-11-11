@@ -31,6 +31,15 @@
     },
     mutators: {
         '@default': true,
+        // Equivalent mutants. PHP changes the numeric string of a date part to a number in
+        // arithmetic and in an array key. The casts are for PHPStan.
+        CastInt: {
+            ignoreSourceCodeByRegex: [
+                ".*\\(int\\) \\$first->format\\('n'\\);.*",
+                ".*intdiv\\(\\(int\\) \\$anchor->format\\('n'\\) - 1, \\$months\\).*",
+                '.*\\(int\\) \\$selectedRange->firstDate->diff\\(\\$selectedRange->lastDate\\)->days;.*',
+            ],
+        },
         CastString: {
             // Equivalent mutant. PHP changes a numeric array key to an int, with or without the
             // cast, also with strict types. The cast is for PHPStan.

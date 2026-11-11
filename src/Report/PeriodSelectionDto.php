@@ -35,7 +35,7 @@ final readonly class PeriodSelectionDto
      */
     public function isComparisonCut(): bool
     {
-        return null !== $this->comparisonRange && null !== $this->comparison->range
-            && $this->comparisonRange->lastDate < $this->comparison->range->lastDate;
+        // The comparison range is null when the comparison period has no range.
+        return null !== $this->comparisonRange && $this->comparisonRange->lastDate < $this->comparison->range?->lastDate;
     }
 }

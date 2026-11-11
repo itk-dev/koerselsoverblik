@@ -50,6 +50,8 @@ final class PeriodRangeFactoryTest extends TestCase
         yield 'last quarter of a year' => [['p' => 'quarter', 'd' => '2025-11-30'], '2025-10-01/2025-12-31', false];
         yield 'half year' => [['p' => 'half_year', 'd' => '2026-03-03'], '2026-01-01/2026-06-30', false];
         yield 'current half year ends today' => [['p' => 'half_year'], '2026-07-01/2026-09-18', true];
+        // On a Sunday, the current week has ended.
+        yield 'week that ends today' => [['p' => 'week', 'd' => '2026-09-16'], '2026-09-14/2026-09-20', false, '2026-09-20'];
         yield 'month that starts before the data' => [['d' => '2026-05-25'], '2026-05-18/2026-05-31', true, self::TODAY, self::DATA_START];
         yield 'week that starts before the data' => [['p' => 'week', 'd' => '2026-05-20'], '2026-05-18/2026-05-24', false, self::TODAY, self::DATA_START];
         yield 'quarter that starts before the data' => [['p' => 'quarter', 'd' => '2026-06-01'], '2026-05-18/2026-06-30', true, self::TODAY, self::DATA_START];
@@ -96,6 +98,8 @@ final class PeriodRangeFactoryTest extends TestCase
         // The comparison starts at the start of the data, and is not cut.
         yield 'previous month starts before the data' => [['d' => '2026-06-10'], '2026-05-18/2026-05-31', '2026-05-18/2026-05-31', false, self::TODAY, self::DATA_START];
         yield 'previous month before the data' => [['d' => '2026-05-25'], null, null, false, self::TODAY, self::DATA_START];
+        // The data starts on the last day of the previous month, so the comparison has one day.
+        yield 'previous month of one day' => [['d' => '2026-06-10'], '2026-05-31/2026-05-31', '2026-05-31/2026-05-31', false, self::TODAY, '2026-05-31'];
         yield 'last year before the data' => [['c' => 'last_year'], null, null, false, self::TODAY, self::DATA_START];
     }
 
