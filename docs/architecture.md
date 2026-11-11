@@ -1138,8 +1138,33 @@ testing and the diagram check on every pull request.
   stop. Is the count from the stops correct (+1 for each pickup that is not cancelled, −1 for each
   drop-off)? Does a cancelled stop add to the driven kilometres? The product owner in the
   transport office answers before the daily stats are built.
-- **Actual time.** Is `StatusUpdateTime` the actual time of the stop? It is the time of the
-  status registration by the driver. The mapping uses it until the product owner answers.
+- **Actual time (answered).** The actual time of a stop is `StatusUpdateTime`, the status
+  registration by the driver.
+- **Route names and test routes.** Do all route names end with `-` or `_` and a number? Is
+  `TEST_01` a test route that the figures must not count? If so, what is the rule to find a test
+  route? An answer can change `SubAgreementReference`. The product owner in the transport office
+  answers before go-live.
+- **Solo column.** What is the column `kørselstype` (solo or shared) for? The solo runs count
+  the passengers in the car, not this column. Must a figure show the trips that could not share
+  a car? The product owner in the transport office answers before a figure uses `planned_solo`.
+- **Run from the block or the flags.** The application finds a route run from the block number.
+  The concept uses the flags `blokstart` and `blokslut`. In the reference extract, the flags are
+  on cancelled stops in 8 runs, are missing in 2 runs, and split one block in two. The two rules
+  give a small difference in the measures for each route run. Is the block rule correct, or must
+  the figures agree with a report from the planning system? The product owner in the transport
+  office answers before go-live.
+- **Booked time.** Must a pickup be measured against the time that the citizen booked
+  (`RequestTimePref`), not the planned departure? In the reference extract, the booked time is in
+  only 70 of 139 pickups. The product owner in the transport office answers before go-live.
+- **Driver changes.** The prototype shows how many times another driver than the fixed driver
+  drove a route run. The extract has no column for the driver. Can the planning system export
+  one? The application must not store data about a driver as a person. The product owner in the
+  transport office answers before the punctuality page can show the driver changes.
+- **No-shows.** The prototype shows, for each supplier, the trips where the car came but the
+  citizen was not there. The extract has the status `Served`, `Cancelled` and `Pending`. Is a
+  no-show one of these, a cancellation code, or a column that the extract does not have? The
+  product owner in the transport office answers before the punctuality page can show the
+  no-shows.
 - **Role claim.** Which claim holds the roles, and which values does the identity provider
   send? Which group is assigned to the application? IT operations sets this up before go-live.
 

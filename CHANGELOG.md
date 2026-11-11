@@ -211,3 +211,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `docker-compose.override.yml` and the new `docker-compose.server.override.yml`. The import
   refuses a file with no stop rows in the range (`NoStopRowsException`), so that a wrong range
   cannot only delete data.
+- [#88](https://github.com/itk-dev/koerselsoverblik/issues/88)
+  Plans: `docs/plans/README.md` lists the features that remain, with the status, the issue and a
+  plan file for each feature. The issue stays the task specification. The pull request that
+  closes a feature deletes its plan file. "Open decisions" in `docs/architecture.md` has the
+  open questions that were missing, and "Actual time" is answered.

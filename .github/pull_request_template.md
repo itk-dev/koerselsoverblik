@@ -17,3 +17,5 @@ Closes #<ISSUE_NUMBER>
 - [ ] PHPStan (max level) and coding standards pass.
 - [ ] The README, architecture and diagrams are updated if behaviour or design changed.
 - [ ] `CHANGELOG.md` has an entry under "Unreleased".
+- [ ] The plan file of the feature in `docs/plans/` is deleted, and its row is in "Done" in
+      `docs/plans/README.md`.

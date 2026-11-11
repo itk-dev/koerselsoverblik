@@ -1,0 +1,20 @@
+# Read a stop row from its stored copy
+
+| Issue | Status | Needs |
+| --- | --- | --- |
+| [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | Ready | – |
+
+See the [rules for plans](README.md#rules).
+
+## Implementation
+
+- Add `StopRowParser::fromCopy()`. It reads one copy through a mapping, with `SourceCells`.
+- Let `parse()` read each row of a file through its copy. Then a file and a stored copy give the
+  same `StopRowDto`.
+
+## Open points
+
+- [ADR 006](../adr/006-keep-a-copy-of-each-imported-row.md) lists a later command that reads all
+  stored copies again through a changed mapping. A copy leaves out the empty cells, so it has no
+  header. That command needs a rule for a column that is in no copy. This feature does not add
+  the command.

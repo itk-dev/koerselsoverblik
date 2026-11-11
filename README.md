@@ -669,4 +669,5 @@ To set up a new server:
 
 - [Architecture](docs/architecture.md)
 - [Architecture decision records](docs/adr/)
+- [Plans](docs/plans/README.md): the features that remain, and a plan for each feature
 - [Changelog](CHANGELOG.md)
