@@ -157,6 +157,19 @@ final class RouteRunCalculatorTest extends TestCase
         self::assertNull($run->peakPassengers);
     }
 
+    /**
+     * The extract can have a run where no citizen was in the car after any stop, for example a
+     * run with only drop-offs. Its peak is 0, not "no count".
+     */
+    public function testRunWithAnEmptyCarHasAPeakOfZero(): void
+    {
+        $run = self::calculate([
+            self::stop(StopType::DropOff, StopStatus::Completed, '07:35', '07:39', passengersAfter: 0),
+        ]);
+
+        self::assertSame(0, $run->peakPassengers);
+    }
+
     public function testSoloRunHasAPeakOfOne(): void
     {
         $run = self::calculate([
