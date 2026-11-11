@@ -44,15 +44,33 @@ final class StopRowTripCountTest extends KernelTestCase
     }
 
     /**
-     * The expected values are in the "expected" section of the scenario.
+     * The trips are in the "expected" section of the scenario. The scenario has 7 person ids, but
+     * P-006 has only a cancelled trip, so 6 citizens were driven.
      */
     public function testBaseScenario(): void
     {
         $this->importBase();
 
         self::assertEquals(
-            new TripCountDto(trips: 7, completed: 5, cancelled: 1, pending: 1, citizens: 7),
+            new TripCountDto(trips: 7, completed: 5, cancelled: 1, pending: 1, citizens: 6),
             $this->trips('2026-01-01', '2026-01-31'),
+        );
+    }
+
+    /**
+     * A citizen who was not driven does not count. A pickup with no registration is not
+     * cancelled, so its citizen counts.
+     */
+    public function testCitizenWithOnlyCancelledTripsDoesNotCount(): void
+    {
+        $route = $this->route();
+        $this->stop($route, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($route, '2026-02-03', 'P-A', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($route, '2026-02-03', 'P-B', StopType::Pickup, StopStatus::Pending);
+
+        self::assertEquals(
+            new TripCountDto(trips: 3, completed: 0, cancelled: 2, pending: 1, citizens: 1),
+            $this->trips('2026-02-01', '2026-02-28'),
         );
     }
 

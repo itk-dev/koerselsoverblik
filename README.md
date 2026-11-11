@@ -28,7 +28,7 @@ The user interface is in Danish.
 - **Overview:** eight key figures for a chosen period, each with the change from a comparison
   period and a 12-month trend.
   - The trips ("Personture"), with the completed and the cancelled trips, and the distinct
-    citizens ("Unikke borgere"). Each figure has a help text.
+    citizens who were driven ("Unikke borgere"). Each figure has a help text.
   - Punctuality over 12 months, against the target.
   - The figures per supplier, side by side.
 - **Rettidighed (punctuality):** the four punctuality measures of a month against the service

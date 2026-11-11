@@ -46,7 +46,7 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('januar 2026', $crawler->filter('[data-test="month"]')->text());
         self::assertSame('7', self::value($crawler, 'trips'));
         self::assertSame('5 gennemført · 1 aflyst', $crawler->filter('[data-test="trips"] .tile__note')->text());
-        self::assertSame('7', self::value($crawler, 'citizens'));
+        self::assertSame('6', self::value($crawler, 'citizens'));
         self::assertSame('Forskellige borgere, uanset antal ture', $crawler->filter('[data-test="citizens"] .tile__note')->text());
         // December 2025 has no data, so there is no change.
         self::assertSame('ingen sammenligning', $crawler->filter('[data-test="trips-change"]')->text());

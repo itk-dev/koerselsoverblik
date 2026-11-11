@@ -36,7 +36,7 @@ final class OverviewPageBuilderTest extends KernelTestCase
         self::assertCount(12, $page->counts);
         self::assertSame('2025-03', $page->months[0]->query());
         // The base scenario is on 5 January, the month before the month of the page.
-        self::assertEquals(new TripCountDto(7, 5, 1, 1, 7), $page->counts[10]);
+        self::assertEquals(new TripCountDto(7, 5, 1, 1, 6), $page->counts[10]);
         self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $page->current());
     }
 

@@ -105,7 +105,8 @@ class StopRowRepository extends ServiceEntityRepository
     }
 
     /**
-     * Counts the trips and the citizens of a date range. A trip is a pickup, with any status.
+     * Counts the trips and the citizens of a date range. A trip is a pickup, with any status. A
+     * citizen was driven if a pickup of the citizen is not cancelled.
      */
     public function countTrips(DateRangeDto $range): TripCountDto
     {
@@ -116,7 +117,8 @@ class StopRowRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN row.stopStatus = :completed THEN 1 ELSE 0 END) AS completed',
                 'SUM(CASE WHEN row.stopStatus = :cancelled THEN 1 ELSE 0 END) AS cancelled',
                 'SUM(CASE WHEN row.stopStatus = :pending THEN 1 ELSE 0 END) AS pending',
-                'COUNT(DISTINCT row.personId) AS citizens',
+                // COUNT ignores NULL, so a cancelled pickup gives no person id.
+                'COUNT(DISTINCT CASE WHEN row.stopStatus = :cancelled THEN NULL ELSE row.personId END) AS citizens',
             )
             ->where('row.serviceDate BETWEEN :first AND :last')
             ->andWhere('row.stopType = :pickup')

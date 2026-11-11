@@ -805,8 +805,9 @@ before the filters, the daily stats and `KpiCalculator` above exist. It uses the
 the punctuality page (`templates/_month.html.twig`).
 
 - `StopRowRepository::countTrips()` counts the trips and the citizens of a `DateRangeDto` in one
-  query. A trip is a pickup with any status. The citizens are the distinct person ids of the
-  pickups.
+  query. A trip is a pickup with any status. The citizens are the citizens who were driven: the
+  distinct person ids of the pickups that are not cancelled, as in the prototype. A pickup with
+  no registration counts.
 - `OverviewPageBuilder` counts the month and the 11 months before it. `OverviewPageDto` gives the
   change from the previous month and the history for the sparklines.
 - A month with no trips has no data. The tiles then show "–", not 0.
