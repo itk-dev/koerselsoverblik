@@ -514,7 +514,9 @@ task test:mutation:full
   not tested.
 - **Threads:** Infection runs 4 mutants at the same time on all computers, so the result does not
   depend on the number of cores. To use a different number, set `TASK_INFECTION_THREADS`, for
-  example `TASK_INFECTION_THREADS=2 task test:mutation`.
+  example `TASK_INFECTION_THREADS=2 task test:mutation`. Do not give `--threads` after `--`. The
+  tasks then create too few test databases, and a database test in a mutant process fails, so
+  Infection counts the mutant as killed.
 - **Mutation databases:** Infection sets `TEST_TOKEN` to the thread number in each mutant
   process, and the name of the test database ends with it. So each thread has its own database,
   `db_test1` to `db_test4`. The mutation tasks create and migrate these databases before the run.
