@@ -32,6 +32,7 @@ final readonly class RouteRunCalculator
                 continue;
             }
             $cancelled = false;
+            // A negative count gives 0, because a car cannot have fewer than 0 citizens.
             if (null !== $stop->passengersAfter) {
                 $peak = max($peak ?? 0, $stop->passengersAfter);
             }

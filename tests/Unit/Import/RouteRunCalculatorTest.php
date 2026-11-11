@@ -170,6 +170,19 @@ final class RouteRunCalculatorTest extends TestCase
         self::assertSame(0, $run->peakPassengers);
     }
 
+    /**
+     * The real extracts have a few negative counts. A car cannot have fewer than 0 citizens, so
+     * the peak is at least 0.
+     */
+    public function testNegativeCountGivesAPeakOfZero(): void
+    {
+        $run = self::calculate([
+            self::stop(StopType::DropOff, StopStatus::Completed, '07:35', '07:39', passengersAfter: -1),
+        ]);
+
+        self::assertSame(0, $run->peakPassengers);
+    }
+
     public function testSoloRunHasAPeakOfOne(): void
     {
         $run = self::calculate([
