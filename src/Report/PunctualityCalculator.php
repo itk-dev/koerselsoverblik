@@ -63,7 +63,7 @@ final readonly class PunctualityCalculator
 
             $total = $total->add($routeFigures);
             $bySupplier[$supplier ?? ''] = ($bySupplier[$supplier ?? ''] ?? PunctualityFiguresDto::empty())->add($routeFigures);
-            $key = $route->getSourceKey()."\n".$supplier;
+            $key = \sprintf("%s\n%s", $route->getSourceKey(), $supplier ?? '');
             $byRoute[$key] = new RoutePunctualityDto(
                 $route->getSourceKey(),
                 $supplier,
@@ -110,7 +110,7 @@ final readonly class PunctualityCalculator
      */
     private static function addTo(array &$figures, int $route, \DateTimeImmutable $date, PunctualityFiguresDto $add): void
     {
-        $key = $route.'/'.$date->format('Y-m-d');
+        $key = \sprintf('%d/%s', $route, $date->format('Y-m-d'));
         $figures[$key] = [
             'route' => $route,
             'date' => $date,
@@ -154,7 +154,8 @@ final readonly class PunctualityCalculator
      */
     private static function worstRoutes(array $byRoute): array
     {
-        $routes = array_values(array_filter($byRoute, static fn (RoutePunctualityDto $route): bool => $route->lastDropOff->measured > 0));
+        // usort() gives a list, so the keys of the filter do not stay.
+        $routes = array_filter($byRoute, static fn (RoutePunctualityDto $route): bool => $route->lastDropOff->measured > 0);
         usort($routes, static fn (RoutePunctualityDto $a, RoutePunctualityDto $b): int => [$a->lastDropOff->percent(), $b->lastDropOff->measured, $a->route, $a->supplier ?? '']
             <=> [$b->lastDropOff->percent(), $a->lastDropOff->measured, $b->route, $b->supplier ?? '']);
 

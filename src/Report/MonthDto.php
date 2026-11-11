@@ -23,7 +23,9 @@ final readonly class MonthDto
     public static function fromQuery(?string $value, \DateTimeImmutable $today): self
     {
         $current = new self(new \DateTimeImmutable($today->format('Y-m-01')));
-        $date = null === $value ? false : \DateTimeImmutable::createFromFormat('!'.self::FORMAT, $value);
+        // The value gets the first day, so that the day of the system clock cannot move the date
+        // to the next month. The time of the date is not used.
+        $date = null === $value ? false : \DateTimeImmutable::createFromFormat('Y-m-d', $value.'-01');
         if (false === $date || $date->format(self::FORMAT) !== $value) {
             return $current;
         }

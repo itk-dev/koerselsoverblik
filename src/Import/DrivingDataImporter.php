@@ -80,9 +80,8 @@ final readonly class DrivingDataImporter
     {
         return $this->entityManager->wrapInTransaction(function () use ($path, $range, $mapping, $user, $fileName): ImportBatch {
             $batch = new ImportBatch($mapping->name, $fileName, $user, $this->clock->now(), $range);
-            // The rows refer to the batch, so it must have an id first.
+            // The first flush of the replacer inserts the batch before the rows that refer to it.
             $this->entityManager->persist($batch);
-            $this->entityManager->flush();
 
             $result = $this->replacer->replace($range, $mapping, $this->parser->parse($path, $mapping, $range), $batch);
             // The exception rolls back the delete of the range.

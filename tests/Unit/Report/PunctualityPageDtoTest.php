@@ -44,6 +44,7 @@ final class PunctualityPageDtoTest extends TestCase
         self::assertNull($dropOff->change);
         self::assertSame([70.0, null, 90.0], $dropOff->history);
         self::assertSame('series-blue', $dropOff->cssClass);
+        self::assertFalse($dropOff->dashed);
         self::assertEqualsWithDelta(-10.0, $pickupPerRun->change, 0.001);
         self::assertSame('series-info', $pickupPerRun->cssClass);
         self::assertTrue($pickupPerRun->dashed);

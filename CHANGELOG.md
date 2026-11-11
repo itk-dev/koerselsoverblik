@@ -211,3 +211,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `docker-compose.override.yml` and the new `docker-compose.server.override.yml`. The import
   refuses a file with no stop rows in the range (`NoStopRowsException`), so that a wrong range
   cannot only delete data.
+- [#83](https://github.com/itk-dev/koerselsoverblik/issues/83)
+  One test database for each Infection thread: the mutation tasks create and migrate `db_test1`
+  to `db_test4`. Before, a database test failed in a mutant process, and Infection counted the
+  mutant as killed. So the 100 % gate did not check the code that only database tests cover.
