@@ -22,6 +22,7 @@ use App\Repository\StopRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Events;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -115,13 +116,32 @@ final class RouteBuilderTest extends KernelTestCase
     public function testMoreRunsThanOneGroupAreAllStored(): void
     {
         $values = $this->scenarioRows()[0]->values;
-        $rows = array_map(static fn (int $run): ExtractRow => new ExtractRow(['run' => $run] + $values, 'S-'.$run), range(1, 501));
+        $rows = array_map(static fn (int $run): ExtractRow => new ExtractRow(['run' => $run] + $values, 'S-'.$run), range(1, 1000));
         $this->importRows($rows, self::range('2026-01-05'));
+        $flushes = new FlushCounter();
+        $this->entityManager->getEventManager()->addEventListener(Events::postFlush, $flushes);
 
         $built = $this->builder()->rebuild(self::range('2026-01-05'));
 
-        self::assertSame(501, $built);
-        self::assertCount(501, $this->routeRuns());
+        // One flush for each full group, and one for the runs after the last full group.
+        self::assertSame(3, $flushes->count);
+        self::assertSame(1000, $built);
+        self::assertCount(1000, $this->routeRuns());
+    }
+
+    /**
+     * Fewer runs than one group are written in one flush. Then the entity manager forgets them.
+     */
+    public function testRunsAreWrittenInOneFlushAndForgotten(): void
+    {
+        $this->importRows($this->scenarioRows(), self::range('2026-01-05'));
+        $flushes = new FlushCounter();
+        $this->entityManager->getEventManager()->addEventListener(Events::postFlush, $flushes);
+
+        $this->builder()->rebuild(self::range('2026-01-05'));
+
+        self::assertSame(1, $flushes->count);
+        self::assertSame([], $this->entityManager->getUnitOfWork()->getIdentityMap()[RouteRun::class] ?? []);
     }
 
     private function builder(): RouteBuilder

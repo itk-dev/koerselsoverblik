@@ -1047,6 +1047,8 @@ The project is developed test first, with 100 % line coverage and mutation testi
 - `src/Report` and `src/Import` require a covered MSI of 100 %. The rest of the mutated code
   requires 80 %.
 - Controllers, form types and Twig components are not mutated.
+- Each Infection thread uses its own test database (`db_test<THREAD>`). The mutation tasks
+  create and migrate them.
 - Pull requests run it on changed lines. Release branches run it on the whole code base.
 
 ### Test data

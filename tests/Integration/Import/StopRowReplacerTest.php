@@ -24,6 +24,7 @@ use App\Import\Mapping\MappingProvider;
 use App\Import\StopRowReplacer;
 use App\Repository\SubAgreementRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Events;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -127,12 +128,13 @@ final class StopRowReplacerTest extends KernelTestCase
             new ExtractRow(['route' => 'r-02'] + $values),
             // A letter that is not ASCII also has a lower case.
             new ExtractRow(['route' => 'Ø4-VB-01'] + $values),
+            new ExtractRow(['route' => 'ø4-vb-01'] + $values),
             new ExtractRow(['route' => 'ø4-vb-02'] + $values),
         ]);
 
         $result = $this->import(self::range('2026-01-05'));
 
-        self::assertSame(5, $result->insertedRows);
+        self::assertSame(6, $result->insertedRows);
         self::assertSame(4, $this->stored(Route::class));
         self::assertSame(2, $this->stored(SubAgreement::class));
     }
@@ -309,12 +311,33 @@ final class StopRowReplacerTest extends KernelTestCase
         $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
         $rows = array_map(static fn (int $index): ExtractRow => new ExtractRow($values, 'S-'.$index), range(1, 1001));
         new ExtractWriter()->write($this->path, $this->mapping(), $rows);
+        $flushes = new FlushCounter();
+        $this->entityManager->getEventManager()->addEventListener(Events::postFlush, $flushes);
 
         $result = $this->import(self::range('2026-01-05'));
 
+        // One flush for each full group, and one for the last row.
+        self::assertSame(3, $flushes->count);
         self::assertSame(1001, $result->insertedRows);
         self::assertSame(1001, $this->stored(StopRow::class));
         self::assertSame(1, $this->stored(Route::class));
+    }
+
+    /**
+     * Fewer rows than one group are written in one flush. Then the entity manager forgets them.
+     */
+    public function testRowsAreWrittenInOneFlushAndForgotten(): void
+    {
+        $this->writeScenario('bad_values');
+        $flushes = new FlushCounter();
+        $this->entityManager->getEventManager()->addEventListener(Events::postFlush, $flushes);
+
+        $this->import(self::range('2026-01-05'));
+
+        self::assertSame(1, $flushes->count);
+        $identityMap = $this->entityManager->getUnitOfWork()->getIdentityMap();
+        self::assertSame([], $identityMap[StopRow::class] ?? []);
+        self::assertSame([], $identityMap[RejectedStopRow::class] ?? []);
     }
 
     /**
@@ -332,8 +355,8 @@ final class StopRowReplacerTest extends KernelTestCase
     {
         $mapping = $this->mapping();
         $batch = new ImportBatch($mapping->name, 'extract.xlsx', null, new \DateTimeImmutable(), $range);
+        // DrivingDataImporter does not flush the batch. The first flush of the replacer inserts it.
         $this->entityManager->persist($batch);
-        $this->entityManager->flush();
 
         $parser = self::getContainer()->get(StopRowParser::class);
         self::assertInstanceOf(StopRowParser::class, $parser);

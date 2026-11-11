@@ -154,6 +154,19 @@ final class UploadStoreTest extends TestCase
     }
 
     /**
+     * The session forgets the upload, also when a file with the same name comes again.
+     */
+    public function testDeleteForgetsTheUpload(): void
+    {
+        $upload = $this->store()->save($this->uploadedFile('a.xlsx'), self::range(), 'default');
+
+        $this->store()->delete($upload);
+        file_put_contents($upload->path, 'content');
+
+        self::assertNull($this->store()->find($upload->token));
+    }
+
+    /**
      * A file is old when it is more than one hour old. Only the upload files are deleted.
      */
     public function testPurgeDeletesTheOldFiles(): void

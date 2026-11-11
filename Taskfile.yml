@@ -20,9 +20,13 @@ vars:
   # A fixed number of threads gives the same result on all computers. With one thread for each
   # core, the integration tests are slow on a computer with many cores, and mutants time out.
   INFECTION_THREADS: '{{ .TASK_INFECTION_THREADS | default "4" }}'
-  # A timed-out mutant counts as killed in the MSI. "--max-timeouts=0" fails the run instead.
-  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations --max-timeouts=0'
+  # A timed-out mutant counts as killed in the MSI. bin/mutation-core-check.php fails on a
+  # timeout in src/Import and src/Report.
+  # "--only-covering-test-cases" runs only the tests that cover the mutated line, not all tests
+  # of their classes. The database tests are slow, so the full classes made mutants time out.
+  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations --only-covering-test-cases'
   MUTATION_LOG: var/infection/infection.json
+  MUTATION_TEXT_LOG: var/infection/infection.log
   # The changed-lines run compares with this git reference.
   MUTATION_BASE: '{{ .TASK_MUTATION_BASE | default "origin/develop" }}'
 
@@ -106,6 +110,20 @@ tasks:
         vars:
           CLI_ARGS: doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
 
+  test:db:setup:threads:
+    internal: true
+    # Infection sets TEST_TOKEN to the thread number (1 to INFECTION_THREADS) in each mutant
+    # process, and config/packages/doctrine.yaml adds it to the database name. Each thread uses
+    # its own database, db_test1 to db_test4. If the database does not exist, a database test
+    # fails, and Infection counts the mutant as killed. One container creates all databases.
+    cmds:
+      - >-
+        {{ .DOCKER_COMPOSE }} run --rm phpfpm sh -c 'set -e;
+        for token in $(seq 1 {{ .INFECTION_THREADS }}); do
+        TEST_TOKEN=$token bin/console doctrine:database:create --env=test --if-not-exists;
+        TEST_TOKEN=$token bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration;
+        done'
+
   test:
     desc: Run all tests
     cmds:
@@ -139,8 +157,9 @@ tasks:
     desc: Run mutation testing on the lines that changed since develop. The reports are in var/infection/.
     cmds:
       - task: test:db:setup
+      - task: test:db:setup:threads
       - task: test:cache:warmup
-      - rm -f {{ .MUTATION_LOG }}
+      - rm -f {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}
       - '{{ .INFECTION }} --git-diff-lines --git-diff-base={{ .MUTATION_BASE }} {{ .CLI_ARGS }}'
       - task: test:mutation:core-check
 
@@ -148,8 +167,9 @@ tasks:
     desc: Run mutation testing on all code. The reports are in var/infection/.
     cmds:
       - task: test:db:setup
+      - task: test:db:setup:threads
       - task: test:cache:warmup
-      - rm -f {{ .MUTATION_LOG }}
+      - rm -f {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}
       # The filter "src/" matches all source files. Infection fails on an unfiltered run with no
       # source files, but a filtered run with no files passes. This is necessary while src/ has no
       # mutated code. Do not use the positional path "src/" instead: Infection then applies no filter.
@@ -172,7 +192,7 @@ tasks:
     status:
       - test ! -f {{ .MUTATION_LOG }}
     cmds:
-      - '{{ .PHP }} bin/mutation-core-check.php {{ .MUTATION_LOG }}'
+      - '{{ .PHP }} bin/mutation-core-check.php {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}'
 
   prepare-code:
     desc: Fix the coding standards, normalize composer.json and run all checks. Run it before you commit

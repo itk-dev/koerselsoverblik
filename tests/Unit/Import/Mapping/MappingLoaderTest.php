@@ -233,6 +233,10 @@ final class MappingLoaderTest extends TestCase
             static fn (array $raw): array => self::withField($raw, 'route', ['column' => ' Route', 'type' => 'string', 'required' => true]),
             'The column " Route" has a space at the start or the end.',
         ];
+        yield 'second field column with a space at the end' => [
+            static fn (array $raw): array => self::withField($raw, 'passengers_after', ['column' => 'Load ', 'type' => 'int', 'required' => true]),
+            'The column "Load " has a space at the start or the end.',
+        ];
         yield 'row id column with a space at the end' => [
             static fn (array $raw): array => self::with($raw, ['row_id' => ['Id ', 'Run']]),
             'The column "Id " has a space at the start or the end.',

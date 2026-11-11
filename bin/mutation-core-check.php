@@ -4,48 +4,131 @@
 declare(strict_types=1);
 
 /*
- * Fails when a covered mutant escaped in the code that makes the figures.
+ * Fails when a covered mutant escaped, timed out or was skipped in the code that makes the
+ * figures.
  *
  * Infection has one threshold for each run. This script adds a covered MSI gate of 100 % for
- * the directories below. Infection counts timed-out and errored mutants as detected, so the
- * covered MSI is 100 % when no mutant escaped. See "Tests" in README.md.
+ * the directories below. Infection counts a timed-out mutant as detected, but nobody knows if a
+ * test kills it, so a timeout in these directories fails the gate. Outside them, a timeout
+ * counts as detected for the threshold of Infection, and the script shows it as a warning.
  *
- * Usage: bin/mutation-core-check.php <INFECTION_JSON_LOG>
+ * Infection skips a mutant when all its tests took more than the timeout in the initial run. A
+ * skipped mutant is not tested, so it also fails the gate. The JSON log has only the number of
+ * skipped mutants, so the script reads the list from the text log. See "Tests" in README.md.
+ *
+ * Usage: bin/mutation-core-check.php <INFECTION_JSON_LOG> <INFECTION_TEXT_LOG>
  */
 
 const CORE_DIRECTORIES = ['src/Import/', 'src/Report/'];
 
+$projectDir = dirname(__DIR__).'/';
+
+/**
+ * Gives the path relative to the project, if the file is in a core directory.
+ */
+function corePath(string $file, string $projectDir): ?string
+{
+    $relativeFile = str_starts_with($file, $projectDir) ? substr($file, strlen($projectDir)) : $file;
+    foreach (CORE_DIRECTORIES as $directory) {
+        if (str_starts_with($relativeFile, $directory)) {
+            return $relativeFile;
+        }
+    }
+
+    return null;
+}
+
 $logPath = $argv[1] ?? '';
 $log = is_file($logPath) ? json_decode((string) file_get_contents($logPath), true) : null;
-if (!is_array($log) || !is_array($log['escaped'] ?? null)) {
-    fwrite(\STDERR, sprintf("Cannot read the escaped mutants in the Infection JSON log \"%s\".\n", $logPath));
+if (!is_array($log) || !is_array($log['escaped'] ?? null) || !is_array($log['timeouted'] ?? null)) {
+    fwrite(\STDERR, sprintf("Cannot read the escaped and the timed-out mutants in the Infection JSON log \"%s\".\n", $logPath));
     exit(2);
 }
 
-$projectDir = dirname(__DIR__).'/';
-$escaped = [];
-foreach ($log['escaped'] as $result) {
-    $mutator = is_array($result) && is_array($result['mutator'] ?? null) ? $result['mutator'] : [];
-    $file = is_string($mutator['originalFilePath'] ?? null) ? $mutator['originalFilePath'] : '';
-    $relativeFile = str_starts_with($file, $projectDir) ? substr($file, strlen($projectDir)) : $file;
+$textLogPath = $argv[2] ?? '';
+$textLog = is_file($textLogPath) ? file_get_contents($textLogPath) : false;
+if (false === $textLog) {
+    fwrite(\STDERR, sprintf("Cannot read the Infection text log \"%s\".\n", $textLogPath));
+    exit(2);
+}
 
-    foreach (CORE_DIRECTORIES as $directory) {
-        if (str_starts_with($relativeFile, $directory)) {
-            $line = is_int($mutator['originalStartLine'] ?? null) ? $mutator['originalStartLine'] : 0;
-            $name = is_string($mutator['mutatorName'] ?? null) ? $mutator['mutatorName'] : '';
-            $escaped[] = sprintf('%s:%d %s', $relativeFile, $line, $name);
+/**
+ * Gives the mutants of a list in the JSON log, as "file:line mutator", in two lists: the mutants
+ * in a core directory and the other mutants.
+ *
+ * @param array<mixed> $results
+ *
+ * @return array{list<string>, list<string>}
+ */
+function mutants(array $results, string $projectDir): array
+{
+    $core = [];
+    $other = [];
+    foreach ($results as $result) {
+        $mutator = is_array($result) && is_array($result['mutator'] ?? null) ? $result['mutator'] : [];
+        $path = is_string($mutator['originalFilePath'] ?? null) ? $mutator['originalFilePath'] : '';
+        $file = corePath($path, $projectDir);
+        $line = is_int($mutator['originalStartLine'] ?? null) ? $mutator['originalStartLine'] : 0;
+        $name = is_string($mutator['mutatorName'] ?? null) ? $mutator['mutatorName'] : '';
+        if (null !== $file) {
+            $core[] = sprintf('%s:%d %s', $file, $line, $name);
+        } else {
+            $relativeFile = str_starts_with($path, $projectDir) ? substr($path, strlen($projectDir)) : $path;
+            $other[] = sprintf('%s:%d %s', $relativeFile, $line, $name);
         }
+    }
+
+    return [$core, $other];
+}
+
+[$escaped] = mutants($log['escaped'], $projectDir);
+[$timedOut, $otherTimedOut] = mutants($log['timeouted'], $projectDir);
+
+// Outside the core directories, Infection counts a timeout as detected. Show the timeouts, so
+// that they stay visible.
+if ([] !== $otherTimedOut) {
+    fwrite(\STDERR, sprintf(
+        "Warning: %d timed-out mutants outside %s count as detected.\n  %s\n",
+        count($otherTimedOut),
+        implode(' and ', CORE_DIRECTORIES),
+        implode("\n  ", $otherTimedOut),
+    ));
+}
+
+// The text log lists each skipped mutant as "1) /app/src/File.php:84    [M] InstanceOf_ [ID] ...".
+$skipped = [];
+$skippedSection = preg_split('/^Skipped mutants:$/m', $textLog)[1] ?? '';
+$skippedSection = preg_split('/^\w[\w ]* mutants:$/m', $skippedSection)[0] ?? '';
+preg_match_all('/^\d+\) (\S+):(\d+)\s+\[M\] (\w+)/m', $skippedSection, $matches, \PREG_SET_ORDER);
+foreach ($matches as [, $path, $line, $name]) {
+    $file = corePath($path, $projectDir);
+    if (null !== $file) {
+        $skipped[] = sprintf('%s:%s %s', $file, $line, $name);
     }
 }
 
-if ([] !== $escaped) {
-    fwrite(\STDERR, sprintf(
-        "The covered MSI must be 100 %% in %s. Escaped mutants: %d\n  %s\n",
-        implode(' and ', CORE_DIRECTORIES),
-        count($escaped),
-        implode("\n  ", $escaped),
-    ));
+$stats = is_array($log['stats'] ?? null) ? $log['stats'] : [];
+if (($stats['skippedCount'] ?? 0) > 0 && [] === $matches) {
+    fwrite(\STDERR, "The JSON log has skipped mutants, but the text log lists none. Check the format of the text log.\n");
+    exit(2);
+}
+
+$failed = false;
+foreach (['Escaped' => $escaped, 'Timed-out' => $timedOut, 'Skipped' => $skipped] as $label => $mutants) {
+    if ([] !== $mutants) {
+        fwrite(\STDERR, sprintf(
+            "The covered MSI must be 100 %% in %s. %s mutants: %d\n  %s\n",
+            implode(' and ', CORE_DIRECTORIES),
+            $label,
+            count($mutants),
+            implode("\n  ", $mutants),
+        ));
+        $failed = true;
+    }
+}
+
+if ($failed) {
     exit(1);
 }
 
-echo sprintf("No mutants escaped in %s.\n", implode(' and ', CORE_DIRECTORIES));
+echo sprintf("No mutants escaped, timed out or were skipped in %s.\n", implode(' and ', CORE_DIRECTORIES));

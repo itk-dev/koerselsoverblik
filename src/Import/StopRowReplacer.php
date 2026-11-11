@@ -45,7 +45,7 @@ final readonly class StopRowReplacer
      * keys again, because the parser rejects the rows outside the range and the duplicate keys.
      *
      * @param iterable<StopRowDto|RejectedRowDto> $rows  the rows of the file
-     * @param ImportBatch                         $batch a saved batch, so that the rows can refer to it
+     * @param ImportBatch                         $batch a batch that the entity manager manages. The first flush inserts it before the rows that refer to it.
      */
     public function replace(ImportRangeDto $range, MappingDto $mapping, iterable $rows, ImportBatch $batch): ImportResultDto
     {

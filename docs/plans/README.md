@@ -70,12 +70,6 @@ This folder lists the features that the application must get, and holds a plan f
 | Move the deletes of the stop row replacer to the repositories | Draft | – | – | [stop-row-replacer-deletes.md](stop-row-replacer-deletes.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
-### Tooling
-
-| Feature | Status | Issue | Needs | Plan |
-| --- | --- | --- | --- | --- |
-| Give each Infection thread its own test database | In progress | [#83](https://github.com/itk-dev/koerselsoverblik/issues/83) | – | [mutation-test-databases.md](mutation-test-databases.md) |
-
 ## Done
 
 | Feature | Issue | Pull request |
@@ -96,3 +90,4 @@ This folder lists the features that the application must get, and holds a plan f
 | Calculate the punctuality figures | [#59](https://github.com/itk-dev/koerselsoverblik/issues/59) | [#77](https://github.com/itk-dev/koerselsoverblik/pull/77) |
 | The punctuality page | [#60](https://github.com/itk-dev/koerselsoverblik/issues/60) | [#78](https://github.com/itk-dev/koerselsoverblik/pull/78) |
 | Upload driving data with a preview | [#79](https://github.com/itk-dev/koerselsoverblik/issues/79) | [#80](https://github.com/itk-dev/koerselsoverblik/pull/80) |
+| Give each Infection thread its own test database | [#83](https://github.com/itk-dev/koerselsoverblik/issues/83) | [#84](https://github.com/itk-dev/koerselsoverblik/pull/84) |
