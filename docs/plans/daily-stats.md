@@ -1,7 +1,7 @@
 # Aggregate the daily stats
 
-**Issue:** not created. It needs the answers to two [open decisions](../architecture.md#open-decisions):
-"Stops with no registration" and "Passengers and distances of a run".
+**Issue:** not created. Its row in [Driving data](README.md#driving-data) shows what the work
+needs.
 
 See the [rules for plans](README.md#rules).
 

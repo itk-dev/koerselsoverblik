@@ -85,9 +85,11 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 
 | Feature | Issue | Pull request |
 | --- | --- | --- |
+| Project skeleton | [#5](https://github.com/itk-dev/koerselsoverblik/issues/5) | [#6](https://github.com/itk-dev/koerselsoverblik/pull/6), [#19](https://github.com/itk-dev/koerselsoverblik/pull/19) |
+| Test tooling | [#7](https://github.com/itk-dev/koerselsoverblik/issues/7) | [#8](https://github.com/itk-dev/koerselsoverblik/pull/8) |
+| Mutation testing | [#9](https://github.com/itk-dev/koerselsoverblik/issues/9) | [#10](https://github.com/itk-dev/koerselsoverblik/pull/10) |
 | Diagram check in CI | [#11](https://github.com/itk-dev/koerselsoverblik/issues/11) | [#12](https://github.com/itk-dev/koerselsoverblik/pull/12) |
 | Permission roles and deny by default | [#14](https://github.com/itk-dev/koerselsoverblik/issues/14) | [#15](https://github.com/itk-dev/koerselsoverblik/pull/15) |
-| Project skeleton | [#5](https://github.com/itk-dev/koerselsoverblik/issues/5) | [#19](https://github.com/itk-dev/koerselsoverblik/pull/19) |
 | OIDC login and mock service | [#21](https://github.com/itk-dev/koerselsoverblik/issues/21) | [#22](https://github.com/itk-dev/koerselsoverblik/pull/22) |
 | Base layout, design system and menu | [#24](https://github.com/itk-dev/koerselsoverblik/issues/24) | [#25](https://github.com/itk-dev/koerselsoverblik/pull/25) |
 | Upload a date range, and the "Administration" section | [#26](https://github.com/itk-dev/koerselsoverblik/issues/26) | [#27](https://github.com/itk-dev/koerselsoverblik/pull/27) |

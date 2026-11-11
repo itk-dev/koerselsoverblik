@@ -1121,15 +1121,14 @@ testing and the diagram check on every pull request.
   transport office before go-live.
 - **Route column.** Which column identifies a route: the route name or the route id? The route id
   can be an id for one day only. The `default` mapping uses the route name until this is
-  confirmed. The product owner in the transport office answers before the route administration
-  is built.
+  confirmed. The product owner in the transport office answers before go-live.
 - **Supplier mapping (answered).** A route belongs to the sub-agreement in its name: the part
   before the last `-nn` or `_nn`. An administrator assigns each sub-agreement to a supplier for a
   date range. See the terms in [Data model](#data-model).
 - **Booked trips.** Some trips are booked outside the fixed routes, and have a common route name.
   Who drives them? Can more than one supplier drive them? With one route for all of them, they
-  get one supplier assignment. The product owner in the transport office answers before the
-  route administration is built.
+  get one supplier assignment. The product owner in the transport office answers before
+  go-live.
 - **Stops with no registration.** How do the figures treat a stop that has no status
   registration from the driver (`pending`)? The proposal: it counts as a trip, because it is not
   cancelled. A run whose last drop-off has no actual time is not counted for punctuality. The

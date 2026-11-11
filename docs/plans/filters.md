@@ -7,9 +7,10 @@ See the [rules for plans](README.md#rules).
 ## Implementation
 
 - Use the terms of the prototype:
-  - "Punktlighed" is the name of the page, the menu item and the supplier panel. Rename the
-    panel title `punctuality.suppliers.title` and its caption `punctuality.suppliers.caption`
-    to "Punktlighed pr. leverandør". The issue does not name this panel.
+  - "Punktlighed" is the name of the page, the menu item and the supplier panel. In the panel,
+    change only the term. The title `punctuality.suppliers.title` becomes "Punktlighed pr.
+    leverandør". The caption `punctuality.suppliers.caption` becomes "Punktlighed pr. leverandør
+    i perioden". The issue does not name this panel.
   - "Rettidighed" is the name of the measure. Keep it in the other panels, for example
     "Rettidighed måned for måned" and "De ti vognløb med lavest rettidighed".
 - Do this feature before #85 and #87, if possible:
