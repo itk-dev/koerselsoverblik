@@ -242,3 +242,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   not a value from the real data. `app:fixtures:suppliers` gives the sub-agreements invented
   suppliers. `APP_DRIVING_DATA_MAX_DAYS` is now 7, and `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE`
   is now 100 MiB.
+- [#106](https://github.com/itk-dev/koerselsoverblik/issues/106)
+  The overview shows the trips and the distinct citizens of a month, with the change from the
+  previous month, a 12-month sparkline and a help text. The month chooser of the punctuality page
+  is now a shared template.

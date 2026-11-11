@@ -1,8 +1,54 @@
 {% extends 'base.html.twig' %}
 
+{% import '_month.html.twig' as months %}
+
 {% block title %}{{ 'overview.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
 
 {% block body %}
-    <h1>{{ 'overview.title'|trans }}</h1>
-    <p>{{ 'overview.placeholder'|trans }}</p>
+    {% set month = page.month %}
+    {% set count = page.current %}
+
+    <header class="page-head">
+        <div>
+            <h1 class="page-head__title">{{ 'overview.heading'|trans }}</h1>
+            <p class="page-head__lede">{{ 'overview.lede'|trans({month: months.label(month)|trim, previous: months.label(month.previous)|trim}) }}</p>
+        </div>
+        {{ months.nav('overview', month, has_next_month, 'overview.title'|trans) }}
+    </header>
+
+    {# A change of the volume is neither good nor bad, so the change has the tone "neutral". #}
+    <div class="tiles tiles--2">
+        {% set trips = page.trips %}
+        <twig:Tile
+            :label="'overview.trips.label'|trans"
+            :value="trips.current is null ? '–' : trips.current|number_format"
+            :change="trips.change is null ? null : trips.change|signed_number"
+            :changeIcon="trend_icon(trips.change)"
+            :spark="trips.history"
+            :note="'overview.trips.note'|trans({completed: count.completed, cancelled: count.cancelled})"
+            test="trips"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-trips" :title="'overview.trips.help.title'|trans">
+                    <p>{{ 'overview.trips.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+        {% set citizens = page.citizens %}
+        <twig:Tile
+            :label="'overview.citizens.label'|trans"
+            :value="citizens.current is null ? '–' : citizens.current|number_format"
+            :change="citizens.change is null ? null : citizens.change|signed_number"
+            :changeIcon="trend_icon(citizens.change)"
+            :spark="citizens.history"
+            :note="'overview.citizens.note'|trans"
+            test="citizens"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-citizens" :title="'overview.citizens.help.title'|trans">
+                    <p>{{ 'overview.citizens.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+    </div>
 {% endblock %}

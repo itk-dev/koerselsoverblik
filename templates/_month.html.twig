@@ -1,0 +1,15 @@
+{# The name of a month, for example "januar 2026". #}
+{% macro label(month) %}{{ ('month.long.' ~ month.number)|trans }} {{ month.year }}{% endmacro %}
+
+{# The month chooser of a page with ?month=YYYY-MM. The current month has no link to the next month. #}
+{% macro nav(route, month, has_next_month, aria_label) %}
+    <nav class="month-nav" aria-label="{{ aria_label }}">
+        <a class="month-nav__step" href="{{ path(route, {month: month.previous.query}) }}" aria-label="{{ 'month.previous'|trans }}" data-test="previous-month">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+        <span class="month-nav__label" data-test="month">{{ _self.label(month)|trim }}</span>
+        {% if has_next_month %}
+            <a class="month-nav__step" href="{{ path(route, {month: month.next.query}) }}" aria-label="{{ 'month.next'|trans }}" data-test="next-month">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+        {% else %}
+            <span class="month-nav__step is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
+        {% endif %}
+    </nav>
+{% endmacro %}

@@ -21,9 +21,24 @@ about:
 
 overview:
   title: Overblik
-  placeholder: Nøgletallene kommer her.
+  heading: Bliver borgerkørslen bedre eller værre?
+  lede: "{month} sammenlignet med {previous}."
+  trips:
+    label: Personture
+    note: "{completed, number} gennemført · {cancelled, number} aflyst"
+    help:
+      title: Personture
+      body: Én persontur er én borgers tur fra afhentning til afsætning. Kører to borgere sammen i samme bil, tæller det som to personture. Tallet tæller alle bestilte ture i perioden, også de aflyste ture og de ture, hvor chaufføren ikke har registreret afhentningen. Status for afhentningen giver status for turen.
+  citizens:
+    label: Unikke borgere
+    note: Forskellige borgere, uanset antal ture
+    help:
+      title: Unikke borgere
+      body: Antallet af forskellige borgere med mindst én bestilt tur i perioden. Den samme borger tæller kun én gang, uanset antallet af ture. Tallet er en optælling af borger-id'erne i kørselsdata.
 
 month:
+  previous: Forrige måned
+  next: Næste måned
   long:
     1: januar
     2: februar
@@ -54,8 +69,6 @@ month:
 punctuality:
   title: Rettidighed
   lede: "{month} sammenlignet med {previous}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb."
-  previous_month: Forrige måned
-  next_month: Næste måned
   goal:
     label: Servicemål
     rule: Højst {minutes} minutter for sent · {target} % rettidighed

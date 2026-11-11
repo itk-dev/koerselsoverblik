@@ -798,6 +798,20 @@ the 11 calculations.
 A month with no measured last drop-off has no data. The tiles of the late runs then show "–",
 not 0, and the sparklines have a gap.
 
+### Overview
+
+The overview (`/`, `OverviewController`, `ROLE_VIEW_OVERVIEW`) shows the figures of a month
+before the filters, the daily stats and `KpiCalculator` above exist. It uses the month chooser of
+the punctuality page (`templates/_month.html.twig`).
+
+- `StopRowRepository::countTrips()` counts the trips and the citizens of a `DateRangeDto` in one
+  query. A trip is a pickup with any status. The citizens are the distinct person ids of the
+  pickups.
+- `OverviewPageBuilder` counts the month and the 11 months before it. `OverviewPageDto` gives the
+  change from the previous month and the history for the sparklines.
+- A month with no trips has no data. The tiles then show "–", not 0.
+- A change of the trips or the citizens has no tone, because more volume is not better or worse.
+
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
 value shows as "–".
