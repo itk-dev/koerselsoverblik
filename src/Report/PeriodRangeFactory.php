@@ -40,15 +40,15 @@ final readonly class PeriodRangeFactory
     {
         $today = new \DateTimeImmutable($today->format('Y-m-d'));
         // A date before the start of the data gives the start, so that the period has data.
-        if (null !== $this->dataStart && $filter->anchor < $this->dataStart) {
-            $filter = $filter->with(anchor: min($this->dataStart, $today));
+        if (null !== $this->dataStart) {
+            $filter = $filter->with(anchor: min(max($filter->anchor, $this->dataStart), $today));
         }
         $selected = $this->period($filter->type, $filter->anchor, $today);
         // The range is empty only when the start of the data is after today.
         $selectedRange = $selected->range ?? DateRangeDto::create($filter->anchor, $filter->anchor);
         $comparison = $this->period($filter->type, self::comparisonAnchor($filter), $today);
-        $previous = self::shift($filter->type, $filter->anchor, -1);
-        $next = self::shift($filter->type, $filter->anchor, 1);
+        $previous = self::shift($filter->type, $filter->anchor, false);
+        $next = self::shift($filter->type, $filter->anchor, true);
 
         return new PeriodSelectionDto(
             $filter,
@@ -98,15 +98,16 @@ final readonly class PeriodRangeFactory
     }
 
     /**
-     * Gives a date in the period that is a number of periods before or after the anchor.
+     * Gives a date in the next period, or in the previous period.
      */
-    private static function shift(PeriodType $type, \DateTimeImmutable $anchor, int $periods): \DateTimeImmutable
+    private static function shift(PeriodType $type, \DateTimeImmutable $anchor, bool $forward): \DateTimeImmutable
     {
         $months = $type->months();
+        $sign = $forward ? '+' : '-';
 
         return null === $months
-            ? $anchor->modify(\sprintf('%+d days', 7 * $periods))
-            : self::start($type, $anchor)->modify(\sprintf('%+d months', $months * $periods));
+            ? $anchor->modify($sign.'7 days')
+            : self::start($type, $anchor)->modify($sign.$months.' months');
     }
 
     /**
@@ -115,7 +116,7 @@ final readonly class PeriodRangeFactory
     private static function comparisonAnchor(PeriodFilter $filter): \DateTimeImmutable
     {
         if (Comparison::Previous === $filter->comparison) {
-            return self::shift($filter->type, $filter->anchor, -1);
+            return self::shift($filter->type, $filter->anchor, false);
         }
         $year = (int) $filter->anchor->format('Y') - 1;
         $month = (int) $filter->anchor->format('n');

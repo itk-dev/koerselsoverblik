@@ -28,7 +28,6 @@ final readonly class PeriodLabeler
     public function label(PeriodDto $period): string
     {
         $first = $period->firstDate;
-
         $month = (int) $first->format('n');
 
         return match ($period->type) {
@@ -42,8 +41,9 @@ final readonly class PeriodLabeler
                 'month' => $this->translator->trans('month.long.'.$month),
                 'year' => $first->format('Y'),
             ]),
-            PeriodType::Quarter => $this->translator->trans('period.quarter', ['quarter' => intdiv($month + 2, 3), 'year' => $first->format('Y')]),
-            PeriodType::HalfYear => $this->translator->trans('period.half_year', ['half' => intdiv($month + 5, 6), 'year' => $first->format('Y')]),
+            // The first month of a quarter is 1, 4, 7 or 10, and of a half year 1 or 7.
+            PeriodType::Quarter => $this->translator->trans('period.quarter', ['quarter' => intdiv($month, 3) + 1, 'year' => $first->format('Y')]),
+            PeriodType::HalfYear => $this->translator->trans('period.half_year', ['half' => 1 === $month ? 1 : 2, 'year' => $first->format('Y')]),
         };
     }
 
@@ -54,7 +54,8 @@ final readonly class PeriodLabeler
     public function phrase(PeriodSelectionDto $selection): string
     {
         return match (true) {
-            !$selection->selected->isPartial() => mb_strtolower($this->label($selection->selected)),
+            // Only the label of a week starts with a capital letter: "Uge".
+            !$selection->selected->isPartial() => lcfirst($this->label($selection->selected)),
             $selection->selected->endsAfterToday => $this->translator->trans('period.until_today', ['range' => $this->range($selection->selectedRange)]),
             default => $this->translator->trans('period.partial', ['period' => $this->range($selection->selectedRange)]),
         };
@@ -69,8 +70,8 @@ final readonly class PeriodLabeler
         return match (true) {
             null === $selection->comparisonRange => $this->translator->trans('period.no_data'),
             $selection->isComparisonCut() => $this->range($selection->comparisonRange),
-            $selection->comparison->startsBeforeData => $this->translator->trans('period.partial', ['period' => mb_strtolower($this->label($selection->comparison))]),
-            default => mb_strtolower($this->label($selection->comparison)),
+            $selection->comparison->startsBeforeData => $this->translator->trans('period.partial', ['period' => lcfirst($this->label($selection->comparison))]),
+            default => lcfirst($this->label($selection->comparison)),
         };
     }
 
