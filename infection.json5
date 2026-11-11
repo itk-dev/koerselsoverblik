@@ -52,6 +52,16 @@
                 '.*\\? null : \\(float\\) \\$item, \\$history\\),.*',
             ],
         },
+        // Equivalent mutant. array_map() calls the closure in coercive mode, so a numeric name key
+        // becomes a string also with no strval(). The call is for PHPStan.
+        UnwrapArrayMap: {
+            ignoreSourceCodeByRegex: ['.*\\$names = array_map\\(strval\\(\\.\\.\\.\\), array_keys\\(\\$bySupplier \\+ \\$dropOffs\\)\\);.*'],
+        },
+        // PHPStan rejects this mutant: findWithSuppliers() needs a list of route ids, not the rows.
+        // DBAL accepts the nested array by chance, so a test cannot always see the difference.
+        UnwrapArrayKeys: {
+            ignoreSourceCodeByRegex: ['.*findWithSuppliers\\(array_keys\\(\\$trips \\+ \\$solos\\)\\).*'],
+        },
         // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
         // the temporary files of OpenSpout, so it is necessary.
         UnwrapFinally: {
