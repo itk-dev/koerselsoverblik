@@ -140,7 +140,7 @@ final readonly class StopRowReplacer
 
     /**
      * Finds the route by its name, or creates it. A new route finds or creates its sub-agreement.
-     * A new sub-agreement has no assignment, so its routes count as "Unknown".
+     * A new sub-agreement has no supplier, so its routes count as "Unknown".
      *
      * @param array<string, SubAgreement> $subAgreements the sub-agreements of the file, keyed by the reference in lower case. A new sub-agreement is not saved yet, so the repository cannot find it.
      */

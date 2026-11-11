@@ -1,7 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% set sub_agreement = data.subAgreement %}
-{% set heading = (data.assignment ? 'assignment.edit_title' : 'assignment.new_title')|trans({reference: sub_agreement.reference}) %}
+{% set heading = 'sub_agreement.edit_title'|trans({reference: sub_agreement.reference}) %}
 
 {% block title %}{{ heading }} – {{ 'app.name'|trans }}{% endblock %}
 

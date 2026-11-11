@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\SubAgreement;
-use App\Entity\SubAgreementSupplierAssignment;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -21,26 +19,21 @@ class SubAgreementRepository extends ServiceEntityRepository
     }
 
     /**
-     * Gives all sub-agreements. The sub-agreements without an assignment on the date come first,
-     * because an administrator must assign them. Each group is sorted by the reference.
+     * Gives all sub-agreements with their supplier. The sub-agreements with no supplier come
+     * first, because an administrator must give them a supplier. Each group is sorted by the
+     * reference.
      *
      * @return list<SubAgreement>
      */
-    public function findAllWithoutCurrentAssignmentFirst(\DateTimeInterface $date): array
+    public function findAllWithoutSupplierFirst(): array
     {
         /** @var list<SubAgreement> $subAgreements */
         $subAgreements = $this->createQueryBuilder('subAgreement')
-            ->leftJoin(
-                SubAgreementSupplierAssignment::class,
-                'current',
-                'WITH',
-                'current.subAgreement = subAgreement AND current.validFrom <= :date AND (current.validTo IS NULL OR current.validTo >= :date)',
-            )
-            ->addSelect('COUNT(current.id) AS HIDDEN currentAssignments')
-            ->groupBy('subAgreement.id')
-            ->orderBy('currentAssignments', 'ASC')
+            ->select('subAgreement', 'supplier')
+            ->leftJoin('subAgreement.supplier', 'supplier')
+            ->addSelect('CASE WHEN subAgreement.supplier IS NULL THEN 0 ELSE 1 END AS HIDDEN hasSupplier')
+            ->orderBy('hasSupplier', 'ASC')
             ->addOrderBy('subAgreement.reference', 'ASC')
-            ->setParameter('date', \DateTimeImmutable::createFromInterface($date), Types::DATE_IMMUTABLE)
             ->getQuery()
             ->getResult();
 

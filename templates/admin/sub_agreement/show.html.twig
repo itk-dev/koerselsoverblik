@@ -6,39 +6,9 @@
     <p><a class="itkaarhus-link" href="{{ path('admin_sub_agreement_index') }}">{{ 'sub_agreement.back'|trans }}</a></p>
     <h1>{{ 'sub_agreement.show_title'|trans({reference: sub_agreement.reference}) }}</h1>
 
-    <h2>{{ 'sub_agreement.assignments'|trans }}</h2>
-    <p><a class="itkaarhus-btn itkaarhus-btn--primary" href="{{ path('admin_assignment_new', {id: sub_agreement.id}) }}" data-test="assignment-new">{{ 'assignment.new'|trans }}</a></p>
-
-    {% if sub_agreement.assignments is empty %}
-        <p data-test="assignment-none">{{ 'sub_agreement.no_assignments'|trans }}</p>
-    {% else %}
-        <table class="itkaarhus-table" data-test="assignment-list">
-            <thead>
-                <tr>
-                    <th scope="col">{{ 'assignment.supplier'|trans }}</th>
-                    <th scope="col">{{ 'assignment.valid_from'|trans }}</th>
-                    <th scope="col">{{ 'assignment.valid_to'|trans }}</th>
-                    <th scope="col"><span class="sr-only">{{ 'common.actions'|trans }}</span></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for assignment in sub_agreement.assignments %}
-                    <tr data-test="assignment-row">
-                        <td>{{ assignment.supplier.name }}</td>
-                        <td>{{ assignment.validFrom|date('d.m.Y') }}</td>
-                        <td>{{ assignment.validTo ? assignment.validTo|date('d.m.Y') : 'assignment.no_end'|trans }}</td>
-                        <td class="actions">
-                            <a class="itkaarhus-btn itkaarhus-btn--secondary itkaarhus-btn--sm" href="{{ path('admin_assignment_edit', {id: assignment.id}) }}">{{ 'common.edit'|trans }}</a>
-                            <form method="post" action="{{ path('admin_assignment_delete', {id: assignment.id}) }}">
-                                <input type="hidden" name="_token" value="{{ csrf_token('delete-assignment-' ~ assignment.id) }}">
-                                <button class="itkaarhus-btn itkaarhus-btn--danger itkaarhus-btn--sm" type="submit">{{ 'common.delete'|trans }}</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
+    <h2>{{ 'sub_agreement.supplier'|trans }}</h2>
+    <p data-test="supplier">{{ sub_agreement.supplier ? sub_agreement.supplier.name : 'sub_agreement.no_supplier'|trans }}</p>
+    <p><a class="itkaarhus-btn itkaarhus-btn--primary" href="{{ path('admin_sub_agreement_edit', {id: sub_agreement.id}) }}" data-test="sub-agreement-edit">{{ 'sub_agreement.edit'|trans }}</a></p>
 
     <h2>{{ 'sub_agreement.routes'|trans }}</h2>
     {% if sub_agreement.routes is empty %}

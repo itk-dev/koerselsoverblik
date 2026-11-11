@@ -13,7 +13,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * A sub-agreement (delaftale), for example "AB-CD". The routes of the sub-agreement have names that
- * start with the reference. An administrator assigns the sub-agreement to a supplier for a period.
+ * start with the reference. An administrator gives the sub-agreement one supplier. The supplier
+ * applies to all dates.
  */
 #[ORM\Entity(repositoryClass: SubAgreementRepository::class)]
 #[UniqueEntity('reference', message: 'sub_agreement.reference_used')]
@@ -30,23 +31,24 @@ class SubAgreement
     private string $reference = '';
 
     /**
+     * The import creates a sub-agreement with no supplier. Its routes count as "Unknown". The
+     * foreign key has no "ON DELETE", so the database blocks the delete of a supplier with
+     * sub-agreements.
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Supplier $supplier = null;
+
+    /**
      * @var Collection<int, Route>
      */
     #[ORM\OneToMany(targetEntity: Route::class, mappedBy: 'subAgreement')]
     #[ORM\OrderBy(['sourceKey' => 'ASC'])]
     private Collection $routes;
 
-    /**
-     * @var Collection<int, SubAgreementSupplierAssignment>
-     */
-    #[ORM\OneToMany(targetEntity: SubAgreementSupplierAssignment::class, mappedBy: 'subAgreement')]
-    #[ORM\OrderBy(['validFrom' => 'ASC'])]
-    private Collection $assignments;
-
     public function __construct()
     {
         $this->routes = new ArrayCollection();
-        $this->assignments = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -67,36 +69,23 @@ class SubAgreement
         return $this;
     }
 
+    public function getSupplier(): ?Supplier
+    {
+        return $this->supplier;
+    }
+
+    public function setSupplier(?Supplier $supplier): static
+    {
+        $this->supplier = $supplier;
+
+        return $this;
+    }
+
     /**
      * @return Collection<int, Route>
      */
     public function getRoutes(): Collection
     {
         return $this->routes;
-    }
-
-    /**
-     * @return Collection<int, SubAgreementSupplierAssignment>
-     */
-    public function getAssignments(): Collection
-    {
-        return $this->assignments;
-    }
-
-    /**
-     * Gives the assignment on the date, or null if the date has no assignment. If assignments
-     * overlap, the latest first date wins, as in SubAgreementSupplierAssignmentRepository::findSupplier().
-     * The collection is in the order of the first date, so the last match wins.
-     */
-    public function getAssignmentOn(\DateTimeInterface $date): ?SubAgreementSupplierAssignment
-    {
-        $found = null;
-        foreach ($this->assignments as $assignment) {
-            if ($assignment->getPeriod()->contains($date)) {
-                $found = $assignment;
-            }
-        }
-
-        return $found;
     }
 }

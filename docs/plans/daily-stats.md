@@ -28,10 +28,10 @@ figures from these rows.
   - completed and cancelled trips, from the status of the pickup
   - route runs, last drop-offs, on time, solo runs, and the driven and empty kilometres and
     minutes
-- Add `DailyStatsAggregator::rebuild()`. It finds the supplier of each route and date from the
-  assignment of the sub-agreement, and replaces the rows of the range.
-- Add a listener on `SubAgreementSupplierChanged`. It rebuilds the dates of the old and the new
-  date range.
+- Add `DailyStatsAggregator::rebuild()`. It finds the supplier of each route from the
+  sub-agreement of the route, and replaces the rows of the range.
+- When the supplier of a sub-agreement changes, rebuild all dates of the routes of the
+  sub-agreement. `SubAgreementController::new()` and `edit()` save the supplier.
 - Add the step to `DrivingDataImporter::import()`, in the same transaction as the other steps.
 - Add `DailyStats` to `DrivingDataClearer` (#81).
 - The `base` scenario must give its `expected` totals.

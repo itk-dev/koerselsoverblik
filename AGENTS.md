@@ -48,6 +48,8 @@ The project uses test-driven development. See "Development" in [README.md](READM
 - Put logic in plain PHP classes. Keep controllers, form types, commands and authenticators
   thin, so that most tests are fast unit tests.
 - Functional tests assert behaviour, not markup. Use text and `data-test` attributes.
+- Use generic names in tests, for example "Vognmand A" for a supplier. Do not use the names of
+  real companies or people.
 - Tests are in `tests/Unit`, `tests/Integration` and `tests/Functional`.
 
 ## Rules for the code

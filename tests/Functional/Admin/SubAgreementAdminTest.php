@@ -6,19 +6,15 @@ namespace App\Tests\Functional\Admin;
 
 use App\Entity\Route;
 use App\Entity\SubAgreement;
-use App\Entity\SubAgreementSupplierAssignment;
 use App\Entity\Supplier;
-use App\Supplier\SubAgreementSupplierChanged;
-use App\Supplier\ValidityPeriod;
 use App\Tests\Functional\LoginTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Checks the sub-agreement pages and the supplier assignments.
+ * Checks the sub-agreement pages and the supplier of a sub-agreement.
  */
 final class SubAgreementAdminTest extends WebTestCase
 {
@@ -26,21 +22,9 @@ final class SubAgreementAdminTest extends WebTestCase
 
     private KernelBrowser $client;
 
-    /**
-     * @var list<SubAgreementSupplierChanged>
-     */
-    private array $events = [];
-
     protected function setUp(): void
     {
         $this->client = static::createClient();
-        // The same kernel for all requests, so that the test listener stays registered.
-        $this->client->disableReboot();
-        $dispatcher = static::getContainer()->get(EventDispatcherInterface::class);
-        self::assertInstanceOf(EventDispatcherInterface::class, $dispatcher);
-        $dispatcher->addListener(SubAgreementSupplierChanged::class, function (SubAgreementSupplierChanged $event): void {
-            $this->events[] = $event;
-        });
         $this->loginAs($this->client, 'admin');
     }
 
@@ -51,21 +35,37 @@ final class SubAgreementAdminTest extends WebTestCase
         self::assertSelectorExists('[data-test="sub-agreement-none"]');
     }
 
-    public function testAdminCanCreateASubAgreement(): void
+    public function testAdminCanCreateASubAgreementWithASupplier(): void
     {
+        $supplier = $this->supplier('Vognmand A');
+        $this->entityManager()->flush();
+
         $this->client->request('GET', '/admin/sub-agreements/new');
-        $this->client->submitForm('Gem', ['sub_agreement[reference]' => ' AB-CD ']);
+        $this->client->submitForm('Gem', [
+            'sub_agreement[reference]' => ' AB-CD ',
+            'sub_agreement[supplier]' => (string) $supplier->getId(),
+        ]);
         $this->client->followRedirect();
 
         self::assertSelectorTextContains('h1', 'Delaftale AB-CD');
         self::assertSelectorTextContains('[data-test="flash-success"]', 'Delaftalen er oprettet.');
-        self::assertSelectorExists('[data-test="assignment-none"]');
+        self::assertSelectorTextSame('[data-test="supplier"]', 'Vognmand A');
         self::assertSelectorExists('[data-test="route-none"]');
+    }
+
+    public function testAdminCanCreateASubAgreementWithNoSupplier(): void
+    {
+        $this->client->request('GET', '/admin/sub-agreements/new');
+        $this->client->submitForm('Gem', ['sub_agreement[reference]' => 'AB-CD']);
+        $this->client->followRedirect();
+
+        self::assertSelectorTextContains('[data-test="supplier"]', 'Ingen leverandør');
     }
 
     public function testSubAgreementNeedsAUniqueReference(): void
     {
         $this->subAgreement('AB-CD');
+        $this->entityManager()->flush();
 
         $this->client->request('GET', '/admin/sub-agreements/new');
         $this->client->submitForm('Gem', ['sub_agreement[reference]' => 'AB-CD']);
@@ -75,12 +75,11 @@ final class SubAgreementAdminTest extends WebTestCase
     }
 
     /**
-     * A sub-agreement without a supplier today needs an assignment, so the list marks it.
+     * A sub-agreement with no supplier needs a supplier, so the list marks it.
      */
-    public function testListShowsTheSupplierOfToday(): void
+    public function testListShowsTheSupplier(): void
     {
-        $supplier = $this->supplier('Vognmand A');
-        $this->assign($this->subAgreement('A-NOW'), $supplier, 'today', null);
+        $this->subAgreement('A-SUPPLIER', $this->supplier('Vognmand A'));
         $this->subAgreement('B-NONE');
         $this->entityManager()->flush();
 
@@ -89,9 +88,10 @@ final class SubAgreementAdminTest extends WebTestCase
         $rows = $crawler->filter('[data-test="sub-agreement-row"]');
         self::assertCount(2, $rows);
         self::assertStringContainsString('B-NONE', $rows->eq(0)->text());
-        self::assertCount(1, $rows->eq(0)->filter('[data-test="no-current-supplier"]'));
-        self::assertStringContainsString('A-NOW', $rows->eq(1)->text());
+        self::assertCount(1, $rows->eq(0)->filter('[data-test="no-supplier"]'));
+        self::assertStringContainsString('A-SUPPLIER', $rows->eq(1)->text());
         self::assertStringContainsString('Vognmand A', $rows->eq(1)->text());
+        self::assertCount(0, $rows->eq(1)->filter('[data-test="no-supplier"]'));
     }
 
     public function testPageShowsTheRoutesOfTheSubAgreement(): void
@@ -107,110 +107,60 @@ final class SubAgreementAdminTest extends WebTestCase
         self::assertSame(['AB-CD-01', 'AB-CD-02'], $crawler->filter('[data-test="route-list"] li')->each(static fn ($item): string => $item->text()));
     }
 
-    public function testAdminCanAssignASupplier(): void
+    public function testAdminCanChangeTheSupplier(): void
     {
-        $subAgreement = $this->subAgreement('AB-CD');
-        $supplier = $this->supplier('Vognmand A');
+        $subAgreement = $this->subAgreement('AB-CD', $this->supplier('Vognmand A'));
+        $other = $this->supplier('Vognmand B');
         $this->entityManager()->flush();
 
         $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId());
-        $this->client->clickLink('Tilføj leverandør');
-        $this->client->submitForm('Gem', [
-            'assignment[supplier]' => (string) $supplier->getId(),
-            'assignment[validFrom]' => '2026-01-01',
-        ]);
+        $this->client->click($this->client->getCrawler()->filter('[data-test="sub-agreement-edit"]')->link());
+        $this->client->submitForm('Gem', ['sub_agreement[supplier]' => (string) $other->getId()]);
         self::assertResponseRedirects('/admin/sub-agreements/'.$subAgreement->getId());
         $this->client->followRedirect();
 
-        self::assertSelectorTextContains('[data-test="assignment-row"]', 'Vognmand A');
-        self::assertSelectorTextContains('[data-test="assignment-row"]', '01.01.2026');
-        self::assertSelectorTextContains('[data-test="assignment-row"]', 'Ingen slutdato');
-        self::assertCount(1, $this->events);
-        self::assertNull($this->events[0]->oldPeriod);
-        self::assertEquals(self::period('2026-01-01', null), $this->events[0]->newPeriod);
+        self::assertSelectorTextContains('[data-test="flash-success"]', 'Delaftalen er gemt.');
+        self::assertSelectorTextSame('[data-test="supplier"]', 'Vognmand B');
     }
 
-    public function testChangedAssignmentDispatchesTheOldAndTheNewPeriod(): void
+    public function testAdminCanRemoveTheSupplier(): void
     {
-        $subAgreement = $this->subAgreement('AB-CD');
-        $assignment = $this->assign($subAgreement, $this->supplier('Vognmand A'), '2026-01-01', null);
+        $subAgreement = $this->subAgreement('AB-CD', $this->supplier('Vognmand A'));
         $this->entityManager()->flush();
-        // The changed assignment is loaded from the database, and is not compared with itself.
-        $this->entityManager()->clear();
 
-        $this->client->request('GET', '/admin/assignments/'.$assignment->getId().'/edit');
-        $this->client->submitForm('Gem', ['assignment[validTo]' => '2026-06-30']);
+        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/edit');
+        $this->client->submitForm('Gem', ['sub_agreement[supplier]' => '']);
         $this->client->followRedirect();
 
-        self::assertSelectorTextContains('[data-test="assignment-row"]', '30.06.2026');
-        self::assertCount(1, $this->events);
-        self::assertEquals(self::period('2026-01-01', null), $this->events[0]->oldPeriod);
-        self::assertEquals(self::period('2026-01-01', '2026-06-30'), $this->events[0]->newPeriod);
+        self::assertSelectorTextContains('[data-test="supplier"]', 'Ingen leverandør');
     }
 
-    public function testDeletedAssignmentDispatchesTheOldPeriod(): void
+    /**
+     * The import finds the sub-agreement of a route by the reference, so the reference does not
+     * change after the create.
+     */
+    public function testEditPageHasNoReferenceField(): void
     {
         $subAgreement = $this->subAgreement('AB-CD');
-        $this->assign($subAgreement, $this->supplier('Vognmand A'), '2026-01-01', '2026-03-31');
         $this->entityManager()->flush();
 
-        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId());
-        $this->client->submitForm('Slet');
-        $this->client->followRedirect();
+        $crawler = $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/edit');
 
-        self::assertSelectorTextContains('[data-test="flash-success"]', 'Leverandøren for delaftalen er slettet.');
-        self::assertSelectorExists('[data-test="assignment-none"]');
-        self::assertCount(1, $this->events);
-        self::assertEquals(self::period('2026-01-01', '2026-03-31'), $this->events[0]->oldPeriod);
-        self::assertNull($this->events[0]->newPeriod);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'AB-CD');
+        self::assertCount(0, $crawler->filter('[name="sub_agreement[reference]"]'));
+        self::assertCount(1, $crawler->filter('[name="sub_agreement[supplier]"]'));
     }
 
-    public function testOverlappingAssignmentIsRejected(): void
+    public function testUserWithoutTheSupplierRoleCannotEdit(): void
     {
         $subAgreement = $this->subAgreement('AB-CD');
-        $supplier = $this->supplier('Vognmand A');
-        $this->assign($subAgreement, $supplier, '2026-01-01', null);
         $this->entityManager()->flush();
-        // The validator must load the other assignments from the database.
-        $this->entityManager()->clear();
+        $this->loginAs($this->client, 'viewer');
 
-        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/assignments/new');
-        $this->client->submitForm('Gem', [
-            'assignment[supplier]' => (string) $supplier->getId(),
-            'assignment[validFrom]' => '2026-06-01',
-        ]);
-
-        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
-        self::assertSelectorTextContains('body', 'Perioden overlapper en anden periode for delaftalen.');
-        self::assertSame([], $this->events);
-    }
-
-    public function testLastDateBeforeTheFirstDateIsRejected(): void
-    {
-        $subAgreement = $this->subAgreement('AB-CD');
-        $supplier = $this->supplier('Vognmand A');
-        $this->entityManager()->flush();
-
-        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/assignments/new');
-        $this->client->submitForm('Gem', [
-            'assignment[supplier]' => (string) $supplier->getId(),
-            'assignment[validFrom]' => '2026-06-01',
-            'assignment[validTo]' => '2026-05-31',
-        ]);
-
-        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
-        self::assertSelectorTextContains('body', 'Slutdatoen må ikke være før startdatoen.');
-    }
-
-    public function testDeleteWithoutAValidTokenIsDenied(): void
-    {
-        $assignment = $this->assign($this->subAgreement('AB-CD'), $this->supplier('Vognmand A'), '2026-01-01', null);
-        $this->entityManager()->flush();
-
-        $this->client->request('POST', '/admin/assignments/'.$assignment->getId().'/delete', ['_token' => 'wrong']);
+        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/edit');
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
-        self::assertSame([], $this->events);
     }
 
     public function testUnknownSubAgreementIsNotFound(): void
@@ -220,11 +170,10 @@ final class SubAgreementAdminTest extends WebTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
 
-    private function subAgreement(string $reference): SubAgreement
+    private function subAgreement(string $reference, ?Supplier $supplier = null): SubAgreement
     {
-        $subAgreement = new SubAgreement()->setReference($reference);
+        $subAgreement = new SubAgreement()->setReference($reference)->setSupplier($supplier);
         $this->entityManager()->persist($subAgreement);
-        $this->entityManager()->flush();
 
         return $subAgreement;
     }
@@ -235,20 +184,6 @@ final class SubAgreementAdminTest extends WebTestCase
         $this->entityManager()->persist($supplier);
 
         return $supplier;
-    }
-
-    private function assign(SubAgreement $subAgreement, Supplier $supplier, string $from, ?string $to): SubAgreementSupplierAssignment
-    {
-        $assignment = new SubAgreementSupplierAssignment($subAgreement, $supplier, new \DateTimeImmutable($from), null === $to ? null : new \DateTimeImmutable($to));
-        $subAgreement->getAssignments()->add($assignment);
-        $this->entityManager()->persist($assignment);
-
-        return $assignment;
-    }
-
-    private static function period(string $from, ?string $to): ValidityPeriod
-    {
-        return new ValidityPeriod(new \DateTimeImmutable($from), null === $to ? null : new \DateTimeImmutable($to));
     }
 
     private function entityManager(): EntityManagerInterface

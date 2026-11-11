@@ -53,9 +53,9 @@ final class SupplierController extends AbstractController
     }
 
     /**
-     * A supplier with assignments is not deleted, because the old figures refer to it. The foreign
-     * key of the assignments blocks the delete. A count before the delete can miss an assignment
-     * that another administrator adds at the same time.
+     * A supplier with sub-agreements is not deleted, because the figures of the sub-agreements
+     * refer to it. The foreign key of the sub-agreements blocks the delete. A count before the
+     * delete can miss a sub-agreement that another administrator changes at the same time.
      */
     #[Route('/{id}/delete', name: 'admin_supplier_delete', methods: ['POST'])]
     public function delete(Request $request, Supplier $supplier, EntityManagerInterface $entityManager): Response

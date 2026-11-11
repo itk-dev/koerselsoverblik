@@ -53,7 +53,7 @@ The user interface is in Danish.
     - Columns are read through an [import mapping](#import-mappings), so a changed column name,
       code or format needs no code change.
   - **Suppliers and sub-agreements:** the suppliers, and which supplier drives each
-    sub-agreement from which date.
+    sub-agreement.
 - **Login:** single sign-on through the identity provider (OIDC). Every page requires a role.
 
 ## Key figures
@@ -64,8 +64,8 @@ averages of daily percentages.
 **Terms:**
 
 - **Route:** a vehicle schedule in the planning system, for example `AB-CD-01`.
-- **Sub-agreement:** the part of a route name before the last number, for example `AB-CD`. It is
-  assigned to a supplier for a date range.
+- **Sub-agreement:** the part of a route name before the last number, for example `AB-CD`. It has
+  one supplier.
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day. The planning system
   gives each run of a route a block number.
@@ -99,7 +99,7 @@ Each part of the application has its own permission role:
 | `ROLE_VIEW_OVERVIEW` | View the overview |
 | `ROLE_MANAGE_DRIVING_DATA` | Upload driving data, and clear the driving data for a date |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
-| `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the sub-agreement → supplier assignments |
+| `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the supplier of each sub-agreement |
 
 `ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
 permission roles let us give narrower access later without code changes.
@@ -399,27 +399,22 @@ below 1. A mapping with errors is rejected when the application starts.
 
 The driving data extract does not say which supplier drives a route. A route name such as
 `AB-CD-01` or `TEST_01` starts with its sub-agreement (`AB-CD`, `TEST`): the part before the last
-`-` or `_` and the digits after it. A supplier is assigned to a sub-agreement, and the assignment
-applies to all its routes.
+`-` or `_` and the digits after it. Each sub-agreement has one supplier. The supplier applies to
+all its routes on all dates.
 
-To assign them:
+To give a sub-agreement a supplier:
 
 1. Go to **Leverandører og delaftaler** (requires `ROLE_MANAGE_SUPPLIERS`).
 2. Create the suppliers on the **Leverandører** tab.
 3. On the **Delaftaler** tab, open a sub-agreement, or create it.
-4. Add a supplier from a start date. Leave the end date empty.
+4. Click **Skift leverandør**.
+5. Select the supplier, and click **Gem**.
 
-When a sub-agreement changes supplier:
+The import creates a sub-agreement with no supplier. The routes of a sub-agreement with no
+supplier count as "Unknown". Sub-agreements with no supplier are listed at the top.
 
-1. Set the end date of the current assignment to the last day with the old supplier.
-2. Add a new assignment with the new supplier from the next day.
-
-The assignments of one sub-agreement cannot overlap. The figures for the old supplier before the
-change stay the same. A supplier with assignments cannot be deleted.
-
-On a date with no assignment, the routes of a sub-agreement count as "Unknown". Sub-agreements
-with no assignment today are listed at the top. When an assignment changes, the figures are
-recalculated for the dates of the old and the new period only.
+When you change the supplier of a sub-agreement, the figures for all dates of its routes change
+to the new supplier. A supplier with sub-agreements cannot be deleted.
 
 ### Enter daily counts
 
