@@ -28,8 +28,10 @@ feature that has an issue or an issue text.
   old plan.
 - **Open questions for the transport office** are in
   [Open decisions](../architecture.md#open-decisions). A plan file links to them.
-- **The repository is public.** Do not write personal data or cell values from a real extract.
-  Counts of rows are permitted.
+- **The repository is public.** Do not write personal data, cell values or numbers from the real
+  driving data, for example counts, shares, sizes or punctuality. Write `XX` in place of such a
+  number. The same rule applies to the GitHub issues and the pull requests. The limits in `.env`
+  and public facts, for example the school holidays, are not driving data.
 - Write in ASD-STE100 Simplified Technical English, as all other documentation.
 
 ## Add a feature

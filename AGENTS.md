@@ -119,6 +119,8 @@ To find how the project is configured, use these commands. Do not guess:
   [docs/plans/README.md](docs/plans/README.md).
 - A plan for new work starts with the issue text. The user creates the issue on GitHub. Wait
   for the issue number before you create the branch.
+- The repository, the issues and the pull requests are public. Write `XX` in place of each
+  number from the real driving data. See the rules in [docs/plans/README.md](docs/plans/README.md).
 
 ## Writing
 
