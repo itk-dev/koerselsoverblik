@@ -1,11 +1,10 @@
 {% extends 'base.html.twig' %}
 
-{% import '_month.html.twig' as months %}
-
 {% block title %}{{ 'punctuality.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
 
+{% block topbar_controls %}{{ include('_filter_bar.html.twig', {route: 'punctuality'}) }}{% endblock %}
+
 {% block body %}
-    {% set month = page.month %}
     {% set report = page.current %}
     {% set figures = report.total %}
     {% set target = page.target %}
@@ -14,9 +13,8 @@
     <header class="page-head">
         <div>
             <h1 class="page-head__title">{{ 'punctuality.title'|trans }}</h1>
-            <p class="page-head__lede">{{ 'punctuality.lede'|trans({month: months.label(month)|trim, previous: months.label(month.previous)|trim}) }}</p>
+            <p class="page-head__lede" data-test="lede">{{ 'punctuality.lede'|trans({period: period_phrase(selection), comparison: comparison_phrase(selection)}) }}</p>
         </div>
-        {{ months.nav('punctuality', month, has_next_month, 'punctuality.title'|trans) }}
     </header>
 
     {{ include('punctuality/_goal.html.twig') }}

@@ -1,19 +1,17 @@
 {% extends 'base.html.twig' %}
 
-{% import '_month.html.twig' as months %}
-
 {% block title %}{{ 'overview.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
 
+{% block topbar_controls %}{{ include('_filter_bar.html.twig', {route: 'overview'}) }}{% endblock %}
+
 {% block body %}
-    {% set month = page.month %}
     {% set count = page.current %}
 
     <header class="page-head">
         <div>
             <h1 class="page-head__title">{{ 'overview.heading'|trans }}</h1>
-            <p class="page-head__lede">{{ 'overview.lede'|trans({month: months.label(month)|trim, previous: months.label(month.previous)|trim}) }}</p>
+            <p class="page-head__lede" data-test="lede">{{ 'overview.lede'|trans({period: period_phrase(selection), comparison: comparison_phrase(selection)}) }}</p>
         </div>
-        {{ months.nav('overview', month, has_next_month, 'overview.title'|trans) }}
     </header>
 
     {# A change of the volume is neither good nor bad, so the change has the tone "neutral". #}

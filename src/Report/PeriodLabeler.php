@@ -7,12 +7,12 @@ namespace App\Report;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Gives the Danish labels of the periods, as in the prototype:
+ * Gives the Danish labels of the periods, in the style of the prototype:
  *
- * - a day: "fre. 18. sep 2026"
  * - a week: "Uge 38 · 14. sep–20. sep 2026"
  * - a month: "september 2026"
- * - a year: "2026"
+ * - a quarter: "3. kvartal 2026"
+ * - a half year: "2. halvår 2026"
  * - a period that has not ended: "1.–18. september 2026 (til og med i dag)"
  */
 final readonly class PeriodLabeler
@@ -29,13 +29,9 @@ final readonly class PeriodLabeler
     {
         $first = $period->firstDate;
 
+        $month = (int) $first->format('n');
+
         return match ($period->type) {
-            PeriodType::Day => $this->translator->trans('period.day', [
-                'weekday' => $this->translator->trans('weekday.short.'.$first->format('N')),
-                'day' => $first->format('j'),
-                'month' => $this->monthShort($first),
-                'year' => $first->format('Y'),
-            ]),
             PeriodType::Week => $this->translator->trans('period.week', [
                 'week' => (int) $first->format('W'),
                 'first' => $this->dayShort($first),
@@ -43,31 +39,39 @@ final readonly class PeriodLabeler
                 'year' => $period->lastDate->format('Y'),
             ]),
             PeriodType::Month => $this->translator->trans('period.month', [
-                'month' => $this->translator->trans('month.long.'.$first->format('n')),
+                'month' => $this->translator->trans('month.long.'.$month),
                 'year' => $first->format('Y'),
             ]),
-            PeriodType::Year => $first->format('Y'),
+            PeriodType::Quarter => $this->translator->trans('period.quarter', ['quarter' => intdiv($month + 2, 3), 'year' => $first->format('Y')]),
+            PeriodType::HalfYear => $this->translator->trans('period.half_year', ['half' => intdiv($month + 5, 6), 'year' => $first->format('Y')]),
         };
     }
 
     /**
-     * Gives the period in a sentence. A period that has not ended names its dates.
+     * Gives the selected period in a sentence. A partial period names its dates: "1.–18. september
+     * 2026 (til og med i dag)", or "18.–31. maj 2026 (delvis periode)" from the start of the data.
      */
-    public function phrase(PeriodDto $period): string
+    public function phrase(PeriodSelectionDto $selection): string
     {
-        return $period->partial
-            ? $this->translator->trans('period.until_today', ['range' => $this->range($period->range)])
-            : mb_strtolower($this->label($period));
+        return match (true) {
+            !$selection->selected->isPartial() => mb_strtolower($this->label($selection->selected)),
+            $selection->selected->endsAfterToday => $this->translator->trans('period.until_today', ['range' => $this->range($selection->selectedRange)]),
+            default => $this->translator->trans('period.partial', ['period' => $this->range($selection->selectedRange)]),
+        };
     }
 
     /**
-     * Gives the comparison period in a sentence. A cut comparison names its dates.
+     * Gives the comparison period in a sentence. A cut comparison names its dates. A comparison
+     * that starts before the start of the data is partial, as in the prototype.
      */
     public function comparisonPhrase(PeriodSelectionDto $selection): string
     {
-        return $selection->isComparisonCut()
-            ? $this->range($selection->comparisonRange)
-            : mb_strtolower($this->label($selection->comparison));
+        return match (true) {
+            null === $selection->comparisonRange => $this->translator->trans('period.no_data'),
+            $selection->isComparisonCut() => $this->range($selection->comparisonRange),
+            $selection->comparison->startsBeforeData => $this->translator->trans('period.partial', ['period' => mb_strtolower($this->label($selection->comparison))]),
+            default => mb_strtolower($this->label($selection->comparison)),
+        };
     }
 
     /**

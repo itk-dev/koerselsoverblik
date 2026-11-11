@@ -8,30 +8,30 @@ use App\Repository\RouteRunRepository;
 use App\Repository\StopRowRepository;
 
 /**
- * Calculates the figures of the overview: the month of the page and the months before it, for
- * the sparklines.
+ * Calculates the figures of the overview: the selected period, the comparison period, and the 12
+ * months up to the period for the sparklines.
  */
 final readonly class OverviewPageBuilder
 {
-    /**
-     * The number of months in the sparklines, the same as on the punctuality page.
-     */
-    public const int MONTHS = PunctualityPageBuilder::MONTHS;
-
     public function __construct(
         private StopRowRepository $stopRows,
         private RouteRunRepository $routeRuns,
     ) {
     }
 
-    public function build(MonthDto $month): OverviewPageDto
+    public function build(PeriodSelectionDto $selection): OverviewPageDto
     {
-        $months = $month->trailing(self::MONTHS);
+        $months = $selection->months;
+        $comparison = $selection->comparisonRange;
 
         return new OverviewPageDto(
             $months,
             array_map(fn (MonthDto $item): TripCountDto => $this->stopRows->countTrips($item->range()), $months),
             array_map(fn (MonthDto $item): SoloCountDto => $this->routeRuns->countSoloRuns($item->range()), $months),
+            $this->stopRows->countTrips($selection->selectedRange),
+            null === $comparison ? null : $this->stopRows->countTrips($comparison),
+            $this->routeRuns->countSoloRuns($selection->selectedRange),
+            null === $comparison ? null : $this->routeRuns->countSoloRuns($comparison),
         );
     }
 }

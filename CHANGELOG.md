@@ -264,3 +264,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the supplier from the query string. `PeriodRangeFactory` gives the selected period, the
   comparison period (cut when the period has not ended) and the 12 months. `PeriodLabeler`
   gives the Danish labels of the prototype. No page uses them yet.
+- [#116](https://github.com/itk-dev/koerselsoverblik/issues/116)
+  The overview and the punctuality page have the filter bar of the prototype: the period (week,
+  month, quarter or half year), the previous and the next period, and the comparison (the
+  previous period or the same period last year). It replaces `?month=` and the month chooser.
+  The tiles compare the selected period with the comparison period, and a period that has not
+  ended is compared with the same number of days. `APP_DATA_START_DATE` gives the start of the
+  data: a comparison before it is a partial period or has no data. The period types day and
+  year of the prototype are left out.

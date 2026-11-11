@@ -11,17 +11,19 @@ namespace App\Report;
 final readonly class PeriodSelectionDto
 {
     /**
-     * @param DateRangeDto             $comparisonRange the dates of the comparison period, cut to the number of days of a period that has not ended
-     * @param \DateTimeImmutable       $previousAnchor  a date in the previous period
+     * @param DateRangeDto             $selectedRange   the dates of the selected period, from the start of the data up to today
+     * @param ?DateRangeDto            $comparisonRange the dates of the comparison period, cut to the number of days of a selected period that has not ended, or null if the comparison period has no data
+     * @param ?\DateTimeImmutable      $previousAnchor  a date in the previous period, or null if the previous period ends before the start of the data
      * @param ?\DateTimeImmutable      $nextAnchor      a date in the next period, or null if the next period starts after today
      * @param non-empty-list<MonthDto> $months          the 12 months up to the month of the period, the oldest first
      */
     public function __construct(
         public PeriodFilter $filter,
         public PeriodDto $selected,
+        public DateRangeDto $selectedRange,
         public PeriodDto $comparison,
-        public DateRangeDto $comparisonRange,
-        public \DateTimeImmutable $previousAnchor,
+        public ?DateRangeDto $comparisonRange,
+        public ?\DateTimeImmutable $previousAnchor,
         public ?\DateTimeImmutable $nextAnchor,
         public array $months,
     ) {
@@ -33,6 +35,7 @@ final readonly class PeriodSelectionDto
      */
     public function isComparisonCut(): bool
     {
-        return $this->comparisonRange->lastDate < $this->comparison->range->lastDate;
+        return null !== $this->comparisonRange && null !== $this->comparison->range
+            && $this->comparisonRange->lastDate < $this->comparison->range->lastDate;
     }
 }

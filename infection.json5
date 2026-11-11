@@ -49,7 +49,7 @@
         CastFloat: {
             ignoreSourceCodeByRegex: [
                 '.*\\? null : \\(float\\) \\$value, \\$this->reports\\),.*',
-                '.*\\? null : \\(float\\) \\$item, \\$history\\),.*',
+                '.*\\? null : \\(float\\) \\$item, \\$this->counts\\),.*',
             ],
         },
         // Equivalent mutant. array_map() calls the closure in coercive mode, so a numeric name key

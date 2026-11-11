@@ -15,7 +15,7 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * Checks the overview: the month filter and the trips and the citizens of the base scenario.
+ * Checks the overview: the filter bar and the trips and the citizens of the base scenario.
  * OverviewAccessTest checks the access. The tests find the figures by their data-test attributes.
  */
 final class OverviewPageTest extends WebTestCase
@@ -33,7 +33,7 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('Bliver borgerkørslen bedre eller værre?', $crawler->filter('h1')->text());
         self::assertSame('Overblik', trim($crawler->filter('[data-test="menu-item"][aria-current="page"]')->text()));
         self::assertSame('Overblik – Kørselsoverblik', $crawler->filter('title')->text());
-        self::assertSame('januar 2026 sammenlignet med december 2025.', $crawler->filter('.page-head__lede')->text());
+        self::assertSame('1.–20. januar 2026 (til og med i dag) sammenlignet med 1.–20. december 2025.', $crawler->filter('.page-head__lede')->text());
     }
 
     /**
@@ -43,7 +43,7 @@ final class OverviewPageTest extends WebTestCase
     {
         $crawler = $this->page('viewer', importBase: true);
 
-        self::assertSame('januar 2026', $crawler->filter('[data-test="month"]')->text());
+        self::assertSame('januar 2026', $crawler->filter('[data-test="period"]')->text());
         self::assertSame('7', self::value($crawler, 'trips'));
         self::assertSame('5 gennemført · 1 aflyst', $crawler->filter('[data-test="trips"] .tile__note')->text());
         self::assertSame('6', self::value($crawler, 'citizens'));
@@ -109,9 +109,9 @@ final class OverviewPageTest extends WebTestCase
      */
     public function testMonthWithNoDataHasNoValues(): void
     {
-        $crawler = $this->page('viewer', '?month=2025-12', importBase: true);
+        $crawler = $this->page('viewer', '?d=2025-12-01', importBase: true);
 
-        self::assertSame('december 2025', $crawler->filter('[data-test="month"]')->text());
+        self::assertSame('december 2025', $crawler->filter('[data-test="period"]')->text());
         self::assertSame('–', self::value($crawler, 'trips'));
         self::assertSame('–', self::value($crawler, 'citizens'));
         self::assertSame('0 gennemført · 0 aflyst', $crawler->filter('[data-test="trips"] .tile__note')->text());
@@ -130,15 +130,51 @@ final class OverviewPageTest extends WebTestCase
     public function testLinksToThePreviousAndTheNextMonth(): void
     {
         $client = $this->client('viewer');
-        $crawler = $client->request('GET', '/?month=2025-12');
+        $crawler = $client->request('GET', '/?d=2025-12-01');
 
-        self::assertSame('/?month=2025-11', $crawler->filter('a[data-test="previous-month"]')->attr('href'));
-        self::assertSame('/?month=2026-01', $crawler->filter('a[data-test="next-month"]')->attr('href'));
+        self::assertSame('/?d=2025-11-01', $crawler->filter('a[data-test="previous-period"]')->attr('href'));
+        self::assertSame('/?d=2026-01-01', $crawler->filter('a[data-test="next-period"]')->attr('href'));
 
         $crawler = $client->request('GET', '/');
 
-        self::assertSame('/?month=2025-12', $crawler->filter('a[data-test="previous-month"]')->attr('href'));
-        self::assertCount(0, $crawler->filter('a[data-test="next-month"]'));
+        self::assertSame('/?d=2025-12-01', $crawler->filter('a[data-test="previous-period"]')->attr('href'));
+        self::assertCount(0, $crawler->filter('a[data-test="next-period"]'));
+    }
+
+    /**
+     * Week 2 of 2026 has the base scenario. It is compared with week 2 of 2025. Each link of the
+     * filter bar changes one filter and keeps the others.
+     */
+    public function testFilterBarKeepsTheOtherFilters(): void
+    {
+        $crawler = $this->page('viewer', '?p=week&d=2026-01-07&c=last_year', importBase: true);
+
+        self::assertSame('Uge 2 · 5. jan–11. jan 2026', $crawler->filter('[data-test="period"]')->text());
+        self::assertSame('uge 2 · 5. jan–11. jan 2026 sammenlignet med uge 2 · 6. jan–12. jan 2025.', $crawler->filter('[data-test="lede"]')->text());
+        self::assertSame('7', self::value($crawler, 'trips'));
+        self::assertSame('/?d=2026-01-07&c=last_year', $crawler->filter('[data-test="period-month"]')->attr('href'));
+        self::assertSame('true', $crawler->filter('[data-test="period-week"]')->attr('aria-checked'));
+        self::assertSame('/?p=week&d=2025-12-31&c=last_year', $crawler->filter('[data-test="previous-period"]')->attr('href'));
+        self::assertSame('last_year', $crawler->filter('[data-test="comparison"] option[selected]')->attr('value'));
+        // The form sends the other filters with the comparison.
+        self::assertSame(
+            ['p' => 'week', 'd' => '2026-01-07'],
+            array_combine(
+                $crawler->filter('[data-filter-form] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('name')),
+                $crawler->filter('[data-filter-form] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')),
+            ),
+        );
+    }
+
+    /**
+     * The quarter has not ended, so the previous quarter is cut to the same number of days.
+     */
+    public function testQuarterThatHasNotEnded(): void
+    {
+        $crawler = $this->page('viewer', '?p=quarter');
+
+        self::assertSame('1. kvartal 2026', $crawler->filter('[data-test="period"]')->text());
+        self::assertSame('1.–20. januar 2026 (til og med i dag) sammenlignet med 1.–20. oktober 2025.', $crawler->filter('[data-test="lede"]')->text());
     }
 
     /**
@@ -148,7 +184,7 @@ final class OverviewPageTest extends WebTestCase
     {
         $client = $this->client('viewer');
 
-        self::assertSame('januar 2026', $client->request('GET', '/?month=abc')->filter('[data-test="month"]')->text());
+        self::assertSame('januar 2026', $client->request('GET', '/?d=abc')->filter('[data-test="period"]')->text());
     }
 
     public function testNoTextNamesThePlanningSystem(): void

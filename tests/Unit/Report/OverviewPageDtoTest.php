@@ -17,12 +17,53 @@ use PHPUnit\Framework\TestCase;
  */
 final class OverviewPageDtoTest extends TestCase
 {
-    public function testMonthIsTheLastMonth(): void
+    public function testCurrentIsTheSelectedPeriod(): void
     {
         $page = self::page([self::tripCount(1, 1), self::tripCount(2, 2), self::tripCount(3, 3)]);
 
-        self::assertSame('2026-03', $page->month()->query());
         self::assertEquals(self::tripCount(3, 3), $page->current());
+    }
+
+    /**
+     * A period that is not a month, for example a week, has its own figures. The history stays
+     * the months.
+     */
+    public function testSelectedPeriodIsNotTheLastMonth(): void
+    {
+        $page = new OverviewPageDto(
+            MonthDto::fromQuery('2026-03', new \DateTimeImmutable('2026-11-11'))->trailing(2),
+            [self::tripCount(10, 4), self::tripCount(12, 5)],
+            [new SoloCountDto(4, 2), new SoloCountDto(4, 1)],
+            self::tripCount(3, 2),
+            self::tripCount(2, 2),
+            new SoloCountDto(2, 2),
+            new SoloCountDto(4, 2),
+        );
+
+        self::assertTrend(3, 1, [10.0, 12.0], $page->trips());
+        self::assertTrend(2, 0, [4.0, 5.0], $page->citizens());
+        self::assertSame(100.0, $page->realSolo()->current);
+        self::assertSame(50.0, $page->realSolo()->change);
+        self::assertSame([50.0, 25.0], $page->realSolo()->history);
+    }
+
+    /**
+     * A comparison period before the start of the data has no figures, so there is no change.
+     */
+    public function testComparisonWithNoDataHasNoChange(): void
+    {
+        $page = new OverviewPageDto(
+            MonthDto::fromQuery('2026-03', new \DateTimeImmutable('2026-11-11'))->trailing(1),
+            [self::tripCount(10, 4)],
+            [new SoloCountDto(4, 2)],
+            self::tripCount(10, 4),
+            null,
+            new SoloCountDto(4, 2),
+            null,
+        );
+
+        self::assertTrend(10, null, [10.0], $page->trips());
+        self::assertNull($page->realSolo()->change);
     }
 
     public function testTripsHaveTheChangeFromThePreviousMonth(): void
@@ -88,7 +129,8 @@ final class OverviewPageDtoTest extends TestCase
     }
 
     /**
-     * The months end with March 2026. The solo runs are 1 of 2 runs in each month by default.
+     * The months end with March 2026. The selected period is the last month, and the comparison
+     * is the month before it. The solo runs are 1 of 2 runs in each month by default.
      *
      * @param non-empty-list<TripCountDto>  $counts
      * @param ?non-empty-list<SoloCountDto> $solos
@@ -96,8 +138,10 @@ final class OverviewPageDtoTest extends TestCase
     private static function page(array $counts, ?array $solos = null): OverviewPageDto
     {
         $months = MonthDto::fromQuery('2026-03', new \DateTimeImmutable('2026-11-11'))->trailing(\count($counts));
+        $solos ??= array_map(static fn (): SoloCountDto => new SoloCountDto(2, 1), $counts);
+        $last = \count($counts) - 1;
 
-        return new OverviewPageDto($months, $counts, $solos ?? array_map(static fn (): SoloCountDto => new SoloCountDto(2, 1), $counts));
+        return new OverviewPageDto($months, $counts, $solos, $counts[$last], $counts[$last - 1] ?? null, $solos[$last], $solos[$last - 1] ?? null);
     }
 
     private static function tripCount(int $trips, int $citizens): TripCountDto

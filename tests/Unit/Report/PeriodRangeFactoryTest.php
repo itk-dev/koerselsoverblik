@@ -14,40 +14,49 @@ use PHPUnit\Framework\TestCase;
 /**
  * Checks the date ranges of the selected period and the comparison period, the links to the
  * previous and the next period, and the 12 months of the trend. Today is Friday 18 September 2026,
- * as in the prototype, unless a test says otherwise.
+ * as in the prototype, unless a test says otherwise. The tests with a data start use 18 May 2026.
  */
 final class PeriodRangeFactoryTest extends TestCase
 {
     private const string TODAY = '2026-09-18';
 
+    private const string DATA_START = '2026-05-18';
+
     /**
      * @param array<string, string> $query
      */
     #[DataProvider('periods')]
-    public function testSelectedPeriod(array $query, string $range, bool $partial, string $today = self::TODAY): void
+    public function testSelectedPeriod(array $query, string $range, bool $partial, string $today = self::TODAY, string $start = ''): void
     {
-        $selection = self::select($query, $today);
+        $selection = self::select($query, $today, $start);
 
-        self::assertSame($range, self::format($selection->selected->range));
-        self::assertSame($partial, $selection->selected->partial);
+        self::assertSame($range, self::format($selection->selectedRange));
+        self::assertSame($partial, $selection->selected->isPartial());
     }
 
     /**
-     * @return iterable<string, array{0: array<string, string>, 1: string, 2: bool, 3?: string}>
+     * @return iterable<string, array{0: array<string, string>, 1: string, 2: bool, 3?: string, 4?: string}>
      */
     public static function periods(): iterable
     {
-        yield 'day' => [['p' => 'day', 'd' => '2026-09-15'], '2026-09-15/2026-09-15', false];
-        // A day is never partial, also today.
-        yield 'today' => [['p' => 'day'], '2026-09-18/2026-09-18', false];
         yield 'week from Monday to Sunday' => [['p' => 'week', 'd' => '2026-09-09'], '2026-09-07/2026-09-13', false];
         yield 'current week ends today' => [['p' => 'week', 'd' => '2026-09-16'], '2026-09-14/2026-09-18', true];
         yield 'week 53 across a year' => [['p' => 'week', 'd' => '2027-01-02'], '2026-12-28/2027-01-03', false, '2027-06-01'];
         yield 'month' => [['d' => '2026-08-20'], '2026-08-01/2026-08-31', false];
         yield 'current month ends today' => [[], '2026-09-01/2026-09-18', true];
         yield 'leap day month' => [['d' => '2028-02-10'], '2028-02-01/2028-02-29', false, '2028-06-01'];
-        yield 'year' => [['p' => 'year', 'd' => '2025-05-05'], '2025-01-01/2025-12-31', false];
-        yield 'current year ends today' => [['p' => 'year'], '2026-01-01/2026-09-18', true];
+        yield 'quarter' => [['p' => 'quarter', 'd' => '2026-05-05'], '2026-04-01/2026-06-30', false];
+        yield 'current quarter ends today' => [['p' => 'quarter'], '2026-07-01/2026-09-18', true];
+        yield 'last quarter of a year' => [['p' => 'quarter', 'd' => '2025-11-30'], '2025-10-01/2025-12-31', false];
+        yield 'half year' => [['p' => 'half_year', 'd' => '2026-03-03'], '2026-01-01/2026-06-30', false];
+        yield 'current half year ends today' => [['p' => 'half_year'], '2026-07-01/2026-09-18', true];
+        yield 'month that starts before the data' => [['d' => '2026-05-25'], '2026-05-18/2026-05-31', true, self::TODAY, self::DATA_START];
+        yield 'week that starts before the data' => [['p' => 'week', 'd' => '2026-05-20'], '2026-05-18/2026-05-24', false, self::TODAY, self::DATA_START];
+        yield 'quarter that starts before the data' => [['p' => 'quarter', 'd' => '2026-06-01'], '2026-05-18/2026-06-30', true, self::TODAY, self::DATA_START];
+        // A date before the data gives the start of the data.
+        yield 'date before the data' => [['d' => '2026-03-03'], '2026-05-18/2026-05-31', true, self::TODAY, self::DATA_START];
+        // A start after today is a fault in the settings. The page then shows today.
+        yield 'data start after today' => [[], '2026-09-18/2026-09-18', true, self::TODAY, '2026-10-01'];
     }
 
     /**
@@ -56,63 +65,69 @@ final class PeriodRangeFactoryTest extends TestCase
      * @param array<string, string> $query
      */
     #[DataProvider('comparisons')]
-    public function testComparisonPeriod(array $query, string $period, string $range, string $today = self::TODAY): void
+    public function testComparisonPeriod(array $query, ?string $period, ?string $range, bool $cut, string $today = self::TODAY, string $start = ''): void
     {
-        $selection = self::select($query, $today);
+        $selection = self::select($query, $today, $start);
 
-        self::assertSame($period, self::format($selection->comparison->range));
-        self::assertSame($range, self::format($selection->comparisonRange));
-        self::assertSame($period !== $range, $selection->isComparisonCut());
+        self::assertSame($period, null === $selection->comparison->range ? null : self::format($selection->comparison->range));
+        self::assertSame($range, null === $selection->comparisonRange ? null : self::format($selection->comparisonRange));
+        self::assertSame($cut, $selection->isComparisonCut());
     }
 
     /**
-     * @return iterable<string, array{0: array<string, string>, 1: string, 2: string, 3?: string}>
+     * @return iterable<string, array{0: array<string, string>, 1: ?string, 2: ?string, 3: bool, 4?: string, 5?: string}>
      */
     public static function comparisons(): iterable
     {
-        yield 'previous day' => [['p' => 'day', 'd' => '2026-09-15'], '2026-09-14/2026-09-14', '2026-09-14/2026-09-14'];
-        yield 'same day last year' => [['p' => 'day', 'd' => '2026-09-15', 'c' => 'last_year'], '2025-09-15/2025-09-15', '2025-09-15/2025-09-15'];
-        yield 'leap day last year' => [['p' => 'day', 'd' => '2028-02-29', 'c' => 'last_year'], '2027-02-28/2027-02-28', '2027-02-28/2027-02-28', '2028-06-01'];
-        yield 'previous week' => [['p' => 'week', 'd' => '2026-09-09'], '2026-08-31/2026-09-06', '2026-08-31/2026-09-06'];
-        yield 'previous week, cut' => [['p' => 'week', 'd' => '2026-09-16'], '2026-09-07/2026-09-13', '2026-09-07/2026-09-11'];
-        yield 'week 1 after week 53' => [['p' => 'week', 'd' => '2027-01-05'], '2026-12-28/2027-01-03', '2026-12-28/2027-01-03', '2027-06-01'];
-        yield 'previous month' => [['d' => '2026-08-20'], '2026-07-01/2026-07-31', '2026-07-01/2026-07-31'];
-        yield 'previous month, cut' => [[], '2026-08-01/2026-08-31', '2026-08-01/2026-08-18'];
-        yield 'previous month of March' => [['d' => '2026-03-31'], '2026-02-01/2026-02-28', '2026-02-01/2026-02-28'];
-        yield 'same month last year, cut' => [['c' => 'last_year'], '2025-09-01/2025-09-30', '2025-09-01/2025-09-18'];
-        yield 'previous year' => [['p' => 'year', 'd' => '2025-05-05'], '2024-01-01/2024-12-31', '2024-01-01/2024-12-31'];
-        yield 'previous year, cut' => [['p' => 'year'], '2025-01-01/2025-12-31', '2025-01-01/2025-09-18'];
+        yield 'previous week' => [['p' => 'week', 'd' => '2026-09-09'], '2026-08-31/2026-09-06', '2026-08-31/2026-09-06', false];
+        yield 'previous week, cut' => [['p' => 'week', 'd' => '2026-09-16'], '2026-09-07/2026-09-13', '2026-09-07/2026-09-11', true];
+        yield 'week 1 after week 53' => [['p' => 'week', 'd' => '2027-01-05'], '2026-12-28/2027-01-03', '2026-12-28/2027-01-03', false, '2027-06-01'];
+        yield 'previous month' => [['d' => '2026-08-20'], '2026-07-01/2026-07-31', '2026-07-01/2026-07-31', false];
+        yield 'previous month, cut' => [[], '2026-08-01/2026-08-31', '2026-08-01/2026-08-18', true];
+        yield 'previous month of March' => [['d' => '2026-03-31'], '2026-02-01/2026-02-28', '2026-02-01/2026-02-28', false];
+        yield 'same month last year, cut' => [['c' => 'last_year'], '2025-09-01/2025-09-30', '2025-09-01/2025-09-18', true];
+        yield 'leap day last year' => [['d' => '2028-02-29', 'c' => 'last_year'], '2027-02-01/2027-02-28', '2027-02-01/2027-02-28', false, '2028-06-01'];
+        yield 'previous quarter' => [['p' => 'quarter', 'd' => '2026-05-05'], '2026-01-01/2026-03-31', '2026-01-01/2026-03-31', false];
+        yield 'previous quarter of January' => [['p' => 'quarter', 'd' => '2026-01-15'], '2025-10-01/2025-12-31', '2025-10-01/2025-12-31', false];
+        yield 'previous quarter, cut' => [['p' => 'quarter'], '2026-04-01/2026-06-30', '2026-04-01/2026-06-19', true];
+        yield 'previous half year' => [['p' => 'half_year', 'd' => '2026-03-03'], '2025-07-01/2025-12-31', '2025-07-01/2025-12-31', false];
         // A cut February has fewer days than the selected days. It is not cut to a date in March.
-        yield 'cut longer than the comparison' => [[], '2026-02-01/2026-02-28', '2026-02-01/2026-02-28', '2026-03-30'];
+        yield 'cut longer than the comparison' => [[], '2026-02-01/2026-02-28', '2026-02-01/2026-02-28', false, '2026-03-30'];
+        // The comparison starts at the start of the data, and is not cut.
+        yield 'previous month starts before the data' => [['d' => '2026-06-10'], '2026-05-18/2026-05-31', '2026-05-18/2026-05-31', false, self::TODAY, self::DATA_START];
+        yield 'previous month before the data' => [['d' => '2026-05-25'], null, null, false, self::TODAY, self::DATA_START];
+        yield 'last year before the data' => [['c' => 'last_year'], null, null, false, self::TODAY, self::DATA_START];
     }
 
     /**
-     * The next period has no link when it starts after today.
+     * The next period has no link when it starts after today. The previous period has no link when
+     * it ends before the start of the data.
      *
      * @param array<string, string> $query
      */
     #[DataProvider('steps')]
-    public function testPreviousAndNextPeriod(array $query, string $previous, ?string $next): void
+    public function testPreviousAndNextPeriod(array $query, ?string $previous, ?string $next, string $start = ''): void
     {
-        $selection = self::select($query);
+        $selection = self::select($query, self::TODAY, $start);
 
-        self::assertSame($previous, $selection->previousAnchor->format('Y-m-d'));
+        self::assertSame($previous, $selection->previousAnchor?->format('Y-m-d'));
         self::assertSame($next, $selection->nextAnchor?->format('Y-m-d'));
     }
 
     /**
-     * @return iterable<string, array{array<string, string>, string, ?string}>
+     * @return iterable<string, array{0: array<string, string>, 1: ?string, 2: ?string, 3?: string}>
      */
     public static function steps(): iterable
     {
-        yield 'day' => [['p' => 'day', 'd' => '2026-09-15'], '2026-09-14', '2026-09-16'];
-        yield 'today' => [['p' => 'day'], '2026-09-17', null];
         yield 'week' => [['p' => 'week', 'd' => '2026-09-09'], '2026-09-02', '2026-09-16'];
         yield 'current week' => [['p' => 'week', 'd' => '2026-09-16'], '2026-09-09', null];
         yield 'month' => [['d' => '2026-08-20'], '2026-07-01', '2026-09-01'];
         yield 'current month' => [[], '2026-08-01', null];
-        yield 'year' => [['p' => 'year', 'd' => '2025-05-05'], '2024-01-01', '2026-01-01'];
-        yield 'current year' => [['p' => 'year'], '2025-01-01', null];
+        yield 'quarter' => [['p' => 'quarter', 'd' => '2026-05-05'], '2026-01-01', '2026-07-01'];
+        yield 'current half year' => [['p' => 'half_year'], '2026-01-01', null];
+        yield 'first month of the data' => [['d' => '2026-05-25'], null, '2026-06-01', self::DATA_START];
+        yield 'month after the first month' => [['d' => '2026-06-10'], '2026-05-01', '2026-07-01', self::DATA_START];
+        yield 'first week of the data' => [['p' => 'week', 'd' => '2026-05-20'], null, '2026-05-27', self::DATA_START];
     }
 
     public function testTrendHasTheTwelveMonthsUpToThePeriod(): void
@@ -132,14 +147,31 @@ final class PeriodRangeFactoryTest extends TestCase
     }
 
     /**
+     * A date before the data moves the anchor of the filter, so that the links start there.
+     */
+    public function testDateBeforeTheDataMovesTheAnchor(): void
+    {
+        $selection = self::select(['d' => '2026-03-03'], self::TODAY, self::DATA_START);
+
+        self::assertSame(self::DATA_START, $selection->filter->anchor->format('Y-m-d'));
+    }
+
+    public function testInvalidDataStartIsNoLimit(): void
+    {
+        $selection = self::select(['d' => '2026-03-03'], self::TODAY, 'May 2026');
+
+        self::assertSame('2026-03-01/2026-03-31', self::format($selection->selectedRange));
+    }
+
+    /**
      * @param array<string, string> $query
      */
-    private static function select(array $query, string $today = self::TODAY): PeriodSelectionDto
+    private static function select(array $query, string $today = self::TODAY, string $start = ''): PeriodSelectionDto
     {
         $date = new \DateTimeImmutable($today);
         $filter = PeriodFilter::fromQuery($query['p'] ?? null, $query['d'] ?? null, $query['c'] ?? null, null, $date);
 
-        return new PeriodRangeFactory()->create($filter, $date);
+        return new PeriodRangeFactory($start)->create($filter, $date);
     }
 
     private static function format(DateRangeDto $range): string

@@ -56,7 +56,9 @@ final class PeriodFilterTest extends TestCase
     {
         $defaults = 'month|'.self::TODAY.'|previous|';
 
-        yield 'unknown period' => [['p' => 'quarter'], $defaults];
+        // The prototype has a day and a year. The application does not.
+        yield 'day' => [['p' => 'day'], $defaults];
+        yield 'year' => [['p' => 'year'], $defaults];
         yield 'date that is not a date' => [['d' => '2026-13-40'], $defaults];
         yield 'date in another format' => [['d' => '18-09-2026'], $defaults];
         yield 'date with a time' => [['d' => '2026-09-01T10:00'], $defaults];
@@ -72,8 +74,8 @@ final class PeriodFilterTest extends TestCase
     {
         self::assertSame([], self::filter([])->query());
         self::assertSame(
-            ['p' => 'year', 'd' => '2025-03-04', 'c' => 'last_year', 's' => '2'],
-            self::filter(['p' => 'year', 'd' => '2025-03-04', 'c' => 'last_year', 's' => '2'])->query(),
+            ['p' => 'half_year', 'd' => '2025-03-04', 'c' => 'last_year', 's' => '2'],
+            self::filter(['p' => 'half_year', 'd' => '2025-03-04', 'c' => 'last_year', 's' => '2'])->query(),
         );
     }
 
@@ -84,7 +86,7 @@ final class PeriodFilterTest extends TestCase
     {
         $filter = self::filter(['p' => 'week', 'd' => '2026-02-03', 's' => '2']);
 
-        self::assertSame(['p' => 'day', 'd' => '2026-02-03', 's' => '2'], $filter->with(type: PeriodType::Day)->query());
+        self::assertSame(['p' => 'quarter', 'd' => '2026-02-03', 's' => '2'], $filter->with(type: PeriodType::Quarter)->query());
         self::assertSame(['p' => 'week', 'd' => '2026-01-27', 's' => '2'], $filter->with(anchor: new \DateTimeImmutable('2026-01-27'))->query());
         self::assertSame(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year', 's' => '2'], $filter->with(comparison: Comparison::LastYear)->query());
     }

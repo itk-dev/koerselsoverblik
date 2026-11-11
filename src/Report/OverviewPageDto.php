@@ -5,25 +5,39 @@ declare(strict_types=1);
 namespace App\Report;
 
 /**
- * The figures of the overview for a month, with the months before it for the sparklines.
+ * The figures of the overview: the selected period, the comparison period, and the 12 months up
+ * to the period for the sparklines.
  */
 final readonly class OverviewPageDto
 {
     /**
-     * @param non-empty-list<MonthDto>     $months the months, the oldest first. The last month is the month of the page
-     * @param non-empty-list<TripCountDto> $counts the trips and the citizens of each month, in the order of the months
-     * @param non-empty-list<SoloCountDto> $solos  the real solo runs of each month, in the order of the months
+     * @param non-empty-list<MonthDto>     $months         the months of the history, the oldest first
+     * @param non-empty-list<TripCountDto> $counts         the trips and the citizens of each month, in the order of the months
+     * @param non-empty-list<SoloCountDto> $solos          the real solo runs of each month, in the order of the months
+     * @param TripCountDto                 $selected       the trips and the citizens of the selected period
+     * @param ?TripCountDto                $comparison     the trips and the citizens of the comparison period, or null if it has no data
+     * @param SoloCountDto                 $selectedSolo   the real solo runs of the selected period
+     * @param ?SoloCountDto                $comparisonSolo the real solo runs of the comparison period, or null if it has no data
      */
     public function __construct(
         public array $months,
         public array $counts,
         public array $solos,
+        public TripCountDto $selected,
+        public ?TripCountDto $comparison,
+        public SoloCountDto $selectedSolo,
+        public ?SoloCountDto $comparisonSolo,
     ) {
+    }
+
+    public function current(): TripCountDto
+    {
+        return $this->selected;
     }
 
     public function currentSolo(): SoloCountDto
     {
-        return $this->solos[\count($this->solos) - 1];
+        return $this->selectedSolo;
     }
 
     /**
@@ -31,21 +45,14 @@ final readonly class OverviewPageDto
      */
     public function realSolo(): ShareTrendDto
     {
-        $history = array_map(static fn (SoloCountDto $solo): ?float => $solo->percent(), $this->solos);
-        $current = $history[\count($history) - 1];
-        $before = $history[\count($history) - 2] ?? null;
+        $current = $this->selectedSolo->percent();
+        $before = $this->comparisonSolo?->percent();
 
-        return new ShareTrendDto($current, null === $current || null === $before ? null : $current - $before, $history);
-    }
-
-    public function month(): MonthDto
-    {
-        return $this->months[\count($this->months) - 1];
-    }
-
-    public function current(): TripCountDto
-    {
-        return $this->counts[\count($this->counts) - 1];
+        return new ShareTrendDto(
+            $current,
+            null === $current || null === $before ? null : $current - $before,
+            array_map(static fn (SoloCountDto $solo): ?float => $solo->percent(), $this->solos),
+        );
     }
 
     public function trips(): CountTrendDto
@@ -59,20 +66,20 @@ final readonly class OverviewPageDto
     }
 
     /**
-     * A month with no trips has no data, so its value is null, not 0.
+     * A period with no trips has no data, so its value is null, not 0.
      *
      * @param \Closure(TripCountDto): int $value
      */
     private function trend(\Closure $value): CountTrendDto
     {
-        $history = array_map(static fn (TripCountDto $count): ?int => 0 === $count->trips ? null : $value($count), $this->counts);
-        $current = $history[\count($history) - 1];
-        $before = $history[\count($history) - 2] ?? null;
+        $valueOf = static fn (?TripCountDto $count): ?int => null === $count || 0 === $count->trips ? null : $value($count);
+        $current = $valueOf($this->selected);
+        $before = $valueOf($this->comparison);
 
         return new CountTrendDto(
             $current,
             null === $current || null === $before ? null : $current - $before,
-            array_map(static fn (?int $item): ?float => null === $item ? null : (float) $item, $history),
+            array_map(static fn (TripCountDto $count): ?float => null === ($item = $valueOf($count)) ? null : (float) $item, $this->counts),
         );
     }
 }
