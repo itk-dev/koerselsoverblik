@@ -143,8 +143,8 @@ title: Components (milestone 1)
 ---
 flowchart TB
     subgraph web["Web layer"]
-        controllers["Controllers<br/>Overview, DailyCount, Security,<br/>Admin/Import, Admin/ClearDrivingData,<br/>Admin/Supplier, Admin/Route"]
-        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, Route"]
+        controllers["Controllers<br/>Overview, Punctuality, DailyCount, Security,<br/>Admin/Import, Admin/ClearDrivingData,<br/>Admin/Supplier, Admin/SubAgreement, Admin/Assignment"]
+        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, SubAgreement, Assignment"]
         twig["Twig templates and components<br/>Tile, Sparkline, LineChart, Panel"]
         format["FormatExtension"]
     end
