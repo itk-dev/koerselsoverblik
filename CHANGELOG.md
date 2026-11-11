@@ -234,6 +234,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#90](https://github.com/itk-dev/koerselsoverblik/issues/90)
   Ignore a sub-agreement in the figures: `SubAgreement` has an `ignored` flag, and the edit page
   has a checkbox for it. The punctuality queries skip the stops and the runs of an ignored
-  sub-agreement through `IgnoredSubAgreementFilter`. The import still stores them. The list does not show an ignored sub-agreement
+  sub-agreement through `IgnoredSubAgreementFilter`. The import still stores them.
+- Plan for [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) (a note on the
+  punctuality page that names the ignored sub-agreements). The list does not show an ignored sub-agreement
   with no supplier at the top. The open decision "Booked trips" is answered: an administrator
   ignores "Turbestilling".
