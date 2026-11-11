@@ -78,6 +78,13 @@ feature that has an issue or an issue text.
 | Move the deletes of the stop row replacer to the repositories | Draft | – | – | [stop-row-replacer-deletes.md](stop-row-replacer-deletes.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
+### Suppliers and sub-agreements
+
+| Feature | Status | Issue | Needs | Plan |
+| --- | --- | --- | --- | --- |
+| Give each sub-agreement one supplier | Ready | [#91](https://github.com/itk-dev/koerselsoverblik/issues/91) | – | [one-supplier-per-sub-agreement.md](one-supplier-per-sub-agreement.md) |
+| Ignore a sub-agreement in the figures | Blocked | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | #91 | [ignore-sub-agreements.md](ignore-sub-agreements.md) |
+
 ## Done
 
 The table lists each merged pull request that closes an issue. It does not list the chores and
