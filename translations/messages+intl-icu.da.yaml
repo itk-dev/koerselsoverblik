@@ -39,6 +39,12 @@ overview:
     label: Rettidighed
     note: Sidste afsætning pr. vognløb · Mål {target} %
     title: Rettidighed mod servicemålet
+  suppliers:
+    title: Leverandørerne side om side
+    subtitle: Samme mål for alle leverandører i den valgte periode.
+    caption: Nøgletal pr. leverandør
+    cancelled: Aflyst
+    source: "Kilde: Optiruns"
   real_solo:
     label: Reelt solo
     note: "{count, number} vognløb med højst én borger"

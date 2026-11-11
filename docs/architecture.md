@@ -825,6 +825,11 @@ the punctuality page (`templates/_month.html.twig`).
   and the real solo runs: the runs with a peak of at most 1 passenger. The tile "Reelt solo"
   shows the share, with no tone, because the share has no target. A route run that was imported
   before the peak existed has no peak until the next import.
+- `SupplierTableCalculator` gives the table "Leverandørerne side om side". It counts the trips,
+  the cancelled trips and the real solo runs of each route, and adds the routes of each supplier,
+  as `PunctualityCalculator` does. The punctuality of each supplier comes from the punctuality
+  report of the month. The rows have the order of the punctuality page. The table has no empty
+  kilometres and no complaints (see the open decisions).
 
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No

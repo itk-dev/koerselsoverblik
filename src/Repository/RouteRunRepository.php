@@ -44,6 +44,34 @@ class RouteRunRepository extends ServiceEntityRepository
     }
 
     /**
+     * Counts the runs with a peak and the real solo runs of each route in a date range, as
+     * countSoloRuns() does for all routes.
+     *
+     * @return list<array{route: int, runs: int, soloRuns: int}>
+     */
+    public function countSoloRunsOfEachRoute(DateRangeDto $range): array
+    {
+        /** @var list<array{route: int|string, runs: int|string, soloRuns: int|string}> $rows */
+        $rows = $this->createQueryBuilder('run')
+            ->select('IDENTITY(run.route) AS route', 'COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers <= 1 THEN 1 ELSE 0 END) AS soloRuns')
+            ->where('run.serviceDate BETWEEN :first AND :last')
+            ->andWhere('run.cancelled = false')
+            ->andWhere('run.peakPassengers IS NOT NULL')
+            ->groupBy('run.route')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getArrayResult();
+
+        // MariaDB gives a sum as text.
+        return array_map(static fn (array $row): array => [
+            'route' => (int) $row['route'],
+            'runs' => (int) $row['runs'],
+            'soloRuns' => (int) $row['soloRuns'],
+        ], $rows);
+    }
+
+    /**
      * Deletes the route runs in the range.
      */
     public function deleteInRange(ImportRangeDto $range): void

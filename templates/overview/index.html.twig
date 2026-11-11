@@ -96,4 +96,40 @@
         labels: punctuality.months|map(item => ('month.short.' ~ item.number)|trans),
         trend_title: 'overview.punctuality.title'|trans,
     }) }}
+
+    <twig:Panel :title="'overview.suppliers.title'|trans" :subtitle="'overview.suppliers.subtitle'|trans" data-test="overview-suppliers">
+        {% if suppliers is empty %}
+            <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'overview.suppliers.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'punctuality.suppliers.supplier'|trans }}</th>
+                            <th scope="col" class="num">{{ 'overview.trips.label'|trans }}</th>
+                            <th scope="col" class="num">{{ 'overview.punctuality.label'|trans }}</th>
+                            <th scope="col" class="num">{{ 'overview.real_solo.label'|trans }}</th>
+                            <th scope="col" class="num">{{ 'overview.suppliers.cancelled'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in suppliers %}
+                            {% set tone = punctuality_tone(row.dropOffPerRun.percent) %}
+                            {% set solo = row.solo.percent %}
+                            {% set cancelled = row.cancelledPercent %}
+                            <tr data-test="overview-supplier-row">
+                                <th scope="row">{{ row.supplier ?? 'punctuality.suppliers.unknown'|trans }}</th>
+                                <td class="num">{{ row.trips|number_format }}</td>
+                                <td class="num{{ tone ? ' t-' ~ tone }}">{{ row.dropOffPerRun.percent|punctuality_percent }}</td>
+                                <td class="num">{{ solo is null ? '–' : (solo|round)|number_format ~ ' %' }}</td>
+                                <td class="num">{{ cancelled is null ? '–' : (cancelled|round)|number_format ~ ' %' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">{{ 'overview.suppliers.source'|trans }}</twig:block>
+    </twig:Panel>
 {% endblock %}

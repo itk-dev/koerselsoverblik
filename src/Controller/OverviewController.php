@@ -8,6 +8,7 @@ use App\Clock\LocalCalendar;
 use App\Report\MonthDto;
 use App\Report\OverviewPageBuilder;
 use App\Report\PunctualityPageBuilder;
+use App\Report\SupplierTableCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,6 +29,7 @@ final class OverviewController extends AbstractController
     public function __invoke(
         OverviewPageBuilder $builder,
         PunctualityPageBuilder $punctualityBuilder,
+        SupplierTableCalculator $supplierTable,
         LocalCalendar $calendar,
         #[Autowire(param: 'app.punctuality_tolerance_minutes')]
         int $toleranceMinutes,
@@ -36,10 +38,12 @@ final class OverviewController extends AbstractController
     ): Response {
         $today = $calendar->today();
         $selected = MonthDto::fromQuery($month, $today);
+        $punctuality = $punctualityBuilder->build($selected);
 
         return $this->render('overview/index.html.twig', [
             'page' => $builder->build($selected),
-            'punctuality' => $punctualityBuilder->build($selected),
+            'punctuality' => $punctuality,
+            'suppliers' => $supplierTable->calculate($selected->range(), $punctuality->current()),
             'has_next_month' => $selected->isBefore(MonthDto::fromQuery(null, $today)),
             'tolerance_minutes' => $toleranceMinutes,
         ]);
