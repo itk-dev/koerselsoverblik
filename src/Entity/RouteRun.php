@@ -45,6 +45,12 @@ class RouteRun
     private bool $cancelled;
 
     /**
+     * The most citizens in the car at a time, or null if no stop of the run has a count.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?int $peakPassengers;
+
+    /**
      * @param int $run the block number in the extract
      */
     public function __construct(
@@ -64,6 +70,7 @@ class RouteRun
         $this->lastDropActual = $values->lastDropActual;
         $this->lastDropDelaySeconds = $values->lastDropDelaySeconds;
         $this->cancelled = $values->cancelled;
+        $this->peakPassengers = $values->peakPassengers;
     }
 
     public function getId(): ?int
@@ -119,5 +126,10 @@ class RouteRun
     public function isCancelled(): bool
     {
         return $this->cancelled;
+    }
+
+    public function getPeakPassengers(): ?int
+    {
+        return $this->peakPassengers;
     }
 }

@@ -56,6 +56,19 @@ final class OverviewPageTest extends WebTestCase
     }
 
     /**
+     * R-01 run 2 and BOOKED have at most one citizen in the car: 2 of 4 runs.
+     */
+    public function testBaseScenarioRealSoloRuns(): void
+    {
+        $crawler = $this->page('viewer', importBase: true);
+
+        self::assertSame('50 %', self::value($crawler, 'real-solo'));
+        self::assertSame('2 vognløb med højst én borger', $crawler->filter('[data-test="real-solo"] .tile__note')->text());
+        self::assertSame('ingen sammenligning', $crawler->filter('[data-test="real-solo-change"]')->text());
+        self::assertCount(1, $crawler->filter('#help-real-solo'));
+    }
+
+    /**
      * The overview shows the same punctuality as the punctuality page (PunctualityPageTest).
      */
     public function testBaseScenarioPunctuality(): void
@@ -87,6 +100,7 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('–', self::value($crawler, 'citizens'));
         self::assertSame('0 gennemført · 0 aflyst', $crawler->filter('[data-test="trips"] .tile__note')->text());
         self::assertSame('–', self::value($crawler, 'punctuality'));
+        self::assertSame('–', self::value($crawler, 'real-solo'));
         foreach (['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] as $measure) {
             self::assertSame('–', self::value($crawler, 'measure-'.$measure));
         }

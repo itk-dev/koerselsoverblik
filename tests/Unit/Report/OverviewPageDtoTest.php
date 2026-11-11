@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Report;
 use App\Report\CountTrendDto;
 use App\Report\MonthDto;
 use App\Report\OverviewPageDto;
+use App\Report\SoloCountDto;
 use App\Report\TripCountDto;
 use PHPUnit\Framework\TestCase;
 
@@ -58,15 +59,45 @@ final class OverviewPageDtoTest extends TestCase
     }
 
     /**
-     * The months end with March 2026.
-     *
-     * @param non-empty-list<TripCountDto> $counts
+     * The share of the real solo runs, and the change in percentage points.
      */
-    private static function page(array $counts): OverviewPageDto
+    public function testRealSoloRunsHaveTheShareAndTheChange(): void
+    {
+        $page = self::page(
+            [self::tripCount(10, 4), self::tripCount(12, 5), self::tripCount(9, 6)],
+            [new SoloCountDto(4, 2), new SoloCountDto(0, 0), new SoloCountDto(8, 2)],
+        );
+
+        $solo = $page->realSolo();
+
+        self::assertSame(25.0, $solo->current);
+        // February has no runs, so there is no change.
+        self::assertNull($solo->change);
+        self::assertSame([50.0, null, 25.0], $solo->history);
+        self::assertEquals(new SoloCountDto(8, 2), $page->currentSolo());
+    }
+
+    public function testRealSoloRunsChangeFromThePreviousMonth(): void
+    {
+        $page = self::page(
+            [self::tripCount(10, 4), self::tripCount(12, 5)],
+            [new SoloCountDto(4, 1), new SoloCountDto(4, 2)],
+        );
+
+        self::assertSame(25.0, $page->realSolo()->change);
+    }
+
+    /**
+     * The months end with March 2026. The solo runs are 1 of 2 runs in each month by default.
+     *
+     * @param non-empty-list<TripCountDto>  $counts
+     * @param ?non-empty-list<SoloCountDto> $solos
+     */
+    private static function page(array $counts, ?array $solos = null): OverviewPageDto
     {
         $months = MonthDto::fromQuery('2026-03', new \DateTimeImmutable('2026-11-11'))->trailing(\count($counts));
 
-        return new OverviewPageDto($months, $counts);
+        return new OverviewPageDto($months, $counts, $solos ?? array_map(static fn (): SoloCountDto => new SoloCountDto(2, 1), $counts));
     }
 
     private static function tripCount(int $trips, int $citizens): TripCountDto

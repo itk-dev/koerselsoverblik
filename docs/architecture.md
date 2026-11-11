@@ -312,6 +312,7 @@ erDiagram
         datetime last_drop_actual "null = not measured"
         int last_drop_delay_seconds "null = not measured"
         bool cancelled "all stops are cancelled"
+        int peak_passengers "null = no passenger count"
     }
     DAILY_STATS {
         int id PK
@@ -364,7 +365,7 @@ erDiagram
 | `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, and the rejection reasons and warnings as groups of field and reason |
 | `StopRow` | One stop from the extract, with an optional row key from the mapping and the copy of the row. See [open decisions](#open-decisions) |
 | `RejectedStopRow` | A rejected row in the range of its upload, with the row number, the reason and the copy of the row. A later read through a corrected mapping can import it |
-| `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay. The daily stats add the peak passengers, the distances and the durations. See [open decisions](#open-decisions) |
+| `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay, and the peak passengers. The daily stats add the distances and the durations. See [open decisions](#open-decisions) |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
@@ -651,6 +652,9 @@ would only delete data. The batch has no user. The command does not delete the f
    - A stop is measured when its status is `completed` and it has an actual time. For a stop that
      is not measured, the run keeps the planned time, and the actual time and the delay are null.
    - A run is cancelled when all its stops are cancelled.
+   - The peak passengers are the highest `passengers_after` of the stops that are not cancelled.
+     A cancelled stop can have a count that includes the cancelled citizen, so it does not count.
+     A run with no count has no peak.
    - It saves the runs in groups of 500, as the replacer does.
 6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
    supplier.
@@ -817,6 +821,10 @@ the punctuality page (`templates/_month.html.twig`).
   shared templates (`punctuality/_goal.html.twig` and `punctuality/_trend.html.twig`), so the
   overview and the punctuality page show the same figures. The request thus also has the cost of
   the punctuality page (#85).
+- `RouteRunRepository::countSoloRuns()` counts the runs that are not cancelled and have a peak,
+  and the real solo runs: the runs with a peak of at most 1 passenger. The tile "Reelt solo"
+  shows the share, with no tone, because the share has no target. A route run that was imported
+  before the peak existed has no peak until the next import.
 
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
@@ -1148,6 +1156,13 @@ testing and the diagram check on every pull request.
   stop. Is the count from the stops correct (+1 for each pickup that is not cancelled, −1 for each
   drop-off)? Does a cancelled stop add to the driven kilometres? The product owner in the
   transport office answers before the daily stats are built.
+  - The real solo runs on the overview (#110) use the proposal: the peak of `passengers_after`
+    of the stops that are not cancelled. In the real exports after the fix of the export script,
+    almost all runs end with no passengers. An answer can change the rule in
+    `RouteRunCalculator`.
+  - The empty kilometres wait for the answer. In the real exports, the cancelled stops and the
+    last stop of each route and date have a distance, so a share of the distances is not
+    reliable yet.
 - **Actual time (answered).** The actual time of a stop is `StatusUpdateTime`, the status
   registration by the driver.
 - **Route names and test routes.** Do all route names end with `-` or `_` and a number? Is

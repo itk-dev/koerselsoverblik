@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\RouteRun;
 use App\Import\ImportRangeDto;
 use App\Report\DateRangeDto;
+use App\Report\SoloCountDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
@@ -19,6 +20,27 @@ class RouteRunRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, RouteRun::class);
+    }
+
+    /**
+     * Counts the runs of a date range that are not cancelled and have a passenger count, and the
+     * real solo runs of them: the runs with at most one citizen in the car at a time.
+     */
+    public function countSoloRuns(DateRangeDto $range): SoloCountDto
+    {
+        /** @var array{runs: int|string, soloRuns: int|string|null} $row */
+        $row = $this->createQueryBuilder('run')
+            ->select('COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers <= 1 THEN 1 ELSE 0 END) AS soloRuns')
+            ->where('run.serviceDate BETWEEN :first AND :last')
+            ->andWhere('run.cancelled = false')
+            ->andWhere('run.peakPassengers IS NOT NULL')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getSingleResult();
+
+        // MariaDB gives a sum as text, and no sum when no row matches.
+        return new SoloCountDto((int) $row['runs'], (int) $row['soloRuns']);
     }
 
     /**

@@ -29,6 +29,8 @@ The user interface is in Danish.
   period and a 12-month trend.
   - The trips ("Personture"), with the completed and the cancelled trips, and the distinct
     citizens who were driven ("Unikke borgere"). Each figure has a help text.
+  - The share of the real solo runs ("Reelt solo"): the runs with at most one citizen in the car
+    at a time.
   - Punctuality over 12 months, against the target.
   - The figures per supplier, side by side.
 - **Rettidighed (punctuality):** the four punctuality measures of a month against the service

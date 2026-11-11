@@ -27,6 +27,7 @@ final class RouteRunTest extends TestCase
             lastDropActual: new \DateTimeImmutable('2026-01-05 07:39'),
             lastDropDelaySeconds: 240,
             cancelled: false,
+            peakPassengers: 2,
         );
 
         $run = new RouteRun($route, $serviceDate, 2, $values);
@@ -42,6 +43,7 @@ final class RouteRunTest extends TestCase
         self::assertSame($values->lastDropActual, $run->getLastDropActual());
         self::assertSame(240, $run->getLastDropDelaySeconds());
         self::assertFalse($run->isCancelled());
+        self::assertSame(2, $run->getPeakPassengers());
     }
 
     public function testCancelledRunHasNoStops(): void
@@ -50,9 +52,10 @@ final class RouteRunTest extends TestCase
             new Route('R-01', new SubAgreement()->setReference('R')),
             new \DateTimeImmutable('2026-01-05'),
             1,
-            new RouteRunDto(null, null, null, null, null, null, true),
+            new RouteRunDto(null, null, null, null, null, null, true, null),
         );
 
+        self::assertNull($run->getPeakPassengers());
         self::assertNull($run->getFirstPickupPlanned());
         self::assertNull($run->getLastDropPlanned());
         self::assertTrue($run->isCancelled());

@@ -47,9 +47,9 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function findRunStopsOn(\DateTimeImmutable $date): array
     {
-        /** @var list<array{route: int|string, run: int, stopType: StopType, stopStatus: StopStatus, plannedTime: \DateTimeImmutable, actualTime: ?\DateTimeImmutable, delaySeconds: ?int}> $rows */
+        /** @var list<array{route: int|string, run: int, stopType: StopType, stopStatus: StopStatus, plannedTime: \DateTimeImmutable, actualTime: ?\DateTimeImmutable, delaySeconds: ?int, passengersAfter: ?int}> $rows */
         $rows = $this->createQueryBuilder('row')
-            ->select('IDENTITY(row.route) AS route', 'row.run', 'row.stopType', 'row.stopStatus', 'row.plannedTime', 'row.actualTime', 'row.delaySeconds')
+            ->select('IDENTITY(row.route) AS route', 'row.run', 'row.stopType', 'row.stopStatus', 'row.plannedTime', 'row.actualTime', 'row.delaySeconds', 'row.passengersAfter')
             ->where('row.serviceDate = :date')
             ->orderBy('row.id')
             ->setParameter('date', $date, Types::DATE_IMMUTABLE)
@@ -58,7 +58,7 @@ class StopRowRepository extends ServiceEntityRepository
 
         $stops = [];
         foreach ($rows as $row) {
-            $stops[(int) $row['route']][$row['run']][] = new RunStopDto($row['stopType'], $row['stopStatus'], $row['plannedTime'], $row['actualTime'], $row['delaySeconds']);
+            $stops[(int) $row['route']][$row['run']][] = new RunStopDto($row['stopType'], $row['stopStatus'], $row['plannedTime'], $row['actualTime'], $row['delaySeconds'], $row['passengersAfter']);
         }
 
         return $stops;

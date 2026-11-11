@@ -6,13 +6,16 @@ namespace App\Tests\Integration\Report;
 
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\RouteRun;
 use App\Entity\StopRow;
 use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
 use App\Report\MonthDto;
 use App\Report\OverviewPageBuilder;
+use App\Report\SoloCountDto;
 use App\Report\TripCountDto;
+use App\Repository\RouteRunRepository;
 use App\Repository\StopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -38,6 +41,9 @@ final class OverviewPageBuilderTest extends KernelTestCase
         // The base scenario is on 5 January, the month before the month of the page.
         self::assertEquals(new TripCountDto(7, 5, 1, 1, 6), $page->counts[10]);
         self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $page->current());
+        self::assertCount(12, $page->solos);
+        self::assertEquals(new SoloCountDto(4, 2), $page->solos[10]);
+        self::assertEquals(new SoloCountDto(0, 0), $page->currentSolo());
     }
 
     private function builder(): OverviewPageBuilder
@@ -46,8 +52,10 @@ final class OverviewPageBuilderTest extends KernelTestCase
         self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
         $stopRows = $entityManager->getRepository(StopRow::class);
         self::assertInstanceOf(StopRowRepository::class, $stopRows);
+        $routeRuns = $entityManager->getRepository(RouteRun::class);
+        self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
 
-        return new OverviewPageBuilder($stopRows);
+        return new OverviewPageBuilder($stopRows, $routeRuns);
     }
 
     private function importBase(): void
