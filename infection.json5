@@ -85,24 +85,6 @@
                 'App\\Import\\DrivingDataImporter::import',
             ],
         },
-        // Equivalent: the calculator uses a key only to add the figures of the same route and
-        // date, or of the same route and supplier. The order of the parts does not change this.
-        // A route id is a number in front of a date of fixed length, so the separator is not
-        // necessary there. With no line break, two route keys are the same only if a route name
-        // and a supplier name together give another route name and supplier name, for example
-        // "R-1" + "0 Taxi" and "R-10" + " Taxi". Real names do not do this.
-        Concat: {
-            ignoreSourceCodeByRegex: [
-                '.*\\$key = \\$route->getSourceKey\\(\\)\\."..?"\\.\\$supplier;.*',
-                ".*\\$key = \\$route\\.'/'\\.\\$date->format\\('Y-m-d'\\);.*",
-            ],
-        },
-        ConcatOperandRemoval: {
-            ignoreSourceCodeByRegex: [
-                '.*\\$key = \\$route->getSourceKey\\(\\)\\."..?"\\.\\$supplier;.*',
-                ".*\\$key = \\$route\\.'/'\\.\\$date->format\\('Y-m-d'\\);.*",
-            ],
-        },
         // Equivalent: the query finds each route one time, also when an id is in the list two
         // times or the list has other keys. array_unique() keeps the query short.
         UnwrapArrayUnique: {

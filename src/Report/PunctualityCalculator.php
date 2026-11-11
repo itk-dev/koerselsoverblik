@@ -63,7 +63,7 @@ final readonly class PunctualityCalculator
 
             $total = $total->add($routeFigures);
             $bySupplier[$supplier ?? ''] = ($bySupplier[$supplier ?? ''] ?? PunctualityFiguresDto::empty())->add($routeFigures);
-            $key = $route->getSourceKey()."\n".$supplier;
+            $key = \sprintf("%s\n%s", $route->getSourceKey(), $supplier ?? '');
             $byRoute[$key] = new RoutePunctualityDto(
                 $route->getSourceKey(),
                 $supplier,
@@ -110,7 +110,7 @@ final readonly class PunctualityCalculator
      */
     private static function addTo(array &$figures, int $route, \DateTimeImmutable $date, PunctualityFiguresDto $add): void
     {
-        $key = $route.'/'.$date->format('Y-m-d');
+        $key = \sprintf('%d/%s', $route, $date->format('Y-m-d'));
         $figures[$key] = [
             'route' => $route,
             'date' => $date,
