@@ -34,7 +34,7 @@ final class SupplierFixturesCommandTest extends KernelTestCase
         $result = self::runCommand('app:fixtures:suppliers');
 
         $this->assertCommandIsSuccessful($result);
-        self::assertStringContainsString('2 sub-agreements', $result->getDisplay());
+        self::assertStringContainsString('Gave 2 sub-agreements a supplier.', $result->getDisplay());
         self::assertSame('Vognmand A', $this->supplierOf('NV-TA'));
         self::assertSame('Vognmand B', $this->supplierOf('Bakke'));
         self::assertNull($this->supplierOf('Turbestilling'));
