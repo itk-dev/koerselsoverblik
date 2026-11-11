@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Admin;
 
 use App\Entity\SubAgreement;
-use App\Entity\SubAgreementSupplierAssignment;
 use App\Entity\Supplier;
 use App\Tests\Functional\LoginTrait;
 use Doctrine\ORM\EntityManagerInterface;
@@ -148,14 +147,12 @@ final class SupplierAdminTest extends WebTestCase
     }
 
     /**
-     * The old figures refer to the supplier, so it is not deleted.
+     * The figures of the sub-agreements refer to the supplier, so it is not deleted.
      */
-    public function testSupplierWithAssignmentsCannotBeDeleted(): void
+    public function testSupplierWithSubAgreementsCannotBeDeleted(): void
     {
         $supplier = $this->supplier('Vognmand A');
-        $subAgreement = new SubAgreement()->setReference('AB-CD');
-        $this->entityManager()->persist($subAgreement);
-        $this->entityManager()->persist(new SubAgreementSupplierAssignment($subAgreement, $supplier, new \DateTimeImmutable('2026-01-01'), null));
+        $this->entityManager()->persist(new SubAgreement()->setReference('AB-CD')->setSupplier($supplier));
         $this->entityManager()->flush();
         $this->loginAs($this->client, 'admin');
 

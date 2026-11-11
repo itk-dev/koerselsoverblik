@@ -81,8 +81,8 @@ flowchart LR
 - **Viewers** read the overview.
 - **Data editors** enter the daily counts of mails, complaints and phone calls.
 - **Administrators** export extracts from the planning system and upload them, clear the
-  driving data for a date, and manage suppliers and which supplier drives each route in each
-  period. The identity provider manages the users.
+  driving data for a date, and manage suppliers and which supplier drives each sub-agreement.
+  The identity provider manages the users.
 
 These are tasks, not roles. Each task has its own permission role (see
 [Authorization](#security)), so one user can do one task or many.
@@ -143,8 +143,8 @@ title: Components (milestone 1)
 ---
 flowchart TB
     subgraph web["Web layer"]
-        controllers["Controllers<br/>Overview, Punctuality, DailyCount, Security,<br/>Admin/Import, Admin/ClearDrivingData,<br/>Admin/Supplier, Admin/SubAgreement, Admin/Assignment"]
-        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, SubAgreement, Assignment"]
+        controllers["Controllers<br/>Overview, Punctuality, DailyCount, Security,<br/>Admin/Import, Admin/ClearDrivingData,<br/>Admin/Supplier, Admin/SubAgreement"]
+        forms["Form types<br/>Import, DailyCountWeek,<br/>Supplier, SubAgreement"]
         twig["Twig templates and components<br/>Tile, Sparkline, LineChart, Panel"]
         format["FormatExtension"]
     end
@@ -206,7 +206,6 @@ flowchart TB
 | `Form` | Hand-built form types for upload, daily counts and administration |
 | `Security` | The OIDC authenticator, the mapping from the role claim to roles, and the role guards |
 | `Import\DrivingData` | Reads an extract through a mapping and turns it into stored data and aggregates |
-| `Supplier` | The periods of the supplier assignments, the overlap check, and the change event |
 | `Report` | Period handling and the calculation of every figure |
 | `Twig` | Formatting helpers and server-rendered components: tiles, panels, help texts, sparklines, line charts, column charts, distribution bars |
 | `Chart` | The geometry of the charts in plain PHP: scales, paths, bars and parts. The templates only draw it |
@@ -229,8 +228,7 @@ title: Data model (milestone 1)
 erDiagram
     USER ||--o{ IMPORT_BATCH : "uploads"
     USER ||--o{ DAILY_COUNT : "updates"
-    SUPPLIER ||--o{ SUB_AGREEMENT_SUPPLIER_ASSIGNMENT : "drives"
-    SUB_AGREEMENT ||--o{ SUB_AGREEMENT_SUPPLIER_ASSIGNMENT : "is assigned"
+    SUPPLIER |o--o{ SUB_AGREEMENT : "drives"
     SUB_AGREEMENT ||--o{ ROUTE : "has"
     ROUTE ||--o{ ROUTE_RUN : "runs"
     ROUTE ||--o{ STOP_ROW : "has"
@@ -251,18 +249,12 @@ erDiagram
     SUB_AGREEMENT {
         int id PK
         string reference UK "for example AB-CD"
+        int supplier_id FK "null = Unknown"
     }
     ROUTE {
         int id PK
         string source_key UK "route name in the extract"
         int sub_agreement_id FK
-    }
-    SUB_AGREEMENT_SUPPLIER_ASSIGNMENT {
-        int id PK
-        int sub_agreement_id FK
-        int supplier_id FK
-        date valid_from
-        date valid_to "null = no end date"
     }
     IMPORT_BATCH {
         int id PK
@@ -356,8 +348,8 @@ erDiagram
   an end is a sub-agreement as a whole. The application does not split the sub-agreement further,
   because not all names have the same format. A reference can itself end in a number, for example
   `TEST-2` from `TEST-2-01`. Thus the form does not apply the route name rule to a typed
-  reference. An administrator assigns each sub-agreement to a supplier for a date range. On a date
-  with no assignment, its routes count as "Unknown".
+  reference. An administrator gives each sub-agreement one supplier. The supplier applies to all
+  dates. The routes of a sub-agreement with no supplier count as "Unknown".
 - **Route run:** one chain of pickups and drop-offs on a route, from the first citizen getting in
   until the vehicle is empty again. A route can have several runs a day. The extract gives each
   run a block number. Punctuality and solo routes are measured per run.
@@ -367,9 +359,8 @@ erDiagram
 | --- | --- |
 | `User` | An account from the identity provider: email (the `upn` claim), roles from the last login, time of the last login. No password |
 | `Supplier` | A transport supplier |
-| `SubAgreement` | A sub-agreement. `SubAgreementReference::fromRouteName()` finds it from a route name |
+| `SubAgreement` | A sub-agreement, with the supplier that drives its routes (empty = "Unknown"). `SubAgreementReference::fromRouteName()` finds it from a route name |
 | `Route` | A route from the extract, with its sub-agreement. The import creates it |
-| `SubAgreementSupplierAssignment` | The supplier that drives the routes of a sub-agreement from `valid_from` to `valid_to` (empty = no end date) |
 | `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, and the rejection reasons and warnings as groups of field and reason |
 | `StopRow` | One stop from the extract, with an optional row key from the mapping and the copy of the row. See [open decisions](#open-decisions) |
 | `RejectedStopRow` | A rejected row in the range of its upload, with the row number, the reason and the copy of the row. A later read through a corrected mapping can import it |
@@ -377,26 +368,15 @@ erDiagram
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
-**Supplier assignments have dates.** A sub-agreement can change supplier from a given date. The
-supplier comparison must keep the past figures of each supplier, so:
-
-- An assignment has a `valid_from` date and an optional `valid_to` date. Both dates are part of
-  the period.
-- The assignments of one sub-agreement must not overlap. `AssignmentDto` holds the form data, and
-  the `NoOverlappingAssignment` constraint compares it with the other assignments. The database
-  cannot prevent overlap. A unique index on `(sub_agreement_id, valid_from)` only rejects two
-  assignments with the same first date, for example the same form sent two times. If overlap
-  occurs anyway, the assignment with the latest first date wins.
-- To change supplier, end the current assignment and add a new one from the change date.
-- `AssignmentManager` saves or deletes an assignment, and dispatches `SubAgreementSupplierChanged`
-  with the old and the new period.
-- `DailyStatsAggregator` finds the supplier for each route and date through the sub-agreement of
-  the route.
+**A sub-agreement has one supplier.** The supplier has no dates. A change of the supplier
+applies to all dates, also to the dates before the change. The import creates a sub-agreement
+with no supplier, so the database accepts a sub-agreement with no supplier. The foreign key has
+no `ON DELETE`, so the database blocks the delete of a supplier with sub-agreements.
 
 **Derived tables are always rebuildable.** `RouteRun` and `DailyStats` are rebuilt from `StopRow`
-for the dates an import touched. When an assignment is added, changed or deleted, `DailyStats` is
-rebuilt only for the dates of the old and the new date range. Figures for other dates do not
-change. The derived tables hold no information that can't be recalculated.
+for the dates an import touched. When the supplier of a sub-agreement changes, `DailyStats` is
+rebuilt for all dates of the routes of the sub-agreement. The derived tables hold no information
+that can't be recalculated.
 
 ## Importing driving data
 
@@ -651,7 +631,7 @@ would only delete data. The batch has no user. The command does not delete the f
      it stores the rejected rows of the file with their copies. A row outside the range is not
      stored, because the upload for its date imports it.
    - It finds each route by its name, or creates it. A new route finds or creates its
-     sub-agreement with `SubAgreementReference`. A new sub-agreement has no assignment, so its
+     sub-agreement with `SubAgreementReference`. A new sub-agreement has no supplier, so its
      routes count as "Unknown". MariaDB compares text with no regard to case, so two route names
      that differ only in case are one route.
    - It saves the rows in groups of 500, and then the entity manager forgets them, so the memory
@@ -835,13 +815,13 @@ value shows as "–".
   only compare it with the limits, and count.
 - **Delay bands** of the measured last drop-offs: on time, more than the tolerance to 15 minutes,
   more than 15 to 30 minutes, and more than 30 minutes. A delay on the edge is in the lower band.
-- **Supplier:** the queries count for each route and date. `SubAgreement::getAssignmentOn()` then
-  gives the supplier of the route on the date, so a supplier change in the period splits the
-  figures on that date. A route with no assignment counts as "Unknown". The suppliers are in the
-  order of the name, with "Unknown" last.
-- **Worst routes:** the 10 routes with the lowest punctuality at the last drop-off, for each
-  route and supplier. On the same punctuality, the route with more measured runs is first. A
-  route with no measured last drop-off is not in the list.
+- **Supplier:** the queries count for each route and date, and the calculator adds the dates of
+  each route. `RouteRepository::findWithSuppliers()` then gives the supplier of the sub-agreement
+  of each route. The routes of a sub-agreement with no supplier count as "Unknown". The suppliers
+  are in the order of the name, with "Unknown" last.
+- **Worst routes:** the 10 routes with the lowest punctuality at the last drop-off. On the same
+  punctuality, the route with more measured runs is first. A route with no measured last drop-off
+  is not in the list.
 - **Tone:** `PunctualityTone` is ok at or above `APP_PUNCTUALITY_TARGET`, warn at or above 70 %,
   and danger below.
 
@@ -906,7 +886,7 @@ flowchart TD
   | `ROLE_VIEW_OVERVIEW` | The overview |
   | `ROLE_MANAGE_DRIVING_DATA` | The upload of driving data, and clearing the driving data for a date on the upload page |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
-  | `ROLE_MANAGE_SUPPLIERS` | Suppliers, sub-agreements and sub-agreement → supplier assignments |
+  | `ROLE_MANAGE_SUPPLIERS` | Suppliers, sub-agreements and the supplier of each sub-agreement |
 
 - `ROLE_ADMIN` gives all permission roles. At first, users get `ROLE_ADMIN` only. Narrower
   access later needs only other values in the role claim, or a new bundle in `role_hierarchy`.
@@ -1123,12 +1103,11 @@ testing and the diagram check on every pull request.
   can be an id for one day only. The `default` mapping uses the route name until this is
   confirmed. The product owner in the transport office answers before go-live.
 - **Supplier mapping (answered).** A route belongs to the sub-agreement in its name: the part
-  before the last `-nn` or `_nn`. An administrator assigns each sub-agreement to a supplier for a
-  date range. See the terms in [Data model](#data-model).
+  before the last `-nn` or `_nn`. An administrator gives each sub-agreement one supplier. The
+  supplier applies to all dates. See the terms in [Data model](#data-model).
 - **Booked trips.** Some trips are booked outside the fixed routes, and have a common route name.
   Who drives them? Can more than one supplier drive them? With one route for all of them, they
-  get one supplier assignment. The product owner in the transport office answers before
-  go-live.
+  get one supplier. The product owner in the transport office answers before go-live.
 - **Stops with no registration.** How do the figures treat a stop that has no status
   registration from the driver (`pending`)? The proposal: it counts as a trip, because it is not
   cancelled. A run whose last drop-off has no actual time is not counted for punctuality. The

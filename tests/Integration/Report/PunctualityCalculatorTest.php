@@ -11,7 +11,6 @@ use App\Entity\Route;
 use App\Entity\RouteRun;
 use App\Entity\StopRow;
 use App\Entity\SubAgreement;
-use App\Entity\SubAgreementSupplierAssignment;
 use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
 use App\Import\Extract\StopRowDto;
@@ -36,7 +35,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * Checks the four punctuality measures, the delay bands of the last drop-off and the worst
- * routes, in total and for each supplier on each date.
+ * routes, in total and for each supplier.
  */
 final class PunctualityCalculatorTest extends KernelTestCase
 {
@@ -130,25 +129,21 @@ final class PunctualityCalculatorTest extends KernelTestCase
     }
 
     /**
-     * The supplier changes on 6 January. The figures of 5 January belong to the first supplier,
-     * and the figures of 6 January to the second. The suppliers are in the order of the name, and
-     * the routes with no supplier are last.
+     * The figures of a route belong to the supplier of its sub-agreement. The suppliers are in
+     * the order of the name, and the routes of a sub-agreement with no supplier are last.
      */
-    public function testSupplierChangeSplitsTheFiguresOnTheDate(): void
+    public function testFiguresOfEachSupplier(): void
     {
-        $first = $this->supplier('Vikingbus');
-        $second = $this->supplier('Aarhus Taxa');
-        $route = $this->route('S-01', $this->subAgreement('S', [
-            [$first, '2026-01-01', '2026-01-05'],
-            [$second, '2026-01-06', null],
-        ]));
+        // The supplier B is saved first, so the order of the name is not the order of the save.
+        $routeOfB = $this->route('S-01', $this->subAgreement('S', $this->supplier('Vognmand B')));
+        $routeOfA = $this->route('T-01', $this->subAgreement('T', $this->supplier('Vognmand A')));
         $unknown = $this->route('U-01', $this->subAgreement('U'));
-        // 5 January: the pickup is late, and the drop-off is on time.
-        $this->stop($route, '2026-01-05', 1, StopType::Pickup, StopStatus::Completed, 400);
-        $this->stop($route, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0, 1800);
-        // 6 January: the pickup is on time, and the drop-off is late.
-        $this->stop($route, '2026-01-06', 1, StopType::Pickup, StopStatus::Completed, 0);
-        $this->stop($route, '2026-01-06', 1, StopType::DropOff, StopStatus::Completed, 1000, 1800);
+        // The pickup is late, and the drop-off is on time.
+        $this->stop($routeOfB, '2026-01-05', 1, StopType::Pickup, StopStatus::Completed, 400);
+        $this->stop($routeOfB, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0, 1800);
+        // The pickup is on time, and the drop-off is late.
+        $this->stop($routeOfA, '2026-01-06', 1, StopType::Pickup, StopStatus::Completed, 0);
+        $this->stop($routeOfA, '2026-01-06', 1, StopType::DropOff, StopStatus::Completed, 1000, 1800);
         $this->stop($unknown, '2026-01-05', 1, StopType::Pickup, StopStatus::Completed, 0);
         $this->stop($unknown, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0, 1800);
 
@@ -176,33 +171,29 @@ final class PunctualityCalculatorTest extends KernelTestCase
             new DelayBandsDto(1, 0, 0, 0),
         );
         self::assertEquals([
-            new SupplierPunctualityDto('Aarhus Taxa', $lateDropOff),
-            new SupplierPunctualityDto('Vikingbus', $latePickup),
+            new SupplierPunctualityDto('Vognmand A', $lateDropOff),
+            new SupplierPunctualityDto('Vognmand B', $latePickup),
             new SupplierPunctualityDto(null, $onTime),
         ], $report->suppliers);
         self::assertEquals($lateDropOff->add($latePickup)->add($onTime), $report->total);
-        // The route is in the list one time for each supplier.
         self::assertEquals([
-            new RoutePunctualityDto('S-01', 'Aarhus Taxa', new PunctualityCountDto(0, 1)),
-            new RoutePunctualityDto('S-01', 'Vikingbus', new PunctualityCountDto(1, 1)),
+            new RoutePunctualityDto('T-01', 'Vognmand A', new PunctualityCountDto(0, 1)),
+            new RoutePunctualityDto('S-01', 'Vognmand B', new PunctualityCountDto(1, 1)),
             new RoutePunctualityDto('U-01', null, new PunctualityCountDto(1, 1)),
         ], $report->worstRoutes);
     }
 
     /**
-     * The figures of a supplier and of a route add all the dates of the range. On the same
-     * punctuality and the same number of runs, the supplier name decides the order of one route,
-     * and the route with no supplier is first.
+     * The figures of a supplier add all the routes and all the dates of the range. The figures of
+     * a route add all the dates of the range. On the same punctuality, the route with more runs is
+     * first.
      */
-    public function testFiguresAddTheDatesOfTheRange(): void
+    public function testFiguresAddTheRoutesAndTheDatesOfTheRange(): void
     {
-        $vikingbus = $this->supplier('Vikingbus');
-        $aarhusTaxa = $this->supplier('Aarhus Taxa');
-        $onTime = $this->route('S-01', $this->subAgreement('S', [[$vikingbus, '2026-01-01', null]]));
-        $late = $this->route('T-01', $this->subAgreement('T', [
-            [$vikingbus, '2026-01-01', '2026-01-05'],
-            [$aarhusTaxa, '2026-01-06', '2026-01-06'],
-        ]));
+        $supplier = $this->supplier('Vognmand A');
+        $onTime = $this->route('S-01', $this->subAgreement('S', $supplier));
+        $late = $this->route('T-01', $this->subAgreement('T', $supplier));
+        $unknown = $this->route('U-01', $this->subAgreement('U'));
         foreach (['2026-01-05', '2026-01-06'] as $date) {
             $this->stop($onTime, $date, 1, StopType::Pickup, StopStatus::Completed, 0);
             $this->stop($onTime, $date, 1, StopType::DropOff, StopStatus::Completed, 0, 1800);
@@ -211,22 +202,22 @@ final class PunctualityCalculatorTest extends KernelTestCase
             $this->stop($late, $date, 1, StopType::Pickup, StopStatus::Completed, 0);
             $this->stop($late, $date, 1, StopType::DropOff, StopStatus::Completed, 600, 1800);
         }
+        $this->stop($unknown, '2026-01-07', 1, StopType::Pickup, StopStatus::Completed, 0);
+        $this->stop($unknown, '2026-01-07', 1, StopType::DropOff, StopStatus::Completed, 600, 1800);
 
         $report = $this->calculate('2026-01-05', '2026-01-07');
 
         self::assertEquals([
-            'Aarhus Taxa' => new PunctualityCountDto(0, 1),
-            'Vikingbus' => new PunctualityCountDto(2, 3),
+            'Vognmand A' => new PunctualityCountDto(2, 5),
             '' => new PunctualityCountDto(0, 1),
         ], array_column(array_map(
             static fn (SupplierPunctualityDto $supplier): array => [$supplier->supplier ?? '', $supplier->figures->dropOffPerRun],
             $report->suppliers,
         ), 1, 0));
         self::assertEquals([
-            new RoutePunctualityDto('T-01', null, new PunctualityCountDto(0, 1)),
-            new RoutePunctualityDto('T-01', 'Aarhus Taxa', new PunctualityCountDto(0, 1)),
-            new RoutePunctualityDto('T-01', 'Vikingbus', new PunctualityCountDto(0, 1)),
-            new RoutePunctualityDto('S-01', 'Vikingbus', new PunctualityCountDto(2, 2)),
+            new RoutePunctualityDto('T-01', 'Vognmand A', new PunctualityCountDto(0, 3)),
+            new RoutePunctualityDto('U-01', null, new PunctualityCountDto(0, 1)),
+            new RoutePunctualityDto('S-01', 'Vognmand A', new PunctualityCountDto(2, 2)),
         ], $report->worstRoutes);
     }
 
@@ -326,21 +317,10 @@ final class PunctualityCalculatorTest extends KernelTestCase
         return $supplier;
     }
 
-    /**
-     * @param list<array{Supplier, string, ?string}> $assignments the supplier, the first date and the last date
-     */
-    private function subAgreement(string $reference, array $assignments = []): SubAgreement
+    private function subAgreement(string $reference, ?Supplier $supplier = null): SubAgreement
     {
-        $subAgreement = new SubAgreement()->setReference($reference);
+        $subAgreement = new SubAgreement()->setReference($reference)->setSupplier($supplier);
         $this->entityManager->persist($subAgreement);
-        foreach ($assignments as [$supplier, $validFrom, $validTo]) {
-            $this->entityManager->persist(new SubAgreementSupplierAssignment(
-                $subAgreement,
-                $supplier,
-                new \DateTimeImmutable($validFrom),
-                null === $validTo ? null : new \DateTimeImmutable($validTo),
-            ));
-        }
 
         return $subAgreement;
     }

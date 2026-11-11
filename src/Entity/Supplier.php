@@ -10,7 +10,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * A transport supplier. An administrator assigns sub-agreements to it.
+ * A transport supplier. An administrator gives sub-agreements to it.
  */
 #[ORM\Entity(repositoryClass: SupplierRepository::class)]
 #[UniqueEntity('name', message: 'supplier.name_used')]

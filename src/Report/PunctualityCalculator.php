@@ -48,38 +48,33 @@ final readonly class PunctualityCalculator
 
     public function calculate(DateRangeDto $range): PunctualityReportDto
     {
-        $figures = $this->figuresOfEachRouteAndDate($range);
-        $routes = $this->routes->findWithAssignments(array_values(array_unique(array_column($figures, 'route'))));
+        $figures = $this->figuresOfEachRoute($range);
+        $routes = $this->routes->findWithSuppliers(array_keys($figures));
 
         $total = PunctualityFiguresDto::empty();
         /** @var array<string, PunctualityFiguresDto> $bySupplier keyed by the supplier name, or '' for "Unknown" */
         $bySupplier = [];
-        /** @var array<string, RoutePunctualityDto> $byRoute keyed by the route name and the supplier name */
         $byRoute = [];
-        foreach ($figures as ['route' => $routeId, 'date' => $date, 'figures' => $routeFigures]) {
+        foreach ($figures as $routeId => $routeFigures) {
             $route = $routes[$routeId];
-            // A route with no assignment on the date counts as "Unknown".
-            $supplier = $route->getSubAgreement()->getAssignmentOn($date)?->getSupplier()->getName();
+            // The routes of a sub-agreement with no supplier count as "Unknown".
+            $supplier = $route->getSubAgreement()->getSupplier()?->getName();
 
             $total = $total->add($routeFigures);
             $bySupplier[$supplier ?? ''] = ($bySupplier[$supplier ?? ''] ?? PunctualityFiguresDto::empty())->add($routeFigures);
-            $key = \sprintf("%s\n%s", $route->getSourceKey(), $supplier ?? '');
-            $byRoute[$key] = new RoutePunctualityDto(
-                $route->getSourceKey(),
-                $supplier,
-                ($byRoute[$key] ?? null)?->lastDropOff->add($routeFigures->dropOffPerRun) ?? $routeFigures->dropOffPerRun,
-            );
+            $byRoute[] = new RoutePunctualityDto($route->getSourceKey(), $supplier, $routeFigures->dropOffPerRun);
         }
 
         return new PunctualityReportDto($total, self::suppliers($bySupplier), self::worstRoutes($byRoute));
     }
 
     /**
-     * Reads the counts of the stops and the runs, and adds them for each route and date.
+     * Reads the counts of the stops and the runs, and adds them for each route. The counts of
+     * all dates of the range go to the same route.
      *
-     * @return array<string, array{route: int, date: \DateTimeImmutable, figures: PunctualityFiguresDto}> keyed by the route id and the date
+     * @return array<int, PunctualityFiguresDto> keyed by the route id
      */
-    private function figuresOfEachRouteAndDate(DateRangeDto $range): array
+    private function figuresOfEachRoute(DateRangeDto $range): array
     {
         $onTimeSeconds = $this->toleranceMinutes * self::SECONDS_IN_A_MINUTE;
         $none = new PunctualityCountDto(0, 0);
@@ -88,12 +83,12 @@ final readonly class PunctualityCalculator
         $figures = [];
         foreach ($this->stopRows->countMeasuredStops($range, $onTimeSeconds) as $row) {
             $count = new PunctualityCountDto($row['onTime'], $row['measured']);
-            self::addTo($figures, $row['route'], $row['serviceDate'], StopType::Pickup === $row['stopType']
+            self::addTo($figures, $row['route'], StopType::Pickup === $row['stopType']
                 ? new PunctualityFiguresDto($count, $none, $none, $none, $noBands)
                 : new PunctualityFiguresDto($none, $count, $none, $none, $noBands));
         }
         foreach ($this->routeRuns->countRunFigures($range, $onTimeSeconds, self::UP_TO_15_SECONDS, self::UP_TO_30_SECONDS) as $row) {
-            self::addTo($figures, $row['route'], $row['serviceDate'], new PunctualityFiguresDto(
+            self::addTo($figures, $row['route'], new PunctualityFiguresDto(
                 $none,
                 $none,
                 new PunctualityCountDto($row['firstPickupOnTime'], $row['firstPickupMeasured']),
@@ -106,16 +101,11 @@ final readonly class PunctualityCalculator
     }
 
     /**
-     * @param array<string, array{route: int, date: \DateTimeImmutable, figures: PunctualityFiguresDto}> $figures
+     * @param array<int, PunctualityFiguresDto> $figures keyed by the route id
      */
-    private static function addTo(array &$figures, int $route, \DateTimeImmutable $date, PunctualityFiguresDto $add): void
+    private static function addTo(array &$figures, int $route, PunctualityFiguresDto $add): void
     {
-        $key = \sprintf('%d/%s', $route, $date->format('Y-m-d'));
-        $figures[$key] = [
-            'route' => $route,
-            'date' => $date,
-            'figures' => ($figures[$key]['figures'] ?? PunctualityFiguresDto::empty())->add($add),
-        ];
+        $figures[$route] = ($figures[$route] ?? PunctualityFiguresDto::empty())->add($add);
     }
 
     /**
@@ -145,10 +135,10 @@ final readonly class PunctualityCalculator
 
     /**
      * Gives the routes with the lowest punctuality at the last drop-off. On the same punctuality,
-     * the route with more measured runs is first, and then the route name and the supplier name
-     * decide. A route with no measured last drop-off has no punctuality, so it is not in the list.
+     * the route with more measured runs is first, and then the route name decides. A route with
+     * no measured last drop-off has no punctuality, so it is not in the list.
      *
-     * @param array<string, RoutePunctualityDto> $byRoute
+     * @param list<RoutePunctualityDto> $byRoute
      *
      * @return list<RoutePunctualityDto>
      */
@@ -156,8 +146,8 @@ final readonly class PunctualityCalculator
     {
         // usort() gives a list, so the keys of the filter do not stay.
         $routes = array_filter($byRoute, static fn (RoutePunctualityDto $route): bool => $route->lastDropOff->measured > 0);
-        usort($routes, static fn (RoutePunctualityDto $a, RoutePunctualityDto $b): int => [$a->lastDropOff->percent(), $b->lastDropOff->measured, $a->route, $a->supplier ?? '']
-            <=> [$b->lastDropOff->percent(), $a->lastDropOff->measured, $b->route, $b->supplier ?? '']);
+        usort($routes, static fn (RoutePunctualityDto $a, RoutePunctualityDto $b): int => [$a->lastDropOff->percent(), $b->lastDropOff->measured, $a->route]
+            <=> [$b->lastDropOff->percent(), $a->lastDropOff->measured, $b->route]);
 
         return \array_slice($routes, 0, self::WORST_ROUTES);
     }

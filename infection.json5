@@ -85,14 +85,6 @@
                 'App\\Import\\DrivingDataImporter::import',
             ],
         },
-        // Equivalent: the query finds each route one time, also when an id is in the list two
-        // times or the list has other keys. array_unique() keeps the query short.
-        UnwrapArrayUnique: {
-            ignoreSourceCodeByRegex: ['.*findWithAssignments\\(array_values\\(array_unique\\(.*'],
-        },
-        UnwrapArrayValues: {
-            ignoreSourceCodeByRegex: ['.*findWithAssignments\\(array_values\\(array_unique\\(.*'],
-        },
     },
     minCoveredMsi: 80,
     // The default of 10 seconds is too short when all threads run. Each mutant process runs with

@@ -6,7 +6,6 @@ namespace App\Repository;
 
 use App\Entity\Route;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -20,15 +19,13 @@ class RouteRepository extends ServiceEntityRepository
     }
 
     /**
-     * Gives the routes with their sub-agreement, its assignments and their suppliers, in one
-     * query. Then SubAgreement::getAssignmentOn() finds the supplier on a date with no more
-     * queries.
+     * Gives the routes with their sub-agreement and its supplier, in one query.
      *
      * @param list<int> $ids
      *
      * @return array<int, Route> the routes, keyed by the id
      */
-    public function findWithAssignments(array $ids): array
+    public function findWithSuppliers(array $ids): array
     {
         if ([] === $ids) {
             return [];
@@ -36,17 +33,12 @@ class RouteRepository extends ServiceEntityRepository
 
         /** @var list<Route> $routes */
         $routes = $this->createQueryBuilder('route')
-            ->select('route', 'subAgreement', 'assignment', 'supplier')
+            ->select('route', 'subAgreement', 'supplier')
             ->join('route.subAgreement', 'subAgreement')
-            ->leftJoin('subAgreement.assignments', 'assignment')
-            ->leftJoin('assignment.supplier', 'supplier')
+            ->leftJoin('subAgreement.supplier', 'supplier')
             ->where('route.id IN (:ids)')
-            ->orderBy('assignment.validFrom')
             ->setParameter('ids', $ids)
             ->getQuery()
-            // A managed sub-agreement can have a collection of assignments that the query does not
-            // fill again. The refresh fills it from the database.
-            ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
 
         $byId = [];

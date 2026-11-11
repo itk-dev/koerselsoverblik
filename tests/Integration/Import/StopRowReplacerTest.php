@@ -80,9 +80,9 @@ final class StopRowReplacerTest extends KernelTestCase
 
     /**
      * A new route gets its sub-agreement from the route name. A new sub-agreement has no
-     * assignment, so its routes count as "Unknown".
+     * supplier, so its routes count as "Unknown".
      */
-    public function testNewRoutesGetSubAgreementsWithNoAssignment(): void
+    public function testNewRoutesGetSubAgreementsWithNoSupplier(): void
     {
         $this->writeScenario('base');
 
@@ -94,7 +94,7 @@ final class StopRowReplacerTest extends KernelTestCase
         );
         self::assertSame(['BOOKED', 'R'], $references);
         foreach ($this->entityManager->getRepository(SubAgreement::class)->findAll() as $subAgreement) {
-            self::assertCount(0, $subAgreement->getAssignments());
+            self::assertNull($subAgreement->getSupplier());
         }
     }
 

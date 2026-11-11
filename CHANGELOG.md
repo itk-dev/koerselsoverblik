@@ -226,3 +226,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   sub-agreement, with no dated assignments) and
   [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) (ignore a sub-agreement, for
   example "Turbestilling", in the figures).
+- [#91](https://github.com/itk-dev/koerselsoverblik/issues/91)
+  One supplier for each sub-agreement: `SubAgreement` has a `supplier`, and the dated supplier
+  assignments are removed. The supplier applies to all dates. The sub-agreement page has an edit
+  page for the supplier, and the list shows the sub-agreements with no supplier first. The
+  punctuality calculator adds the figures for each route, not for each route and date.

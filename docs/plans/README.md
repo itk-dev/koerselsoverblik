@@ -82,8 +82,7 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Give each sub-agreement one supplier | Ready | [#91](https://github.com/itk-dev/koerselsoverblik/issues/91) | – | [one-supplier-per-sub-agreement.md](one-supplier-per-sub-agreement.md) |
-| Ignore a sub-agreement in the figures | Blocked | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | #91 | [ignore-sub-agreements.md](ignore-sub-agreements.md) |
+| Ignore a sub-agreement in the figures | Ready | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | – | [ignore-sub-agreements.md](ignore-sub-agreements.md) |
 
 ## Done
 
@@ -123,3 +122,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | The punctuality page | [#60](https://github.com/itk-dev/koerselsoverblik/issues/60) | [#78](https://github.com/itk-dev/koerselsoverblik/pull/78) |
 | Upload driving data with a preview | [#79](https://github.com/itk-dev/koerselsoverblik/issues/79) | [#80](https://github.com/itk-dev/koerselsoverblik/pull/80) |
 | Give each Infection thread its own test database | [#83](https://github.com/itk-dev/koerselsoverblik/issues/83) | [#84](https://github.com/itk-dev/koerselsoverblik/pull/84) |
+| Give each sub-agreement one supplier | [#91](https://github.com/itk-dev/koerselsoverblik/issues/91) | – |
