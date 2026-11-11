@@ -231,3 +231,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   assignments are removed. The supplier applies to all dates. The sub-agreement page has an edit
   page for the supplier, and the list shows the sub-agreements with no supplier first. The
   punctuality calculator adds the figures for each route, not for each route and date.
+- Plans for [#101](https://github.com/itk-dev/koerselsoverblik/issues/101) (a development
+  dataset with the volume, the shares and the Aarhus school holidays of the real exports) and
+  [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) (memory of the import that does
+  not grow with the number of rows).
