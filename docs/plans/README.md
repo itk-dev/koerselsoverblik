@@ -139,3 +139,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Give each sub-agreement one supplier | [#91](https://github.com/itk-dev/koerselsoverblik/issues/91) | [#93](https://github.com/itk-dev/koerselsoverblik/pull/93) |
 | Make the development dataset realistic | [#101](https://github.com/itk-dev/koerselsoverblik/issues/101) | [#107](https://github.com/itk-dev/koerselsoverblik/pull/107) |
 | Show the trips and the citizens on the overview | [#106](https://github.com/itk-dev/koerselsoverblik/issues/106) | [#108](https://github.com/itk-dev/koerselsoverblik/pull/108) |
+| Show the punctuality on the overview | [#109](https://github.com/itk-dev/koerselsoverblik/issues/109) | [#111](https://github.com/itk-dev/koerselsoverblik/pull/111) |
