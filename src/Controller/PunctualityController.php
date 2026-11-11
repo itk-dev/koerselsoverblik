@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * The "Punktlighed" page: the four punctuality measures of a month, with the months before it.
+ * The "Rettidighed" page: the four punctuality measures of a month, with the months before it.
  */
 #[IsGranted('ROLE_VIEW_OVERVIEW')]
 final class PunctualityController extends AbstractController

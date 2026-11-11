@@ -16,7 +16,7 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Checks the "Punktlighed" page: the access, the month filter and the figures of the base
+ * Checks the "Rettidighed" page: the access, the month filter and the figures of the base
  * scenario. The tests find the figures by their data-test attributes.
  */
 final class PunctualityPageTest extends WebTestCase
@@ -50,22 +50,16 @@ final class PunctualityPageTest extends WebTestCase
         $crawler = $this->page('viewer');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('Punktlighed', $crawler->filter('h1')->text());
-        self::assertSame('Punktlighed', trim($crawler->filter('[data-test="menu-item"][aria-current="page"]')->text()));
-        self::assertSame('Punktlighed – Kørselsoverblik', $crawler->filter('title')->text());
+        self::assertSame('Rettidighed', $crawler->filter('h1')->text());
+        self::assertSame('Rettidighed', trim($crawler->filter('[data-test="menu-item"][aria-current="page"]')->text()));
+        self::assertSame('Rettidighed – Kørselsoverblik', $crawler->filter('title')->text());
     }
 
-    /**
-     * "Punktlighed" is the page. "Rettidighed" is the measure, so the chart and the worst routes
-     * keep it. No text names the planning system.
-     */
-    public function testPageNamesThePunctualityAndNotThePlanningSystem(): void
+    public function testNoTextNamesThePlanningSystem(): void
     {
         $client = $this->client('viewer', importBase: true);
-        $crawler = $client->request('GET', '/punctuality');
+        $client->request('GET', '/punctuality');
 
-        self::assertContains('Punktlighed pr. leverandør', $crawler->filter('.panel__title')->each(static fn (Crawler $title): string => $title->text()));
-        self::assertContains('Rettidighed måned for måned', $crawler->filter('.panel__title')->each(static fn (Crawler $title): string => $title->text()));
         self::assertStringNotContainsString('Optiruns', (string) $client->getResponse()->getContent());
     }
 

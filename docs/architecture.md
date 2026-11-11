@@ -784,7 +784,7 @@ config file.
 
 ### Punctuality
 
-`PunctualityCalculator` gives the figures of the "Punktlighed" page for a `DateRangeDto`. It
+`PunctualityCalculator` gives the figures of the "Rettidighed" page for a `DateRangeDto`. It
 reads `StopRow` and `RouteRun` directly. The daily stats can replace these queries later.
 
 The page is `/punctuality` (`PunctualityController`, `ROLE_VIEW_OVERVIEW`). `MonthDto` reads the

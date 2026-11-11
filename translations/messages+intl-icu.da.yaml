@@ -9,7 +9,7 @@ layout:
 menu:
   label: Hovedmenu
   overview: Overblik
-  punctuality: Punktlighed
+  punctuality: Rettidighed
   upload: Upload kørselsdata
   daily_counts: Daglige tal
   suppliers: Leverandører og delaftaler
@@ -83,7 +83,7 @@ month:
     12: dec
 
 punctuality:
-  title: Punktlighed
+  title: Rettidighed
   lede: "{month} sammenlignet med {previous}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb."
   goal:
     label: Servicemål
@@ -137,9 +137,9 @@ punctuality:
     up_to_30: 15–30 min
     over_30: Over 30 min
   suppliers:
-    title: Punktlighed pr. leverandør
+    title: Rettidighed pr. leverandør
     subtitle: Det tal en kontraktopfølgning kan tages på.
-    caption: Punktlighed pr. leverandør i perioden
+    caption: Rettidighed pr. leverandør i perioden
     supplier: Leverandør
     runs: Vognløb
     unknown: Ukendt
