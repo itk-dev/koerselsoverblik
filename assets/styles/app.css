@@ -464,12 +464,15 @@ body {
   text-transform: uppercase;
   color: var(--itkaarhus-gray-600);
 }
-.ctl__row {
+.controls__form {
   display: flex;
-  gap: var(--itkaarhus-space-2);
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--itkaarhus-space-4);
+  margin: 0;
 }
 /* The button class sets display, so the hidden attribute needs this rule. */
-.ctl__row [hidden] {
+.controls__form [hidden] {
   display: none;
 }
 .ctl__select {

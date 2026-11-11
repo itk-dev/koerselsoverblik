@@ -272,3 +272,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ended is compared with the same number of days. `APP_DATA_START_DATE` gives the start of the
   data: a comparison before it is a partial period or has no data. The period types day and
   year of the prototype are left out.
+- [#117](https://github.com/itk-dev/koerselsoverblik/issues/117)
+  The filter bar has the supplier select box ("Alle leverandører" or one supplier). With a
+  supplier, the tiles, the charts and the worst routes are of the routes of that supplier. The
+  supplier tables always show all suppliers. An unknown supplier id gives all suppliers.

@@ -24,11 +24,13 @@ final readonly class PunctualityPageBuilder
 
     public function build(PeriodSelectionDto $selection): PunctualityPageDto
     {
+        $supplier = $selection->filter->supplier;
+
         return new PunctualityPageDto(
             $selection->months,
-            array_map(fn (MonthDto $item): PunctualityReportDto => $this->calculator->calculate($item->range()), $selection->months),
-            $this->calculator->calculate($selection->selectedRange),
-            null === $selection->comparisonRange ? null : $this->calculator->calculate($selection->comparisonRange),
+            array_map(fn (MonthDto $item): PunctualityReportDto => $this->calculator->calculate($item->range(), $supplier), $selection->months),
+            $this->calculator->calculate($selection->selectedRange, $supplier),
+            null === $selection->comparisonRange ? null : $this->calculator->calculate($selection->comparisonRange, $supplier),
             $this->target,
         );
     }

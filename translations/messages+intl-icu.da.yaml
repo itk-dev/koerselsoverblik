@@ -78,6 +78,8 @@ filter:
   comparison: Sammenlign med
   comparison_previous: Forrige periode
   comparison_last_year: Samme periode sidste år
+  supplier: Leverandør
+  all_suppliers: Alle leverandører
   show: Vis
 
 month:

@@ -780,8 +780,15 @@ The rules follow the prototype, with other period types:
 - `PeriodLabeler` gives the Danish labels, for example "Uge 38 · 14. sep–20. sep 2026" and "3.
   kvartal 2026", and the phrase of a partial period: "1.–18. september 2026 (til og med i dag)".
 - `templates/_filter_bar.html.twig` is the filter bar of both pages. The period buttons and the
-  previous and next links keep the other filters. The comparison is a select box in a GET form.
-  `assets/app.js` sends the form when the value changes. With no JavaScript, a button sends it.
+  previous and next links keep the other filters. The comparison and the supplier are select
+  boxes in a GET form. `assets/app.js` sends the form when a value changes. With no JavaScript, a
+  button sends it.
+- `PeriodSelector` reads the filters for both controllers. A supplier id that does not exist
+  gives all suppliers.
+- With a supplier, `SupplierFilter` limits the queries of the trips, the citizens and the solo
+  runs to the routes of the sub-agreements of the supplier. `PunctualityCalculator` gives the
+  total and the worst routes of the supplier only. The supplier tables always show all
+  suppliers.
 
 **Calculation:** `KpiCalculator` runs one aggregate query per range and returns a `Kpis` value
 object.

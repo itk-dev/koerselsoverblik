@@ -26,18 +26,18 @@ class RouteRunRepository extends ServiceEntityRepository
      * Counts the runs of a date range that are not cancelled and have a passenger count, and the
      * real solo runs of them: the runs with at most one citizen in the car at a time.
      */
-    public function countSoloRuns(DateRangeDto $range): SoloCountDto
+    public function countSoloRuns(DateRangeDto $range, ?int $supplierId = null): SoloCountDto
     {
-        /** @var array{runs: int|string, soloRuns: int|string|null} $row */
-        $row = $this->createQueryBuilder('run')
+        $query = $this->createQueryBuilder('run')
             ->select('COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers <= 1 THEN 1 ELSE 0 END) AS soloRuns')
             ->where('run.serviceDate BETWEEN :first AND :last')
             ->andWhere('run.cancelled = false')
             ->andWhere('run.peakPassengers IS NOT NULL')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
-            ->getQuery()
-            ->getSingleResult();
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
+        SupplierFilter::apply($query, 'run', $supplierId);
+        /** @var array{runs: int|string, soloRuns: int|string|null} $row */
+        $row = $query->getQuery()->getSingleResult();
 
         // MariaDB gives a sum as text, and no sum when no row matches.
         return new SoloCountDto((int) $row['runs'], (int) $row['soloRuns']);

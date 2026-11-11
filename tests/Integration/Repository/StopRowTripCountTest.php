@@ -10,12 +10,14 @@ use App\Entity\ImportBatch;
 use App\Entity\Route;
 use App\Entity\StopRow;
 use App\Entity\SubAgreement;
+use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
 use App\Import\Extract\StopRowDto;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
+use App\Import\SubAgreementReference;
 use App\Report\DateRangeDto;
 use App\Report\TripCountDto;
 use App\Repository\StopRowRepository;
@@ -102,25 +104,42 @@ final class StopRowTripCountTest extends KernelTestCase
         );
     }
 
+    /**
+     * With a supplier, only the routes of the sub-agreements of that supplier count.
+     */
+    public function testOnlyTheRoutesOfTheSupplierCount(): void
+    {
+        $supplier = new Supplier()->setName('Vognmand A');
+        $this->entityManager->persist($supplier);
+        $ofSupplier = $this->route('A-01', $supplier);
+        $other = $this->route();
+        $this->stop($ofSupplier, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($other, '2026-02-02', 'P-B', StopType::Pickup, StopStatus::Completed);
+        $this->entityManager->flush();
+
+        self::assertEquals(new TripCountDto(1, 1, 0, 0, 1), $this->trips('2026-02-01', '2026-02-28', $supplier->getId()));
+        self::assertEquals(new TripCountDto(2, 2, 0, 0, 2), $this->trips('2026-02-01', '2026-02-28'));
+    }
+
     public function testRangeWithNoTripsHasZeroCounts(): void
     {
         self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $this->trips('2026-02-01', '2026-02-28'));
     }
 
-    private function trips(string $firstDate, string $lastDate): TripCountDto
+    private function trips(string $firstDate, string $lastDate, ?int $supplier = null): TripCountDto
     {
         $this->entityManager->flush();
         $stopRows = $this->entityManager->getRepository(StopRow::class);
         self::assertInstanceOf(StopRowRepository::class, $stopRows);
 
-        return $stopRows->countTrips(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)));
+        return $stopRows->countTrips(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)), $supplier);
     }
 
-    private function route(): Route
+    private function route(string $name = 'R-01', ?Supplier $supplier = null): Route
     {
-        $subAgreement = new SubAgreement()->setReference('R');
+        $subAgreement = new SubAgreement()->setReference(SubAgreementReference::fromRouteName($name))->setSupplier($supplier);
         $this->entityManager->persist($subAgreement);
-        $route = new Route('R-01', $subAgreement);
+        $route = new Route($name, $subAgreement);
         $this->entityManager->persist($route);
 
         return $route;

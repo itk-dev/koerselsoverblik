@@ -6,9 +6,12 @@ namespace App\Tests\Functional;
 
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\SubAgreement;
+use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -164,6 +167,36 @@ final class OverviewPageTest extends WebTestCase
                 $crawler->filter('[data-filter-form] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')),
             ),
         );
+    }
+
+    /**
+     * The sub-agreement R (R-01 and R-02) has the supplier. BOOKED has no supplier. The tiles
+     * show the supplier only. The supplier table always shows all suppliers.
+     */
+    public function testSupplierFilter(): void
+    {
+        $client = $this->client('viewer', importBase: true);
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
+        $supplier = new Supplier()->setName('Vognmand A');
+        $entityManager->persist($supplier);
+        $entityManager->getRepository(SubAgreement::class)->findOneBy(['reference' => 'R'])?->setSupplier($supplier);
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', '/?s='.$supplier->getId());
+
+        self::assertSame('6', self::value($crawler, 'trips'));
+        self::assertSame((string) $supplier->getId(), $crawler->filter('[data-test="supplier"] option[selected]')->attr('value'));
+        self::assertSame(
+            [['Vognmand A', '6', '67 %', '33 %', '17 %'], ['Ukendt', '1', '100 %', '100 %', '0 %']],
+            $crawler->filter('[data-test="overview-supplier-row"]')->each(
+                static fn (Crawler $row): array => $row->filter('th, td')->each(static fn (Crawler $cell): string => $cell->text()),
+            ),
+        );
+        // A link of the filter bar keeps the supplier.
+        self::assertSame('/?p=week&s='.$supplier->getId(), $crawler->filter('[data-test="period-week"]')->attr('href'));
+        // A supplier that does not exist gives all suppliers.
+        self::assertSame('7', self::value($client->request('GET', '/?s=999999'), 'trips'));
     }
 
     /**

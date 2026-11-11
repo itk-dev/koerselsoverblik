@@ -47,7 +47,8 @@ The user interface is in Danish.
   - comparison: previous period, or the same period last year. A period that has not ended is
     compared with the same number of days. A comparison before the start of the data
     (`APP_DATA_START_DATE`) is a partial period or has no data
-  - supplier
+  - supplier: all suppliers, or one supplier. The figures are of the routes of that supplier.
+    The supplier tables always show all suppliers
   - The filters live in the URL, so a view can be shared as a link.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
 - **Administration:**

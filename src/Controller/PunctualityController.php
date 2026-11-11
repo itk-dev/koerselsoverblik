@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Clock\LocalCalendar;
-use App\Report\PeriodFilter;
-use App\Report\PeriodRangeFactory;
+use App\Report\PeriodSelector;
 use App\Report\PunctualityPageBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -28,8 +26,7 @@ final class PunctualityController extends AbstractController
     #[Route('/punctuality', name: 'punctuality', methods: ['GET'])]
     public function __invoke(
         PunctualityPageBuilder $builder,
-        PeriodRangeFactory $periods,
-        LocalCalendar $calendar,
+        PeriodSelector $periods,
         #[Autowire(param: 'app.punctuality_tolerance_minutes')]
         int $toleranceMinutes,
         #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
@@ -41,8 +38,7 @@ final class PunctualityController extends AbstractController
         #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
         ?string $s = null,
     ): Response {
-        $today = $calendar->today();
-        $selection = $periods->create(PeriodFilter::fromQuery($p, $d, $c, $s, $today), $today);
+        $selection = $periods->select($p, $d, $c, $s);
 
         return $this->render('punctuality/index.html.twig', [
             'selection' => $selection,
