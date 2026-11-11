@@ -11,8 +11,11 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class MaximumRangeTest extends KernelTestCase
 {
-    public function testMaximumIs31DaysByDefault(): void
+    /**
+     * The users upload one day or one week.
+     */
+    public function testMaximumIs7DaysByDefault(): void
     {
-        self::assertSame(31, self::getContainer()->getParameter('app.driving_data_max_days'));
+        self::assertSame(7, self::getContainer()->getParameter('app.driving_data_max_days'));
     }
 }

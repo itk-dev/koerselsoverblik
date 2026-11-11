@@ -178,11 +178,13 @@ Set these in `.env.local`:
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for all four punctuality measures, in percent. Drawn as a line on the chart | `90` |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
-| `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload | `31` |
+| `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload. The users upload one day or one week | `7` |
 | `APP_DRIVING_DATA_MAX_FILE_SIZE` | The maximum size in bytes of an extract | `20971520` (20 MiB) |
-| `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE` | The maximum total size in bytes of the files in the xlsx archive, when they are not compressed. The parser reads all the files before the first row, so this limit also controls the time of an upload | `52428800` (50 MiB) |
+| `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE` | The maximum total size in bytes of the files in the xlsx archive, when they are not compressed. The parser reads all the files before the first row, so this limit also controls the time of an upload. A week of driving data that OpenSpout writes is near 50 MiB | `104857600` (100 MiB) |
 | `APP_DRIVING_DATA_MAX_ROWS` | The maximum row number in the sheet of an extract | `50000` |
 | `APP_DRIVING_DATA_MAX_COLUMNS` | The maximum number of columns in a row of an extract | `200` |
+| `APP_FIXTURES_PUNCTUALITY_START` | Development only. The share in percent of the runs with an on-time last drop-off in the first month of the [development dataset](#fixtures) | `65` |
+| `APP_FIXTURES_PUNCTUALITY_TREND` | Development only. The change of the punctuality of the development dataset in percentage points for each month. A negative value makes it worse | `2.5` |
 
 The `OIDC_*` defaults in `.env` point to the local mock service. On a server, set the values
 from the real identity provider.
@@ -212,7 +214,7 @@ in the file becomes empty. A row with a date outside the range is rejected. Uplo
 file again for the same range changes nothing. Uploading a corrected file gives exactly the rows
 of that file for the range.
 
-The date range can be at most `APP_DRIVING_DATA_MAX_DAYS` days.
+The date range can be at most `APP_DRIVING_DATA_MAX_DAYS` days. Upload one day or one week.
 
 **CAUTION:**
 
@@ -571,8 +573,26 @@ To get extract files that you can upload by hand:
 task fixtures:extracts
 ```
 
-This writes the test scenarios and one file for each of the 13 months to
-`var/fixtures/driving_data/`. The data is invented.
+This writes the test scenarios and one file for each ISO week of the last 13 months to
+`var/fixtures/driving_data/`. A week file has the name of its Monday, for example
+`dev-2026-09-14.xlsx`.
+
+The data is invented, but it has the volume and the patterns of the school transport:
+
+- two groups of sub-agreements, with route names in the formats `<LETTERS>-<LETTERS>-<NN>` and
+  `<Name>_<NN>`
+- the same citizens on a route each day, and a place name at the institution end of a trip
+- a full volume on a school day, a low volume in the Aarhus school holidays, and only booked
+  trips at the weekend
+- route names that are not routes, as in the real data: a misspelled booked-trips route, a name
+  with no separator, and notes
+
+The punctuality does not come from the real data. Set it with `APP_FIXTURES_PUNCTUALITY_START`
+and `APP_FIXTURES_PUNCTUALITY_TREND` in `.env.local`, or for one run:
+
+```shell
+task fixtures:extracts -- --punctuality-start=80 --punctuality-trend=-1.5
+```
 
 To import the 13 months into the local database:
 
@@ -580,12 +600,15 @@ To import the 13 months into the local database:
 task fixtures:import
 ```
 
-This writes the files, and imports each month file for the dates of its month with
-`app:driving-data:import --no-interaction`. A second run replaces the same months. It does not
-import the test scenarios.
+This writes the files, and imports each week file for its Monday to its Sunday with
+`app:driving-data:import --no-interaction --no-debug`. Then `app:fixtures:suppliers` gives the
+sub-agreements the invented suppliers "Vognmand A" to "Vognmand D". A second run replaces the
+same weeks. It does not import the test scenarios. The import takes some minutes.
 
-Each month file has at most 31 days. If `APP_DRIVING_DATA_MAX_DAYS` is less than 31, the upload
-rejects these files.
+**CAUTION:** The import replaces all driving data in the weeks of the files, also real data.
+
+Each week file has 7 days. If `APP_DRIVING_DATA_MAX_DAYS` is less than 7, the upload rejects
+these files.
 
 ### Diagrams
 

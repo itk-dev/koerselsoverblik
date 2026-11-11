@@ -235,3 +235,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dataset with the volume, the shares and the Aarhus school holidays of the real exports) and
   [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) (memory of the import that does
   not grow with the number of rows).
+- [#101](https://github.com/itk-dev/koerselsoverblik/issues/101)
+  A realistic development dataset: one file for each ISO week, with the volume and the patterns
+  of the school transport, the Aarhus school holidays, and route names that are not routes. The
+  punctuality is a setting (`APP_FIXTURES_PUNCTUALITY_START` and `APP_FIXTURES_PUNCTUALITY_TREND`),
+  not a value from the real data. `app:fixtures:suppliers` gives the sub-agreements invented
+  suppliers. `APP_DRIVING_DATA_MAX_DAYS` is now 7, and `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE`
+  is now 100 MiB.

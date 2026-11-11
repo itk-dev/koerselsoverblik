@@ -1048,18 +1048,28 @@ The tests and the local site use generated extracts. No real extract is committe
 - **Times:** the parser tests include times of 24:00 or more, and the spring and autumn dates of
   the change to and from daylight saving time in Europe/Copenhagen (see [Times](#times)).
 - **Development dataset:** `DevDatasetGenerator` makes 13 months of data from a seed, one file
-  for each calendar month. The routes and the suppliers are the same as in the development
-  fixtures, so the overview shows figures for each supplier.
-  - Each row id has the month, so that the import of one month keeps the row ids of the other
-    months unique.
-  - In one run of five, the delay grows after the pickups. Then the last drop-offs are in all the
-    delay bands of the punctuality page.
-- **Maximum range:** a development file holds one calendar month, so it has at most 31 days. This
-  is the default of `APP_DRIVING_DATA_MAX_DAYS`. If the setting is less than 31, the upload
-  rejects these files.
+  for each ISO week. It has the volume and the patterns of the school transport, but no value
+  from a real extract, because the repository is public.
+  - `SchoolCalendar` has the Aarhus school holidays. A school day has the full volume, a weekday
+    in a holiday has a low volume, and the weekend has only booked trips.
+  - Two groups of invented sub-agreements. Group A drives almost nothing in the summer holiday.
+    Group B still drives some routes.
+  - Each route has a fixed set of citizens and one institution. The institution end of a trip
+    has a place name.
+  - The dataset has route names that are not routes, as in the real data.
+  - `DatasetSettings` gives the punctuality: a start value for the first month and a change for
+    each month (`APP_FIXTURES_PUNCTUALITY_*`). The late last drop-offs are in all the delay
+    bands of the punctuality page.
+  - Each row id has the date, so that the import of one week keeps the row ids of the other
+    weeks unique.
+  - `app:fixtures:suppliers` gives the sub-agreements their invented suppliers after the import.
+- **Maximum range:** a development file holds one ISO week, so it has 7 days. This is the
+  default of `APP_DRIVING_DATA_MAX_DAYS`. If the setting is less than 7, the upload rejects these
+  files.
 - **Files:** `task fixtures:extracts` writes all files to `var/fixtures/driving_data/`. Upload
-  them by hand to test the upload page. `task fixtures:import` also imports each month file with
-  `app:driving-data:import`, for the dates of its month.
+  them by hand to test the upload page. `task fixtures:import` also imports each week file with
+  `app:driving-data:import --no-debug`, for the dates of its week. With debug, the import of a
+  week uses more memory than the container has (#100).
 
 ## Deployment
 
@@ -1096,9 +1106,8 @@ testing and the diagram check on every pull request.
   area, an upload for one area deletes the other areas. Then the replacement must be limited to
   the routes or the area of the file ([ADR 003](adr/003-driving-data-import-mapping-and-overwrite.md)).
   The product owner in the transport office answers before go-live.
-- **Maximum range.** What can the planning system export? Evaluate the default of
-  `APP_DRIVING_DATA_MAX_DAYS` (31 days) after a test export. The developer answers this with the
-  transport office before go-live.
+- **Maximum range (answered).** The planning system exports one day at a time. The users upload
+  one day or one week, so the default of `APP_DRIVING_DATA_MAX_DAYS` is 7 days.
 - **Route column.** Which column identifies a route: the route name or the route id? The route id
   can be an id for one day only. The `default` mapping uses the route name until this is
   confirmed. The product owner in the transport office answers before go-live.
