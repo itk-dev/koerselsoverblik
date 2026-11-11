@@ -34,8 +34,8 @@ The user interface is in Danish.
   - Punctuality over 12 months, against the target.
   - The figures per supplier, side by side: the trips, the punctuality, the real solo runs and
     the cancelled trips.
-- **Rettidighed (punctuality):** the four punctuality measures of a month against the service
-  target: pickups and drop-offs, for each citizen and for each route run.
+- **Punktlighed (punctuality):** the four punctuality measures ("Rettidighed") of a month
+  against the service target: pickups and drop-offs, for each citizen and for each route run.
   - Each measure has its tone, the change from the previous month, the distance to the target
     and a 12-month sparkline.
   - A 12-month chart of the four measures, and the late last drop-offs in delay bands.

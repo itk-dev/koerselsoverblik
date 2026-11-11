@@ -9,7 +9,7 @@ layout:
 menu:
   label: Hovedmenu
   overview: Overblik
-  punctuality: Rettidighed
+  punctuality: Punktlighed
   upload: Upload kørselsdata
   daily_counts: Daglige tal
   suppliers: Leverandører og delaftaler
@@ -44,7 +44,7 @@ overview:
     subtitle: Samme mål for alle leverandører i den valgte periode.
     caption: Nøgletal pr. leverandør
     cancelled: Aflyst
-    source: "Kilde: Optiruns"
+    source: "Kilde: kørselsdata"
   real_solo:
     label: Reelt solo
     note: "{count, number} vognløb med højst én borger"
@@ -83,7 +83,7 @@ month:
     12: dec
 
 punctuality:
-  title: Rettidighed
+  title: Punktlighed
   lede: "{month} sammenlignet med {previous}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb."
   goal:
     label: Servicemål
@@ -137,9 +137,9 @@ punctuality:
     up_to_30: 15–30 min
     over_30: Over 30 min
   suppliers:
-    title: Rettidighed pr. leverandør
+    title: Punktlighed pr. leverandør
     subtitle: Det tal en kontraktopfølgning kan tages på.
-    caption: Rettidighed pr. leverandør i perioden
+    caption: Punktlighed pr. leverandør i perioden
     supplier: Leverandør
     runs: Vognløb
     unknown: Ukendt
@@ -153,7 +153,7 @@ punctuality:
     punctuality: Rettidighed
     late: Forsinkede
     foot: Rettidighed ved sidste afsætning.
-  source: "Kilde: Optiruns · chaufførens indtastning mod planlagt tid, kun gennemførte stop"
+  source: "Kilde: chaufførens indtastning mod planlagt tid, kun gennemførte stop"
   no_data: Ingen data i perioden.
 
 upload:

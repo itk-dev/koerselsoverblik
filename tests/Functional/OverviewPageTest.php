@@ -151,6 +151,14 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('januar 2026', $client->request('GET', '/?month=abc')->filter('[data-test="month"]')->text());
     }
 
+    public function testNoTextNamesThePlanningSystem(): void
+    {
+        $client = $this->client('viewer', importBase: true);
+        $client->request('GET', '/');
+
+        self::assertStringNotContainsString('Optiruns', (string) $client->getResponse()->getContent());
+    }
+
     /**
      * The Content Security Policy does not allow style attributes, and a script needs the nonce.
      */
