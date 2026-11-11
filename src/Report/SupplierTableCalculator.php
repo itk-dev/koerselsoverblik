@@ -29,24 +29,20 @@ final readonly class SupplierTableCalculator
      */
     public function calculate(DateRangeDto $range, PunctualityReportDto $punctuality): array
     {
-        /** @var array<int, array{trips: int, cancelled: int, runs: int, soloRuns: int}> $byRoute keyed by the route id */
-        $byRoute = [];
-        foreach ($this->stopRows->countTripsOfEachRoute($range) as $row) {
-            $byRoute[$row['route']] = ['trips' => $row['trips'], 'cancelled' => $row['cancelled'], 'runs' => 0, 'soloRuns' => 0];
-        }
-        foreach ($this->routeRuns->countSoloRunsOfEachRoute($range) as $row) {
-            $byRoute[$row['route']] = ['runs' => $row['runs'], 'soloRuns' => $row['soloRuns']] + ($byRoute[$row['route']] ?? ['trips' => 0, 'cancelled' => 0]);
-        }
+        $trips = array_column($this->stopRows->countTripsOfEachRoute($range), null, 'route');
+        $solos = array_column($this->routeRuns->countSoloRunsOfEachRoute($range), null, 'route');
 
         /** @var array<string, array{trips: int, cancelled: int, runs: int, soloRuns: int}> $bySupplier keyed by the supplier name, or '' for "Ukendt" */
         $bySupplier = [];
-        foreach ($this->routes->findWithSuppliers(array_keys($byRoute)) as $routeId => $route) {
+        foreach ($this->routes->findWithSuppliers(array_keys($trips + $solos)) as $routeId => $route) {
             // The routes of a sub-agreement with no supplier count as "Ukendt".
             $supplier = $route->getSubAgreement()->getSupplier()?->getName() ?? '';
             $sum = $bySupplier[$supplier] ?? ['trips' => 0, 'cancelled' => 0, 'runs' => 0, 'soloRuns' => 0];
-            foreach ($byRoute[$routeId] as $key => $count) {
-                $sum[$key] += $count;
-            }
+            // A route can have trips and no counted runs, for example when all its stops are cancelled.
+            $sum['trips'] += $trips[$routeId]['trips'] ?? 0;
+            $sum['cancelled'] += $trips[$routeId]['cancelled'] ?? 0;
+            $sum['runs'] += $solos[$routeId]['runs'] ?? 0;
+            $sum['soloRuns'] += $solos[$routeId]['soloRuns'] ?? 0;
             $bySupplier[$supplier] = $sum;
         }
 
