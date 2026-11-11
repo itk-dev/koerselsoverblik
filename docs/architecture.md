@@ -812,6 +812,11 @@ the punctuality page (`templates/_month.html.twig`).
   change from the previous month and the history for the sparklines.
 - A month with no trips has no data. The tiles then show "–", not 0.
 - A change of the trips or the citizens has no tone, because more volume is not better or worse.
+- The punctuality comes from `PunctualityPageBuilder` for the same month. The tile
+  "Rettidighed" shows the drop-off per route run. The goal panel and the 12-month chart are
+  shared templates (`punctuality/_goal.html.twig` and `punctuality/_trend.html.twig`), so the
+  overview and the punctuality page show the same figures. The request thus also has the cost of
+  the punctuality page (#85).
 
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
