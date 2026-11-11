@@ -141,3 +141,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Show the trips and the citizens on the overview | [#106](https://github.com/itk-dev/koerselsoverblik/issues/106) | [#108](https://github.com/itk-dev/koerselsoverblik/pull/108) |
 | Show the punctuality on the overview | [#109](https://github.com/itk-dev/koerselsoverblik/issues/109) | [#111](https://github.com/itk-dev/koerselsoverblik/pull/111) |
 | Show the real solo runs on the overview | [#110](https://github.com/itk-dev/koerselsoverblik/issues/110) | [#112](https://github.com/itk-dev/koerselsoverblik/pull/112) |
+| Show the suppliers side by side on the overview | [#113](https://github.com/itk-dev/koerselsoverblik/issues/113) | [#114](https://github.com/itk-dev/koerselsoverblik/pull/114) |
