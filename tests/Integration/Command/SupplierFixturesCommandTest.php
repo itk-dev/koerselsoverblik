@@ -40,9 +40,14 @@ final class SupplierFixturesCommandTest extends KernelTestCase
         self::assertNull($this->supplierOf('Turbestilling'));
     }
 
-    public function testSecondRunAddsNoSuppliers(): void
+    /**
+     * NV-TA and VE-RO have the same supplier. The second run finds the supplier of the first run.
+     */
+    public function testEachSupplierIsCreatedOnce(): void
     {
-        $this->entityManager->persist(new SubAgreement()->setReference('NV-TA'));
+        foreach (['NV-TA', 'VE-RO'] as $reference) {
+            $this->entityManager->persist(new SubAgreement()->setReference($reference));
+        }
         $this->entityManager->flush();
 
         self::runCommand('app:fixtures:suppliers');
