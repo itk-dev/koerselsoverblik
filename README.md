@@ -524,7 +524,7 @@ task test:mutation:full
   review checks the reason.
 - **Timeouts:** a mutant that times out in `src/Report` or `src/Import` fails the run, because
   nobody knows if a test kills it. In the rest of the code, a timeout counts as detected, as
-  Infection counts it. Each mutant has 60 seconds. The mutant processes run with Xdebug and share the CPU and the
+  Infection counts it, and the gate check shows it as a warning. Each mutant has 60 seconds. The mutant processes run with Xdebug and share the CPU and the
   database server, so the database tests are slow. Thus Infection runs only the tests that cover
   the mutated line (`--only-covering-test-cases`), not all tests of their classes. Infection
   skips a mutant if all its tests took more than 60 seconds in the initial run.

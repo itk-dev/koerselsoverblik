@@ -10,7 +10,7 @@ declare(strict_types=1);
  * Infection has one threshold for each run. This script adds a covered MSI gate of 100 % for
  * the directories below. Infection counts a timed-out mutant as detected, but nobody knows if a
  * test kills it, so a timeout in these directories fails the gate. Outside them, a timeout
- * counts as detected for the threshold of Infection.
+ * counts as detected for the threshold of Infection, and the script shows it as a warning.
  *
  * Infection skips a mutant when all its tests took more than the timeout in the initial run. A
  * skipped mutant is not tested, so it also fails the gate. The JSON log has only the number of
@@ -40,8 +40,8 @@ function corePath(string $file, string $projectDir): ?string
 
 $logPath = $argv[1] ?? '';
 $log = is_file($logPath) ? json_decode((string) file_get_contents($logPath), true) : null;
-if (!is_array($log) || !is_array($log['escaped'] ?? null)) {
-    fwrite(\STDERR, sprintf("Cannot read the escaped mutants in the Infection JSON log \"%s\".\n", $logPath));
+if (!is_array($log) || !is_array($log['escaped'] ?? null) || !is_array($log['timeouted'] ?? null)) {
+    fwrite(\STDERR, sprintf("Cannot read the escaped and the timed-out mutants in the Infection JSON log \"%s\".\n", $logPath));
     exit(2);
 }
 
@@ -53,28 +53,47 @@ if (false === $textLog) {
 }
 
 /**
- * Gives the mutants of a list in the JSON log that are in a core directory.
+ * Gives the mutants of a list in the JSON log, as "file:line mutator", in two lists: the mutants
+ * in a core directory and the other mutants.
  *
- * @return list<string>
+ * @param array<mixed> $results
+ *
+ * @return array{list<string>, list<string>}
  */
-function coreMutants(mixed $results, string $projectDir): array
+function mutants(array $results, string $projectDir): array
 {
-    $mutants = [];
-    foreach (is_array($results) ? $results : [] as $result) {
+    $core = [];
+    $other = [];
+    foreach ($results as $result) {
         $mutator = is_array($result) && is_array($result['mutator'] ?? null) ? $result['mutator'] : [];
-        $file = corePath(is_string($mutator['originalFilePath'] ?? null) ? $mutator['originalFilePath'] : '', $projectDir);
+        $path = is_string($mutator['originalFilePath'] ?? null) ? $mutator['originalFilePath'] : '';
+        $file = corePath($path, $projectDir);
+        $line = is_int($mutator['originalStartLine'] ?? null) ? $mutator['originalStartLine'] : 0;
+        $name = is_string($mutator['mutatorName'] ?? null) ? $mutator['mutatorName'] : '';
         if (null !== $file) {
-            $line = is_int($mutator['originalStartLine'] ?? null) ? $mutator['originalStartLine'] : 0;
-            $name = is_string($mutator['mutatorName'] ?? null) ? $mutator['mutatorName'] : '';
-            $mutants[] = sprintf('%s:%d %s', $file, $line, $name);
+            $core[] = sprintf('%s:%d %s', $file, $line, $name);
+        } else {
+            $relativeFile = str_starts_with($path, $projectDir) ? substr($path, strlen($projectDir)) : $path;
+            $other[] = sprintf('%s:%d %s', $relativeFile, $line, $name);
         }
     }
 
-    return $mutants;
+    return [$core, $other];
 }
 
-$escaped = coreMutants($log['escaped'], $projectDir);
-$timedOut = coreMutants($log['timeouted'] ?? [], $projectDir);
+[$escaped] = mutants($log['escaped'], $projectDir);
+[$timedOut, $otherTimedOut] = mutants($log['timeouted'], $projectDir);
+
+// Outside the core directories, Infection counts a timeout as detected. Show the timeouts, so
+// that they stay visible.
+if ([] !== $otherTimedOut) {
+    fwrite(\STDERR, sprintf(
+        "Warning: %d timed-out mutants outside %s count as detected.\n  %s\n",
+        count($otherTimedOut),
+        implode(' and ', CORE_DIRECTORIES),
+        implode("\n  ", $otherTimedOut),
+    ));
+}
 
 // The text log lists each skipped mutant as "1) /app/src/File.php:84    [M] InstanceOf_ [ID] ...".
 $skipped = [];
