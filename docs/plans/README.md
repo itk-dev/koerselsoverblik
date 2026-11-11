@@ -76,7 +76,15 @@ feature that has an issue or an issue text.
 | Show the uploaded dates and clear the driving data of a date | Ready | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – | [clear-dates.md](clear-dates.md) |
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
 | Move the deletes of the stop row replacer to the repositories | Draft | – | – | [stop-row-replacer-deletes.md](stop-row-replacer-deletes.md) |
+| Keep the copy of a row in its own entity | Ready | [#95](https://github.com/itk-dev/koerselsoverblik/issues/95) | – | [source-row-entity.md](source-row-entity.md) |
+| Show the imported stop rows and rejected rows of a date range | Blocked | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | #95 | [driving-data-view.md](driving-data-view.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
+
+### Release
+
+| Feature | Status | Issue | Needs | Plan |
+| --- | --- | --- | --- | --- |
+| Merge the migrations into one before the first release | Blocked | [#97](https://github.com/itk-dev/koerselsoverblik/issues/97) | #95, and all other schema changes before the first release | [merge-migrations.md](merge-migrations.md) |
 
 ## Done
 
