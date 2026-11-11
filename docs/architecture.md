@@ -377,8 +377,9 @@ with no supplier, so the database accepts a sub-agreement with no supplier. The 
 no `ON DELETE`, so the database blocks the delete of a supplier with sub-agreements.
 
 **An ignored sub-agreement is left out in the queries, not in the import.** The import stores
-its stop rows and builds its route runs. The report queries join the sub-agreement and skip the
-rows of an ignored sub-agreement. Thus a change of the flag needs no new import.
+its stop rows and builds its route runs. Each query that counts driving data for the figures
+calls `IgnoredSubAgreementFilter::apply()`. It joins the sub-agreement and skips the rows of an
+ignored sub-agreement. Thus a change of the flag needs no new import.
 
 **Derived tables are always rebuildable.** `RouteRun` and `DailyStats` are rebuilt from `StopRow`
 for the dates an import touched. When the supplier or the ignored flag of a sub-agreement

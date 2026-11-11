@@ -411,7 +411,8 @@ To give a sub-agreement a supplier:
 5. Select the supplier, and click **Gem**.
 
 The import creates a sub-agreement with no supplier. The routes of a sub-agreement with no
-supplier count as "Unknown". Sub-agreements with no supplier are listed at the top.
+supplier count as "Unknown". Sub-agreements with no supplier are listed at the top, unless they
+are ignored (see below).
 
 When you change the supplier of a sub-agreement, the figures for all dates of its routes change
 to the new supplier. A supplier with sub-agreements cannot be deleted.

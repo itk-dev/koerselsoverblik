@@ -7,8 +7,8 @@ See the [rules for plans](README.md#rules).
 ## Implementation
 
 - Add `StopRowRepository::countMeasuredStopsByLocation()` next to `countMeasuredStops()`. Use
-  the same filters, plus `locationName IS NOT NULL`. The same filters include
-  `subAgreement.ignored = false`, so an ignored sub-agreement adds no locations.
+  the same filters, plus `locationName IS NOT NULL`. Call `IgnoredSubAgreementFilter::apply()`,
+  so that an ignored sub-agreement adds no locations.
 - Add `LocationPunctualityDto` with the location name and a `PunctualityCountDto`.
 - Add `PunctualityCalculator::worstLocations()`. Sum the rows for each location, and sort as
   `worstRoutes()` does.

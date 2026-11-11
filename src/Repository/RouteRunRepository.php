@@ -49,8 +49,7 @@ class RouteRunRepository extends ServiceEntityRepository
      */
     public function countRunFigures(DateRangeDto $range, int $onTimeSeconds, int $upTo15Seconds, int $upTo30Seconds): array
     {
-        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
-        $rows = $this->createQueryBuilder('run')
+        $builder = $this->createQueryBuilder('run')
             ->select(
                 'IDENTITY(run.route) AS route',
                 'run.serviceDate AS serviceDate',
@@ -62,16 +61,16 @@ class RouteRunRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN run.lastDropDelaySeconds > :upTo15 AND run.lastDropDelaySeconds <= :upTo30 THEN 1 ELSE 0 END) AS lastDropUpTo30',
                 'SUM(CASE WHEN run.lastDropDelaySeconds > :upTo30 THEN 1 ELSE 0 END) AS lastDropOver30',
             )
-            ->join('run.route', 'runRoute')
-            ->join('runRoute.subAgreement', 'subAgreement')
             ->where('run.serviceDate BETWEEN :first AND :last')
-            ->andWhere('subAgreement.ignored = false')
             ->groupBy('run.route, run.serviceDate')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
             ->setParameter('onTime', $onTimeSeconds)
             ->setParameter('upTo15', $upTo15Seconds)
-            ->setParameter('upTo30', $upTo30Seconds)
+            ->setParameter('upTo30', $upTo30Seconds);
+
+        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
+        $rows = IgnoredSubAgreementFilter::apply($builder, 'run.route')
             ->getQuery()
             ->getArrayResult();
 

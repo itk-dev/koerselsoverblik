@@ -74,8 +74,7 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function countMeasuredStops(DateRangeDto $range, int $onTimeSeconds): array
     {
-        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
-        $rows = $this->createQueryBuilder('row')
+        $builder = $this->createQueryBuilder('row')
             ->select(
                 'IDENTITY(row.route) AS route',
                 'row.serviceDate AS serviceDate',
@@ -83,17 +82,17 @@ class StopRowRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN row.delaySeconds <= :onTime THEN 1 ELSE 0 END) AS onTime',
                 'COUNT(row.id) AS measured',
             )
-            ->join('row.route', 'stopRoute')
-            ->join('stopRoute.subAgreement', 'subAgreement')
             ->where('row.serviceDate BETWEEN :first AND :last')
             ->andWhere('row.stopStatus = :completed')
             ->andWhere('row.delaySeconds IS NOT NULL')
-            ->andWhere('subAgreement.ignored = false')
             ->groupBy('row.route, row.serviceDate, row.stopType')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
             ->setParameter('completed', StopStatus::Completed)
-            ->setParameter('onTime', $onTimeSeconds)
+            ->setParameter('onTime', $onTimeSeconds);
+
+        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
+        $rows = IgnoredSubAgreementFilter::apply($builder, 'row.route')
             ->getQuery()
             ->getArrayResult();
 

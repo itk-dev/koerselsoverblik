@@ -164,6 +164,8 @@ final class SubAgreementAdminTest extends WebTestCase
         ]);
         $this->client->followRedirect();
         self::assertSelectorTextContains('[data-test="ignored"]', 'Ignoreret');
+        // The routes are not in the figures, so they do not show as "Ukendt".
+        self::assertSelectorTextNotContains('[data-test="supplier"]', 'Ukendt');
 
         $crawler = $this->client->request('GET', '/admin/sub-agreements');
 

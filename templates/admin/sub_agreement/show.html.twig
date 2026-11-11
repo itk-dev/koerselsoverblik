@@ -10,7 +10,15 @@
     {% endif %}
 
     <h2>{{ 'sub_agreement.supplier'|trans }}</h2>
-    <p data-test="supplier">{{ sub_agreement.supplier ? sub_agreement.supplier.name : 'sub_agreement.no_supplier'|trans }}</p>
+    <p data-test="supplier">
+        {% if sub_agreement.supplier %}
+            {{ sub_agreement.supplier.name }}
+        {% elseif sub_agreement.ignored %}
+            {{ 'sub_agreement.no_supplier_ignored'|trans }}
+        {% else %}
+            {{ 'sub_agreement.no_supplier'|trans }}
+        {% endif %}
+    </p>
     <p><a class="itkaarhus-btn itkaarhus-btn--primary" href="{{ path('admin_sub_agreement_edit', {id: sub_agreement.id}) }}" data-test="sub-agreement-edit">{{ 'sub_agreement.edit'|trans }}</a></p>
 
     <h2>{{ 'sub_agreement.routes'|trans }}</h2>

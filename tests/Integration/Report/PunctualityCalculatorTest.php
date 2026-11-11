@@ -263,6 +263,10 @@ final class PunctualityCalculatorTest extends KernelTestCase
             new SupplierPunctualityDto('Vognmand A', $onTime),
             new SupplierPunctualityDto('Vognmand B', $late),
         ], $report->suppliers);
+        self::assertEquals([
+            new RoutePunctualityDto('I-01', 'Vognmand B', new PunctualityCountDto(0, 1)),
+            new RoutePunctualityDto('A-01', 'Vognmand A', new PunctualityCountDto(1, 1)),
+        ], $report->worstRoutes);
     }
 
     /**

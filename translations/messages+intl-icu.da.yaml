@@ -256,6 +256,7 @@ sub_agreement:
   saved: Delaftalen er gemt.
   supplier: Leverandør
   no_supplier: Ingen leverandør – vises som "Ukendt"
+  no_supplier_ignored: Ingen leverandør
   ignored: Ignorér i beregningerne
   ignored_help: Vognløbene i delaftalen indgår ikke i tallene. Importen gemmer stadig kørselsdata.
   ignored_tag: Ignoreret

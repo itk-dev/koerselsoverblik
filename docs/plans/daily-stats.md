@@ -30,7 +30,8 @@ figures from these rows.
     minutes
 - Add `DailyStatsAggregator::rebuild()`. It finds the supplier of each route from the
   sub-agreement of the route, and replaces the rows of the range.
-- The aggregator skips the routes of an ignored sub-agreement.
+- The aggregator skips the routes of an ignored sub-agreement. Its queries call
+  `IgnoredSubAgreementFilter::apply()`.
 - When the supplier or the ignored flag of a sub-agreement changes, rebuild all dates of the
   routes of the sub-agreement. `SubAgreementController::new()` and `edit()` save both.
 - Add the step to `DrivingDataImporter::import()`, in the same transaction as the other steps.
