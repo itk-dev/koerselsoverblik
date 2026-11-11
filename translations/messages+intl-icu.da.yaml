@@ -52,6 +52,26 @@ overview:
       title: Reelt solo
       body: Andelen af vognløbene, hvor der aldrig var mere end én borger i bilen ad gangen. Det er ikke det samme som planlagt solokørsel. En del af turene er bestilt som samkørsel, men blev alligevel kørt med én borger. Tallet bruger antallet af borgere i bilen efter hvert stop, som ikke er aflyst. Aflyste vognløb indgår ikke.
 
+period:
+  day: "{weekday}. {day}. {month} {year}"
+  week: "Uge {week} · {first}–{last} {year}"
+  month: "{month} {year}"
+  day_short: "{day}. {month}"
+  one_day: "{day}. {month} {year}"
+  days_of_month: "{first}.–{last}. {month} {year}"
+  days: "{first}–{last} {year}"
+  until_today: "{range} (til og med i dag)"
+
+weekday:
+  short:
+    1: man
+    2: tir
+    3: ons
+    4: tor
+    5: fre
+    6: lør
+    7: søn
+
 month:
   previous: Forrige måned
   next: Næste måned

@@ -758,6 +758,20 @@ sequenceDiagram
   period has not ended, the comparison is cut to the same number of days.
 - the 12 trailing months for sparklines and the trend chart
 
+The rules follow the prototype:
+
+- A day is one date. A week is an ISO week, from Monday to Sunday, also across a new year (week
+  53). A month and a year are calendar periods.
+- A period ends today at the latest. A period that has not ended is partial. A day is never
+  partial.
+- The previous and the next period move the anchor date (`d`). The next period has no link when
+  it starts after today.
+- The same day last year of 29 February is 28 February.
+- `PeriodSelectionDto` holds the selected period, the comparison period, the cut comparison
+  range, the links and the 12 months.
+- `PeriodLabeler` gives the Danish labels of the prototype, for example "Uge 38 · 14. sep–20.
+  sep 2026", and the phrase of a partial period: "1.–18. september 2026 (til og med i dag)".
+
 **Calculation:** `KpiCalculator` runs one aggregate query per range and returns a `Kpis` value
 object.
 

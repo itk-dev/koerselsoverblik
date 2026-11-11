@@ -259,3 +259,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and the cancelled trips of each supplier, from `SupplierTableCalculator`.
 - [#118](https://github.com/itk-dev/koerselsoverblik/issues/118)
   No source text names the planning system. The page keeps the name "Rettidighed".
+- [#115](https://github.com/itk-dev/koerselsoverblik/issues/115)
+  The period logic of the filters: `PeriodFilter` reads the period, the date, the comparison and
+  the supplier from the query string. `PeriodRangeFactory` gives the selected period, the
+  comparison period (cut when the period has not ended) and the 12 months. `PeriodLabeler`
+  gives the Danish labels of the prototype. No page uses them yet.
