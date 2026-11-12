@@ -12,9 +12,9 @@ use Symfony\Component\Console\Tester\ExecutionResult;
 
 /**
  * Checks that the command writes the scenario files and the development dataset in the layout of
- * the default mapping.
+ * the default mapping, with one file for each ISO week.
  *
- * Only one test writes all 13 months, because the files are slow to write.
+ * The tests write few months, because a week of the development dataset is slow to write.
  */
 final class DrivingDataFixturesCommandTest extends KernelTestCase
 {
@@ -34,20 +34,47 @@ final class DrivingDataFixturesCommandTest extends KernelTestCase
         }
     }
 
-    public function testCommandWritesTheScenariosAndThirteenMonths(): void
+    /**
+     * January and February 2026 are in the ISO weeks from Monday 29 December 2025 to Monday
+     * 23 February 2026.
+     */
+    public function testCommandWritesTheScenariosAndOneFileForEachWeek(): void
     {
-        $result = self::runFixturesCommand();
+        $result = self::runFixturesCommand(['--months' => '2']);
 
         $this->assertCommandIsSuccessful($result);
-        self::assertStringContainsString('17 files', $result->getDisplay());
+        self::assertStringContainsString('13 files', $result->getDisplay());
 
         $directory = self::directory();
         foreach (['base', 'range_edges', 'bad_values', 'duplicate_row_ids'] as $scenario) {
             self::assertFileExists($directory.'/'.$scenario.'.xlsx');
         }
-        self::assertFileExists($directory.'/dev-2025-02.xlsx');
-        self::assertFileExists($directory.'/dev-2026-02.xlsx');
-        self::assertCount(13, glob($directory.'/dev-*.xlsx') ?: []);
+        $weeks = array_map(basename(...), glob($directory.'/dev-*.xlsx') ?: []);
+        self::assertCount(9, $weeks);
+        self::assertSame('dev-2025-12-29.xlsx', $weeks[0]);
+        self::assertSame('dev-2026-02-23.xlsx', $weeks[8]);
+    }
+
+    public function testPunctualityComesFromTheEnvironment(): void
+    {
+        $result = self::runFixturesCommand(['--months' => '1']);
+
+        self::assertStringContainsString('Punctuality: 65 % in the first month, +2.5 percentage points for each month.', $result->getDisplay());
+    }
+
+    public function testOptionsOverrideThePunctuality(): void
+    {
+        $result = self::runFixturesCommand(['--months' => '1', '--punctuality-start' => '80', '--punctuality-trend' => '-1.5']);
+
+        self::assertStringContainsString('Punctuality: 80 % in the first month, -1.5 percentage points for each month.', $result->getDisplay());
+    }
+
+    public function testPunctualityOutsideZeroToHundredIsRejected(): void
+    {
+        $result = self::runFixturesCommand(['--punctuality-start' => '101']);
+
+        $this->assertCommandIsInvalid($result);
+        self::assertStringContainsString('from 0 to 100', $result->getDisplay());
     }
 
     public function testBaseFileHasTheLayoutOfTheDefaultMapping(): void
@@ -64,13 +91,16 @@ final class DrivingDataFixturesCommandTest extends KernelTestCase
         self::assertCount(14, array_slice($rows, 3));
     }
 
-    public function testNextRunReplacesTheMonthsOfTheEarlierRun(): void
+    /**
+     * May 2026 is in the ISO weeks from Monday 27 April to Monday 25 May.
+     */
+    public function testNextRunReplacesTheWeeksOfTheEarlierRun(): void
     {
-        self::runFixturesCommand(['--months' => '2']);
-        self::runFixturesCommand(['--months' => '2', '--last-month' => '2026-05']);
+        self::runFixturesCommand(['--months' => '1']);
+        self::runFixturesCommand(['--months' => '1', '--last-month' => '2026-05']);
 
         self::assertSame(
-            ['dev-2026-04.xlsx', 'dev-2026-05.xlsx'],
+            ['dev-2026-04-27.xlsx', 'dev-2026-05-04.xlsx', 'dev-2026-05-11.xlsx', 'dev-2026-05-18.xlsx', 'dev-2026-05-25.xlsx'],
             array_map(basename(...), glob(self::directory().'/dev-*.xlsx') ?: []),
         );
     }
@@ -98,7 +128,9 @@ final class DrivingDataFixturesCommandTest extends KernelTestCase
         $result = self::runCommand('app:fixtures:driving-data', ['--months' => '1']);
 
         $this->assertCommandIsSuccessful($result);
-        self::assertSame(['dev-2026-07.xlsx'], array_map(basename(...), glob(self::directory().'/dev-*.xlsx') ?: []));
+        $weeks = array_map(basename(...), glob(self::directory().'/dev-*.xlsx') ?: []);
+        self::assertSame('dev-2026-06-29.xlsx', $weeks[0]);
+        self::assertSame('dev-2026-07-27.xlsx', end($weeks));
     }
 
     public function testLastMonthThatIsNotYearAndMonthIsRejected(): void

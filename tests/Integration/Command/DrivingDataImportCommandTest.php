@@ -185,7 +185,7 @@ final class DrivingDataImportCommandTest extends KernelTestCase
         yield 'a first date that does not exist' => [['from-date' => '2026-02-30', 'to-date' => '2026-03-01'], 'The first date must be a valid date as YYYY-MM-DD.'];
         yield 'a last date that is not a date' => [['from-date' => '2026-01-05', 'to-date' => 'tomorrow'], 'The last date must be a valid date as YYYY-MM-DD.'];
         yield 'a last date before the first date' => [['from-date' => '2026-01-05', 'to-date' => '2026-01-04'], 'The last date is before the first date.'];
-        yield 'a range that is too long' => [['from-date' => '2026-01-01', 'to-date' => '2026-02-01'], 'The range has more than 31 days.'];
+        yield 'a range that is too long' => [['from-date' => '2026-01-01', 'to-date' => '2026-01-08'], 'The range has more than 7 days.'];
     }
 
     public function testUnknownMappingIsRejected(): void

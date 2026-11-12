@@ -21,7 +21,7 @@ final class ExtractLimitsTest extends KernelTestCase
         $container = self::getContainer();
 
         self::assertSame(20_971_520, $container->getParameter('app.driving_data_max_file_size'));
-        self::assertSame(52_428_800, $container->getParameter('app.driving_data_max_uncompressed_size'));
+        self::assertSame(104_857_600, $container->getParameter('app.driving_data_max_uncompressed_size'));
         self::assertSame(50_000, $container->getParameter('app.driving_data_max_rows'));
         self::assertSame(200, $container->getParameter('app.driving_data_max_columns'));
     }

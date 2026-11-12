@@ -77,26 +77,28 @@ tasks:
           CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
 
   fixtures:extracts:
-    desc: 'Write the test scenarios and 13 months of invented driving data to var/fixtures/driving_data/ — `task fixtures:extracts -- --seed=2`'
+    desc: 'Write the test scenarios and 13 months of invented driving data, one file for each week, to var/fixtures/driving_data/ — `task fixtures:extracts -- --seed=2 --punctuality-start=80 --punctuality-trend=-1`'
     cmds:
       - '{{ .CONSOLE }} app:fixtures:driving-data {{ .CLI_ARGS }}'
 
   fixtures:import:
-    desc: 'Write the extracts, and import each month of invented driving data into the database — `task fixtures:import -- --seed=2`'
+    desc: 'Write the extracts, import each week of invented driving data into the database, and give the sub-agreements their invented suppliers — `task fixtures:import -- --seed=2`'
     cmds:
       - task: fixtures:extracts
-      - task: fixtures:import:months
+      - task: fixtures:import:weeks
+      - '{{ .CONSOLE }} app:fixtures:suppliers'
 
-  fixtures:import:months:
+  fixtures:import:weeks:
     internal: true
-    # The task reads the months from the file names after fixtures:extracts has written them.
+    # The task reads the Mondays from the file names after fixtures:extracts has written them.
     vars:
-      MONTHS:
+      WEEKS:
         sh: ls var/fixtures/driving_data | sed -n 's/^dev-\(.*\)\.xlsx$/\1/p'
     cmds:
-      # The range of each file is the first and the last date of its month.
-      - for: { var: MONTHS }
-        cmd: '{{ .CONSOLE }} app:driving-data:import var/fixtures/driving_data/dev-{{ .ITEM }}.xlsx {{ .ITEM }}-01 {{ ((toDate "2006-01-02" (print .ITEM "-01")).AddDate 0 1 -1).Format "2006-01-02" }} --no-interaction'
+      # The range of each file is its Monday to its Sunday. With debug, the import of a week
+      # uses more memory than the container has.
+      - for: { var: WEEKS }
+        cmd: '{{ .CONSOLE }} app:driving-data:import var/fixtures/driving_data/dev-{{ .ITEM }}.xlsx {{ .ITEM }} {{ ((toDate "2006-01-02" .ITEM).AddDate 0 0 6).Format "2006-01-02" }} --no-interaction --no-debug'
 
   # --------------------------------------------------------------- Tests ---
 

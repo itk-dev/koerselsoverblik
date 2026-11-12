@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Clock\LocalCalendar;
+use App\DataFixtures\DrivingData\DatasetSettings;
 use App\DataFixtures\DrivingData\DevDatasetGenerator;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
@@ -37,6 +38,10 @@ final readonly class DrivingDataFixturesCommand
         private string $scenarioDirectory,
         #[Autowire('%kernel.project_dir%/var/fixtures/driving_data')]
         private string $outputDirectory,
+        #[Autowire(env: 'float:APP_FIXTURES_PUNCTUALITY_START')]
+        private float $punctualityStart,
+        #[Autowire(env: 'float:APP_FIXTURES_PUNCTUALITY_TREND')]
+        private float $punctualityTrend,
     ) {
     }
 
@@ -48,9 +53,20 @@ final readonly class DrivingDataFixturesCommand
         ?string $lastMonth = null,
         #[Option('The number of months in the development dataset')]
         int $months = self::MONTHS,
+        #[Option('The share in percent of the runs with an on-time last drop-off in the first month. The default is APP_FIXTURES_PUNCTUALITY_START')]
+        ?float $punctualityStart = null,
+        #[Option('The change of the punctuality in percentage points for each month. The default is APP_FIXTURES_PUNCTUALITY_TREND')]
+        ?float $punctualityTrend = null,
     ): int {
         if ($months < 1) {
             $io->error('The number of months must be at least 1.');
+
+            return Command::INVALID;
+        }
+        $punctualityStart ??= $this->punctualityStart;
+        $punctualityTrend ??= $this->punctualityTrend;
+        if ($punctualityStart < 0 || $punctualityStart > 100) {
+            $io->error('The punctuality must be from 0 to 100.');
 
             return Command::INVALID;
         }
@@ -79,11 +95,17 @@ final readonly class DrivingDataFixturesCommand
             $this->writer->write($this->outputDirectory.'/'.$scenario->name.'.xlsx', $mapping, $scenario->rows, $scenario->omittedFields);
             ++$files;
         }
-        for ($month = $last->modify(\sprintf('-%d months', $months - 1)); $month <= $last; $month = $month->modify('+1 month')) {
-            $this->writer->write($this->outputDirectory.'/dev-'.$month->format('Y-m').'.xlsx', $mapping, $this->generator->month($seed, $month));
+        // One file for each ISO week, from Monday to Sunday, as a user uploads the data. The weeks
+        // cover all days of the months.
+        $first = $last->modify(\sprintf('-%d months', $months - 1));
+        $settings = new DatasetSettings($seed, $first, $punctualityStart, $punctualityTrend);
+        $end = $last->modify('first day of next month');
+        for ($monday = $first->modify('monday this week'); $monday < $end; $monday = $monday->modify('+7 days')) {
+            $this->writer->write($this->outputDirectory.'/dev-'.$monday->format('Y-m-d').'.xlsx', $mapping, $this->generator->week($settings, $monday));
             ++$files;
         }
 
+        $io->text(\sprintf('Punctuality: %s %% in the first month, %+.1f percentage points for each month.', (string) round($punctualityStart, 1), $punctualityTrend));
         $io->success(\sprintf('Wrote %d files to %s.', $files, $this->outputDirectory));
 
         return Command::SUCCESS;
