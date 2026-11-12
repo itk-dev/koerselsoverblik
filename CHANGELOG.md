@@ -266,3 +266,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   can leave copies with no row. The new command `app:driving-data:delete-orphan-copies` deletes
   them, and a cron job runs it each night. The two plans for the deletes are one plan, and the
   driving data plans are in the order of the work.
+- [#75](https://github.com/itk-dev/koerselsoverblik/issues/75)
+  Read the remaining prototype fields from the extract: the optional fields `passengers`,
+  `price_per_minute`, `cancellation_notice_min`, `cancellation_in_time` and `location_name`.
+  `StopRow` stores them in five new columns. The `default` mapping reads them as fields, and no
+  longer has their columns in `keep_columns`. The validate command shows the location name as
+  `(hidden)`.

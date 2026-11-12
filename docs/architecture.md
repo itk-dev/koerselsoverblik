@@ -290,6 +290,11 @@ erDiagram
         datetime actual_time
         int delay_seconds "actual_time minus planned_time, null = no actual time"
         bool planned_solo
+        int passengers "before the cancellations are removed"
+        float price_per_minute
+        float cancellation_notice_min "negative = after the planned time"
+        bool cancellation_in_time
+        string location_name "the institution, never shown with person_id"
         string person_id "from the extract (ADR 004)"
         int source_row_id FK "unique, the copy of the row (ADR 006)"
         int import_batch_id FK
@@ -546,6 +551,11 @@ permitted, for example "7 of 80 runs".
 | `planned_time` | `PlannedDeparture` | Excel time, `[hh]:mm:ss` | A wall-clock time on `service_date`. Can be 24:00 or more (see [Times](#times)). |
 | `actual_time` | `StatusUpdateTime` | Excel date and time | Empty when the stop has no registration. |
 | `planned_solo` | `kørselstype` | text code | Two codes: solo and shared. |
+| `passengers` | `passengers` | integer | The passengers after the stop, before the cancellations are removed. |
+| `price_per_minute` | `prisprminut` | decimal | The price per minute, for the cost of empty running. |
+| `cancellation_notice_min` | `aflysningsvarsel` | decimal | The notice of a cancellation. Negative when the cancellation came after the planned time. The unit is not confirmed. |
+| `cancellation_in_time` | `RettidigAflysningsvarsel` | text code | Two codes: in time and not in time. The meaning is not confirmed. |
+| `location_name` | `Placename` | text | The institution of a trip. Empty in the reference extract. Never shown with a person id, or written to a log or to the output of a command. |
 
 **Why the planned time comes from `PlannedDeparture`:** the extract has a planned arrival
 (`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The departure is
@@ -562,14 +572,10 @@ row, but not the personal data. For example:
 
 - the ids of trips, trip requests, routes, addresses, locations, places and paths
 - the requested times, the service times, the planned arrival and the planned activity times
-- the cancellation columns: the cancellation id, the time of the cancellation, the notice in
-  minutes (negative when the cancellation came after the planned time), and whether the notice
-  was in time
-- `prisprminut`, the price per minute, for the cost of empty running
-- `passengers`, the passengers after the stop before the cancellations are removed
-- `blokstart` and `blokslut`, and `Placename`, the institution of a trip
+- the cancellation id and the time of the cancellation
+- `blokstart` and `blokslut`
 
-Milestone 2 can add typed fields for these columns, and fill them from the copies.
+A later feature can add typed fields for these columns, and fill them from the copies.
 
 **Columns that are never kept:** the personal data. `PersonName`, `Adresse`, `Post-nr` and `By`
 identify a citizen. `Labels` and `Comment` can hold the needs of a citizen or free text, and that
