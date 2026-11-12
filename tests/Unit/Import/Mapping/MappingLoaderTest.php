@@ -77,7 +77,7 @@ final class MappingLoaderTest extends TestCase
         );
 
         self::assertSame(
-            ['Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo'],
+            ['Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Booked', 'Price', 'Notice', 'InTime', 'Place'],
             $columns,
         );
     }

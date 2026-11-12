@@ -200,7 +200,7 @@ final readonly class DevDatasetGenerator
                 'person' => \is_string($citizen) ? $citizen : \sprintf('P-%05d', $routeIndex * self::CITIZENS_PER_ROUTE + $citizen),
                 'status' => $chance <= self::CANCELLED ? 'cancelled' : ($chance <= self::CANCELLED + self::PENDING ? 'pending' : 'completed'),
                 'notice' => round($random->getFloat(-600.0, 600.0), 1),
-                'in time' => $random->getInt(1, 100) <= 60 ? 'yes' : 'no',
+                'in time' => $random->getInt(1, 100) <= 60,
             ];
         }
         $solo = $random->getInt(1, 100) <= 5;
@@ -244,13 +244,11 @@ final readonly class DevDatasetGenerator
                         'planned_time' => new \DateInterval(\sprintf('PT%dH%dM', intdiv($minutes, 60), $minutes % 60)),
                         'actual_time' => 'completed' === $status ? $day->modify(\sprintf('%+d seconds', $minutes * 60 + $delay)) : null,
                         'planned_solo' => $solo,
-                    ],
-                    kept: [
                         'passengers' => $planned,
-                        'prisprminut' => $price,
-                        'aflysningsvarsel' => $cancelled ? $trip['notice'] : null,
-                        'RettidigAflysningsvarsel' => $cancelled ? $trip['in time'] : 'no',
-                        'Placename' => ('drop_off' === $type) === $toSchool ? $place : null,
+                        'price_per_minute' => $price,
+                        'cancellation_notice_min' => $cancelled ? $trip['notice'] : null,
+                        'cancellation_in_time' => $cancelled && $trip['in time'],
+                        'location_name' => ('drop_off' === $type) === $toSchool ? $place : null,
                     ],
                 );
                 $minutes += 'pickup' === $type ? $random->getInt(4, 14) : $random->getInt(2, 8);

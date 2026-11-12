@@ -79,7 +79,7 @@ feature that has an issue or an issue text.
 | Filter the punctuality page and the overview by supplier | In progress | [#117](https://github.com/itk-dev/koerselsoverblik/issues/117) | – | [filters.md](filters.md) |
 | Remove the planning system from the source texts | In progress | [#118](https://github.com/itk-dev/koerselsoverblik/issues/118) | – | – |
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
-| Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #75, #117 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
+| Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #117 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
 | Calculate the 12 months in one query | Blocked | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | #115 | [punctuality-months-query.md](punctuality-months-query.md) |
 | Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
 | Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
@@ -92,7 +92,6 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Read the remaining prototype fields from the extract | Ready | [#75](https://github.com/itk-dev/koerselsoverblik/issues/75) | – | [prototype-fields.md](prototype-fields.md) |
 | Show the uploaded dates and clear the driving data of a date | Ready | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – | [clear-dates.md](clear-dates.md) |
 | Show the imported stop rows and rejected rows of a date range | Ready | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – | [driving-data-view.md](driving-data-view.md) |
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
@@ -149,3 +148,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Make the development dataset realistic | [#101](https://github.com/itk-dev/koerselsoverblik/issues/101) | [#107](https://github.com/itk-dev/koerselsoverblik/pull/107) |
 | Keep the copy of a row in its own entity | [#95](https://github.com/itk-dev/koerselsoverblik/issues/95) | [#124](https://github.com/itk-dev/koerselsoverblik/pull/124) |
 | Delete the rows of a range in the repositories, and only their copies | [#126](https://github.com/itk-dev/koerselsoverblik/issues/126) | [#127](https://github.com/itk-dev/koerselsoverblik/pull/127) |
+| Read the remaining prototype fields from the extract | [#75](https://github.com/itk-dev/koerselsoverblik/issues/75) | [#130](https://github.com/itk-dev/koerselsoverblik/pull/130) |

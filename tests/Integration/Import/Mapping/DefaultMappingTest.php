@@ -29,9 +29,9 @@ final class DefaultMappingTest extends KernelTestCase
         self::assertSame(3, $mapping->headerRow);
         self::assertSame(['RouteStopID'], $mapping->rowId);
         // The copy of a row keeps the other columns, but never the personal data (ADR 004).
-        self::assertCount(43, $mapping->keepColumns);
+        self::assertCount(38, $mapping->keepColumns);
         self::assertContains('PlannedArrival', $mapping->keepColumns);
-        self::assertContains('prisprminut', $mapping->keepColumns);
+        self::assertContains('blokstart', $mapping->keepColumns);
         // The mapping names the personal columns that it leaves out on purpose.
         self::assertSame(['PersonName', 'Adresse', 'Post-nr', 'By', 'Labels', 'Comment'], $mapping->excludeColumns);
         self::assertFalse($mapping->field(FieldName::PlannedSolo)->required);
@@ -44,6 +44,12 @@ final class DefaultMappingTest extends KernelTestCase
         self::assertSame(['cancelled', 'completed', 'pending'], self::sortedValues($mapping->field(FieldName::StopStatus)->valueMap));
         self::assertCount(1, $mapping->field(FieldName::PlannedSolo)->trueValues);
         self::assertCount(1, $mapping->field(FieldName::PlannedSolo)->falseValues);
+        // The fields of the prototype are optional, so that a bad value does not reject the row.
+        foreach ([FieldName::Passengers, FieldName::PricePerMinute, FieldName::CancellationNoticeMin, FieldName::CancellationInTime, FieldName::LocationName] as $name) {
+            self::assertFalse($mapping->field($name)->required, $name->value);
+        }
+        self::assertSame('Placename', $mapping->field(FieldName::LocationName)->column);
+        self::assertSame(FieldType::Bool, $mapping->field(FieldName::CancellationInTime)->type);
     }
 
     /**

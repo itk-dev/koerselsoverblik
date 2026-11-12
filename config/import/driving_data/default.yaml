@@ -37,15 +37,10 @@ keep_columns:
     - StatusClickDeviation
     - DirectPathDuration
     - DirectPathDistance
-    - prisprminut
-    - passengers
     - aflysningstidspunkt
-    - aflysningsvarsel
-    - RettidigAflysningsvarsel
     - rutestartet
     - blokstart
     - blokslut
-    - Placename
     - StartTidspunkt
     - SlutTidspunkt
     - tidspunkt
@@ -87,3 +82,18 @@ fields:
         type: bool
         true_values: [Solo]
         false_values: [Samkørsel]
+    # The passengers after the stop, before the cancellations are removed.
+    passengers: { column: passengers, type: int }
+    price_per_minute: { column: prisprminut, type: float }
+    # The minutes from the cancellation to the planned time. A negative value is a cancellation
+    # after the planned time. The unit is not confirmed.
+    cancellation_notice_min: { column: aflysningsvarsel, type: float }
+    # The meaning of the value is not confirmed.
+    cancellation_in_time:
+        column: RettidigAflysningsvarsel
+        type: bool
+        true_values: ["yes"]
+        false_values: ["no"]
+    # The institution of the trip. Never show it with a person id, or write it to a log or to the
+    # output of a command.
+    location_name: { column: Placename, type: string }

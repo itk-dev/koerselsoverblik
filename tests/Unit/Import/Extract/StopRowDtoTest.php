@@ -39,6 +39,11 @@ final class StopRowDtoTest extends TestCase
         self::assertLocal('2026-01-05 07:12:00', $row->actualTime);
         self::assertSame(120, $row->delaySeconds);
         self::assertTrue($row->plannedSolo);
+        self::assertSame(3, $row->passengers);
+        self::assertSame(4.25, $row->pricePerMinute);
+        self::assertSame(-12.5, $row->cancellationNoticeMin);
+        self::assertFalse($row->cancellationInTime);
+        self::assertSame('Skole 1', $row->locationName);
     }
 
     public function testEmptyValuesGiveNull(): void
@@ -50,6 +55,11 @@ final class StopRowDtoTest extends TestCase
         $values['next_duration_min'] = null;
         $values['actual_time'] = null;
         $values['planned_solo'] = null;
+        $values['passengers'] = null;
+        $values['price_per_minute'] = null;
+        $values['cancellation_notice_min'] = null;
+        $values['cancellation_in_time'] = null;
+        $values['location_name'] = null;
 
         $row = self::fromValues($values);
 
@@ -61,6 +71,11 @@ final class StopRowDtoTest extends TestCase
         self::assertNull($row->actualTime);
         self::assertNull($row->delaySeconds);
         self::assertNull($row->plannedSolo);
+        self::assertNull($row->passengers);
+        self::assertNull($row->pricePerMinute);
+        self::assertNull($row->cancellationNoticeMin);
+        self::assertNull($row->cancellationInTime);
+        self::assertNull($row->locationName);
     }
 
     /**
@@ -257,6 +272,11 @@ final class StopRowDtoTest extends TestCase
             'planned_time' => new \DateTimeImmutable('2026-01-05 07:10'),
             'actual_time' => new \DateTimeImmutable('2026-01-05 07:12'),
             'planned_solo' => true,
+            'passengers' => 3,
+            'price_per_minute' => 4.25,
+            'cancellation_notice_min' => -12.5,
+            'cancellation_in_time' => false,
+            'location_name' => 'Skole 1',
         ];
     }
 }

@@ -26,6 +26,11 @@ use App\Import\Mapping\StopType;
  *     planned_time: \DateInterval|\DateTimeImmutable,
  *     actual_time: \DateInterval|\DateTimeImmutable|null,
  *     planned_solo: ?bool,
+ *     passengers: ?int,
+ *     price_per_minute: ?float,
+ *     cancellation_notice_min: ?float,
+ *     cancellation_in_time: ?bool,
+ *     location_name: ?string,
  * }
  *
  * @phpstan-import-type SourceValue from SourceCells
@@ -41,9 +46,12 @@ final readonly class StopRowDto
 
     /**
      * @param int                           $rowNumber    the 1-based row number in the sheet
-     * @param ?string                       $rowKey       the values of the row id columns, or null if the mapping has no row id
-     * @param array<array-key, SourceValue> $sourceValues the copy of the row, keyed by the column name
-     * @param list<FieldWarningDto>         $warnings     the optional fields with a value that the parser cannot read
+     * @param ?string                       $rowKey                the values of the row id columns, or null if the mapping has no row id
+     * @param ?int                          $passengers            the passengers after the stop, before the cancellations are removed
+     * @param ?float                        $cancellationNoticeMin the minutes from the cancellation to the planned time. A negative value is a cancellation after the planned time
+     * @param ?string                       $locationName          the institution of the trip, never the address of a citizen
+     * @param array<array-key, SourceValue> $sourceValues          the copy of the row, keyed by the column name
+     * @param list<FieldWarningDto>         $warnings              the optional fields with a value that the parser cannot read
      */
     public function __construct(
         public int $rowNumber,
@@ -60,6 +68,11 @@ final readonly class StopRowDto
         public \DateTimeImmutable $plannedTime,
         public ?\DateTimeImmutable $actualTime,
         public ?bool $plannedSolo,
+        public ?int $passengers,
+        public ?float $pricePerMinute,
+        public ?float $cancellationNoticeMin,
+        public ?bool $cancellationInTime,
+        public ?string $locationName,
         public array $sourceValues = [],
         public array $warnings = [],
     ) {
@@ -93,6 +106,11 @@ final readonly class StopRowDto
             plannedTime: self::moment($values['planned_time'], $serviceDate),
             actualTime: null === $values['actual_time'] ? null : self::moment($values['actual_time'], $serviceDate),
             plannedSolo: $values['planned_solo'],
+            passengers: $values['passengers'],
+            pricePerMinute: $values['price_per_minute'],
+            cancellationNoticeMin: $values['cancellation_notice_min'],
+            cancellationInTime: $values['cancellation_in_time'],
+            locationName: $values['location_name'],
             sourceValues: $sourceValues,
             warnings: $warnings,
         );

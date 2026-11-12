@@ -164,6 +164,27 @@ final class DrivingDataImporterTest extends KernelTestCase
     }
 
     /**
+     * The import stores the fields of the prototype in their own columns.
+     */
+    public function testImportStoresTheFieldsOfThePrototype(): void
+    {
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        $values['passengers'] = 2;
+        $values['price_per_minute'] = 4.25;
+        $values['cancellation_notice_min'] = -12.5;
+        $values['cancellation_in_time'] = true;
+        $values['location_name'] = 'Skole 7';
+        new ExtractWriter()->write($this->path, $this->mapping(), [new ExtractRow($values)]);
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'prototype.xlsx');
+
+        self::assertEquals(
+            ['passengers' => 2, 'price_per_minute' => 4.25, 'cancellation_notice_min' => -12.5, 'cancellation_in_time' => 1, 'location_name' => 'Skole 7'],
+            $this->entityManager->getConnection()->fetchAssociative('SELECT passengers, price_per_minute, cancellation_notice_min, cancellation_in_time, location_name FROM stop_row'),
+        );
+    }
+
+    /**
      * The import builds the route runs of the range in the same transaction. A second import of
      * the same range builds them again.
      */
