@@ -26,8 +26,11 @@
                         <td>
                             {% if sub_agreement.supplier %}
                                 {{ sub_agreement.supplier.name }}
-                            {% else %}
+                            {% elseif not sub_agreement.ignored %}
                                 <span class="itkaarhus-tag itkaarhus-tag--warning" data-test="no-supplier">{{ 'sub_agreement.no_supplier'|trans }}</span>
+                            {% endif %}
+                            {% if sub_agreement.ignored %}
+                                <span class="itkaarhus-tag itkaarhus-tag--neutral" data-test="ignored">{{ 'sub_agreement.ignored_tag'|trans }}</span>
                             {% endif %}
                         </td>
                     </tr>
