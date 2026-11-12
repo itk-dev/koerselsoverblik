@@ -25,7 +25,7 @@ final class SubAgreementController extends AbstractController
     public function index(SubAgreementRepository $subAgreements): Response
     {
         return $this->render('admin/sub_agreement/index.html.twig', [
-            'sub_agreements' => $subAgreements->findAllWithoutSupplierFirst(),
+            'sub_agreements' => $subAgreements->findAllNeedingSupplierFirst(),
         ]);
     }
 

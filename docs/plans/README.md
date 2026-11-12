@@ -70,6 +70,7 @@ feature that has an issue or an issue text.
 | Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
 | Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
 | Fix the month chooser, the chart labels and the number format | Ready | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | – | – |
+| Show the ignored sub-agreements on the punctuality page | Ready | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | – | [ignored-sub-agreements-note.md](ignored-sub-agreements-note.md) |
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
 
@@ -86,12 +87,6 @@ feature that has an issue or an issue text.
 | Make the development dataset realistic | Ready | [#101](https://github.com/itk-dev/koerselsoverblik/issues/101) | – | [realistic-dev-dataset.md](realistic-dev-dataset.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
-
-### Suppliers and sub-agreements
-
-| Feature | Status | Issue | Needs | Plan |
-| --- | --- | --- | --- | --- |
-| Ignore a sub-agreement in the figures | Ready | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | – | [ignore-sub-agreements.md](ignore-sub-agreements.md) |
 
 ### Release
 
@@ -138,3 +133,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Upload driving data with a preview | [#79](https://github.com/itk-dev/koerselsoverblik/issues/79) | [#80](https://github.com/itk-dev/koerselsoverblik/pull/80) |
 | Give each Infection thread its own test database | [#83](https://github.com/itk-dev/koerselsoverblik/issues/83) | [#84](https://github.com/itk-dev/koerselsoverblik/pull/84) |
 | Give each sub-agreement one supplier | [#91](https://github.com/itk-dev/koerselsoverblik/issues/91) | [#93](https://github.com/itk-dev/koerselsoverblik/pull/93) |
+| Ignore a sub-agreement in the figures | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | [#94](https://github.com/itk-dev/koerselsoverblik/pull/94) |
