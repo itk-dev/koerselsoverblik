@@ -24,7 +24,17 @@ final class ExtractWriterTest extends TestCase
 {
     private const string MAPPINGS = __DIR__.'/../../../fixtures/mappings';
 
-    private const array HEADER = ['Id', 'Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Note', 'Trip', 'Name'];
+    private const array HEADER = ['Id', 'Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Booked', 'Price', 'Notice', 'InTime', 'Place', 'Note', 'Trip', 'Name'];
+
+    /**
+     * The index of the first kept column, "Note".
+     */
+    private const int FIRST_KEPT = 18;
+
+    /**
+     * The index of the excluded column, "Name".
+     */
+    private const int EXCLUDED = 20;
 
     private string $path = '';
 
@@ -60,7 +70,7 @@ final class ExtractWriterTest extends TestCase
 
         self::assertCount(1, $rows);
         // The mapping has no kept columns.
-        self::assertSame(array_slice(self::HEADER, 1, 12), $rows[0]);
+        self::assertSame(array_slice(self::HEADER, 1, self::FIRST_KEPT - 1), $rows[0]);
     }
 
     public function testKeptColumnsHaveTheValuesOfTheRow(): void
@@ -71,8 +81,8 @@ final class ExtractWriterTest extends TestCase
         ]);
 
         $rows = $this->readSheet(1);
-        self::assertSame(['first', 7], array_slice($rows[2], 13, 2));
-        self::assertSame(['', ''], array_slice($rows[3], 13, 2));
+        self::assertSame(['first', 7], array_slice($rows[2], self::FIRST_KEPT, 2));
+        self::assertSame(['', ''], array_slice($rows[3], self::FIRST_KEPT, 2));
     }
 
     /**
@@ -83,8 +93,8 @@ final class ExtractWriterTest extends TestCase
         new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow(self::values())]);
 
         $rows = $this->readSheet(1);
-        self::assertSame('Name', $rows[1][15]);
-        self::assertSame('', $rows[2][15]);
+        self::assertSame('Name', $rows[1][self::EXCLUDED]);
+        self::assertSame('', $rows[2][self::EXCLUDED]);
     }
 
     /**
@@ -190,8 +200,8 @@ final class ExtractWriterTest extends TestCase
         new ExtractWriter()->write($this->path, self::mapping('valid'), [new ExtractRow(self::values())], [FieldName::PlannedSolo]);
 
         $rows = $this->readSheet(1);
-        self::assertSame([...array_slice(self::HEADER, 0, 12), 'Note', 'Trip', 'Name'], $rows[1]);
-        self::assertCount(15, $rows[2]);
+        self::assertSame(array_values(array_diff(self::HEADER, ['Solo'])), $rows[1]);
+        self::assertCount(\count(self::HEADER) - 1, $rows[2]);
     }
 
     public function testValueThatIsNotInTheMapIsRejected(): void

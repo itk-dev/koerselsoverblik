@@ -97,6 +97,11 @@ final class StopRowRepositoryTest extends KernelTestCase
             plannedTime: $date->setTime(7, 10),
             actualTime: null,
             plannedSolo: null,
+            passengers: null,
+            pricePerMinute: null,
+            cancellationNoticeMin: null,
+            cancellationInTime: null,
+            locationName: null,
             sourceValues: ['RouteName' => 'R-01'],
         );
     }

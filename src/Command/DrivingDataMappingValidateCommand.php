@@ -22,7 +22,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Reads a sample file through an import mapping, and shows the result. It changes no data.
  *
- * The output never has a person id (ADR 004) or a value of a rejected row.
+ * The output never has a person id (ADR 004), a location name or a value of a rejected row.
  */
 #[AsCommand(name: 'app:driving-data:mapping:validate', description: 'Validate an import mapping against a sample file')]
 final readonly class DrivingDataMappingValidateCommand
@@ -155,11 +155,21 @@ final readonly class DrivingDataMappingValidateCommand
             $row->nextDurationMin,
             $row->plannedTime->format('Y-m-d H:i:s'),
             $row->actualTime?->format('Y-m-d H:i:s'),
-            match ($row->plannedSolo) {
-                true => 'yes',
-                false => 'no',
-                null => null,
-            },
+            self::yesNo($row->plannedSolo),
+            $row->passengers,
+            $row->pricePerMinute,
+            $row->cancellationNoticeMin,
+            self::yesNo($row->cancellationInTime),
+            null === $row->locationName ? null : self::HIDDEN,
         ];
+    }
+
+    private static function yesNo(?bool $value): ?string
+    {
+        return match ($value) {
+            true => 'yes',
+            false => 'no',
+            null => null,
+        };
     }
 }

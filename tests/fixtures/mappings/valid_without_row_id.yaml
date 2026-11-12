@@ -21,3 +21,12 @@ fields:
     type: bool
     true_values: [Y]
     false_values: [N]
+  passengers: { column: Booked, type: int }
+  price_per_minute: { column: Price, type: float }
+  cancellation_notice_min: { column: Notice, type: float }
+  cancellation_in_time:
+    column: InTime
+    type: bool
+    true_values: [Y]
+    false_values: [N]
+  location_name: { column: Place, type: string }

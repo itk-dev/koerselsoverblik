@@ -65,6 +65,21 @@ class StopRow
     #[ORM\Column(nullable: true)]
     private ?bool $plannedSolo;
 
+    #[ORM\Column(nullable: true)]
+    private ?int $passengers;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $pricePerMinute;
+
+    #[ORM\Column(nullable: true)]
+    private ?float $cancellationNoticeMin;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $cancellationInTime;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $locationName;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $personId;
 
@@ -99,6 +114,11 @@ class StopRow
         $this->actualTime = $row->actualTime;
         $this->delaySeconds = $row->delaySeconds;
         $this->plannedSolo = $row->plannedSolo;
+        $this->passengers = $row->passengers;
+        $this->pricePerMinute = $row->pricePerMinute;
+        $this->cancellationNoticeMin = $row->cancellationNoticeMin;
+        $this->cancellationInTime = $row->cancellationInTime;
+        $this->locationName = $row->locationName;
         $this->personId = $row->personId;
         $this->sourceRow = new SourceRow($row->sourceValues);
     }
@@ -176,6 +196,31 @@ class StopRow
     public function getPlannedSolo(): ?bool
     {
         return $this->plannedSolo;
+    }
+
+    public function getPassengers(): ?int
+    {
+        return $this->passengers;
+    }
+
+    public function getPricePerMinute(): ?float
+    {
+        return $this->pricePerMinute;
+    }
+
+    public function getCancellationNoticeMin(): ?float
+    {
+        return $this->cancellationNoticeMin;
+    }
+
+    public function getCancellationInTime(): ?bool
+    {
+        return $this->cancellationInTime;
+    }
+
+    public function getLocationName(): ?string
+    {
+        return $this->locationName;
     }
 
     public function getPersonId(): ?string

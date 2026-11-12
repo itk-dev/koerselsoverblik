@@ -133,6 +133,27 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     }
 
     /**
+     * The preview shows the fields of the prototype, but hides the location name.
+     */
+    public function testPreviewOfTheFieldsOfThePrototypeHidesTheLocationName(): void
+    {
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        $values['passengers'] = 2;
+        $values['price_per_minute'] = 4.25;
+        $values['cancellation_notice_min'] = -12.5;
+        $values['cancellation_in_time'] = true;
+        $values['location_name'] = 'Skole 7';
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
+
+        $result = $this->validate();
+
+        self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
+        $display = $result->getDisplay();
+        self::assertMatchesRegularExpression('/no\s+2\s+4\.25\s+-12\.5\s+yes\s+\(hidden\)\s*$/m', $display);
+        self::assertStringNotContainsString('Skole 7', $display);
+    }
+
+    /**
      * A row id column can be the person id column. Then the row key has the person id, and the
      * preview hides the row key.
      */

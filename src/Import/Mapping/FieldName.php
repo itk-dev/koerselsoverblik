@@ -21,6 +21,11 @@ enum FieldName: string
     case PlannedTime = 'planned_time';
     case ActualTime = 'actual_time';
     case PlannedSolo = 'planned_solo';
+    case Passengers = 'passengers';
+    case PricePerMinute = 'price_per_minute';
+    case CancellationNoticeMin = 'cancellation_notice_min';
+    case CancellationInTime = 'cancellation_in_time';
+    case LocationName = 'location_name';
 
     /**
      * Gives the types that a mapping can give this field. The parser gives one PHP type for each
@@ -31,12 +36,12 @@ enum FieldName: string
     public function allowedTypes(): array
     {
         return match ($this) {
-            self::Route, self::PersonId, self::StopType, self::StopStatus => [FieldType::String],
+            self::Route, self::PersonId, self::StopType, self::StopStatus, self::LocationName => [FieldType::String],
             self::ServiceDate => [FieldType::Date, FieldType::DateTime],
-            self::Run, self::PassengersAfter => [FieldType::Int],
-            self::NextDistanceKm, self::NextDurationMin => [FieldType::Float],
+            self::Run, self::PassengersAfter, self::Passengers => [FieldType::Int],
+            self::NextDistanceKm, self::NextDurationMin, self::PricePerMinute, self::CancellationNoticeMin => [FieldType::Float],
             self::PlannedTime, self::ActualTime => [FieldType::Time, FieldType::DateTime],
-            self::PlannedSolo => [FieldType::Bool],
+            self::PlannedSolo, self::CancellationInTime => [FieldType::Bool],
         };
     }
 
