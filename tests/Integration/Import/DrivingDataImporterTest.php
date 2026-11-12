@@ -8,6 +8,7 @@ use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\RouteRun;
+use App\Entity\SourceRow;
 use App\Entity\StopRow;
 use App\Entity\User;
 use App\Import\DrivingDataImporter;
@@ -23,6 +24,7 @@ use App\Import\RouteRunCalculator;
 use App\Import\RowIdConflictException;
 use App\Import\StopRowReplacer;
 use App\Repository\RouteRunRepository;
+use App\Repository\SourceRowRepository;
 use App\Repository\StopRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -259,11 +261,13 @@ final class DrivingDataImporterTest extends KernelTestCase
         self::assertInstanceOf(StopRowRepository::class, $stopRows);
         $routeRuns = $this->entityManager->getRepository(RouteRun::class);
         self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
+        $sourceRows = $this->entityManager->getRepository(SourceRow::class);
+        self::assertInstanceOf(SourceRowRepository::class, $sourceRows);
 
         // The container removes a private service that no other service uses yet.
         return new DrivingDataImporter(
             $parser,
-            new StopRowReplacer($this->entityManager, $subAgreements),
+            new StopRowReplacer($this->entityManager, $subAgreements, $sourceRows),
             new RouteBuilder($routeRuns, $stopRows, $this->entityManager, new RouteRunCalculator()),
             $stopRows,
             $this->entityManager,

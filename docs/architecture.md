@@ -234,6 +234,8 @@ erDiagram
     ROUTE ||--o{ STOP_ROW : "has"
     IMPORT_BATCH ||--o{ STOP_ROW : "inserted"
     IMPORT_BATCH ||--o{ REJECTED_STOP_ROW : "rejected"
+    STOP_ROW ||--|| SOURCE_ROW : "copy"
+    REJECTED_STOP_ROW ||--|| SOURCE_ROW : "copy"
     SUPPLIER |o--o{ DAILY_STATS : "aggregated per"
 
     USER {
@@ -289,7 +291,7 @@ erDiagram
         int delay_seconds "actual_time minus planned_time, null = no actual time"
         bool planned_solo
         string person_id "from the extract (ADR 004)"
-        json source_values "the copy of the row (ADR 006)"
+        int source_row_id FK "unique, the copy of the row (ADR 006)"
         int import_batch_id FK
     }
     REJECTED_STOP_ROW {
@@ -299,7 +301,11 @@ erDiagram
         string reason "RejectionReason code"
         string field "null = the row id"
         date service_date "null if the date field is not valid"
-        json source_values "the copy of the row (ADR 006)"
+        int source_row_id FK "unique, the copy of the row (ADR 006)"
+    }
+    SOURCE_ROW {
+        int id PK
+        json source_values "values is a reserved word in MariaDB"
     }
     ROUTE_RUN {
         int id PK
@@ -367,6 +373,7 @@ erDiagram
 | `ImportBatch` | One upload: mapping, file name, who and when, the replaced date range, row counts, and the rejection reasons and warnings as groups of field and reason |
 | `StopRow` | One stop from the extract, with an optional row key from the mapping and the copy of the row. See [open decisions](#open-decisions) |
 | `RejectedStopRow` | A rejected row in the range of its upload, with the row number, the reason and the copy of the row. A later read through a corrected mapping can import it |
+| `SourceRow` | The copy of one row of the extract, for one `StopRow` or one `RejectedStopRow`. See [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row) |
 | `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay. The daily stats add the peak passengers, the distances and the durations. See [open decisions](#open-decisions) |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
@@ -421,7 +428,7 @@ sequenceDiagram
     P-->>C: rows, rejected rows
     C->>DB: begin transaction, create ImportBatch
     C->>U: replace(range, rows)
-    U->>DB: delete the StopRow and RejectedStopRow rows in the range
+    U->>DB: delete the StopRow and RejectedStopRow rows in the range, and their copies
     U->>DB: insert the rows and the rejected rows of the file, with their copies
     Note over U,DB: each date in the range holds only the rows of the file
     U-->>C: ImportResultDto: counts, reasons, warnings, empty dates
@@ -497,6 +504,12 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
   excluded.
 - The copy has the values on purpose. It never goes to a log, a message or the output of the
   validate command.
+- The copy is a `SourceRow` in its own table. `StopRow` and `RejectedStopRow` own the one-to-one
+  relation, so Doctrine gives a lazy object and does not read the copy with the row. `SourceRow`
+  has no relation back, because Doctrine reads an inverse one-to-one side at once.
+- A DQL delete does not cascade. Thus `StopRowReplacer` deletes the rows of the range first, and
+  then calls `SourceRowRepository::deleteOrphans()`. It deletes each copy with no stop row and no
+  rejected row.
 
 ### The reference extract
 
@@ -638,6 +651,7 @@ would only delete data. The batch has no user. The command does not delete the f
      rejected rows with no date of the earlier batches whose whole range is in the new range. Then
      it stores the rejected rows of the file with their copies. A row outside the range is not
      stored, because the upload for its date imports it.
+   - After the deletes, it deletes the `SourceRow` copies with no row.
    - It finds each route by its name, or creates it. A new route finds or creates its
      sub-agreement with `SubAgreementReference`. A new sub-agreement has no supplier, so its
      routes count as "Unknown". MariaDB compares text with no regard to case, so two route names

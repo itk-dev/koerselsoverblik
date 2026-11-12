@@ -8,9 +8,8 @@ See the [rules for plans](README.md#rules).
 
 ### Needs
 
-- #95, [Keep the copy of a row in its own entity](source-row-entity.md). The detail pages read the copy
-  with `getSourceRow()->getValues()`. If this feature starts first, read `getSourceValues()`, and
-  let the later feature change the call.
+- The detail pages read the copy with `getSourceRow()->getValues()`. #95 moved the copy to
+  `SourceRow`. A list query must not read the copies: the relation is lazy, so do not join it.
 - #81 shows the uploaded dates. When both features are merged, link each date of #81 to this page
   with the date as the first and the last date.
 

@@ -64,6 +64,9 @@ upload it again.
 - **Optional fields:** a value that the parser cannot read gives an empty value and a warning, not
   a rejected row. The copy keeps the value. A new code in an optional field then does not reject
   the row.
+- **Storage:** the copy is a `SourceRow` in its own table, with a one-to-one relation from the
+  stop row or the rejected row. Doctrine does not read the copy when it reads a row, so the
+  calculations do not read the JSON.
 
 ## Consequences
 

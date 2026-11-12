@@ -239,5 +239,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   punctuality page that names the ignored sub-agreements). The list does not show an ignored sub-agreement
   with no supplier at the top. The open decision "Booked trips" is answered: an administrator
   ignores "Turbestilling".
+- [#95](https://github.com/itk-dev/koerselsoverblik/issues/95)
+  Keep the copy of a row in its own entity: `SourceRow` holds the copy, and `StopRow` and
+  `RejectedStopRow` refer to it. Doctrine does not read the copy with the row. The replacer
+  deletes the copies with no row after it deletes the rows of a range. The migration does not
+  keep the stored copies, so delete the driving data of a developer database before you migrate
+  it.
 - Mutation testing runs only on the release and hotfix branches. The changed-lines job of the
   pull requests is removed, and `task prepare-code` does not run Infection.
