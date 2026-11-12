@@ -239,3 +239,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   punctuality page that names the ignored sub-agreements). The list does not show an ignored sub-agreement
   with no supplier at the top. The open decision "Booked trips" is answered: an administrator
   ignores "Turbestilling".
+- Mutation testing runs only on the release and hotfix branches. The changed-lines job of the
+  pull requests is removed, and `task prepare-code` does not run Infection.

@@ -492,11 +492,11 @@ task test:file -- tests/Unit/Report/PeriodRangeFactoryTest.php
 # Fail if line coverage is below 100 %, as CI does
 task test:coverage:check
 
-# Mutation testing with Infection, on lines changed compared with develop
-task test:mutation
-
 # Mutation testing on the whole code base, as the release-branch run does
 task test:mutation:full
+
+# Mutation testing on the lines changed compared with develop (optional)
+task test:mutation
 ```
 
 - **Test suites:** tests live in `tests/Unit`, `tests/Integration` and `tests/Functional`.
@@ -538,9 +538,10 @@ task test:mutation:full
   tests are slow. Thus Infection runs only the tests that cover
   the mutated line (`--only-covering-test-cases`), not all tests of their classes. Infection
   skips a mutant if all its tests took more than 60 seconds in the initial run.
-- **When mutation testing runs:** pull requests that do not go to `main` run it on the lines that
-  changed since their base branch. A full run over the whole code base runs on `release/*` and
-  `hotfix/*` branches and is required before a release is merged to `main`.
+- **When mutation testing runs:** only on the `release/*` and `hotfix/*` branches. A full run over
+  the whole code base is required before a release is merged to `main`. Feature pull requests,
+  `develop` and `task prepare-code` do not run it, because it is slow. Fix the escaped mutants on
+  the release branch.
 - **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
   tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
@@ -559,9 +560,8 @@ task rector:check
 task rector:apply
 ```
 
-`task prepare-code` applies Rector and runs the coding standards, code analysis, tests with the coverage check, and
-mutation testing on changed lines. Run it before pushing. GitHub Actions runs the same checks on every pull
-request.
+`task prepare-code` applies Rector and runs the coding standards, code analysis and tests with the coverage check.
+Run it before pushing. GitHub Actions runs the same checks on every pull request.
 
 ### Fixtures
 

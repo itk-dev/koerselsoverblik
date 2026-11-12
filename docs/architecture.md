@@ -1040,7 +1040,8 @@ The project is developed test first, with 100 % line coverage and mutation testi
 - Controllers, form types and Twig components are not mutated.
 - Each Infection thread uses its own test database (`db_test<THREAD>`). The mutation tasks
   create and migrate them.
-- Pull requests run it on changed lines. Release branches run it on the whole code base.
+- Only the release and hotfix branches run it, on the whole code base. Feature pull requests do
+  not run it.
 
 ### Test data
 
@@ -1087,8 +1088,8 @@ hold the connection details.
 **Cron:** a cron job on the server runs `app:driving-data:purge-uploads` every 15 minutes in the
 phpfpm container.
 
-**CI:** GitHub Actions runs coding standards, PHPStan, Rector, tests with the coverage gate, mutation
-testing and the diagram check on every pull request.
+**CI:** GitHub Actions runs coding standards, PHPStan, Rector and tests with the coverage gate on every
+pull request. The release and hotfix branches also run mutation testing on the whole code base.
 
 ## Open decisions
 

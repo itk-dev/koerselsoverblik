@@ -32,5 +32,5 @@ for the same work on the route runs. The queries of an entity belong in its repo
 
 - An import deletes the same rows as before. The tests of `StopRowReplacer` pass with no
   change of the expected values.
-- 100 % line coverage and 100 % covered MSI in `src/Import`.
+- 100 % line coverage in `src/Import`.
 ```

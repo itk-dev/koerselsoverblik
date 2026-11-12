@@ -1,7 +1,7 @@
 ### ### Full mutation testing
 ###
-### Runs Infection on all code when a release is prepared. Feature PRs run
-### mutation testing only on the changed lines (see tests.yaml).
+### Runs Infection on all code when a release is prepared. This is the only
+### mutation testing. Feature PRs and the develop branch do not run it.
 
 name: Full mutation testing
 
