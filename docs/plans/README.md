@@ -93,6 +93,12 @@ feature that has an issue or an issue text.
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
 | Add the distances and the durations to the totals of each route and day | Blocked | – | #136, and the open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
+### Tests
+
+| Feature | Status | Issue | Needs | Plan |
+| --- | --- | --- | --- | --- |
+| Decrease the memory use of the test suite | Ready | [#131](https://github.com/itk-dev/koerselsoverblik/issues/131) | – | [test-memory.md](test-memory.md) |
+
 ### Release
 
 | Feature | Status | Issue | Needs | Plan |
