@@ -12,6 +12,7 @@ use App\Import\RunStopDto;
 use App\Report\DateRangeDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -29,13 +30,9 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function countInRange(ImportRangeDto $range): int
     {
-        return (int) $this->createQueryBuilder('row')
-            ->select('COUNT(row.id)')
-            ->where('row.serviceDate BETWEEN :first AND :last')
-            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
-            ->getQuery()
-            ->getSingleScalarResult();
+        $builder = $this->createQueryBuilder('row')->select('COUNT(row.id)');
+
+        return (int) $this->inRange($builder, $range)->getQuery()->getSingleScalarResult();
     }
 
     /**
@@ -46,14 +43,9 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function sourceRowIdsInRange(ImportRangeDto $range): array
     {
+        $builder = $this->createQueryBuilder('row')->select('IDENTITY(row.sourceRow)');
         /** @var list<int|string> $ids */
-        $ids = $this->createQueryBuilder('row')
-            ->select('IDENTITY(row.sourceRow)')
-            ->where('row.serviceDate BETWEEN :first AND :last')
-            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
-            ->getQuery()
-            ->getSingleColumnResult();
+        $ids = $this->inRange($builder, $range)->getQuery()->getSingleColumnResult();
 
         // MariaDB can give an id as text.
         return array_map(static fn (int|string $id): int => (int) $id, $ids);
@@ -68,15 +60,21 @@ class StopRowRepository extends ServiceEntityRepository
     public function deleteInRange(ImportRangeDto $range): int
     {
         /** @var int $deleted a DQL delete gives the number of deleted rows */
-        $deleted = $this->createQueryBuilder('row')
-            ->delete()
-            ->where('row.serviceDate BETWEEN :first AND :last')
-            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
-            ->getQuery()
-            ->execute();
+        $deleted = $this->inRange($this->createQueryBuilder('row')->delete(), $range)->getQuery()->execute();
 
         return $deleted;
+    }
+
+    /**
+     * Limits the query to the stop rows in the range. The count, the ids and the delete use the
+     * same condition, so they cannot differ.
+     */
+    private function inRange(QueryBuilder $builder, ImportRangeDto $range): QueryBuilder
+    {
+        return $builder
+            ->where('row.serviceDate BETWEEN :first AND :last')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
     }
 
     /**

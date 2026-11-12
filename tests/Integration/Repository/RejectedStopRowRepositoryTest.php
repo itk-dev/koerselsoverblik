@@ -48,6 +48,19 @@ final class RejectedStopRowRepositoryTest extends KernelTestCase
     }
 
     /**
+     * A range after all rows and after the ranges of all batches holds no row, also no row with no
+     * date.
+     */
+    public function testDeleteInRangeWithNoRowsInTheRangeDeletesNothing(): void
+    {
+        $this->storeRows();
+
+        $this->repository()->deleteInRange(ImportRangeDto::create(new \DateTimeImmutable('2026-01-10'), new \DateTimeImmutable('2026-01-11'), 31));
+
+        self::assertSame(6, $this->repository()->count([]));
+    }
+
+    /**
      * Stores a rejected row inside, on and outside the edges of the range, and a row with no date
      * of a batch in the range and of a batch that is larger than the range.
      *

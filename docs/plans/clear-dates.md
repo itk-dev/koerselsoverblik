@@ -17,6 +17,8 @@ See the [rules for plans](README.md#rules).
 
 ## Open points
 
+- [driving-data-lock.md](driving-data-lock.md) adds a lock for the changes of the driving data.
+  If it is merged first, run the clear in the same lock.
 - The issue text tells the clear to keep the `DailyCount` rows. No `DailyCount` entity exists.
   The clear keeps the `ImportBatch` rows only.
 - The components diagram in `docs/architecture.md` names a `DailyCount` controller and a

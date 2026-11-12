@@ -262,6 +262,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Delete the rows of a range in the repositories, and only their copies: `StopRowRangeDeleter`
   deletes the rejected rows, the stop rows and their copies of a range. The queries are in
   `StopRowRepository` and the new `RejectedStopRowRepository`. The delete of the copies uses their
-  ids, so it no longer reads the copies of other dates. `SourceRowRepository::deleteOrphans()` is
-  removed. The two plans for the deletes are one plan, and the driving data plans are in the order
-  of the work.
+  ids, so it no longer reads the copies of other dates. Two imports of the same dates that overlap
+  can leave copies with no row. The new command `app:driving-data:delete-orphan-copies` deletes
+  them, and a cron job runs it each night. The two plans for the deletes are one plan, and the
+  driving data plans are in the order of the work.

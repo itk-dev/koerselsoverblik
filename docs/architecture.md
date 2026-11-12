@@ -511,6 +511,10 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
   rows in the range first. Then it deletes the rows, and calls
   `SourceRowRepository::deleteByIds()`. The delete of the copies uses the primary key, so it does
   not read the copies of other dates.
+- The ids come from the snapshot of the transaction, but the deletes see the latest committed rows.
+  Thus two imports of the same dates that overlap can leave copies with no row. The command
+  `app:driving-data:delete-orphan-copies` deletes them with `SourceRowRepository::deleteOrphans()`.
+  A cron job runs it each night. The import does not call it, because it reads all copies.
 
 ### The reference extract
 
@@ -1113,7 +1117,7 @@ Doctrine migrations and `cache:clear` in the server's phpfpm container.
 hold the connection details.
 
 **Cron:** a cron job on the server runs `app:driving-data:purge-uploads` every 15 minutes in the
-phpfpm container.
+phpfpm container. A second cron job runs `app:driving-data:delete-orphan-copies` each night.
 
 **CI:** GitHub Actions runs coding standards, PHPStan, Rector and tests with the coverage gate on every
 pull request. The release and hotfix branches also run mutation testing on the whole code base.
