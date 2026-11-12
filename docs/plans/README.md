@@ -92,12 +92,11 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
+| Delete the rows of a range in the repositories, and only their copies | In progress | [#126](https://github.com/itk-dev/koerselsoverblik/issues/126) | – | [range-deletes.md](range-deletes.md) |
 | Read the remaining prototype fields from the extract | Ready | [#75](https://github.com/itk-dev/koerselsoverblik/issues/75) | – | [prototype-fields.md](prototype-fields.md) |
-| Show the uploaded dates and clear the driving data of a date | Ready | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – | [clear-dates.md](clear-dates.md) |
+| Show the uploaded dates and clear the driving data of a date | Blocked | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | #126 | [clear-dates.md](clear-dates.md) |
+| Show the imported stop rows and rejected rows of a date range | Blocked | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | #126 | [driving-data-view.md](driving-data-view.md) |
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
-| Move the deletes of the stop row replacer to the repositories | Draft | – | – | [stop-row-replacer-deletes.md](stop-row-replacer-deletes.md) |
-| Delete only the copies of the deleted rows | Draft | – | – | [source-row-orphan-sweep.md](source-row-orphan-sweep.md) |
-| Show the imported stop rows and rejected rows of a date range | Ready | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – | [driving-data-view.md](driving-data-view.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 

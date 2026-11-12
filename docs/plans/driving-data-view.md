@@ -32,12 +32,10 @@ See the [rules for plans](README.md#rules).
   case, as the replacer expects.
 - `StopRowRepository::countInRange()` exists. Add the optional route to it, or add a second count
   method.
-- `RejectedStopRowRepository` (new, or from
-  [stop-row-replacer-deletes.md](stop-row-replacer-deletes.md)):
-  `findPageInRange()` and `countInRange()`. Use the same condition as
-  `StopRowReplacer::deleteRange()`, also for the rows with no date. Put the condition in one
-  private method of the repository, so that the delete and the list cannot differ. Order by
-  date, upload, row number and id.
+- `RejectedStopRowRepository` (from [range-deletes.md](range-deletes.md)): add
+  `findPageInRange()` and `countInRange()`. Use its private condition method of the range, also
+  for the rows with no date. Then the delete and the list cannot differ. Order by date, upload,
+  row number and id.
 - The list queries do not read the copy. Doctrine does not load it (see the needed feature).
 
 ### Pagination
