@@ -231,6 +231,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   assignments are removed. The supplier applies to all dates. The sub-agreement page has an edit
   page for the supplier, and the list shows the sub-agreements with no supplier first. The
   punctuality calculator adds the figures for each route, not for each route and date.
+- Plans for [#101](https://github.com/itk-dev/koerselsoverblik/issues/101) (a development
+  dataset with the volume, the shares and the Aarhus school holidays of the real exports) and
+  [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) (memory of the import that does
+  not grow with the number of rows).
 - [#90](https://github.com/itk-dev/koerselsoverblik/issues/90)
   Ignore a sub-agreement in the figures: `SubAgreement` has an `ignored` flag, and the edit page
   has a checkbox for it. The punctuality queries skip the stops and the runs of an ignored
@@ -239,6 +243,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   punctuality page that names the ignored sub-agreements). The list does not show an ignored sub-agreement
   with no supplier at the top. The open decision "Booked trips" is answered: an administrator
   ignores "Turbestilling".
+- [#101](https://github.com/itk-dev/koerselsoverblik/issues/101)
+  A realistic development dataset: one file for each ISO week, with the volume and the patterns
+  of the school transport, the Aarhus school holidays, and route names that are not routes. The
+  punctuality is a setting (`APP_FIXTURES_PUNCTUALITY_START` and `APP_FIXTURES_PUNCTUALITY_TREND`),
+  not a value from the real data. `app:fixtures:suppliers` gives the sub-agreements invented
+  suppliers. `APP_DRIVING_DATA_MAX_DAYS` is now 7, and `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE`
+  is now 100 MiB.
 - [#95](https://github.com/itk-dev/koerselsoverblik/issues/95)
   Keep the copy of a row in its own entity: `SourceRow` holds the copy, and `StopRow` and
   `RejectedStopRow` refer to it. Doctrine does not read the copy with the row. The replacer

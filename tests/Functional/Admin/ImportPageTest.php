@@ -259,7 +259,7 @@ final class ImportPageTest extends WebTestCase
     {
         yield 'a file that is not xlsx' => ['extract.csv', ['first' => '2026-01-05', 'last' => '2026-01-05'], 'Filen skal være et Excel-udtræk (.xlsx).'];
         yield 'a last date before the first date' => ['extract.xlsx', ['first' => '2026-01-05', 'last' => '2026-01-04'], 'Den sidste dato er før den første dato.'];
-        yield 'a range that is too long' => ['extract.xlsx', ['first' => '2026-01-01', 'last' => '2026-02-01'], 'Perioden må højst være 31 dage.'];
+        yield 'a range that is too long' => ['extract.xlsx', ['first' => '2026-01-01', 'last' => '2026-01-08'], 'Perioden må højst være 7 dage.'];
         yield 'no first date' => ['extract.xlsx', ['first' => '', 'last' => '2026-01-05'], 'Vælg en dato.'];
     }
 
