@@ -14,9 +14,7 @@ use App\Import\Extract\RejectionGroups;
 use App\Import\Extract\RejectionReason;
 use App\Import\Extract\StopRowDto;
 use App\Import\Mapping\MappingDto;
-use App\Repository\SourceRowRepository;
 use App\Repository\SubAgreementRepository;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -37,7 +35,7 @@ final readonly class StopRowReplacer
     public function __construct(
         private EntityManagerInterface $entityManager,
         private SubAgreementRepository $subAgreements,
-        private SourceRowRepository $sourceRows,
+        private StopRowRangeDeleter $deleter,
     ) {
     }
 
@@ -51,7 +49,7 @@ final readonly class StopRowReplacer
      */
     public function replace(ImportRangeDto $range, MappingDto $mapping, iterable $rows, ImportBatch $batch): ImportResultDto
     {
-        $deletedRows = $this->deleteRange($range);
+        $deletedRows = $this->deleter->deleteRange($range);
 
         $rejections = new RejectionGroups();
         $warnings = new RejectionGroups();
@@ -100,48 +98,6 @@ final readonly class StopRowReplacer
             warnings: $warnings->groups(),
             emptyDates: array_values(array_diff($range->dates(), array_keys($dates))),
         );
-    }
-
-    /**
-     * Deletes the stop rows and the rejected rows of the range. A rejected row with no date belongs
-     * to the range when the whole range of its import is in the range.
-     *
-     * Thus a rejected row with no date of a larger import stays until an import covers the whole
-     * range of that import. Such rows can collect, but the date of a row is not known, so a smaller
-     * import must not delete it.
-     *
-     * A DQL delete does not cascade. Thus the replacer deletes the copies of the deleted rows after
-     * the rows.
-     *
-     * @return int the number of deleted stop rows
-     */
-    private function deleteRange(ImportRangeDto $range): int
-    {
-        $parameters = [
-            'first' => [$range->firstDate, Types::DATE_IMMUTABLE],
-            'last' => [$range->lastDate, Types::DATE_IMMUTABLE],
-        ];
-
-        $deleteRejected = $this->entityManager->createQuery(
-            'DELETE FROM '.RejectedStopRow::class.' rejected'
-            .' WHERE rejected.serviceDate BETWEEN :first AND :last'
-            .' OR (rejected.serviceDate IS NULL AND rejected.importBatch IN ('
-            .'SELECT batch.id FROM '.ImportBatch::class.' batch WHERE batch.firstDate >= :first AND batch.lastDate <= :last))',
-        );
-        $deleteRows = $this->entityManager->createQuery(
-            'DELETE FROM '.StopRow::class.' row WHERE row.serviceDate BETWEEN :first AND :last',
-        );
-        foreach ($parameters as $name => [$value, $type]) {
-            $deleteRejected->setParameter($name, $value, $type);
-            $deleteRows->setParameter($name, $value, $type);
-        }
-        $deleteRejected->execute();
-
-        /** @var int $deleted a DQL delete gives the number of deleted rows */
-        $deleted = $deleteRows->execute();
-        $this->sourceRows->deleteOrphans();
-
-        return $deleted;
     }
 
     /**

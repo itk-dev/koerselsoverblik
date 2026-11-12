@@ -39,6 +39,47 @@ class StopRowRepository extends ServiceEntityRepository
     }
 
     /**
+     * Gives the ids of the copies of the stop rows in the range. Read them before the delete,
+     * because a deleted row no longer points to its copy.
+     *
+     * @return list<int>
+     */
+    public function sourceRowIdsInRange(ImportRangeDto $range): array
+    {
+        /** @var list<int|string> $ids */
+        $ids = $this->createQueryBuilder('row')
+            ->select('IDENTITY(row.sourceRow)')
+            ->where('row.serviceDate BETWEEN :first AND :last')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        // MariaDB can give an id as text.
+        return array_map(static fn (int|string $id): int => (int) $id, $ids);
+    }
+
+    /**
+     * Deletes the stop rows in the range, from all mappings. A DQL delete does not delete the
+     * copies.
+     *
+     * @return int the number of deleted rows
+     */
+    public function deleteInRange(ImportRangeDto $range): int
+    {
+        /** @var int $deleted a DQL delete gives the number of deleted rows */
+        $deleted = $this->createQueryBuilder('row')
+            ->delete()
+            ->where('row.serviceDate BETWEEN :first AND :last')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->execute();
+
+        return $deleted;
+    }
+
+    /**
      * Gives the stops of each run on one date. The stops are in the order of their ids, so that a
      * run is built in the same way each time.
      *

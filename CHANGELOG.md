@@ -258,3 +258,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   driving data of a developer database before you migrate it.
 - Mutation testing runs only on the release and hotfix branches. The changed-lines job of the
   pull requests is removed, and `task prepare-code` does not run Infection.
+- [#126](https://github.com/itk-dev/koerselsoverblik/issues/126)
+  Delete the rows of a range in the repositories, and only their copies: `StopRowRangeDeleter`
+  deletes the rejected rows, the stop rows and their copies of a range. The queries are in
+  `StopRowRepository` and the new `RejectedStopRowRepository`. The delete of the copies uses their
+  ids, so it no longer reads the copies of other dates. `SourceRowRepository::deleteOrphans()` is
+  removed. The two plans for the deletes are one plan, and the driving data plans are in the order
+  of the work.

@@ -7,7 +7,7 @@ See the [rules for plans](README.md#rules).
 ## Implementation
 
 - `DrivingDataClearer` calls `StopRowRangeDeleter::deleteRange()` and
-  `RouteRunRepository::deleteInRange()`. [range-deletes.md](range-deletes.md) adds the deleter.
+  `RouteRunRepository::deleteInRange()`. [#126](https://github.com/itk-dev/koerselsoverblik/issues/126) adds the deleter.
   It deletes the rejected rows, the stop rows and their copies. Do not delete the copies in
   this feature.
 - A rejected row with no date: use the rule of the replacer. The clear deletes it when the whole

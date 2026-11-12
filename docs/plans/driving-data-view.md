@@ -32,7 +32,7 @@ See the [rules for plans](README.md#rules).
   case, as the replacer expects.
 - `StopRowRepository::countInRange()` exists. Add the optional route to it, or add a second count
   method.
-- `RejectedStopRowRepository` (from [range-deletes.md](range-deletes.md)): add
+- `RejectedStopRowRepository` (from [#126](https://github.com/itk-dev/koerselsoverblik/issues/126)): add
   `findPageInRange()` and `countInRange()`. Use its private condition method of the range, also
   for the rows with no date. Then the delete and the list cannot differ. Order by date, upload,
   row number and id.
