@@ -706,6 +706,14 @@ To set up a new server:
    */15 * * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:purge-uploads --quiet
    ```
 
+1. Add a cron job that deletes the copies of the imported rows that have no row. Two imports of
+   the same dates that overlap can leave such copies, and they hold personal data. Run it each
+   night:
+
+   ```shell
+   30 2 * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:delete-orphan-copies --quiet
+   ```
+
 1. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
 1. Make sure that the administrator can sign in.
 

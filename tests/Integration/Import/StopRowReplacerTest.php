@@ -22,8 +22,11 @@ use App\Import\ImportResultDto;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
+use App\Import\StopRowRangeDeleter;
 use App\Import\StopRowReplacer;
+use App\Repository\RejectedStopRowRepository;
 use App\Repository\SourceRowRepository;
+use App\Repository\StopRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Events;
@@ -388,10 +391,14 @@ final class StopRowReplacerTest extends KernelTestCase
         self::assertInstanceOf(StopRowParser::class, $parser);
         $subAgreements = self::getContainer()->get(SubAgreementRepository::class);
         self::assertInstanceOf(SubAgreementRepository::class, $subAgreements);
+        $stopRows = self::getContainer()->get(StopRowRepository::class);
+        self::assertInstanceOf(StopRowRepository::class, $stopRows);
+        $rejectedRows = self::getContainer()->get(RejectedStopRowRepository::class);
+        self::assertInstanceOf(RejectedStopRowRepository::class, $rejectedRows);
         $sourceRows = self::getContainer()->get(SourceRowRepository::class);
         self::assertInstanceOf(SourceRowRepository::class, $sourceRows);
         // The container removes a private service that no other service uses yet.
-        $replacer = new StopRowReplacer($this->entityManager, $subAgreements, $sourceRows);
+        $replacer = new StopRowReplacer($this->entityManager, $subAgreements, new StopRowRangeDeleter($stopRows, $rejectedRows, $sourceRows));
 
         return $replacer->replace($range, $mapping, $parser->parse($this->path, $mapping, $range), $batch);
     }

@@ -159,7 +159,7 @@ flowchart TB
         importrange["ImportRangeDto<br/>max APP_DRIVING_DATA_MAX_DAYS"]
         importer["DrivingDataImporter<br/>preview, import"]
         parser["StopRowParser"]
-        replacer["StopRowReplacer"]
+        replacer["StopRowReplacer<br/>StopRowRangeDeleter"]
         builder["RouteBuilder"]
         aggregator["DailyStatsAggregator"]
         clearer["DrivingDataClearer"]
@@ -507,9 +507,14 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
 - The copy is a `SourceRow` in its own table. `StopRow` and `RejectedStopRow` own the one-to-one
   relation, so Doctrine gives a lazy object and does not read the copy with the row. `SourceRow`
   has no relation back, because Doctrine reads an inverse one-to-one side at once.
-- A DQL delete does not cascade. Thus `StopRowReplacer` deletes the rows of the range first, and
-  then calls `SourceRowRepository::deleteOrphans()`. It deletes each copy with no stop row and no
-  rejected row.
+- A DQL delete does not cascade. Thus `StopRowRangeDeleter` reads the ids of the copies of the
+  rows in the range first. Then it deletes the rows, and calls
+  `SourceRowRepository::deleteByIds()`. The delete of the copies uses the primary key, so it does
+  not read the copies of other dates.
+- The ids come from the snapshot of the transaction, but the deletes see the latest committed rows.
+  Thus two imports of the same dates that overlap can leave copies with no row. The command
+  `app:driving-data:delete-orphan-copies` deletes them with `SourceRowRepository::deleteOrphans()`.
+  A cron job runs it each night. The import does not call it, because it reads all copies.
 
 ### The reference extract
 
@@ -643,16 +648,18 @@ would only delete data. The batch has no user. The command does not delete the f
    ([ADR 004](adr/004-personal-data-in-driving-data.md), proposed). Each row, and each rejected
    row in the range, has a copy of its columns (see
    [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row)).
-4. **Replace.** `StopRowReplacer` deletes all `StopRow` rows in the range, from all mappings, and
-   then inserts the parsed rows. It does not check the range or the row keys again. Rows that are
-   not in the new file are removed, and two uploads can never count the same date twice. A unique
-   index on `(mapping_name, row_key)` makes sure that a row key is stored one time.
-   - The replacer also deletes the `RejectedStopRow` rows with a date in the range, and the
-     rejected rows with no date of the earlier batches whose whole range is in the new range. Then
-     it stores the rejected rows of the file with their copies. A row outside the range is not
-     stored, because the upload for its date imports it.
-   - After the deletes, it deletes the `SourceRow` copies with no row.
-   - It finds each route by its name, or creates it. A new route finds or creates its
+4. **Replace.** `StopRowReplacer` calls `StopRowRangeDeleter`, which deletes all `StopRow` rows in
+   the range, from all mappings. Then the replacer inserts the parsed rows. It does not check the
+   range or the row keys again. Rows that are not in the new file are removed, and two uploads can
+   never count the same date twice. A unique index on `(mapping_name, row_key)` makes sure that a
+   row key is stored one time.
+   - The deleter also deletes the `RejectedStopRow` rows with a date in the range, and the
+     rejected rows with no date of the earlier batches whose whole range is in the new range. The
+     condition is in `RejectedStopRowRepository`. Then the replacer stores the rejected rows of the
+     file with their copies. A row outside the range is not stored, because the upload for its
+     date imports it.
+   - After the deletes of the rows, the deleter deletes the `SourceRow` copies of the deleted rows.
+   - The replacer finds each route by its name, or creates it. A new route finds or creates its
      sub-agreement with `SubAgreementReference`. A new sub-agreement has no supplier, so its
      routes count as "Unknown". MariaDB compares text with no regard to case, so two route names
      that differ only in case are one route.
@@ -1110,7 +1117,7 @@ Doctrine migrations and `cache:clear` in the server's phpfpm container.
 hold the connection details.
 
 **Cron:** a cron job on the server runs `app:driving-data:purge-uploads` every 15 minutes in the
-phpfpm container.
+phpfpm container. A second cron job runs `app:driving-data:delete-orphan-copies` each night.
 
 **CI:** GitHub Actions runs coding standards, PHPStan, Rector and tests with the coverage gate on every
 pull request. The release and hotfix branches also run mutation testing on the whole code base.

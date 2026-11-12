@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Import\Extract\RejectedRowDto;
 use App\Import\Extract\RejectionReason;
 use App\Import\Mapping\FieldName;
+use App\Repository\RejectedStopRowRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -14,7 +15,7 @@ use Doctrine\ORM\Mapping as ORM;
  * A row of an extract that the import rejects, with the copy of the row (ADR 006). A later read
  * through a corrected mapping can import it. A row outside the range of the upload is not stored.
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: RejectedStopRowRepository::class)]
 #[ORM\Index(columns: ['service_date'])]
 class RejectedStopRow
 {

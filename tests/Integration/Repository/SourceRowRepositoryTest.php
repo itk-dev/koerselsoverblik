@@ -21,8 +21,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Checks that the replacer can delete the copies whose row it deleted, and that the copies of the
- * stored rows stay.
+ * Checks that the deleter can delete the copies of the deleted rows by their ids, that the sweep
+ * deletes the copies with no row, and that the other copies stay.
  */
 final class SourceRowRepositoryTest extends KernelTestCase
 {
@@ -54,6 +54,52 @@ final class SourceRowRepositoryTest extends KernelTestCase
     public function testDeleteOrphansWithNoOrphansDeletesNothing(): void
     {
         self::assertSame(0, $this->repository()->deleteOrphans());
+    }
+
+    public function testDeleteByIdsDeletesOnlyTheGivenCopies(): void
+    {
+        $ids = $this->storeCopies(3);
+
+        $deleted = $this->repository()->deleteByIds([$ids[0], $ids[2]]);
+
+        self::assertSame(2, $deleted);
+        $kept = array_map(static fn (SourceRow $sourceRow): ?int => $sourceRow->getId(), $this->repository()->findAll());
+        self::assertSame([$ids[1]], $kept);
+    }
+
+    public function testDeleteByIdsWithNoIdsDeletesNothing(): void
+    {
+        $this->storeCopies(1);
+
+        self::assertSame(0, $this->repository()->deleteByIds([]));
+        self::assertSame(1, $this->repository()->count([]));
+    }
+
+    /**
+     * The repository deletes the copies in groups, so that one query does not get too many ids.
+     */
+    public function testDeleteByIdsDeletesMoreCopiesThanOneGroup(): void
+    {
+        $ids = $this->storeCopies(1001);
+
+        self::assertSame(1001, $this->repository()->deleteByIds($ids));
+        self::assertSame(0, $this->repository()->count([]));
+    }
+
+    /**
+     * @return list<int> the ids of the stored copies
+     */
+    private function storeCopies(int $count): array
+    {
+        $entityManager = $this->entityManager();
+        $copies = array_map(static fn (int $index): SourceRow => new SourceRow(['index' => $index]), range(1, $count));
+        foreach ($copies as $copy) {
+            $entityManager->persist($copy);
+        }
+        $entityManager->flush();
+        $entityManager->clear();
+
+        return array_map(static fn (SourceRow $copy): int => (int) $copy->getId(), $copies);
     }
 
     private static function stopRowDto(\DateTimeImmutable $date): StopRowDto
