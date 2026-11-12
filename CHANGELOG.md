@@ -266,3 +266,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   can leave copies with no row. The new command `app:driving-data:delete-orphan-copies` deletes
   them, and a cron job runs it each night. The two plans for the deletes are one plan, and the
   driving data plans are in the order of the work.
+- [#128](https://github.com/itk-dev/koerselsoverblik/issues/128)
+  Explain each figure of the user interface: `docs/charts.md` tells what each chart, tile and
+  table of the punctuality page counts, and which data it leaves out. `AGENTS.md` and
+  `docs/architecture.md` have the rule that a pull request that adds or changes a figure updates
+  the file.

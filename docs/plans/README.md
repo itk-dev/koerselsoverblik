@@ -149,3 +149,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Make the development dataset realistic | [#101](https://github.com/itk-dev/koerselsoverblik/issues/101) | [#107](https://github.com/itk-dev/koerselsoverblik/pull/107) |
 | Keep the copy of a row in its own entity | [#95](https://github.com/itk-dev/koerselsoverblik/issues/95) | [#124](https://github.com/itk-dev/koerselsoverblik/pull/124) |
 | Delete the rows of a range in the repositories, and only their copies | [#126](https://github.com/itk-dev/koerselsoverblik/issues/126) | [#127](https://github.com/itk-dev/koerselsoverblik/pull/127) |
+| Explain each figure of the user interface | [#128](https://github.com/itk-dev/koerselsoverblik/issues/128) | – |

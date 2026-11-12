@@ -824,37 +824,19 @@ no-shows and the locations of the prototype, because the import does not read th
 data of today. When the data grows, a query grouped by month, or the daily stats, can replace
 the 11 calculations.
 
-A month with no measured last drop-off has no data. The tiles of the late runs then show "–",
-not 0, and the sparklines have a gap.
-
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
 value shows as "–".
 
-| Measure (Danish label) | Measured rows |
-| --- | --- |
-| Afhentning pr. borger | All completed pickups with a delay |
-| Afsætning pr. borger | All completed drop-offs with a delay |
-| Afhentning pr. vognløb | The first pickup of each route run, if it is measured |
-| Afsætning pr. vognløb | The last drop-off of each route run, if it is measured |
+**The figures:** [docs/charts.md](charts.md#punctuality-page) explains each figure of the page:
+the measures, the delay bands, the suppliers, the worst routes, the tones, and the data that
+each figure leaves out.
 
-- **On time:** a delay of at most `APP_PUNCTUALITY_TOLERANCE_MINUTES` × 60 seconds. An early stop
-  is on time. Each measure is on time ÷ measured × 100. No measured rows give no value, not 0 %.
 - **No delay in SQL:** the import calculates `delay_seconds` in PHP ([Times](#times)). The queries
   only compare it with the limits, and count.
-- **Ignored sub-agreements:** the queries do not count the stops and the runs of the routes of an
-  ignored sub-agreement.
-- **Delay bands** of the measured last drop-offs: on time, more than the tolerance to 15 minutes,
-  more than 15 to 30 minutes, and more than 30 minutes. A delay on the edge is in the lower band.
 - **Supplier:** the queries count for each route and date, and the calculator adds the dates of
   each route. `RouteRepository::findWithSuppliers()` then gives the supplier of the sub-agreement
-  of each route. The routes of a sub-agreement with no supplier count as "Unknown". The suppliers
-  are in the order of the name, with "Unknown" last.
-- **Worst routes:** the 10 routes with the lowest punctuality at the last drop-off. On the same
-  punctuality, the route with more measured runs is first. A route with no measured last drop-off
-  is not in the list.
-- **Tone:** `PunctualityTone` is ok at or above `APP_PUNCTUALITY_TARGET`, warn at or above 70 %,
-  and danger below.
+  of each route.
 
 ## Security
 
@@ -1022,6 +1004,10 @@ issue adds the header.
 - The page loads no file from an external host. The design system has no font files, so the
   layout uses the fallback fonts of `--itkaarhus-font-sans` (Helvetica Neue, Arial). Inter has
   the SIL Open Font License, so a later task can add it to `assets/fonts`.
+
+**Figures:** each chart, tile and table in the user interface has a section in
+[docs/charts.md](charts.md). The section tells what the figure counts and which data it leaves
+out. A pull request that adds or changes a figure, or a filter of its data, updates the section.
 
 **Menu:** `MainMenu` defines the items, and `MenuBuilder` removes the items that the user must
 not see. An item is visible only if the user has its permission role and its route exists.
