@@ -9,7 +9,8 @@ use Doctrine\Migrations\AbstractMigration;
 
 /**
  * The migration does not copy the stored JSON, because the application is not live. A database
- * with driving data cannot get the non-null foreign key. Delete the driving data first.
+ * with driving data cannot get the non-null foreign key. MariaDB cannot roll back DDL, so the
+ * migration stops before a change when the row tables are not empty.
  */
 final class Version20261112065544 extends AbstractMigration
 {
@@ -20,6 +21,11 @@ final class Version20261112065544 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
+        $this->abortIf(
+            (bool) $this->connection->fetchOne('SELECT EXISTS (SELECT 1 FROM stop_row) OR EXISTS (SELECT 1 FROM rejected_stop_row)'),
+            'The tables stop_row and rejected_stop_row must be empty. MariaDB cannot roll back DDL, so a failed migration drops the copies and leaves a half-migrated schema. Delete the driving data first, or run "task setup".',
+        );
+
         $this->addSql('CREATE TABLE source_row (id INT AUTO_INCREMENT NOT NULL, source_values JSON NOT NULL, PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
         $this->addSql('ALTER TABLE rejected_stop_row ADD source_row_id INT NOT NULL, DROP source_values');
         $this->addSql('ALTER TABLE rejected_stop_row ADD CONSTRAINT FK_5B635D3355D4C14 FOREIGN KEY (source_row_id) REFERENCES source_row (id)');

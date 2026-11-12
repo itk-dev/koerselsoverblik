@@ -44,7 +44,7 @@ The project uses test-driven development. See "Development" in [README.md](READM
 - Do not write production code without a test that requires it.
 - Line coverage must be 100 %. Do not use `@codeCoverageIgnore`.
 - Infection requires a covered MSI of 100 % in `src/Report` and `src/Import`, and 80 % in the
-  remaining mutated code. Only the release branches run Infection. Do not run it during the
+  remaining mutated code. Only the release and hotfix branches run Infection. Do not run it during the
   work on an issue.
 - Put logic in plain PHP classes. Keep controllers, form types, commands and authenticators
   thin, so that most tests are fast unit tests.
