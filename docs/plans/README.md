@@ -28,8 +28,10 @@ feature that has an issue or an issue text.
   old plan.
 - **Open questions for the transport office** are in
   [Open decisions](../architecture.md#open-decisions). A plan file links to them.
-- **The repository is public.** Do not write personal data or cell values from a real extract.
-  Counts of rows are permitted.
+- **The repository is public.** Do not write personal data, cell values or numbers from the real
+  driving data, for example counts, shares, sizes or punctuality. Write `XX` in place of such a
+  number. The same rule applies to the GitHub issues and the pull requests. The limits in `.env`
+  and public facts, for example the school holidays, are not driving data.
 - Write in ASD-STE100 Simplified Technical English, as all other documentation.
 
 ## Add a feature
@@ -65,6 +67,9 @@ feature that has an issue or an issue text.
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
 | Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #75 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
 | Calculate the 12 months in one query | Blocked | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | #82 | [punctuality-months-query.md](punctuality-months-query.md) |
+| Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
+| Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
+| Fix the month chooser, the chart labels and the number format | Ready | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | – | – |
 | Show the ignored sub-agreements on the punctuality page | Ready | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | – | [ignored-sub-agreements-note.md](ignored-sub-agreements-note.md) |
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
@@ -79,6 +84,8 @@ feature that has an issue or an issue text.
 | Move the deletes of the stop row replacer to the repositories | Draft | – | – | [stop-row-replacer-deletes.md](stop-row-replacer-deletes.md) |
 | Keep the copy of a row in its own entity | Ready | [#95](https://github.com/itk-dev/koerselsoverblik/issues/95) | – | [source-row-entity.md](source-row-entity.md) |
 | Show the imported stop rows and rejected rows of a date range | Blocked | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | #95 | [driving-data-view.md](driving-data-view.md) |
+| Make the development dataset realistic | Ready | [#101](https://github.com/itk-dev/koerselsoverblik/issues/101) | – | [realistic-dev-dataset.md](realistic-dev-dataset.md) |
+| Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
 ### Release
