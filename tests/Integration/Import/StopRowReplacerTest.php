@@ -10,6 +10,7 @@ use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\ImportBatch;
 use App\Entity\RejectedStopRow;
 use App\Entity\Route;
+use App\Entity\SourceRow;
 use App\Entity\StopRow;
 use App\Entity\SubAgreement;
 use App\Import\Extract\RejectionCountDto;
@@ -22,6 +23,7 @@ use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
 use App\Import\StopRowReplacer;
+use App\Repository\SourceRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Events;
@@ -69,11 +71,15 @@ final class StopRowReplacerTest extends KernelTestCase
         self::assertSame(14, $this->stored(StopRow::class));
         self::assertSame(3, $this->stored(Route::class));
 
+        self::assertSame(14, $this->stored(SourceRow::class));
+
         $rows = $this->stopRows();
         self::assertSame('default', $rows[0]->getMappingName());
         self::assertSame('2026-01-05', $rows[0]->getServiceDate()->format('Y-m-d'));
+        // Doctrine does not read the copy with the row.
+        self::assertTrue($this->entityManager->getUnitOfWork()->isUninitializedObject($rows[0]->getSourceRow()));
         // The copy gives the cells of the row again.
-        $cells = SourceCells::cells($rows[0]->getSourceValues());
+        $cells = SourceCells::cells($rows[0]->getSourceRow()->getValues());
         self::assertSame($rows[0]->getRoute()->getSourceKey(), $cells['RouteName']->getValue());
         self::assertSame($rows[0]->getRowKey(), $cells['RouteStopID']->getValue());
     }
@@ -152,6 +158,22 @@ final class StopRowReplacerTest extends KernelTestCase
         self::assertSame(3, $this->stored(Route::class));
     }
 
+    /**
+     * The next import deletes the copies of the deleted rows. Then each stored row has exactly one
+     * copy, and no copy is left with no row.
+     */
+    public function testSecondImportDeletesTheOldCopies(): void
+    {
+        $this->writeScenario('bad_values');
+        $this->import(self::range('2026-01-05'));
+
+        $this->import(self::range('2026-01-05'));
+
+        self::assertSame(4, $this->stored(StopRow::class));
+        self::assertSame(5, $this->stored(RejectedStopRow::class));
+        self::assertSame(9, $this->stored(SourceRow::class));
+    }
+
     public function testCorrectedFileRemovesTheRowThatIsNotInIt(): void
     {
         $rows = $this->writeScenario('base');
@@ -180,6 +202,8 @@ final class StopRowReplacerTest extends KernelTestCase
         self::assertEquals([new RejectionCountDto(FieldName::ServiceDate, RejectionReason::OutsideRange, 1, [8])], $result->rejections);
         self::assertSame(['2026-01-06'], $result->emptyDates);
         self::assertSame(0, $this->stored(RejectedStopRow::class));
+        // The row after the range gets no copy.
+        self::assertSame(4, $this->stored(SourceRow::class));
     }
 
     public function testRowsOutsideTheRangeDoNotChange(): void
@@ -229,7 +253,7 @@ final class StopRowReplacerTest extends KernelTestCase
         self::assertSame(RejectionReason::DuplicateRowId, $rejected->getReason());
         self::assertNull($rejected->getField());
         self::assertSame('2026-01-05', $rejected->getServiceDate()?->format('Y-m-d'));
-        self::assertSame('D-1', $rejected->getSourceValues()['RouteStopID']);
+        self::assertSame('D-1', $rejected->getSourceRow()->getValues()['RouteStopID']);
     }
 
     /**
@@ -251,7 +275,7 @@ final class StopRowReplacerTest extends KernelTestCase
         $run = array_values(array_filter($rejected, static fn (RejectedStopRow $row): bool => FieldName::Run === $row->getField()));
         self::assertCount(1, $run);
         self::assertSame(RejectionReason::NotWholeNumber, $run[0]->getReason());
-        self::assertSame('abc', $run[0]->getSourceValues()['blocknumber']);
+        self::assertSame('abc', $run[0]->getSourceRow()->getValues()['blocknumber']);
         $withoutDate = array_filter($rejected, static fn (RejectedStopRow $row): bool => null === $row->getServiceDate());
         self::assertCount(1, $withoutDate);
     }
@@ -338,6 +362,8 @@ final class StopRowReplacerTest extends KernelTestCase
         $identityMap = $this->entityManager->getUnitOfWork()->getIdentityMap();
         self::assertSame([], $identityMap[StopRow::class] ?? []);
         self::assertSame([], $identityMap[RejectedStopRow::class] ?? []);
+        // The detach of a row also detaches its copy.
+        self::assertSame([], $identityMap[SourceRow::class] ?? []);
     }
 
     /**
@@ -362,8 +388,10 @@ final class StopRowReplacerTest extends KernelTestCase
         self::assertInstanceOf(StopRowParser::class, $parser);
         $subAgreements = self::getContainer()->get(SubAgreementRepository::class);
         self::assertInstanceOf(SubAgreementRepository::class, $subAgreements);
+        $sourceRows = self::getContainer()->get(SourceRowRepository::class);
+        self::assertInstanceOf(SourceRowRepository::class, $sourceRows);
         // The container removes a private service that no other service uses yet.
-        $replacer = new StopRowReplacer($this->entityManager, $subAgreements);
+        $replacer = new StopRowReplacer($this->entityManager, $subAgreements, $sourceRows);
 
         return $replacer->replace($range, $mapping, $parser->parse($this->path, $mapping, $range), $batch);
     }

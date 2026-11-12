@@ -9,6 +9,7 @@ use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\ImportBatch;
 use App\Entity\RouteRun;
+use App\Entity\SourceRow;
 use App\Entity\StopRow;
 use App\Import\Extract\StopRowParser;
 use App\Import\ImportRangeDto;
@@ -18,6 +19,7 @@ use App\Import\RouteBuilder;
 use App\Import\RouteRunCalculator;
 use App\Import\StopRowReplacer;
 use App\Repository\RouteRunRepository;
+use App\Repository\SourceRowRepository;
 use App\Repository\StopRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\DBAL\Types\Types;
@@ -178,7 +180,9 @@ final class RouteBuilderTest extends KernelTestCase
         self::assertInstanceOf(StopRowParser::class, $parser);
         $subAgreements = self::getContainer()->get(SubAgreementRepository::class);
         self::assertInstanceOf(SubAgreementRepository::class, $subAgreements);
-        new StopRowReplacer($this->entityManager, $subAgreements)->replace($range, $mapping, $parser->parse($this->path, $mapping, $range), $batch);
+        $sourceRows = $this->entityManager->getRepository(SourceRow::class);
+        self::assertInstanceOf(SourceRowRepository::class, $sourceRows);
+        new StopRowReplacer($this->entityManager, $subAgreements, $sourceRows)->replace($range, $mapping, $parser->parse($this->path, $mapping, $range), $batch);
     }
 
     private function mapping(): MappingDto

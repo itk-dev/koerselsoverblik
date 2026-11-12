@@ -250,3 +250,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   not a value from the real data. `app:fixtures:suppliers` gives the sub-agreements invented
   suppliers. `APP_DRIVING_DATA_MAX_DAYS` is now 7, and `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE`
   is now 100 MiB.
+- [#95](https://github.com/itk-dev/koerselsoverblik/issues/95)
+  Keep the copy of a row in its own entity: `SourceRow` holds the copy, and `StopRow` and
+  `RejectedStopRow` refer to it. Doctrine does not read the copy with the row. The replacer
+  deletes the copies with no row after it deletes the rows of a range. The migration does not
+  keep the stored copies. It stops with no change if the database has driving data, so delete the
+  driving data of a developer database before you migrate it.
+- Mutation testing runs only on the release and hotfix branches. The changed-lines job of the
+  pull requests is removed, and `task prepare-code` does not run Infection.

@@ -6,7 +6,6 @@ namespace App\Entity;
 
 use App\Import\Extract\RejectedRowDto;
 use App\Import\Extract\RejectionReason;
-use App\Import\Extract\SourceCells;
 use App\Import\Mapping\FieldName;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -14,8 +13,6 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * A row of an extract that the import rejects, with the copy of the row (ADR 006). A later read
  * through a corrected mapping can import it. A row outside the range of the upload is not stored.
- *
- * @phpstan-import-type SourceValue from SourceCells
  */
 #[ORM\Entity]
 #[ORM\Index(columns: ['service_date'])]
@@ -40,10 +37,12 @@ class RejectedStopRow
     private ?\DateTimeImmutable $serviceDate;
 
     /**
-     * @var array<array-key, SourceValue>
+     * The owning side gives a lazy object, so Doctrine does not read the copy with the row. The
+     * detach of the row also detaches the copy.
      */
-    #[ORM\Column(type: Types::JSON)]
-    private array $sourceValues;
+    #[ORM\OneToOne(cascade: ['persist', 'detach'])]
+    #[ORM\JoinColumn(nullable: false)]
+    private SourceRow $sourceRow;
 
     public function __construct(
         RejectedRowDto $row,
@@ -55,7 +54,7 @@ class RejectedStopRow
         $this->reason = $row->reason;
         $this->field = $row->field;
         $this->serviceDate = $row->serviceDate;
-        $this->sourceValues = $row->sourceValues;
+        $this->sourceRow = new SourceRow($row->sourceValues);
     }
 
     public function getId(): ?int
@@ -88,11 +87,8 @@ class RejectedStopRow
         return $this->serviceDate;
     }
 
-    /**
-     * @return array<array-key, SourceValue>
-     */
-    public function getSourceValues(): array
+    public function getSourceRow(): SourceRow
     {
-        return $this->sourceValues;
+        return $this->sourceRow;
     }
 }

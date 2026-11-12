@@ -14,6 +14,7 @@ use App\Import\Extract\RejectionGroups;
 use App\Import\Extract\RejectionReason;
 use App\Import\Extract\StopRowDto;
 use App\Import\Mapping\MappingDto;
+use App\Repository\SourceRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,6 +37,7 @@ final readonly class StopRowReplacer
     public function __construct(
         private EntityManagerInterface $entityManager,
         private SubAgreementRepository $subAgreements,
+        private SourceRowRepository $sourceRows,
     ) {
     }
 
@@ -108,6 +110,9 @@ final readonly class StopRowReplacer
      * range of that import. Such rows can collect, but the date of a row is not known, so a smaller
      * import must not delete it.
      *
+     * A DQL delete does not cascade. Thus the replacer deletes the copies of the deleted rows after
+     * the rows.
+     *
      * @return int the number of deleted stop rows
      */
     private function deleteRange(ImportRangeDto $range): int
@@ -134,6 +139,7 @@ final readonly class StopRowReplacer
 
         /** @var int $deleted a DQL delete gives the number of deleted rows */
         $deleted = $deleteRows->execute();
+        $this->sourceRows->deleteOrphans();
 
         return $deleted;
     }

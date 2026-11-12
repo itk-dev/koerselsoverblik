@@ -31,7 +31,7 @@ final class RejectedStopRowTest extends TestCase
         self::assertSame(RejectionReason::NotWholeNumber, $rejected->getReason());
         self::assertSame(FieldName::Run, $rejected->getField());
         self::assertSame($row->serviceDate, $rejected->getServiceDate());
-        self::assertSame(['blocknumber' => 'abc'], $rejected->getSourceValues());
+        self::assertSame(['blocknumber' => 'abc'], $rejected->getSourceRow()->getValues());
     }
 
     /**
@@ -43,7 +43,7 @@ final class RejectedStopRowTest extends TestCase
 
         self::assertNull($rejected->getField());
         self::assertNull($rejected->getServiceDate());
-        self::assertSame([], $rejected->getSourceValues());
+        self::assertSame([], $rejected->getSourceRow()->getValues());
     }
 
     private static function batch(): ImportBatch

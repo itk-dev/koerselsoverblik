@@ -82,8 +82,8 @@ feature that has an issue or an issue text.
 | Show the uploaded dates and clear the driving data of a date | Ready | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – | [clear-dates.md](clear-dates.md) |
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
 | Move the deletes of the stop row replacer to the repositories | Draft | – | – | [stop-row-replacer-deletes.md](stop-row-replacer-deletes.md) |
-| Keep the copy of a row in its own entity | Ready | [#95](https://github.com/itk-dev/koerselsoverblik/issues/95) | – | [source-row-entity.md](source-row-entity.md) |
-| Show the imported stop rows and rejected rows of a date range | Blocked | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | #95 | [driving-data-view.md](driving-data-view.md) |
+| Delete only the copies of the deleted rows | Draft | – | – | [source-row-orphan-sweep.md](source-row-orphan-sweep.md) |
+| Show the imported stop rows and rejected rows of a date range | Ready | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – | [driving-data-view.md](driving-data-view.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
@@ -91,7 +91,7 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Merge the migrations into one before the first release | Blocked | [#97](https://github.com/itk-dev/koerselsoverblik/issues/97) | #95, and all other schema changes before the first release | [merge-migrations.md](merge-migrations.md) |
+| Merge the migrations into one before the first release | Blocked | [#97](https://github.com/itk-dev/koerselsoverblik/issues/97) | All other schema changes before the first release | [merge-migrations.md](merge-migrations.md) |
 
 ## Done
 
@@ -134,3 +134,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Give each sub-agreement one supplier | [#91](https://github.com/itk-dev/koerselsoverblik/issues/91) | [#93](https://github.com/itk-dev/koerselsoverblik/pull/93) |
 | Ignore a sub-agreement in the figures | [#90](https://github.com/itk-dev/koerselsoverblik/issues/90) | [#94](https://github.com/itk-dev/koerselsoverblik/pull/94) |
 | Make the development dataset realistic | [#101](https://github.com/itk-dev/koerselsoverblik/issues/101) | [#107](https://github.com/itk-dev/koerselsoverblik/pull/107) |
+| Keep the copy of a row in its own entity | [#95](https://github.com/itk-dev/koerselsoverblik/issues/95) | [#124](https://github.com/itk-dev/koerselsoverblik/pull/124) |

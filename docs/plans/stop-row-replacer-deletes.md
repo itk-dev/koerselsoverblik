@@ -12,8 +12,9 @@ See the [rules for plans](README.md#rules).
 ## Background
 
 `StopRowReplacer::deleteRange()` writes two DQL deletes itself: the stop rows of the range,
-and the rejected rows of the range. `RouteBuilder` calls `RouteRunRepository::deleteInRange()`
-for the same work on the route runs. The queries of an entity belong in its repository.
+and the rejected rows of the range. Then it calls `SourceRowRepository::deleteOrphans()` for
+their copies. `RouteBuilder` calls `RouteRunRepository::deleteInRange()` for the same work on
+the route runs. The queries of an entity belong in its repository.
 
 ## Tasks
 
@@ -23,7 +24,7 @@ for the same work on the route runs. The queries of an entity belong in its repo
 - Add `StopRowRepository::deleteInRange(ImportRangeDto $range): int`. It gives the number of
   deleted rows.
 - Let `StopRowReplacer` call the two methods. Delete the rejected rows first, then the stop
-  rows, as `deleteRange()` does now.
+  rows, and then the copies with no row, as `deleteRange()` does now.
 - Add integration tests for the two repository methods.
 
 **Out of scope:** a change of the behaviour.
@@ -32,5 +33,5 @@ for the same work on the route runs. The queries of an entity belong in its repo
 
 - An import deletes the same rows as before. The tests of `StopRowReplacer` pass with no
   change of the expected values.
-- 100 % line coverage and 100 % covered MSI in `src/Import`.
+- 100 % line coverage in `src/Import`.
 ```
