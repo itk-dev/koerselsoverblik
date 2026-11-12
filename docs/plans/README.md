@@ -100,6 +100,12 @@ feature that has an issue or an issue text.
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
 | Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
+### Documentation
+
+| Feature | Status | Issue | Needs | Plan |
+| --- | --- | --- | --- | --- |
+| Explain each figure of the user interface | Ready | [#128](https://github.com/itk-dev/koerselsoverblik/issues/128) | – | [chart-docs.md](chart-docs.md) |
+
 ### Release
 
 | Feature | Status | Issue | Needs | Plan |
