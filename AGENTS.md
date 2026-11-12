@@ -15,6 +15,8 @@ Read these documents before you start a task:
 - [docs/plans/](docs/plans/README.md): the features that remain, and a plan for each feature
   with the implementation details that are not in the issue.
 - [docs/architecture.md](docs/architecture.md): the design, the diagrams and the security rules.
+- [docs/charts.md](docs/charts.md): what each chart, tile and table counts, and which data it
+  leaves out.
 - [docs/adr/](docs/adr/): the architecture decisions.
 
 ## Commands
@@ -61,6 +63,10 @@ The project uses test-driven development. See "Development" in [README.md](READM
 - Templates have no inline scripts, no inline event handlers and no `style` attributes. The
   Content Security Policy blocks them. The only exception is a script with the nonce from
   `csp_nonce('script')`, for example `importmap()`.
+- Each chart, tile and table in the user interface has a section in
+  [docs/charts.md](docs/charts.md). The section tells what the figure counts and which data it
+  leaves out. A pull request that adds or changes a figure, or a filter of its data, updates the
+  section.
 - Logs and error messages never contain field values from the driving data.
 - Change the database schema only with Doctrine migrations. Do not use
   `doctrine:schema:update` or hand-written SQL.
