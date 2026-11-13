@@ -40,6 +40,13 @@ class SubAgreement
     private ?Supplier $supplier = null;
 
     /**
+     * The figures leave out the routes of an ignored sub-agreement, for example the booked trips
+     * of "Turbestilling". The import still stores their driving data.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $ignored = false;
+
+    /**
      * @var Collection<int, Route>
      */
     #[ORM\OneToMany(targetEntity: Route::class, mappedBy: 'subAgreement')]
@@ -77,6 +84,18 @@ class SubAgreement
     public function setSupplier(?Supplier $supplier): static
     {
         $this->supplier = $supplier;
+
+        return $this;
+    }
+
+    public function isIgnored(): bool
+    {
+        return $this->ignored;
+    }
+
+    public function setIgnored(bool $ignored): static
+    {
+        $this->ignored = $ignored;
 
         return $this;
     }

@@ -197,14 +197,15 @@ tasks:
       - '{{ .PHP }} bin/mutation-core-check.php {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}'
 
   prepare-code:
-    desc: Fix the coding standards, normalize composer.json and run all checks. Run it before you commit
+    desc: Fix the coding standards, normalize composer.json, run the checks and the tests. Run it before you commit
+    # The tests run with no coverage, because Xdebug makes them about four times slower. CI runs
+    # the coverage gate. Run `task test:coverage:check` to run it locally.
     cmds:
       - task: rector:apply
       - task: coding-standards-apply
       - task: coding-standards-check
       - task: code-analysis
-      - task: test:coverage:check
-      - task: test:mutation
+      - task: test
 
   # ------------------------------------------------------- Code analysis ---
 

@@ -44,7 +44,8 @@ The project uses test-driven development. See "Development" in [README.md](READM
 - Do not write production code without a test that requires it.
 - Line coverage must be 100 %. Do not use `@codeCoverageIgnore`.
 - Infection requires a covered MSI of 100 % in `src/Report` and `src/Import`, and 80 % in the
-  remaining mutated code.
+  remaining mutated code. Only the release and hotfix branches run Infection. Do not run it during the
+  work on an issue.
 - Put logic in plain PHP classes. Keep controllers, form types, commands and authenticators
   thin, so that most tests are fast unit tests.
 - Functional tests assert behaviour, not markup. Use text and `data-test` attributes.
@@ -100,7 +101,8 @@ To find how the project is configured, use these commands. Do not guess:
 - YAML in `config/` has 4 spaces. Other YAML files have 2 spaces. Prettier checks them.
 - Markdown lines have a maximum of 120 characters. markdownlint checks them.
 - Run `task prepare-code` before you commit. It fixes the coding standards, normalizes
-  `composer.json`, and runs the checks, the coverage gate and the mutation tests.
+  `composer.json`, and runs the checks and the tests. It does not measure the coverage.
+- CI runs the coverage gate. Run `task test:coverage:check` to run the gate locally.
 
 ## Git and pull requests
 

@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Report;
 
 /**
- * The real solo runs of a date range: the runs with at most one citizen in the car at a time.
+ * The real solo runs of a date range: the runs with exactly one citizen in the car at a time.
  */
 final readonly class SoloCountDto
 {
     /**
-     * @param int $runs     the runs that are not cancelled and have a passenger count
-     * @param int $soloRuns the runs of them with a peak of at most 1 passenger
+     * @param int $runs     the runs that are not cancelled and had at least one citizen in the car
+     * @param int $soloRuns the runs of them with a peak of 1 passenger
      */
     public function __construct(
         public int $runs,

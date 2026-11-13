@@ -10,6 +10,7 @@ use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -35,6 +36,11 @@ final class SubAgreementType extends AbstractType
             'choice_label' => 'name',
             'placeholder' => 'sub_agreement.no_supplier',
             'query_builder' => self::suppliersByName(...),
+            'required' => false,
+        ]);
+        $builder->add('ignored', CheckboxType::class, [
+            'label' => 'sub_agreement.ignored',
+            'help' => 'sub_agreement.ignored_help',
             'required' => false,
         ]);
     }

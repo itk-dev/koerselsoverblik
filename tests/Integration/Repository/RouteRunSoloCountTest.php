@@ -20,7 +20,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Checks the real solo runs of a date range: the runs with at most one citizen in the car at a
+ * Checks the real solo runs of a date range: the runs with exactly one citizen in the car at a
  * time.
  */
 final class RouteRunSoloCountTest extends KernelTestCase
@@ -47,15 +47,17 @@ final class RouteRunSoloCountTest extends KernelTestCase
     }
 
     /**
-     * A cancelled run and a run with no passenger count are not counted.
+     * A cancelled run, a run with no passenger count and a run with no citizen in the car are not
+     * counted. A run with a peak of 0 is neither solo nor shared.
      */
-    public function testOnlyRunsWithAPeakThatAreNotCancelledCount(): void
+    public function testOnlyRunsWithACitizenThatAreNotCancelledCount(): void
     {
         $route = $this->route();
         $this->routeRun($route, '2026-02-02', 1, peak: 1);
         $this->routeRun($route, '2026-02-02', 2, peak: 3);
         $this->routeRun($route, '2026-02-02', 3, peak: null);
         $this->routeRun($route, '2026-02-02', 4, peak: null, cancelled: true);
+        $this->routeRun($route, '2026-02-02', 5, peak: 0);
 
         self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28'));
     }
@@ -69,6 +71,20 @@ final class RouteRunSoloCountTest extends KernelTestCase
         $this->routeRun($route, '2026-03-01', 1, peak: 1);
 
         self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28'));
+    }
+
+    /**
+     * The runs of an ignored sub-agreement do not count.
+     */
+    public function testIgnoredSubAgreementDoesNotCount(): void
+    {
+        $route = $this->route();
+        $ignored = $this->route('I', ignored: true);
+        $this->routeRun($route, '2026-02-02', 1, peak: 2);
+        $this->routeRun($ignored, '2026-02-02', 1, peak: 1);
+        $this->routeRun($ignored, '2026-02-02', 2, peak: 3);
+
+        self::assertEquals(new SoloCountDto(runs: 1, soloRuns: 0), $this->solo('2026-02-01', '2026-02-28'));
     }
 
     public function testRangeWithNoRunsHasZeroCounts(): void
@@ -85,11 +101,11 @@ final class RouteRunSoloCountTest extends KernelTestCase
         return $routeRuns->countSoloRuns(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)));
     }
 
-    private function route(): Route
+    private function route(string $reference = 'R', bool $ignored = false): Route
     {
-        $subAgreement = new SubAgreement()->setReference('R');
+        $subAgreement = new SubAgreement()->setReference($reference)->setIgnored($ignored);
         $this->entityManager->persist($subAgreement);
-        $route = new Route('R-01', $subAgreement);
+        $route = new Route($reference.'-01', $subAgreement);
         $this->entityManager->persist($route);
 
         return $route;

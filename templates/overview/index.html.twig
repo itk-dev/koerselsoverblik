@@ -16,8 +16,9 @@
         {{ months.nav('overview', month, has_next_month, 'overview.title'|trans) }}
     </header>
 
-    {# A change of the volume is neither good nor bad, so the change has the tone "neutral". #}
-    <div class="tiles tiles--3">
+    {# A change of the volume is neither good nor bad, so the change has the tone "neutral".
+       A month with no trips has no data, so the trips have no note. #}
+    <div class="tiles tiles--4">
         {% set trips = page.trips %}
         <twig:Tile
             :label="'overview.trips.label'|trans"
@@ -25,7 +26,7 @@
             :change="trips.change is null ? null : trips.change|signed_number"
             :changeIcon="trend_icon(trips.change)"
             :spark="trips.history"
-            :note="'overview.trips.note'|trans({completed: count.completed, cancelled: count.cancelled})"
+            :note="trips.current is null ? null : 'overview.trips.note'|trans({completed: count.completed, cancelled: count.cancelled, pending: count.pending})"
             test="trips"
         >
             <twig:block name="help">
@@ -50,9 +51,7 @@
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
-        {# The tile shows the drop-off per route run, the measure that the transport office uses. #}
-        {% set target = punctuality.target %}
-        {% set measure = punctuality.measures|filter(item => item.key == 'drop_off_per_run')|first %}
+        {% set measure = punctuality.headline %}
         <twig:Tile
             :label="'overview.punctuality.label'|trans"
             :value="measure.percent|punctuality_percent"
@@ -62,16 +61,17 @@
             :changeIcon="trend_icon(measure.change)"
             :spark="measure.history"
             :sparkClass="measure.cssClass"
-            :note="'overview.punctuality.note'|trans({target: target})"
+            :note="('punctuality.measure.' ~ measure.key)|trans ~ ' · ' ~ 'punctuality.target_note'|trans({target: punctuality.target})"
             test="punctuality"
         >
             <twig:block name="help">
-                <twig:HelpPopover id="help-punctuality" :title="'punctuality.help.drop_off_per_run.title'|trans">
-                    <p>{{ 'punctuality.help.drop_off_per_run.body'|trans({minutes: tolerance_minutes}) }}</p>
+                <twig:HelpPopover id="help-punctuality" :title="('punctuality.help.' ~ measure.key ~ '.title')|trans">
+                    <p>{{ ('punctuality.help.' ~ measure.key ~ '.body')|trans({minutes: tolerance_minutes}) }}</p>
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
-        {# A real solo run had at most one citizen in the car at a time. The share has no target. #}
+        {# A real solo run had exactly one citizen in the car at a time. The share has no target.
+           A month with no counted runs has no share, so the tile has no note. #}
         {% set solo = page.realSolo %}
         <twig:Tile
             :label="'overview.real_solo.label'|trans"
@@ -79,7 +79,7 @@
             :change="solo.change is null ? null : 'punctuality.points'|trans({change: solo.change|percentage_points})"
             :changeIcon="trend_icon(solo.change)"
             :spark="solo.history"
-            :note="'overview.real_solo.note'|trans({count: page.currentSolo.soloRuns})"
+            :note="solo.current is null ? null : 'overview.real_solo.note'|trans({count: page.currentSolo.soloRuns})"
             test="real-solo"
         >
             <twig:block name="help">
@@ -90,12 +90,12 @@
         </twig:Tile>
     </div>
 
-    {{ include('punctuality/_goal.html.twig', {page: punctuality}) }}
+    {{ include('punctuality/_goal.html.twig', {page: punctuality, tolerance_minutes: tolerance_minutes}, with_context: false) }}
     {{ include('punctuality/_trend.html.twig', {
         page: punctuality,
         labels: punctuality.months|map(item => ('month.short.' ~ item.number)|trans),
         trend_title: 'overview.punctuality.title'|trans,
-    }) }}
+    }, with_context: false) }}
 
     <twig:Panel :title="'overview.suppliers.title'|trans" :subtitle="'overview.suppliers.subtitle'|trans" data-test="overview-suppliers">
         {% if suppliers is empty %}

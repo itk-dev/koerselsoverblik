@@ -1,8 +1,8 @@
 ### ### Tests and code analysis
 ###
-### Runs PHPStan, Rector, the tests with the coverage gate, and mutation testing on the
-### changed lines of a feature PR. The jobs use the same Taskfile tasks as local
-### development.
+### Runs PHPStan, Rector and the tests with the coverage gate. The jobs use the same
+### Taskfile tasks as local development. Mutation testing runs only on the release
+### branches (see mutation-full.yml).
 ###
 ### The template workflows run the coding standards and the Composer checks.
 
@@ -72,28 +72,3 @@ jobs:
       - run: |
           task composer -- install
           task test:coverage:check
-
-  mutation:
-    name: Mutation testing on changed lines
-    # Release PRs to main get the full run in mutation-full.yml.
-    if: github.event_name == 'pull_request' && github.base_ref != 'main'
-    runs-on: ubuntu-latest
-    env:
-      # Infection compares the changed lines with the base branch of the PR.
-      TASK_MUTATION_BASE: origin/${{ github.base_ref }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - uses: go-task/setup-task@v1
-        with:
-          version: 3.x
-
-      - name: Create docker network
-        run: |
-          docker network create frontend
-
-      - run: |
-          task composer -- install
-          task test:mutation
