@@ -10,6 +10,7 @@ use App\Report\DateRangeDto;
 use App\Report\SoloCountDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -30,6 +31,44 @@ class RouteRunRepository extends ServiceEntityRepository
      */
     public function countSoloRuns(DateRangeDto $range): SoloCountDto
     {
+        /** @var array{runs: int|string, soloRuns: int|string|null} $row */
+        $row = $this->soloRunsQuery($range)
+            ->getQuery()
+            ->getSingleResult();
+
+        // MariaDB gives a sum as text, and no sum when no row matches.
+        return new SoloCountDto((int) $row['runs'], (int) $row['soloRuns']);
+    }
+
+    /**
+     * Counts the runs and the real solo runs of each route in a date range, with the rules of
+     * countSoloRuns(). A route with no counted run has no item.
+     *
+     * @return list<array{route: int, runs: int, soloRuns: int}>
+     */
+    public function countSoloRunsOfEachRoute(DateRangeDto $range): array
+    {
+        /** @var list<array{route: int|string, runs: int|string, soloRuns: int|string}> $rows */
+        $rows = $this->soloRunsQuery($range)
+            ->addSelect('IDENTITY(run.route) AS route')
+            ->groupBy('run.route')
+            ->getQuery()
+            ->getArrayResult();
+
+        // MariaDB gives a sum as text.
+        return array_map(static fn (array $row): array => [
+            'route' => (int) $row['route'],
+            'runs' => (int) $row['runs'],
+            'soloRuns' => (int) $row['soloRuns'],
+        ], $rows);
+    }
+
+    /**
+     * Makes the query of the runs and the real solo runs. The rules are in one place, so that
+     * the tile and the supplier table of the overview give the same counts.
+     */
+    private function soloRunsQuery(DateRangeDto $range): QueryBuilder
+    {
         $builder = $this->createQueryBuilder('run')
             ->select('COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers = 1 THEN 1 ELSE 0 END) AS soloRuns')
             ->where('run.serviceDate BETWEEN :first AND :last')
@@ -38,13 +77,7 @@ class RouteRunRepository extends ServiceEntityRepository
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
 
-        /** @var array{runs: int|string, soloRuns: int|string|null} $row */
-        $row = IgnoredSubAgreementFilter::apply($builder, 'run.route')
-            ->getQuery()
-            ->getSingleResult();
-
-        // MariaDB gives a sum as text, and no sum when no row matches.
-        return new SoloCountDto((int) $row['runs'], (int) $row['soloRuns']);
+        return IgnoredSubAgreementFilter::apply($builder, 'run.route');
     }
 
     /**

@@ -55,6 +55,14 @@ final class PunctualityPageTest extends WebTestCase
         self::assertSame('Rettidighed – Kørselsoverblik', $crawler->filter('title')->text());
     }
 
+    public function testNoTextNamesThePlanningSystem(): void
+    {
+        $client = $this->client('viewer', importBase: true);
+        $client->request('GET', '/punctuality');
+
+        self::assertStringNotContainsString('Optiruns', (string) $client->getResponse()->getContent());
+    }
+
     /**
      * The values of the base scenario, on 5 January 2026. The routes have no supplier.
      */

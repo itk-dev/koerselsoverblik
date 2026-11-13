@@ -56,6 +56,22 @@ final class OverviewPageTest extends WebTestCase
     }
 
     /**
+     * The routes have no supplier: 7 trips, 3 of 4 last drop-offs on time, 2 of 4 solo runs and
+     * 1 of 7 trips cancelled.
+     */
+    public function testBaseScenarioSupplierTable(): void
+    {
+        $crawler = $this->page('viewer', importBase: true);
+
+        self::assertSame(
+            [['Ukendt', '7', '75 %', '50 %', '14 %']],
+            $crawler->filter('[data-test="overview-supplier-row"]')->each(
+                static fn (Crawler $row): array => $row->filter('th, td')->each(static fn (Crawler $cell): string => $cell->text()),
+            ),
+        );
+    }
+
+    /**
      * R-01 run 2 and BOOKED have exactly one citizen in the car: 2 of 4 runs.
      */
     public function testBaseScenarioRealSoloRuns(): void
@@ -103,6 +119,8 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('–', self::value($crawler, 'punctuality'));
         self::assertSame('–', self::value($crawler, 'real-solo'));
         self::assertCount(0, $crawler->filter('[data-test="real-solo"] .tile__note'));
+        self::assertCount(0, $crawler->filter('[data-test="overview-supplier-row"]'));
+        self::assertCount(1, $crawler->filter('[data-test="overview-suppliers"] [data-test="no-data"]'));
         foreach (['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] as $measure) {
             self::assertSame('–', self::value($crawler, 'measure-'.$measure));
         }
@@ -137,6 +155,14 @@ final class OverviewPageTest extends WebTestCase
         $client = $this->client('viewer');
 
         self::assertSame('januar 2026', $client->request('GET', '/?month=abc')->filter('[data-test="month"]')->text());
+    }
+
+    public function testNoTextNamesThePlanningSystem(): void
+    {
+        $client = $this->client('viewer', importBase: true);
+        $client->request('GET', '/');
+
+        self::assertStringNotContainsString('Optiruns', (string) $client->getResponse()->getContent());
     }
 
     /**

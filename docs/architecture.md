@@ -890,6 +890,12 @@ the punctuality page (`templates/_month.html.twig`).
 - The tile "Reelt solo" shows the share, with no tone, because the share has no target. A month
   with no counted runs has no share. The tile then shows "–" and has no note.
 - A route run that was imported before the peak existed has no peak until the next import.
+- `SupplierTableCalculator` gives the table "Leverandørerne side om side". It counts the trips,
+  the cancelled trips and the real solo runs of each route, and adds the routes of each supplier,
+  as `PunctualityCalculator` does. The counts of each route use the same rules as the tiles, so
+  a run with a peak of 0 and a route of an ignored sub-agreement do not count. The punctuality of
+  each supplier comes from the punctuality report of the month. The rows have the order of the
+  punctuality page. The table has no empty kilometres and no complaints (see the open decisions).
 - The current month is not complete, but the page compares it with all of the previous month.
   See "Partial month" in [Open decisions](#open-decisions).
 

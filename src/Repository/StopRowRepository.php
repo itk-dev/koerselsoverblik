@@ -147,32 +147,45 @@ class StopRowRepository extends ServiceEntityRepository
     }
 
     /**
+     * Counts the trips and the cancelled trips of each route in a date range, with the rules of
+     * countTrips(). A route with no trips has no item.
+     *
+     * @return list<array{route: int, trips: int, cancelled: int}>
+     */
+    public function countTripsOfEachRoute(DateRangeDto $range): array
+    {
+        /** @var list<array{route: int|string, trips: int|string, cancelled: int|string}> $rows */
+        $rows = $this->tripsQuery($range)
+            ->addSelect('IDENTITY(row.route) AS route')
+            ->groupBy('row.route')
+            ->getQuery()
+            ->getArrayResult();
+
+        // MariaDB gives a sum as text.
+        return array_map(static fn (array $row): array => [
+            'route' => (int) $row['route'],
+            'trips' => (int) $row['trips'],
+            'cancelled' => (int) $row['cancelled'],
+        ], $rows);
+    }
+
+    /**
      * Counts the trips and the citizens of a date range. A trip is a pickup, with any status. A
      * citizen was driven if a pickup of the citizen is not cancelled. The pickups of an ignored
      * sub-agreement are not counted.
      */
     public function countTrips(DateRangeDto $range): TripCountDto
     {
-        $builder = $this->createQueryBuilder('row')
-            ->select(
-                'COUNT(row.id) AS trips',
+        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
+        $row = $this->tripsQuery($range)
+            ->addSelect(
                 'SUM(CASE WHEN row.stopStatus = :completed THEN 1 ELSE 0 END) AS completed',
-                'SUM(CASE WHEN row.stopStatus = :cancelled THEN 1 ELSE 0 END) AS cancelled',
                 'SUM(CASE WHEN row.stopStatus = :pending THEN 1 ELSE 0 END) AS pending',
                 // COUNT ignores NULL, so a cancelled pickup gives no person id.
                 'COUNT(DISTINCT CASE WHEN row.stopStatus = :cancelled THEN NULL ELSE row.personId END) AS citizens',
             )
-            ->where('row.serviceDate BETWEEN :first AND :last')
-            ->andWhere('row.stopType = :pickup')
-            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
-            ->setParameter('pickup', StopType::Pickup)
             ->setParameter('completed', StopStatus::Completed)
-            ->setParameter('cancelled', StopStatus::Cancelled)
-            ->setParameter('pending', StopStatus::Pending);
-
-        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
-        $row = IgnoredSubAgreementFilter::apply($builder, 'row.route')
+            ->setParameter('pending', StopStatus::Pending)
             ->getQuery()
             ->getSingleResult();
 
@@ -184,5 +197,26 @@ class StopRowRepository extends ServiceEntityRepository
             (int) $row['pending'],
             (int) $row['citizens'],
         );
+    }
+
+    /**
+     * Makes the query of the trips and the cancelled trips. The rules are in one place, so that
+     * the tile and the supplier table of the overview give the same counts.
+     */
+    private function tripsQuery(DateRangeDto $range): QueryBuilder
+    {
+        $builder = $this->createQueryBuilder('row')
+            ->select(
+                'COUNT(row.id) AS trips',
+                'SUM(CASE WHEN row.stopStatus = :cancelled THEN 1 ELSE 0 END) AS cancelled',
+            )
+            ->where('row.serviceDate BETWEEN :first AND :last')
+            ->andWhere('row.stopType = :pickup')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
+            ->setParameter('pickup', StopType::Pickup)
+            ->setParameter('cancelled', StopStatus::Cancelled);
+
+        return IgnoredSubAgreementFilter::apply($builder, 'row.route');
     }
 }

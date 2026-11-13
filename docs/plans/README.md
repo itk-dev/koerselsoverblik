@@ -63,21 +63,16 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the trips and the citizens on the overview | In progress | [#106](https://github.com/itk-dev/koerselsoverblik/issues/106) | – | – |
-| Show the punctuality on the overview | In progress | [#109](https://github.com/itk-dev/koerselsoverblik/issues/109) | – | – |
-| Show the real solo runs on the overview | In progress | [#110](https://github.com/itk-dev/koerselsoverblik/issues/110) | – | – |
-| Show the suppliers side by side on the overview | In progress | [#113](https://github.com/itk-dev/koerselsoverblik/issues/113) | – | – |
 | Show the conclusion on the overview | Blocked | [#122](https://github.com/itk-dev/koerselsoverblik/issues/122) | #116, #117 | [overview-conclusion.md](overview-conclusion.md) |
 
 ### Punctuality page
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Filter the pages by period, comparison and supplier (parent issue) | In progress | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | #115, #116, #117, #118, #122 | [filters.md](filters.md) |
+| Filter the pages by period, comparison and supplier (parent issue) | In progress | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | #115, #116, #117, #122 | [filters.md](filters.md) |
 | Calculate the selected period, the comparison and the 12 months | In progress | [#115](https://github.com/itk-dev/koerselsoverblik/issues/115) | – | [filters.md](filters.md) |
 | Filter the punctuality page and the overview by period and comparison | In progress | [#116](https://github.com/itk-dev/koerselsoverblik/issues/116) | – | [filters.md](filters.md) |
 | Filter the punctuality page and the overview by supplier | In progress | [#117](https://github.com/itk-dev/koerselsoverblik/issues/117) | – | [filters.md](filters.md) |
-| Remove the planning system from the source texts | In progress | [#118](https://github.com/itk-dev/koerselsoverblik/issues/118) | – | – |
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
 | Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #75, #117 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
 | Calculate the 12 months in one query | Blocked | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | #115 | [punctuality-months-query.md](punctuality-months-query.md) |
@@ -152,3 +147,5 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Show the trips and the citizens on the overview | [#106](https://github.com/itk-dev/koerselsoverblik/issues/106) | [#108](https://github.com/itk-dev/koerselsoverblik/pull/108) |
 | Show the punctuality on the overview | [#109](https://github.com/itk-dev/koerselsoverblik/issues/109) | [#111](https://github.com/itk-dev/koerselsoverblik/pull/111) |
 | Show the real solo runs on the overview | [#110](https://github.com/itk-dev/koerselsoverblik/issues/110) | [#112](https://github.com/itk-dev/koerselsoverblik/pull/112) |
+| Show the suppliers side by side on the overview | [#113](https://github.com/itk-dev/koerselsoverblik/issues/113) | [#114](https://github.com/itk-dev/koerselsoverblik/pull/114) |
+| Remove the planning system from the source texts | [#118](https://github.com/itk-dev/koerselsoverblik/issues/118) | [#119](https://github.com/itk-dev/koerselsoverblik/pull/119) |
