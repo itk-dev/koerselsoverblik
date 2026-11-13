@@ -565,8 +565,9 @@ task rector:check
 task rector:apply
 ```
 
-`task prepare-code` applies Rector and runs the coding standards, code analysis and tests with the coverage check.
-Run it before pushing. GitHub Actions runs the same checks on every pull request.
+`task prepare-code` applies Rector and runs the coding standards, code analysis and tests. It does not measure the
+coverage, because Xdebug makes the tests much slower. Run it before pushing. GitHub Actions runs the same checks on
+every pull request, and also the coverage gate. Run `task test:coverage:check` to run the gate locally.
 
 ### Fixtures
 
