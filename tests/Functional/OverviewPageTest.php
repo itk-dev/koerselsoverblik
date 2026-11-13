@@ -56,8 +56,28 @@ final class OverviewPageTest extends WebTestCase
     }
 
     /**
+     * The overview shows the same punctuality as the punctuality page (PunctualityPageTest).
+     */
+    public function testBaseScenarioPunctuality(): void
+    {
+        $crawler = $this->page('viewer', importBase: true);
+
+        self::assertSame('75 %', self::value($crawler, 'punctuality'));
+        self::assertSame('Afsætning pr. vognløb · Mål 90 %', $crawler->filter('[data-test="punctuality"] .tile__note')->text());
+        self::assertCount(1, $crawler->filter('#help-punctuality'));
+        self::assertSame('2 af 4 målinger når målet', $crawler->filter('[data-test="goal-status"]')->text());
+        self::assertSame('100 %', self::value($crawler, 'measure-pickup_per_citizen'));
+        self::assertSame('83 %', self::value($crawler, 'measure-drop_off_per_citizen'));
+        self::assertSame('100 %', self::value($crawler, 'measure-pickup_per_run'));
+        self::assertSame('75 %', self::value($crawler, 'measure-drop_off_per_run'));
+        self::assertSame('Rettidighed mod servicemålet', $crawler->filter('[data-test="punctuality-trend"] .panel__title')->text());
+        // The chart has a hidden data table.
+        self::assertCount(1, $crawler->filter('figure.chart .sr-only table'));
+    }
+
+    /**
      * December 2025 has no trips. No trips is no data, so the tiles show "–", not 0, and the trips
-     * have no note.
+     * have no note. The chart shows the 12 months with no values.
      */
     public function testMonthWithNoDataHasNoValues(): void
     {
@@ -67,6 +87,14 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('–', self::value($crawler, 'trips'));
         self::assertSame('–', self::value($crawler, 'citizens'));
         self::assertCount(0, $crawler->filter('[data-test="trips"] .tile__note'));
+        self::assertSame('–', self::value($crawler, 'punctuality'));
+        foreach (['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] as $measure) {
+            self::assertSame('–', self::value($crawler, 'measure-'.$measure));
+        }
+        self::assertSame('0 af 4 målinger når målet', $crawler->filter('[data-test="goal-status"]')->text());
+        $rows = $crawler->filter('[data-test="punctuality-trend"] .sr-only tbody tr');
+        self::assertCount(12, $rows);
+        self::assertSame(['–', '–', '–', '–'], $rows->last()->filter('td')->each(static fn (Crawler $cell): string => $cell->text()));
     }
 
     /**

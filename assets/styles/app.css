@@ -481,6 +481,9 @@ body {
 .tiles--2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.tiles--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 @media (max-width: 1199.98px) {
   .tiles--4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -489,6 +492,7 @@ body {
 @media (max-width: 719.98px) {
   .tiles,
   .tiles--2,
+  .tiles--3,
   .tiles--4 {
     grid-template-columns: minmax(0, 1fr);
   }

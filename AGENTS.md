@@ -101,7 +101,8 @@ To find how the project is configured, use these commands. Do not guess:
 - YAML in `config/` has 4 spaces. Other YAML files have 2 spaces. Prettier checks them.
 - Markdown lines have a maximum of 120 characters. markdownlint checks them.
 - Run `task prepare-code` before you commit. It fixes the coding standards, normalizes
-  `composer.json`, and runs the checks and the coverage gate.
+  `composer.json`, and runs the checks and the tests. It does not measure the coverage.
+- CI runs the coverage gate. Run `task test:coverage:check` to run the gate locally.
 
 ## Git and pull requests
 

@@ -18,7 +18,7 @@
 
     {# A change of the volume is neither good nor bad, so the change has the tone "neutral".
        A month with no trips has no data, so the trips have no note. #}
-    <div class="tiles tiles--2">
+    <div class="tiles tiles--3">
         {% set trips = page.trips %}
         <twig:Tile
             :label="'overview.trips.label'|trans"
@@ -51,5 +51,31 @@
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
+        {% set measure = punctuality.headline %}
+        <twig:Tile
+            :label="'overview.punctuality.label'|trans"
+            :value="measure.percent|punctuality_percent"
+            :tone="punctuality_tone(measure.percent)"
+            :change="measure.change is null ? null : 'punctuality.points'|trans({change: measure.change|percentage_points})"
+            :changeTone="trend_tone(measure.change)"
+            :changeIcon="trend_icon(measure.change)"
+            :spark="measure.history"
+            :sparkClass="measure.cssClass"
+            :note="('punctuality.measure.' ~ measure.key)|trans ~ ' · ' ~ 'punctuality.target_note'|trans({target: punctuality.target})"
+            test="punctuality"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-punctuality" :title="('punctuality.help.' ~ measure.key ~ '.title')|trans">
+                    <p>{{ ('punctuality.help.' ~ measure.key ~ '.body')|trans({minutes: tolerance_minutes}) }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
     </div>
+
+    {{ include('punctuality/_goal.html.twig', {page: punctuality, tolerance_minutes: tolerance_minutes}, with_context: false) }}
+    {{ include('punctuality/_trend.html.twig', {
+        page: punctuality,
+        labels: punctuality.months|map(item => ('month.short.' ~ item.number)|trans),
+        trend_title: 'overview.punctuality.title'|trans,
+    }, with_context: false) }}
 {% endblock %}

@@ -8,7 +8,6 @@
     {% set month = page.month %}
     {% set report = page.current %}
     {% set figures = report.total %}
-    {% set target = page.target %}
     {% set labels = page.months|map(item => ('month.short.' ~ item.number)|trans) %}
 
     <header class="page-head">
@@ -19,49 +18,7 @@
         {{ months.nav('punctuality', month, has_next_month, 'punctuality.title'|trans) }}
     </header>
 
-    {# The service target heads the four measures. #}
-    <section class="panel goal-panel" aria-labelledby="goal-title">
-        <header class="goal">
-            <h2 class="goal__text" id="goal-title">
-                <span class="goal__label">{{ 'punctuality.goal.label'|trans }}</span>
-                <span class="goal__rule">{{ 'punctuality.goal.rule'|trans({minutes: tolerance_minutes, target: target}) }}</span>
-            </h2>
-            {% set total = page.measures|length %}
-            <p class="goal__status{{ page.measuresAtTarget == total ? ' is-ok' }}" data-test="goal-status">{{ 'punctuality.goal.status'|trans({count: page.measuresAtTarget, total: total}) }}</p>
-        </header>
-        <div class="panel__body">
-            <div class="tiles tiles--4">
-                {% for measure in page.measures %}
-                    {% set value = measure.percent %}
-                    {% set gap = punctuality_gap(value) %}
-                    {% set note = 'punctuality.target_note'|trans({target: target}) %}
-                    {% if gap is not null %}
-                        {% set note = note ~ ' · ' ~ 'punctuality.target_gap'|trans({gap: gap}) %}
-                    {% elseif value is not null %}
-                        {% set note = note ~ ' · ' ~ 'punctuality.target_met'|trans %}
-                    {% endif %}
-                    <twig:Tile
-                        :label="('punctuality.measure.' ~ measure.key)|trans"
-                        :value="value|punctuality_percent"
-                        :tone="punctuality_tone(value)"
-                        :change="measure.change is null ? null : 'punctuality.points'|trans({change: measure.change|percentage_points})"
-                        :changeTone="trend_tone(measure.change)"
-                        :changeIcon="trend_icon(measure.change)"
-                        :spark="measure.history"
-                        :sparkClass="measure.cssClass"
-                        :note="note"
-                        :test="'measure-' ~ measure.key"
-                    >
-                        <twig:block name="help">
-                            <twig:HelpPopover :id="'help-' ~ measure.key" :title="('punctuality.help.' ~ measure.key ~ '.title')|trans">
-                                <p>{{ ('punctuality.help.' ~ measure.key ~ '.body')|trans({minutes: tolerance_minutes}) }}</p>
-                            </twig:HelpPopover>
-                        </twig:block>
-                    </twig:Tile>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
+    {{ include('punctuality/_goal.html.twig', {page: page, tolerance_minutes: tolerance_minutes}, with_context: false) }}
 
     <div class="tiles tiles--2">
         {% set late = page.lateRuns %}
@@ -91,19 +48,11 @@
         />
     </div>
 
-    <twig:Panel :title="'punctuality.trend.title'|trans" :subtitle="'punctuality.trend.subtitle'|trans">
-        <twig:LineChart
-            id="trend"
-            :caption="'punctuality.trend.caption'|trans"
-            :labels="labels"
-            :series="page.measures|map(measure => {name: ('punctuality.measure.' ~ measure.key)|trans, cssClass: measure.cssClass, values: measure.history, dashed: measure.dashed})"
-            :max="100.0"
-            :target="target * 1.0"
-            :targetLabel="'punctuality.target_note'|trans({target: target})"
-            unit="percent"
-        />
-        <twig:block name="foot">{{ 'punctuality.source'|trans }}</twig:block>
-    </twig:Panel>
+    {{ include('punctuality/_trend.html.twig', {
+        page: page,
+        labels: labels,
+        trend_title: 'punctuality.trend.title'|trans,
+    }, with_context: false) }}
 
     <div class="grid-2">
         <twig:Panel :title="'punctuality.split.title'|trans">

@@ -270,3 +270,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The overview shows the trips and the distinct citizens who were driven in a month, with the
   change from the previous month, a 12-month sparkline and a help text. The month chooser of the
   punctuality page is now a shared template.
+- [#109](https://github.com/itk-dev/koerselsoverblik/issues/109)
+  The overview shows the punctuality: the tile "Rettidighed" (the drop-off per route run), the
+  four measures against the service target, and the 12-month chart. The punctuality page and the
+  overview share the templates of the goal panel and the chart.

@@ -1,0 +1,14 @@
+{# The four measures for each month, against the target. Needs page, labels and trend_title. #}
+<twig:Panel :title="trend_title" :subtitle="'punctuality.trend.subtitle'|trans" data-test="punctuality-trend">
+    <twig:LineChart
+        id="trend"
+        :caption="'punctuality.trend.caption'|trans"
+        :labels="labels"
+        :series="page.measures|map(measure => {name: ('punctuality.measure.' ~ measure.key)|trans, cssClass: measure.cssClass, values: measure.history, dashed: measure.dashed})"
+        :max="100.0"
+        :target="page.target * 1.0"
+        :targetLabel="'punctuality.target_note'|trans({target: page.target})"
+        unit="percent"
+    />
+    <twig:block name="foot">{{ 'punctuality.source'|trans }}</twig:block>
+</twig:Panel>

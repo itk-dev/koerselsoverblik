@@ -873,11 +873,17 @@ the punctuality page (`templates/_month.html.twig`).
 - The note of the trips gives the completed and the cancelled trips. It also gives the trips with
   no registration when there are some, so that the parts add up to the trips.
 - A change of the trips or the citizens has no tone, because more volume is not better or worse.
+- The punctuality comes from `PunctualityPageBuilder` for the same month. The tile
+  "Rettidighed" shows `PunctualityPageDto::headline()`, the drop-off per route run. The goal panel
+  and the 12-month chart are shared templates (`punctuality/_goal.html.twig` and
+  `punctuality/_trend.html.twig`), so the overview and the punctuality page show the same figures.
+  Each page gives the variables of the shared templates explicitly, with `with_context = false`.
 - The current month is not complete, but the page compares it with all of the previous month.
   See "Partial month" in [Open decisions](#open-decisions).
 
 **Cost:** the page runs `countTrips()` for each of the 12 months, so one request runs 12
 queries. A query grouped by month, or the daily stats, can replace them when the data grows.
+The request also has the cost of the punctuality page (#85).
 
 ## Security
 

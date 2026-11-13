@@ -35,6 +35,9 @@ overview:
     help:
       title: Unikke borgere
       body: Hvor mange forskellige borgere der blev kørt i perioden. Den samme borger tæller kun én gang, uanset antallet af ture. En borger, hvis ture alle blev aflyst, tæller ikke med. En tur, hvor chaufføren ikke har registreret afhentningen, tæller med. Tallet er en optælling af borger-id'erne i kørselsdata.
+  punctuality:
+    label: Rettidighed
+    title: Rettidighed mod servicemålet
 
 month:
   previous: Forrige måned

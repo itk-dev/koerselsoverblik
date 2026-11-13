@@ -7,7 +7,9 @@ namespace App\Controller;
 use App\Clock\LocalCalendar;
 use App\Report\MonthDto;
 use App\Report\OverviewPageBuilder;
+use App\Report\PunctualityPageBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
@@ -25,7 +27,10 @@ final class OverviewController extends AbstractController
     #[Route('/', name: 'overview', methods: ['GET'])]
     public function __invoke(
         OverviewPageBuilder $builder,
+        PunctualityPageBuilder $punctualityBuilder,
         LocalCalendar $calendar,
+        #[Autowire(param: 'app.punctuality_tolerance_minutes')]
+        int $toleranceMinutes,
         #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
         ?string $month = null,
     ): Response {
@@ -34,7 +39,9 @@ final class OverviewController extends AbstractController
 
         return $this->render('overview/index.html.twig', [
             'page' => $builder->build($selected),
+            'punctuality' => $punctualityBuilder->build($selected),
             'has_next_month' => $selected->isBefore(MonthDto::fromQuery(null, $today)),
+            'tolerance_minutes' => $toleranceMinutes,
         ]);
     }
 }
