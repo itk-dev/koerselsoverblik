@@ -44,7 +44,7 @@ overview:
     subtitle: Samme mål for alle leverandører i den valgte periode.
     caption: Nøgletal pr. leverandør
     cancelled: Aflyst
-    source: "Kilde: Optiruns"
+    source: "Kilde: kørselsdata"
   real_solo:
     label: Reelt solo
     note: "{count, number} vognløb med højst én borger"
@@ -153,7 +153,7 @@ punctuality:
     punctuality: Rettidighed
     late: Forsinkede
     foot: Rettidighed ved sidste afsætning.
-  source: "Kilde: Optiruns · chaufførens indtastning mod planlagt tid, kun gennemførte stop"
+  source: "Kilde: chaufførens indtastning mod planlagt tid, kun gennemførte stop"
   no_data: Ingen data i perioden.
 
 upload:

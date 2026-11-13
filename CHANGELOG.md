@@ -257,3 +257,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#113](https://github.com/itk-dev/koerselsoverblik/issues/113)
   The overview shows the suppliers side by side: the trips, the punctuality, the real solo runs
   and the cancelled trips of each supplier, from `SupplierTableCalculator`.
+- [#118](https://github.com/itk-dev/koerselsoverblik/issues/118)
+  No source text names the planning system. The page keeps the name "Rettidighed".
