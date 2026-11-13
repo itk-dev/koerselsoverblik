@@ -28,6 +28,8 @@ use App\Report\SoloCountDto;
 use App\Report\SupplierPunctualityDto;
 use App\Report\SupplierRowDto;
 use App\Report\SupplierTableCalculator;
+use App\Repository\RouteRunRepository;
+use App\Repository\StopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -153,6 +155,62 @@ final class SupplierTableCalculatorTest extends KernelTestCase
     }
 
     /**
+     * A run with a peak of 0 had no citizen in the car, so it is neither solo nor shared. A run
+     * with a peak of 2 counts, but it is not solo.
+     */
+    public function testRunWithNoCitizenDoesNotCount(): void
+    {
+        $route = $this->route('X', 'Vognmand D');
+        $this->entityManager->persist(new RouteRun($route, new \DateTimeImmutable('2026-01-06'), 1, new RouteRunDto(null, null, null, null, null, null, false, 0)));
+        $this->entityManager->persist(new RouteRun($route, new \DateTimeImmutable('2026-01-06'), 2, new RouteRunDto(null, null, null, null, null, null, false, 2)));
+
+        $rows = $this->calculate([]);
+
+        self::assertEquals(new SupplierRowDto('Vognmand D', 0, 0, new SoloCountDto(1, 0), new PunctualityCountDto(0, 0)), $rows[0]);
+    }
+
+    /**
+     * The trips and the runs of an ignored sub-agreement do not count. BOOKED is ignored, so only
+     * the counts of R are left.
+     */
+    public function testIgnoredSubAgreementDoesNotCount(): void
+    {
+        $this->ignore('BOOKED');
+
+        $rows = $this->calculate([]);
+
+        self::assertEquals([new SupplierRowDto(null, 6, 1, new SoloCountDto(3, 1), new PunctualityCountDto(0, 0))], $rows);
+    }
+
+    /**
+     * The rows add up to the figures of the tiles, also with two suppliers, an ignored
+     * sub-agreement and a run with no citizen.
+     */
+    public function testRowsAddUpToTheTiles(): void
+    {
+        $this->giveSupplier('R', 'Vognmand A');
+        $route = $this->route('X', 'Vognmand B');
+        $this->entityManager->persist(new RouteRun($route, new \DateTimeImmutable('2026-01-06'), 1, new RouteRunDto(null, null, null, null, null, null, false, 0)));
+        $this->entityManager->persist(new RouteRun($route, new \DateTimeImmutable('2026-01-06'), 2, new RouteRunDto(null, null, null, null, null, null, false, 1)));
+        $this->ignore('BOOKED');
+
+        $rows = $this->calculate([]);
+
+        $range = DateRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31'));
+        $trips = $this->entityManager->getRepository(StopRow::class);
+        self::assertInstanceOf(StopRowRepository::class, $trips);
+        $runs = $this->entityManager->getRepository(RouteRun::class);
+        self::assertInstanceOf(RouteRunRepository::class, $runs);
+        $tripCount = $trips->countTrips($range);
+        $soloCount = $runs->countSoloRuns($range);
+        self::assertSame(['Vognmand A', 'Vognmand B'], array_map(static fn (SupplierRowDto $row): ?string => $row->supplier, $rows));
+        self::assertSame($tripCount->trips, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->trips, $rows)));
+        self::assertSame($tripCount->cancelled, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->cancelled, $rows)));
+        self::assertSame($soloCount->runs, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->solo->runs, $rows)));
+        self::assertSame($soloCount->soloRuns, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->solo->soloRuns, $rows)));
+    }
+
+    /**
      * A supplier in the punctuality report with no trips in the range has a row with no trips.
      */
     public function testSupplierWithOnlyPunctualityHasARow(): void
@@ -203,6 +261,28 @@ final class SupplierTableCalculatorTest extends KernelTestCase
         $supplier = $this->entityManager->getRepository(Supplier::class)->findOneBy(['name' => $name]) ?? new Supplier()->setName($name);
         $this->entityManager->persist($supplier);
         $subAgreement->setSupplier($supplier);
+    }
+
+    private function ignore(string $reference): void
+    {
+        $subAgreement = $this->entityManager->getRepository(SubAgreement::class)->findOneBy(['reference' => $reference]);
+        self::assertInstanceOf(SubAgreement::class, $subAgreement);
+        $subAgreement->setIgnored(true);
+    }
+
+    /**
+     * Makes a route "<REFERENCE>-01" with a sub-agreement of its own and a supplier.
+     */
+    private function route(string $reference, string $supplierName): Route
+    {
+        $supplier = new Supplier()->setName($supplierName);
+        $subAgreement = new SubAgreement()->setReference($reference)->setSupplier($supplier);
+        $route = new Route($reference.'-01', $subAgreement);
+        $this->entityManager->persist($supplier);
+        $this->entityManager->persist($subAgreement);
+        $this->entityManager->persist($route);
+
+        return $route;
     }
 
     private function batch(): ImportBatch
