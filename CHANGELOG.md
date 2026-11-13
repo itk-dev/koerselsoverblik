@@ -287,3 +287,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The coverage gate runs only on the release and hotfix branches, together with the full mutation
   testing, in the new workflow `release-checks.yaml`. The pull requests and `develop` run the tests
   with no coverage.
+- [#115](https://github.com/itk-dev/koerselsoverblik/issues/115)
+  The period logic of the filters: `PeriodFilter` reads the period, the date, the comparison and
+  the supplier from the query string. `PeriodRangeFactory` gives the selected period, the
+  comparison period (cut when the period has not ended) and the 12 months. `PeriodLabeler`
+  gives the Danish labels of the prototype. No page uses them yet.

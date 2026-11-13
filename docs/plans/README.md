@@ -69,13 +69,12 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Filter the pages by period, comparison and supplier (parent issue) | In progress | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | #115, #116, #117, #122 | [filters.md](filters.md) |
-| Calculate the selected period, the comparison and the 12 months | In progress | [#115](https://github.com/itk-dev/koerselsoverblik/issues/115) | – | [filters.md](filters.md) |
+| Filter the pages by period, comparison and supplier (parent issue) | In progress | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | #116, #117, #122 | [filters.md](filters.md) |
 | Filter the punctuality page and the overview by period and comparison | In progress | [#116](https://github.com/itk-dev/koerselsoverblik/issues/116) | – | [filters.md](filters.md) |
 | Filter the punctuality page and the overview by supplier | In progress | [#117](https://github.com/itk-dev/koerselsoverblik/issues/117) | – | [filters.md](filters.md) |
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
 | Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #75, #117 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
-| Calculate the 12 months in one query | Blocked | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | #115 | [punctuality-months-query.md](punctuality-months-query.md) |
+| Calculate the 12 months in one query | Ready | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | – | [punctuality-months-query.md](punctuality-months-query.md) |
 | Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
 | Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
 | Fix the month chooser, the chart labels and the number format | Blocked | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | #116 | [punctuality-layout.md](punctuality-layout.md) |
@@ -149,3 +148,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Show the real solo runs on the overview | [#110](https://github.com/itk-dev/koerselsoverblik/issues/110) | [#112](https://github.com/itk-dev/koerselsoverblik/pull/112) |
 | Show the suppliers side by side on the overview | [#113](https://github.com/itk-dev/koerselsoverblik/issues/113) | [#114](https://github.com/itk-dev/koerselsoverblik/pull/114) |
 | Remove the planning system from the source texts | [#118](https://github.com/itk-dev/koerselsoverblik/issues/118) | [#119](https://github.com/itk-dev/koerselsoverblik/pull/119) |
+| Calculate the selected period, the comparison and the 12 months | [#115](https://github.com/itk-dev/koerselsoverblik/issues/115) | [#120](https://github.com/itk-dev/koerselsoverblik/pull/120) |
