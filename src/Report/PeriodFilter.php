@@ -82,4 +82,20 @@ final readonly class PeriodFilter
             's' => null === $this->supplier ? null : (string) $this->supplier,
         ], static fn (?string $value): bool => null !== $value);
     }
+
+    /**
+     * Tells if a query string is the query of this filter, so that each view has one URL. The
+     * order of the keys has no effect. A default value, an invalid value or an unknown parameter
+     * makes the query not canonical.
+     *
+     * @param array<array-key, mixed> $query
+     */
+    public function isCanonical(array $query): bool
+    {
+        $canonical = $this->query();
+        ksort($canonical);
+        ksort($query);
+
+        return $query === $canonical;
+    }
 }

@@ -143,8 +143,22 @@ final class PunctualityPageTest extends WebTestCase
     {
         $client = $this->client('viewer');
 
-        self::assertSame('januar 2026', $client->request('GET', '/punctuality?d=abc')->filter('[data-test="period"]')->text());
-        self::assertSame('januar 2026', $client->request('GET', '/punctuality?d[]=2025-12-01')->filter('[data-test="period"]')->text());
+        foreach (['?d=abc', '?d[]=2025-12-01'] as $query) {
+            $client->request('GET', '/punctuality'.$query);
+            self::assertResponseRedirects('/punctuality');
+            self::assertSame('januar 2026', $client->followRedirect()->filter('[data-test="period"]')->text());
+        }
+    }
+
+    /**
+     * Each view has one URL. The form sends the default values, so the page redirects them.
+     */
+    public function testQueryThatIsNotCanonicalRedirects(): void
+    {
+        $client = $this->client('viewer');
+        $client->request('GET', '/punctuality?c=last_year&s=');
+
+        self::assertResponseRedirects('/punctuality?c=last_year');
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Report\PeriodSelector;
 use App\Report\PunctualityPageBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
@@ -21,10 +22,12 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class PunctualityController extends AbstractController
 {
     /**
-     * The filters are in the query string. An invalid value gives null, and then its default.
+     * The filters are in the query string. An invalid value gives null, and then its default. A
+     * query that is not canonical redirects, so that each view has one URL.
      */
     #[Route('/punctuality', name: 'punctuality', methods: ['GET'])]
     public function __invoke(
+        Request $request,
         PunctualityPageBuilder $builder,
         PeriodSelector $periods,
         #[Autowire(param: 'app.punctuality_tolerance_minutes')]
@@ -39,6 +42,9 @@ final class PunctualityController extends AbstractController
         ?string $s = null,
     ): Response {
         $selection = $periods->select($p, $d, $c, $s);
+        if (!$selection->filter->isCanonical($request->query->all())) {
+            return $this->redirectToRoute('punctuality', $selection->filter->query());
+        }
 
         return $this->render('punctuality/index.html.twig', [
             'selection' => $selection,

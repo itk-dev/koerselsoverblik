@@ -779,7 +779,9 @@ sequenceDiagram
 ```
 
 **Filters:** `PeriodFilter` maps the query string (`p` period, `d` date, `c` comparison,
-`s` supplier). Invalid values fall back to the defaults, so a link always works.
+`s` supplier). Invalid values fall back to the defaults, so a link always works. Each view has
+one URL: `PeriodFilter::query()`. A request with another query, for example the default values
+that the form sends, redirects to that URL (`PeriodFilter::isCanonical()`).
 
 **Periods:** `PeriodRangeFactory` turns the filter into three sets of date ranges:
 

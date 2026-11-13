@@ -199,6 +199,33 @@ final class PeriodRangeFactoryTest extends TestCase
         self::assertSame(self::DATA_START, $selection->filter->anchor->format('Y-m-d'));
     }
 
+    /**
+     * The controllers redirect to the query of the selection. That query must be canonical, or the
+     * redirect does not stop.
+     *
+     * @param array<string, string> $query
+     */
+    #[DataProvider('queries')]
+    public function testQueryOfTheSelectionIsCanonical(array $query, string $start): void
+    {
+        $canonical = self::select($query, self::TODAY, $start)->filter->query();
+
+        self::assertTrue(self::select($canonical, self::TODAY, $start)->filter->isCanonical($canonical));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, string}>
+     */
+    public static function queries(): iterable
+    {
+        yield 'current month' => [[], ''];
+        yield 'week from a Sunday' => [['p' => 'week', 'd' => '2026-09-13', 'c' => 'last_year'], ''];
+        yield 'quarter' => [['p' => 'quarter', 'd' => '2026-05-05'], ''];
+        yield 'date before the data' => [['d' => '2026-03-03'], self::DATA_START];
+        yield 'week of the data start' => [['p' => 'week', 'd' => '2026-05-20'], self::DATA_START];
+        yield 'data start after today' => [['d' => '2026-03-03'], '2026-10-01'];
+    }
+
     public function testEmptyDataStartIsNoLimit(): void
     {
         $selection = self::select(['d' => '2026-03-03'], self::TODAY, '');

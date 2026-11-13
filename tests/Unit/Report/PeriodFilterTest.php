@@ -150,11 +150,57 @@ final class PeriodFilterTest extends TestCase
         self::assertSame(['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year', 's' => '2'], $filter->with(comparison: Comparison::LastYear)->query());
     }
 
+    /**
+     * A query is canonical when it is the query of its filter. The order of the keys has no effect.
+     *
+     * @param array<string, mixed> $query
+     */
+    #[DataProvider('canonicalQueries')]
+    public function testIsCanonical(array $query, bool $canonical): void
+    {
+        $filter = PeriodFilter::fromQuery(
+            self::value($query, 'p'),
+            self::value($query, 'd'),
+            self::value($query, 'c'),
+            self::value($query, 's'),
+            new \DateTimeImmutable(self::TODAY),
+        );
+
+        self::assertSame($canonical, $filter->isCanonical($query));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, bool}>
+     */
+    public static function canonicalQueries(): iterable
+    {
+        yield 'no query' => [[], true];
+        yield 'all filters' => [['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year', 's' => '2'], true];
+        yield 'other order' => [['s' => '2', 'd' => '2026-02-02', 'p' => 'week'], true];
+        // The form always sends the comparison and the supplier.
+        yield 'defaults from the form' => [['c' => 'previous', 's' => ''], false];
+        yield 'date that is not the first date' => [['p' => 'week', 'd' => '2026-02-03'], false];
+        yield 'date of the current period' => [['d' => '2026-09-01'], false];
+        yield 'invalid date' => [['d' => 'abc'], false];
+        yield 'date as a list' => [['d' => ['2026-02-02']], false];
+        yield 'unknown parameter' => [['month' => '2026-06'], false];
+    }
+
     public function testWithoutSupplierKeepsTheOtherFilters(): void
     {
         $filter = self::filter(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year', 's' => '2']);
 
         self::assertSame(['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year'], $filter->withoutSupplier()->query());
+    }
+
+    /**
+     * Gives a value of the query as the controller does: a value that is not text gives null.
+     *
+     * @param array<string, mixed> $query
+     */
+    private static function value(array $query, string $name): ?string
+    {
+        return \is_string($query[$name] ?? null) ? $query[$name] : null;
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Report\PunctualityPageBuilder;
 use App\Report\SupplierTableCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
@@ -22,10 +23,12 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class OverviewController extends AbstractController
 {
     /**
-     * The filters are in the query string. An invalid value gives null, and then its default.
+     * The filters are in the query string. An invalid value gives null, and then its default. A
+     * query that is not canonical redirects, so that each view has one URL.
      */
     #[Route('/', name: 'overview', methods: ['GET'])]
     public function __invoke(
+        Request $request,
         OverviewPageBuilder $builder,
         PunctualityPageBuilder $punctualityBuilder,
         SupplierTableCalculator $supplierTable,
@@ -42,6 +45,9 @@ final class OverviewController extends AbstractController
         ?string $s = null,
     ): Response {
         $selection = $periods->select($p, $d, $c, $s);
+        if (!$selection->filter->isCanonical($request->query->all())) {
+            return $this->redirectToRoute('overview', $selection->filter->query());
+        }
         $punctuality = $punctualityBuilder->build($selection);
 
         return $this->render('overview/index.html.twig', [

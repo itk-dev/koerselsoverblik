@@ -12,6 +12,7 @@ use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -157,7 +158,7 @@ final class OverviewPageTest extends WebTestCase
      */
     public function testFilterBarKeepsTheOtherFilters(): void
     {
-        $crawler = $this->page('viewer', '?p=week&d=2026-01-07&c=last_year', importBase: true);
+        $crawler = $this->page('viewer', '?p=week&d=2026-01-05&c=last_year', importBase: true);
 
         self::assertSame('Uge 2 · 5. jan–11. jan 2026', $crawler->filter('[data-test="period"]')->text());
         self::assertSame('uge 2 · 5. jan–11. jan 2026 sammenlignet med uge 2 · 6. jan–12. jan 2025.', $crawler->filter('[data-test="lede"]')->text());
@@ -208,7 +209,9 @@ final class OverviewPageTest extends WebTestCase
         // A link of the filter bar keeps the supplier.
         self::assertSame('/?p=week&s='.$supplier->getId(), $crawler->filter('[data-test="period-week"]')->attr('href'));
         // A supplier that does not exist gives all suppliers.
-        self::assertSame('7', self::value($client->request('GET', '/?s=999999'), 'trips'));
+        $client->request('GET', '/?s=999999');
+        self::assertResponseRedirects('/');
+        self::assertSame('7', self::value($client->followRedirect(), 'trips'));
     }
 
     /**
@@ -228,8 +231,34 @@ final class OverviewPageTest extends WebTestCase
     public function testInvalidMonthGivesTheCurrentMonth(): void
     {
         $client = $this->client('viewer');
+        $client->request('GET', '/?d=abc');
 
-        self::assertSame('januar 2026', $client->request('GET', '/?d=abc')->filter('[data-test="period"]')->text());
+        self::assertResponseRedirects('/');
+        self::assertSame('januar 2026', $client->followRedirect()->filter('[data-test="period"]')->text());
+    }
+
+    /**
+     * Each view has one URL. The form sends the default values, and a date can be any date of
+     * the period. The page redirects such a query to the query of the links.
+     */
+    #[DataProvider('nonCanonicalQueries')]
+    public function testQueryThatIsNotCanonicalRedirects(string $query, string $location): void
+    {
+        $client = $this->client('viewer');
+        $client->request('GET', '/'.$query);
+
+        self::assertResponseRedirects($location);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function nonCanonicalQueries(): iterable
+    {
+        yield 'defaults from the form' => ['?c=previous&s=', '/'];
+        yield 'date in the period' => ['?p=week&d=2026-01-07', '/?p=week&d=2026-01-05'];
+        yield 'date of the current period' => ['?d=2026-01-20', '/'];
+        yield 'unknown parameter' => ['?month=2025-06', '/'];
     }
 
     public function testNoTextNamesThePlanningSystem(): void
