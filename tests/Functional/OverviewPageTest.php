@@ -90,7 +90,7 @@ final class OverviewPageTest extends WebTestCase
 
     /**
      * December 2025 has no trips. No trips is no data, so the tiles show "–", not 0, and the trips
-     * have no note. The chart shows the 12 months with no values.
+     * and the real solo runs have no note. The chart shows the 12 months with no values.
      */
     public function testMonthWithNoDataHasNoValues(): void
     {
@@ -102,6 +102,7 @@ final class OverviewPageTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-test="trips"] .tile__note'));
         self::assertSame('–', self::value($crawler, 'punctuality'));
         self::assertSame('–', self::value($crawler, 'real-solo'));
+        self::assertCount(0, $crawler->filter('[data-test="real-solo"] .tile__note'));
         foreach (['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] as $measure) {
             self::assertSame('–', self::value($crawler, 'measure-'.$measure));
         }

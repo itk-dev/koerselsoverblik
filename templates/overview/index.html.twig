@@ -70,7 +70,8 @@
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
-        {# A real solo run had at most one citizen in the car at a time. The share has no target. #}
+        {# A real solo run had at most one citizen in the car at a time. The share has no target.
+           A month with no counted runs has no share, so the tile has no note. #}
         {% set solo = page.realSolo %}
         <twig:Tile
             :label="'overview.real_solo.label'|trans"
@@ -78,7 +79,7 @@
             :change="solo.change is null ? null : 'punctuality.points'|trans({change: solo.change|percentage_points})"
             :changeIcon="trend_icon(solo.change)"
             :spark="solo.history"
-            :note="'overview.real_solo.note'|trans({count: page.currentSolo.soloRuns})"
+            :note="solo.current is null ? null : 'overview.real_solo.note'|trans({count: page.currentSolo.soloRuns})"
             test="real-solo"
         >
             <twig:block name="help">
