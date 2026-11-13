@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Clock\LocalCalendar;
 use App\Report\OverviewPageBuilder;
-use App\Report\PeriodFilter;
-use App\Report\PeriodRangeFactory;
+use App\Report\PeriodSelector;
 use App\Report\PunctualityPageBuilder;
 use App\Report\SupplierTableCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,8 +29,7 @@ final class OverviewController extends AbstractController
         OverviewPageBuilder $builder,
         PunctualityPageBuilder $punctualityBuilder,
         SupplierTableCalculator $supplierTable,
-        PeriodRangeFactory $periods,
-        LocalCalendar $calendar,
+        PeriodSelector $periods,
         #[Autowire(param: 'app.punctuality_tolerance_minutes')]
         int $toleranceMinutes,
         #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
@@ -44,8 +41,7 @@ final class OverviewController extends AbstractController
         #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
         ?string $s = null,
     ): Response {
-        $today = $calendar->today();
-        $selection = $periods->create(PeriodFilter::fromQuery($p, $d, $c, $s, $today), $today);
+        $selection = $periods->select($p, $d, $c, $s);
         $punctuality = $punctualityBuilder->build($selection);
 
         return $this->render('overview/index.html.twig', [

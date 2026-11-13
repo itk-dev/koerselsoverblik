@@ -23,15 +23,16 @@ final readonly class OverviewPageBuilder
     {
         $months = $selection->months;
         $comparison = $selection->comparisonRange;
+        $supplier = $selection->filter->supplier;
 
         return new OverviewPageDto(
             $months,
-            array_map(fn (MonthDto $item): TripCountDto => $this->stopRows->countTrips($item->range()), $months),
-            array_map(fn (MonthDto $item): SoloCountDto => $this->routeRuns->countSoloRuns($item->range()), $months),
-            $this->stopRows->countTrips($selection->selectedRange),
-            null === $comparison ? null : $this->stopRows->countTrips($comparison),
-            $this->routeRuns->countSoloRuns($selection->selectedRange),
-            null === $comparison ? null : $this->routeRuns->countSoloRuns($comparison),
+            array_map(fn (MonthDto $item): TripCountDto => $this->stopRows->countTrips($item->range(), $supplier), $months),
+            array_map(fn (MonthDto $item): SoloCountDto => $this->routeRuns->countSoloRuns($item->range(), $supplier), $months),
+            $this->stopRows->countTrips($selection->selectedRange, $supplier),
+            null === $comparison ? null : $this->stopRows->countTrips($comparison, $supplier),
+            $this->routeRuns->countSoloRuns($selection->selectedRange, $supplier),
+            null === $comparison ? null : $this->routeRuns->countSoloRuns($comparison, $supplier),
         );
     }
 }

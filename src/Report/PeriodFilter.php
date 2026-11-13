@@ -57,6 +57,14 @@ final readonly class PeriodFilter
     }
 
     /**
+     * Gives the filter for all suppliers, for a supplier id that does not exist.
+     */
+    public function withoutSupplier(): self
+    {
+        return new self($this->type, $this->anchor, $this->comparison, null, $this->today);
+    }
+
+    /**
      * Gives the query string of the filter for path(). It leaves out a value that is the default.
      *
      * @return array<string, string>

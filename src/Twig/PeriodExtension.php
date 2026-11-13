@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Entity\Supplier;
 use App\Report\Comparison;
 use App\Report\PeriodDto;
 use App\Report\PeriodLabeler;
 use App\Report\PeriodSelectionDto;
 use App\Report\PeriodType;
+use App\Repository\SupplierRepository;
 use Twig\Attribute\AsTwigFunction;
 
 /**
@@ -18,7 +20,19 @@ final readonly class PeriodExtension
 {
     public function __construct(
         private PeriodLabeler $labeler,
+        private SupplierRepository $suppliers,
     ) {
+    }
+
+    /**
+     * Gives the suppliers of the select box of the filter bar, in the order of the name.
+     *
+     * @return list<Supplier>
+     */
+    #[AsTwigFunction('filter_suppliers')]
+    public function suppliers(): array
+    {
+        return $this->suppliers->findBy([], ['name' => 'ASC']);
     }
 
     #[AsTwigFunction('period_label')]

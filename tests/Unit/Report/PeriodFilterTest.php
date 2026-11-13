@@ -91,6 +91,13 @@ final class PeriodFilterTest extends TestCase
         self::assertSame(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year', 's' => '2'], $filter->with(comparison: Comparison::LastYear)->query());
     }
 
+    public function testWithoutSupplierKeepsTheOtherFilters(): void
+    {
+        $filter = self::filter(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year', 's' => '2']);
+
+        self::assertSame(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year'], $filter->withoutSupplier()->query());
+    }
+
     /**
      * @param array<string, string> $query
      */

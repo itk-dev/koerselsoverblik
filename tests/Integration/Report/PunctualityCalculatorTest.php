@@ -184,6 +184,28 @@ final class PunctualityCalculatorTest extends KernelTestCase
     }
 
     /**
+     * With a supplier, the total and the worst routes are of that supplier only. The supplier
+     * table always shows all suppliers.
+     */
+    public function testFiguresOfOneSupplier(): void
+    {
+        $supplierA = $this->supplier('Vognmand A');
+        $routeOfA = $this->route('T-01', $this->subAgreement('T', $supplierA));
+        $routeOfB = $this->route('S-01', $this->subAgreement('S', $this->supplier('Vognmand B')));
+        $unknown = $this->route('U-01', $this->subAgreement('U'));
+        $this->stop($routeOfA, '2026-01-06', 1, StopType::DropOff, StopStatus::Completed, 1000);
+        $this->stop($routeOfB, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0);
+        $this->stop($unknown, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0);
+        $this->entityManager->flush();
+
+        $report = $this->calculate('2026-01-05', '2026-01-06', $supplierA->getId());
+
+        self::assertEquals(new PunctualityCountDto(0, 1), $report->total->dropOffPerRun);
+        self::assertSame(['Vognmand A', 'Vognmand B', null], array_map(static fn (SupplierPunctualityDto $item): ?string => $item->supplier, $report->suppliers));
+        self::assertSame(['T-01'], array_map(static fn (RoutePunctualityDto $route): string => $route->route, $report->worstRoutes));
+    }
+
+    /**
      * The figures of a supplier add all the routes and all the dates of the range. The figures of
      * a route add all the dates of the range. On the same punctuality, the route with more runs is
      * first.
@@ -290,7 +312,7 @@ final class PunctualityCalculatorTest extends KernelTestCase
         self::assertSame([], $report->worstRoutes);
     }
 
-    private function calculate(string $firstDate, string $lastDate): PunctualityReportDto
+    private function calculate(string $firstDate, string $lastDate, ?int $supplier = null): PunctualityReportDto
     {
         $this->entityManager->flush();
         $builder = self::getContainer()->get(RouteBuilder::class);
@@ -306,7 +328,7 @@ final class PunctualityCalculatorTest extends KernelTestCase
 
         // The container removes a private service that no other service uses yet.
         return new PunctualityCalculator($stopRows, $routeRuns, $routes, 5)
-            ->calculate(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)));
+            ->calculate(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)), $supplier);
     }
 
     private function supplier(string $name): Supplier

@@ -29,18 +29,27 @@
             {% endif %}
         </div>
     </div>
-    <form class="ctl" method="get" action="{{ path(route) }}" data-filter-form>
-        {% for name, value in filter.query|filter((value, name) => name != 'c') %}
+    <form class="controls__form" method="get" action="{{ path(route) }}" data-filter-form>
+        {% for name, value in filter.query|filter((value, name) => name not in ['c', 's']) %}
             <input type="hidden" name="{{ name }}" value="{{ value }}">
         {% endfor %}
-        <label class="ctl__label" for="ctl-comparison">{{ 'filter.comparison'|trans }}</label>
-        <div class="ctl__row">
+        <div class="ctl">
+            <label class="ctl__label" for="ctl-comparison">{{ 'filter.comparison'|trans }}</label>
             <select class="ctl__select" id="ctl-comparison" name="c" data-test="comparison">
                 {% for comparison in comparisons() %}
                     <option value="{{ comparison.value }}"{{ comparison == filter.comparison ? ' selected' }}>{{ ('filter.comparison_' ~ comparison.value)|trans }}</option>
                 {% endfor %}
             </select>
-            <button class="itkaarhus-btn itkaarhus-btn--secondary itkaarhus-btn--sm" type="submit" data-filter-submit>{{ 'filter.show'|trans }}</button>
         </div>
+        <div class="ctl">
+            <label class="ctl__label" for="ctl-supplier">{{ 'filter.supplier'|trans }}</label>
+            <select class="ctl__select" id="ctl-supplier" name="s" data-test="supplier">
+                <option value=""{{ filter.supplier is null ? ' selected' }}>{{ 'filter.all_suppliers'|trans }}</option>
+                {% for supplier in filter_suppliers() %}
+                    <option value="{{ supplier.id }}"{{ supplier.id == filter.supplier ? ' selected' }}>{{ supplier.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="itkaarhus-btn itkaarhus-btn--secondary itkaarhus-btn--sm" type="submit" data-filter-submit>{{ 'filter.show'|trans }}</button>
     </form>
 </div>
