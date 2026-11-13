@@ -785,7 +785,9 @@ sequenceDiagram
 
 - the selected period
 - the comparison period: the previous period, or the same period last year. If the selected
-  period has not ended, the comparison is cut to the same number of days.
+  period has not ended, the comparison is cut to the same number of days. The days count from
+  the first date of each period, so 1–10 June compares with 1–10 May. If the cut comparison ends
+  before the start of the data, the comparison has no data.
 - the 12 trailing months for sparklines and the trend chart. They end at the month of the last
   date of the period, up to today.
 

@@ -72,6 +72,16 @@ final class PeriodLabelerTest extends KernelTestCase
         self::assertSame('14. september 2026 (til og med i dag)', $this->labeler()->phrase($selection));
     }
 
+    /**
+     * On 10 June, the comparison is 1–10 May, which is before the start of the data.
+     */
+    public function testCutComparisonBeforeTheDataHasNoData(): void
+    {
+        $selection = self::select([], '2026-06-10', self::DATA_START);
+
+        self::assertSame('en periode uden data', $this->labeler()->comparisonPhrase($selection));
+    }
+
     private function labeler(): PeriodLabeler
     {
         $translator = self::getContainer()->get(TranslatorInterface::class);

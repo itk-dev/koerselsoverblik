@@ -111,6 +111,10 @@ final class PeriodRangeFactoryTest extends TestCase
         // The data starts on the last day of the previous month, so the comparison has one day.
         yield 'previous month of one day' => [['d' => '2026-06-10'], '2026-05-31/2026-05-31', '2026-05-31/2026-05-31', false, self::TODAY, '2026-05-31'];
         yield 'last year before the data' => [['c' => 'last_year'], null, null, false, self::TODAY, self::DATA_START];
+        // The cut counts from the first date of the period. 1–10 June compares with 1–10 May, which is before the data.
+        yield 'cut comparison before the data' => [[], '2026-05-18/2026-05-31', null, false, '2026-06-10', self::DATA_START];
+        // 1–25 June compares with 1–25 May. Only 18–25 May has data.
+        yield 'cut comparison after the start of the data' => [[], '2026-05-18/2026-05-31', '2026-05-18/2026-05-25', true, '2026-06-25', self::DATA_START];
     }
 
     /**

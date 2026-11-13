@@ -69,7 +69,7 @@ final readonly class PeriodRangeFactory
             $selected,
             $selectedRange,
             $comparison,
-            self::cut($comparison, $selected->endsAfterToday, $selectedRange),
+            self::cut($comparison, $selected, $selectedRange),
             null === $this->period($type, $previous, $today)->range ? null : $previous,
             $next > $today ? null : $next,
             MonthDto::of($selectedRange->lastDate)->trailing(self::MONTHS),
@@ -129,18 +129,18 @@ final readonly class PeriodRangeFactory
     }
 
     /**
-     * Cuts the comparison to the number of days of a selected period that has not ended.
+     * Cuts the comparison to the number of days of a selected period that has not ended. The days
+     * count from the first date of each period, so that 1–10 June compares with 1–10 May, also when
+     * the data starts in May. The comparison has no range if the cut ends before the data.
      */
-    private static function cut(PeriodDto $comparison, bool $selectedEndsAfterToday, DateRangeDto $selectedRange): ?DateRangeDto
+    private static function cut(PeriodDto $comparison, PeriodDto $selected, DateRangeDto $selectedRange): ?DateRangeDto
     {
-        if (null === $comparison->range || !$selectedEndsAfterToday) {
+        if (null === $comparison->range || !$selected->endsAfterToday) {
             return $comparison->range;
         }
-        $days = (int) $selectedRange->firstDate->diff($selectedRange->lastDate)->days;
+        $days = (int) $selected->firstDate->diff($selectedRange->lastDate)->days;
+        $last = min($comparison->firstDate->modify(\sprintf('+%d days', $days)), $comparison->range->lastDate);
 
-        return DateRangeDto::create(
-            $comparison->range->firstDate,
-            min($comparison->range->firstDate->modify(\sprintf('+%d days', $days)), $comparison->range->lastDate),
-        );
+        return $last < $comparison->range->firstDate ? null : DateRangeDto::create($comparison->range->firstDate, $last);
     }
 }
