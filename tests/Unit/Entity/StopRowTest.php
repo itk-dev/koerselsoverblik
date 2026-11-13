@@ -59,7 +59,7 @@ final class StopRowTest extends TestCase
         self::assertSame(120, $stopRow->getDelaySeconds());
         self::assertFalse($stopRow->getPlannedSolo());
         self::assertSame('P-001', $stopRow->getPersonId());
-        self::assertSame(['RouteName' => 'R-01', 'Note' => 'x'], $stopRow->getSourceValues());
+        self::assertSame(['RouteName' => 'R-01', 'Note' => 'x'], $stopRow->getSourceRow()->getValues());
         self::assertSame($batch, $stopRow->getImportBatch());
     }
 }

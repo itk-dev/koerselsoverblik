@@ -8,7 +8,9 @@ use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\ImportBatch;
+use App\Entity\RejectedStopRow;
 use App\Entity\RouteRun;
+use App\Entity\SourceRow;
 use App\Entity\StopRow;
 use App\Import\Extract\StopRowParser;
 use App\Import\ImportRangeDto;
@@ -16,8 +18,11 @@ use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
 use App\Import\RouteBuilder;
 use App\Import\RouteRunCalculator;
+use App\Import\StopRowRangeDeleter;
 use App\Import\StopRowReplacer;
+use App\Repository\RejectedStopRowRepository;
 use App\Repository\RouteRunRepository;
+use App\Repository\SourceRowRepository;
 use App\Repository\StopRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\DBAL\Types\Types;
@@ -179,7 +184,13 @@ final class RouteBuilderTest extends KernelTestCase
         self::assertInstanceOf(StopRowParser::class, $parser);
         $subAgreements = self::getContainer()->get(SubAgreementRepository::class);
         self::assertInstanceOf(SubAgreementRepository::class, $subAgreements);
-        new StopRowReplacer($this->entityManager, $subAgreements)->replace($range, $mapping, $parser->parse($this->path, $mapping, $range), $batch);
+        $stopRows = $this->entityManager->getRepository(StopRow::class);
+        self::assertInstanceOf(StopRowRepository::class, $stopRows);
+        $rejectedRows = $this->entityManager->getRepository(RejectedStopRow::class);
+        self::assertInstanceOf(RejectedStopRowRepository::class, $rejectedRows);
+        $sourceRows = $this->entityManager->getRepository(SourceRow::class);
+        self::assertInstanceOf(SourceRowRepository::class, $sourceRows);
+        new StopRowReplacer($this->entityManager, $subAgreements, new StopRowRangeDeleter($stopRows, $rejectedRows, $sourceRows))->replace($range, $mapping, $parser->parse($this->path, $mapping, $range), $batch);
     }
 
     private function mapping(): MappingDto

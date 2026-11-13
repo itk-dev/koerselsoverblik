@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Import\Extract\SourceCells;
 use App\Import\Extract\StopRowDto;
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
@@ -15,8 +14,6 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * One stop from an extract, with the copy of its row (ADR 006). An import replaces all stop rows
  * of its date range. The person id is kept as it is in the extract (ADR 004).
- *
- * @phpstan-import-type SourceValue from SourceCells
  */
 #[ORM\Entity(repositoryClass: StopRowRepository::class)]
 #[ORM\UniqueConstraint(columns: ['mapping_name', 'row_key'])]
@@ -72,10 +69,12 @@ class StopRow
     private ?string $personId;
 
     /**
-     * @var array<array-key, SourceValue>
+     * The owning side gives a lazy object, so Doctrine does not read the copy with the row. The
+     * detach of the row also detaches the copy.
      */
-    #[ORM\Column(type: Types::JSON)]
-    private array $sourceValues;
+    #[ORM\OneToOne(cascade: ['persist', 'detach'])]
+    #[ORM\JoinColumn(nullable: false)]
+    private SourceRow $sourceRow;
 
     public function __construct(
         StopRowDto $row,
@@ -101,7 +100,7 @@ class StopRow
         $this->delaySeconds = $row->delaySeconds;
         $this->plannedSolo = $row->plannedSolo;
         $this->personId = $row->personId;
-        $this->sourceValues = $row->sourceValues;
+        $this->sourceRow = new SourceRow($row->sourceValues);
     }
 
     public function getId(): ?int
@@ -184,12 +183,9 @@ class StopRow
         return $this->personId;
     }
 
-    /**
-     * @return array<array-key, SourceValue>
-     */
-    public function getSourceValues(): array
+    public function getSourceRow(): SourceRow
     {
-        return $this->sourceValues;
+        return $this->sourceRow;
     }
 
     public function getImportBatch(): ImportBatch

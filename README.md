@@ -27,8 +27,9 @@ The user interface is in Danish.
 
 - **Overview:** eight key figures for a chosen period, each with the change from a comparison
   period and a 12-month trend.
-  - The trips ("Personture"), with the completed and the cancelled trips, and the distinct
-    citizens who were driven ("Unikke borgere"). Each figure has a help text.
+  - The trips ("Personture"), with the completed and the cancelled trips, and the trips with no
+    registration. The distinct citizens who were driven ("Unikke borgere"). Each figure has a
+    help text.
   - The share of the real solo runs ("Reelt solo"): the runs with at most one citizen in the car
     at a time.
   - Punctuality over 12 months, against the target.
@@ -413,14 +414,26 @@ To give a sub-agreement a supplier:
 1. Go to **Leverandører og delaftaler** (requires `ROLE_MANAGE_SUPPLIERS`).
 2. Create the suppliers on the **Leverandører** tab.
 3. On the **Delaftaler** tab, open a sub-agreement, or create it.
-4. Click **Skift leverandør**.
+4. Click **Redigér delaftale**.
 5. Select the supplier, and click **Gem**.
 
 The import creates a sub-agreement with no supplier. The routes of a sub-agreement with no
-supplier count as "Unknown". Sub-agreements with no supplier are listed at the top.
+supplier count as "Unknown". Sub-agreements with no supplier are listed at the top, unless they
+are ignored (see below).
 
 When you change the supplier of a sub-agreement, the figures for all dates of its routes change
 to the new supplier. A supplier with sub-agreements cannot be deleted.
+
+Some routes are not route runs. For example, the booked trips have the route name
+"Turbestilling". To leave such a sub-agreement out of the figures:
+
+1. On the **Delaftaler** tab, open the sub-agreement.
+2. Click **Redigér delaftale**.
+3. Select **Ignorér i beregningerne**, and click **Gem**.
+
+The import still stores the driving data of an ignored sub-agreement. When you clear
+**Ignorér i beregningerne**, the figures include its routes again. An ignored sub-agreement needs
+no supplier, so it is not listed at the top.
 
 ### Enter daily counts
 
@@ -486,11 +499,11 @@ task test:file -- tests/Unit/Report/PeriodRangeFactoryTest.php
 # Fail if line coverage is below 100 %, as CI does
 task test:coverage:check
 
-# Mutation testing with Infection, on lines changed compared with develop
-task test:mutation
-
 # Mutation testing on the whole code base, as the release-branch run does
 task test:mutation:full
+
+# Mutation testing on the lines changed compared with develop (optional)
+task test:mutation
 ```
 
 - **Test suites:** tests live in `tests/Unit`, `tests/Integration` and `tests/Functional`.
@@ -532,9 +545,10 @@ task test:mutation:full
   tests are slow. Thus Infection runs only the tests that cover
   the mutated line (`--only-covering-test-cases`), not all tests of their classes. Infection
   skips a mutant if all its tests took more than 60 seconds in the initial run.
-- **When mutation testing runs:** pull requests that do not go to `main` run it on the lines that
-  changed since their base branch. A full run over the whole code base runs on `release/*` and
-  `hotfix/*` branches and is required before a release is merged to `main`.
+- **When mutation testing runs:** only on the `release/*` and `hotfix/*` branches. A full run over
+  the whole code base is required before a release is merged to `main`. Feature pull requests,
+  `develop` and `task prepare-code` do not run it, because it is slow. Fix the escaped mutants on
+  the release branch.
 - **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
   tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
@@ -553,9 +567,9 @@ task rector:check
 task rector:apply
 ```
 
-`task prepare-code` applies Rector and runs the coding standards, code analysis, tests with the coverage check, and
-mutation testing on changed lines. Run it before pushing. GitHub Actions runs the same checks on every pull
-request.
+`task prepare-code` applies Rector and runs the coding standards, code analysis and tests. It does not measure the
+coverage, because Xdebug makes the tests much slower. Run it before pushing. GitHub Actions runs the same checks on
+every pull request, and also the coverage gate. Run `task test:coverage:check` to run the gate locally.
 
 ### Fixtures
 
@@ -696,6 +710,14 @@ To set up a new server:
 
    ```shell
    */15 * * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:purge-uploads --quiet
+   ```
+
+1. Add a cron job that deletes the copies of the imported rows that have no row. Two imports of
+   the same dates that overlap can leave such copies, and they hold personal data. Run it each
+   night:
+
+   ```shell
+   30 2 * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:delete-orphan-copies --quiet
    ```
 
 1. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.

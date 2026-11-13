@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Repository;
 
 use App\DataFixtures\DrivingData\ExtractWriter;
+use App\DataFixtures\DrivingData\Scenario;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\ImportBatch;
 use App\Entity\Route;
@@ -44,15 +45,16 @@ final class StopRowTripCountTest extends KernelTestCase
     }
 
     /**
-     * The trips are in the "expected" section of the scenario. The scenario has 7 person ids, but
-     * P-006 has only a cancelled trip, so 6 citizens were driven.
+     * The trips and the citizens are in the "expected" section of the scenario. The scenario has
+     * one cancelled pickup (P-006) and one pickup with no registration (P-005).
      */
     public function testBaseScenario(): void
     {
-        $this->importBase();
+        /** @var array{trips: int, citizens: int} $expected */
+        $expected = $this->importBase()->expected;
 
         self::assertEquals(
-            new TripCountDto(trips: 7, completed: 5, cancelled: 1, pending: 1, citizens: 6),
+            new TripCountDto(trips: $expected['trips'], completed: 5, cancelled: 1, pending: 1, citizens: $expected['citizens']),
             $this->trips('2026-01-01', '2026-01-31'),
         );
     }
@@ -102,6 +104,25 @@ final class StopRowTripCountTest extends KernelTestCase
         );
     }
 
+    /**
+     * The trips and the citizens of an ignored sub-agreement do not count. P-A is driven on both
+     * routes, so the citizen counts once, from the route that is not ignored.
+     */
+    public function testIgnoredSubAgreementDoesNotCount(): void
+    {
+        $route = $this->route();
+        $ignored = $this->route('I', ignored: true);
+        $this->stop($route, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($ignored, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($ignored, '2026-02-03', 'P-B', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($ignored, '2026-02-03', 'P-C', StopType::Pickup, StopStatus::Pending);
+
+        self::assertEquals(
+            new TripCountDto(trips: 1, completed: 1, cancelled: 0, pending: 0, citizens: 1),
+            $this->trips('2026-02-01', '2026-02-28'),
+        );
+    }
+
     public function testRangeWithNoTripsHasZeroCounts(): void
     {
         self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $this->trips('2026-02-01', '2026-02-28'));
@@ -116,11 +137,11 @@ final class StopRowTripCountTest extends KernelTestCase
         return $stopRows->countTrips(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)));
     }
 
-    private function route(): Route
+    private function route(string $reference = 'R', bool $ignored = false): Route
     {
-        $subAgreement = new SubAgreement()->setReference('R');
+        $subAgreement = new SubAgreement()->setReference($reference)->setIgnored($ignored);
         $this->entityManager->persist($subAgreement);
-        $route = new Route('R-01', $subAgreement);
+        $route = new Route($reference.'-01', $subAgreement);
         $this->entityManager->persist($route);
 
         return $route;
@@ -158,7 +179,7 @@ final class StopRowTripCountTest extends KernelTestCase
         return $this->batch;
     }
 
-    private function importBase(): void
+    private function importBase(): Scenario
     {
         $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml');
         $path = sys_get_temp_dir().'/'.uniqid('extract_', true).'.xlsx';
@@ -169,5 +190,7 @@ final class StopRowTripCountTest extends KernelTestCase
         self::assertInstanceOf(DrivingDataImporter::class, $importer);
         $importer->import($path, ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31), $provider->default(), null, 'base.xlsx');
         unlink($path);
+
+        return $scenario;
     }
 }
