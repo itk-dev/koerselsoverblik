@@ -240,7 +240,7 @@ final class PeriodRangeFactoryTest extends TestCase
     public function testInvalidDataStartIsAnError(string $start): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('APP_DATA_START_DATE must be a date as YYYY-MM-DD.');
+        $this->expectExceptionMessageIs('APP_DATA_START_DATE must be a date as YYYY-MM-DD.');
 
         new PeriodRangeFactory($start);
     }
