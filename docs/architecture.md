@@ -1167,8 +1167,9 @@ hold the connection details.
 **Cron:** a cron job on the server runs `app:driving-data:purge-uploads` every 15 minutes in the
 phpfpm container. A second cron job runs `app:driving-data:delete-orphan-copies` each night.
 
-**CI:** GitHub Actions runs coding standards, PHPStan, Rector and tests with the coverage gate on every
-pull request. The release and hotfix branches also run mutation testing on the whole code base.
+**CI:** GitHub Actions runs coding standards, PHPStan, Rector and the tests with no coverage on every
+pull request. The release and hotfix branches also run the coverage gate and mutation testing on the
+whole code base.
 
 ## Open decisions
 

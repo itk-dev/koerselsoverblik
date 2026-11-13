@@ -497,7 +497,7 @@ task test:unit
 # A single file
 task test:file -- tests/Unit/Report/PeriodRangeFactoryTest.php
 
-# Fail if line coverage is below 100 %, as CI does
+# Fail if line coverage is below 100 %, as the release-branch run does
 task test:coverage:check
 
 # Mutation testing on the whole code base, as the release-branch run does
@@ -550,6 +550,9 @@ task test:mutation
   the whole code base is required before a release is merged to `main`. Feature pull requests,
   `develop` and `task prepare-code` do not run it, because it is slow. Fix the escaped mutants on
   the release branch.
+- **When the coverage gate runs:** only on the `release/*` and `hotfix/*` branches, together with
+  the full mutation testing. Feature pull requests and `develop` run the tests with no coverage,
+  because Xdebug makes the tests slow. Fix a coverage gap on the release branch.
 - **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
   tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
@@ -570,7 +573,8 @@ task rector:apply
 
 `task prepare-code` applies Rector and runs the coding standards, code analysis and tests. It does not measure the
 coverage, because Xdebug makes the tests much slower. Run it before pushing. GitHub Actions runs the same checks on
-every pull request, and also the coverage gate. Run `task test:coverage:check` to run the gate locally.
+every pull request. Only the release and hotfix branches run the coverage gate. Run `task test:coverage:check` to run
+the gate locally.
 
 ### Fixtures
 

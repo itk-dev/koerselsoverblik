@@ -1,0 +1,66 @@
+### ### Release checks
+###
+### Runs the coverage gate and Infection on all code when a release is prepared. Only the
+### release and hotfix branches run these jobs, because Xdebug makes them slow. Feature PRs and
+### the develop branch do not run them.
+
+name: Release checks
+
+env:
+  COMPOSE_USER: runner
+
+on:
+  push:
+    branches:
+      - "release/**"
+      - "hotfix/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  coverage:
+    name: Tests with coverage gate
+    # A PR to main runs this job only when it comes from a release or hotfix branch.
+    if: >-
+      github.event_name == 'push'
+      || startsWith(github.head_ref, 'release/')
+      || startsWith(github.head_ref, 'hotfix/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task test:coverage:check
+
+  mutation-full:
+    name: Mutation testing on all code
+    # A PR to main runs this job only when it comes from a release or hotfix branch.
+    if: >-
+      github.event_name == 'push'
+      || startsWith(github.head_ref, 'release/')
+      || startsWith(github.head_ref, 'hotfix/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task test:mutation:full
