@@ -8,7 +8,6 @@
     {% set month = page.month %}
     {% set report = page.current %}
     {% set figures = report.total %}
-    {% set target = page.target %}
     {% set labels = page.months|map(item => ('month.short.' ~ item.number)|trans) %}
 
     <header class="page-head">
@@ -19,7 +18,7 @@
         {{ months.nav('punctuality', month, has_next_month, 'punctuality.title'|trans) }}
     </header>
 
-    {{ include('punctuality/_goal.html.twig') }}
+    {{ include('punctuality/_goal.html.twig', {page: page, tolerance_minutes: tolerance_minutes}, with_context: false) }}
 
     <div class="tiles tiles--2">
         {% set late = page.lateRuns %}
@@ -49,7 +48,11 @@
         />
     </div>
 
-    {{ include('punctuality/_trend.html.twig', {trend_title: 'punctuality.trend.title'|trans}) }}
+    {{ include('punctuality/_trend.html.twig', {
+        page: page,
+        labels: labels,
+        trend_title: 'punctuality.trend.title'|trans,
+    }, with_context: false) }}
 
     <div class="grid-2">
         <twig:Panel :title="'punctuality.split.title'|trans">

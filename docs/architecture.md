@@ -874,9 +874,10 @@ the punctuality page (`templates/_month.html.twig`).
   no registration when there are some, so that the parts add up to the trips.
 - A change of the trips or the citizens has no tone, because more volume is not better or worse.
 - The punctuality comes from `PunctualityPageBuilder` for the same month. The tile
-  "Rettidighed" shows the drop-off per route run. The goal panel and the 12-month chart are
-  shared templates (`punctuality/_goal.html.twig` and `punctuality/_trend.html.twig`), so the
-  overview and the punctuality page show the same figures.
+  "Rettidighed" shows `PunctualityPageDto::headline()`, the drop-off per route run. The goal panel
+  and the 12-month chart are shared templates (`punctuality/_goal.html.twig` and
+  `punctuality/_trend.html.twig`), so the overview and the punctuality page show the same figures.
+  Each page gives the variables of the shared templates explicitly, with `with_context = false`.
 - The current month is not complete, but the page compares it with all of the previous month.
   See "Partial month" in [Open decisions](#open-decisions).
 

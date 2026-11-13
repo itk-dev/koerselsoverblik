@@ -51,9 +51,7 @@
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
-        {# The tile shows the drop-off per route run, the measure that the transport office uses. #}
-        {% set target = punctuality.target %}
-        {% set measure = punctuality.measures|filter(item => item.key == 'drop_off_per_run')|first %}
+        {% set measure = punctuality.headline %}
         <twig:Tile
             :label="'overview.punctuality.label'|trans"
             :value="measure.percent|punctuality_percent"
@@ -63,21 +61,21 @@
             :changeIcon="trend_icon(measure.change)"
             :spark="measure.history"
             :sparkClass="measure.cssClass"
-            :note="'overview.punctuality.note'|trans({target: target})"
+            :note="('punctuality.measure.' ~ measure.key)|trans ~ ' · ' ~ 'punctuality.target_note'|trans({target: punctuality.target})"
             test="punctuality"
         >
             <twig:block name="help">
-                <twig:HelpPopover id="help-punctuality" :title="'punctuality.help.drop_off_per_run.title'|trans">
-                    <p>{{ 'punctuality.help.drop_off_per_run.body'|trans({minutes: tolerance_minutes}) }}</p>
+                <twig:HelpPopover id="help-punctuality" :title="('punctuality.help.' ~ measure.key ~ '.title')|trans">
+                    <p>{{ ('punctuality.help.' ~ measure.key ~ '.body')|trans({minutes: tolerance_minutes}) }}</p>
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
     </div>
 
-    {{ include('punctuality/_goal.html.twig', {page: punctuality}) }}
+    {{ include('punctuality/_goal.html.twig', {page: punctuality, tolerance_minutes: tolerance_minutes}, with_context: false) }}
     {{ include('punctuality/_trend.html.twig', {
         page: punctuality,
         labels: punctuality.months|map(item => ('month.short.' ~ item.number)|trans),
         trend_title: 'overview.punctuality.title'|trans,
-    }) }}
+    }, with_context: false) }}
 {% endblock %}

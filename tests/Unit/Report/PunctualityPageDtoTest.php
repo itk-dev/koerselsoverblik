@@ -53,6 +53,17 @@ final class PunctualityPageDtoTest extends TestCase
     }
 
     /**
+     * The headline measure is the drop-off per route run, the measure that the transport office uses.
+     */
+    public function testHeadlineIsTheDropOffPerRun(): void
+    {
+        $page = self::page([self::figures([9, 10], [7, 10], [4, 5], [3, 4], [3, 1, 0, 0])]);
+
+        self::assertSame($page->measures()[3], $page->headline());
+        self::assertSame('drop_off_per_run', $page->headline()->key);
+    }
+
+    /**
      * A measure reaches the target at or above it. A measure with no value does not.
      */
     public function testMeasuresThatReachTheTarget(): void

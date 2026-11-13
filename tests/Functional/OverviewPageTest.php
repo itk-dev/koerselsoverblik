@@ -63,7 +63,7 @@ final class OverviewPageTest extends WebTestCase
         $crawler = $this->page('viewer', importBase: true);
 
         self::assertSame('75 %', self::value($crawler, 'punctuality'));
-        self::assertSame('Sidste afsætning pr. vognløb · Mål 90 %', $crawler->filter('[data-test="punctuality"] .tile__note')->text());
+        self::assertSame('Afsætning pr. vognløb · Mål 90 %', $crawler->filter('[data-test="punctuality"] .tile__note')->text());
         self::assertCount(1, $crawler->filter('#help-punctuality'));
         self::assertSame('2 af 4 målinger når målet', $crawler->filter('[data-test="goal-status"]')->text());
         self::assertSame('100 %', self::value($crawler, 'measure-pickup_per_citizen'));
@@ -77,7 +77,7 @@ final class OverviewPageTest extends WebTestCase
 
     /**
      * December 2025 has no trips. No trips is no data, so the tiles show "–", not 0, and the trips
-     * have no note.
+     * have no note. The chart shows the 12 months with no values.
      */
     public function testMonthWithNoDataHasNoValues(): void
     {
@@ -91,6 +91,10 @@ final class OverviewPageTest extends WebTestCase
         foreach (['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] as $measure) {
             self::assertSame('–', self::value($crawler, 'measure-'.$measure));
         }
+        self::assertSame('0 af 4 målinger når målet', $crawler->filter('[data-test="goal-status"]')->text());
+        $rows = $crawler->filter('[data-test="punctuality-trend"] .sr-only tbody tr');
+        self::assertCount(12, $rows);
+        self::assertSame(['–', '–', '–', '–'], $rows->last()->filter('td')->each(static fn (Crawler $cell): string => $cell->text()));
     }
 
     /**
