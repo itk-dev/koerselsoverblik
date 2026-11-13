@@ -151,6 +151,17 @@ final class PunctualityPageTest extends WebTestCase
     }
 
     /**
+     * The tiles show the whole week, but the sparklines and the charts show months.
+     */
+    public function testPeriodThatIsNotAMonthHasANoteOfTheMonths(): void
+    {
+        $client = $this->client('viewer');
+
+        self::assertSame('Kurverne viser hele måneder.', $client->request('GET', '/punctuality?p=week')->filter('[data-test="months-note"]')->text());
+        self::assertCount(0, $client->request('GET', '/punctuality')->filter('[data-test="months-note"]'));
+    }
+
+    /**
      * Each view has one URL. The form sends the default values, so the page redirects them.
      */
     public function testQueryThatIsNotCanonicalRedirects(): void

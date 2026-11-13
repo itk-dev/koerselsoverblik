@@ -13,6 +13,10 @@
         <div>
             <h1 class="page-head__title">{{ 'punctuality.title'|trans }}</h1>
             <p class="page-head__lede" data-test="lede">{{ 'punctuality.lede'|trans({period: period_phrase(selection), comparison: comparison_phrase(selection)}) }}</p>
+            {# The tiles show the whole period, but the sparklines and the charts show months. #}
+            {% if selection.filter.type.value != 'month' %}
+                <p class="page-head__lede" data-test="months-note">{{ 'period.months_note'|trans }}</p>
+            {% endif %}
         </div>
     </header>
 

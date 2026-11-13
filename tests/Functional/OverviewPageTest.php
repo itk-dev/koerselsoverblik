@@ -223,6 +223,16 @@ final class OverviewPageTest extends WebTestCase
 
         self::assertSame('1. kvartal 2026', $crawler->filter('[data-test="period"]')->text());
         self::assertSame('1.–20. januar 2026 (til og med i dag) sammenlignet med 1.–20. oktober 2025.', $crawler->filter('[data-test="lede"]')->text());
+        // The tiles show the whole quarter, but the sparklines show months.
+        self::assertSame('Kurverne viser hele måneder.', $crawler->filter('[data-test="months-note"]')->text());
+    }
+
+    /**
+     * For a month, the last point of a sparkline is the month of the tile, so the page has no note.
+     */
+    public function testMonthHasNoNoteOfTheMonths(): void
+    {
+        self::assertCount(0, $this->page('viewer')->filter('[data-test="months-note"]'));
     }
 
     /**
