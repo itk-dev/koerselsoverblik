@@ -683,7 +683,8 @@ would only delete data. The batch has no user. The command does not delete the f
    - A run is cancelled when all its stops are cancelled.
    - The peak passengers are the highest `passengers_after` of the stops that are not cancelled.
      A cancelled stop can have a count that includes the cancelled citizen, so it does not count.
-     A run with no count has no peak.
+     A pending stop counts, because it is often a driven stop with no registration. Thus the
+     peak of the current month partly shows the plan. A run with no count has no peak.
    - It saves the runs in groups of 500, as the replacer does.
 6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
    supplier.
@@ -882,9 +883,10 @@ the punctuality page (`templates/_month.html.twig`).
   and the 12-month chart are shared templates (`punctuality/_goal.html.twig` and
   `punctuality/_trend.html.twig`), so the overview and the punctuality page show the same figures.
   Each page gives the variables of the shared templates explicitly, with `with_context = false`.
-- `RouteRunRepository::countSoloRuns()` counts the runs that are not cancelled and have a peak,
-  and the real solo runs: the runs with a peak of at most 1 passenger. The query does not count
-  the runs of an ignored sub-agreement.
+- `RouteRunRepository::countSoloRuns()` counts the runs that are not cancelled and have a peak
+  of 1 or more, and the real solo runs: the runs with a peak of 1. A run with a peak of 0 had no
+  citizen in the car, so it is neither solo nor shared, and the query does not count it. The query
+  also does not count the runs of an ignored sub-agreement.
 - The tile "Reelt solo" shows the share, with no tone, because the share has no target. A month
   with no counted runs has no share. The tile then shows "–" and has no note.
 - A route run that was imported before the peak existed has no peak until the next import.
@@ -1203,8 +1205,9 @@ pull request. The release and hotfix branches also run mutation testing on the w
   transport office answers before the daily stats are built.
   - The real solo runs on the overview (#110) use the proposal: the peak of `passengers_after`
     of the stops that are not cancelled. In the real exports after the fix of the export script,
-    almost all runs end with no passengers. An answer can change the rule in
-    `RouteRunCalculator`.
+    almost all runs end with no passengers. The pending stops count, and the runs with a peak of
+    0 do not count. An answer can change these rules in `RouteRunCalculator` and
+    `RouteRunRepository::countSoloRuns()`.
   - The empty kilometres wait for the answer. In the real exports, the cancelled stops and the
     last stop of each route and date have a distance, so a share of the distances is not
     reliable yet.

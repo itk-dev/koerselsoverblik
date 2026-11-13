@@ -56,14 +56,14 @@ final class OverviewPageTest extends WebTestCase
     }
 
     /**
-     * R-01 run 2 and BOOKED have at most one citizen in the car: 2 of 4 runs.
+     * R-01 run 2 and BOOKED have exactly one citizen in the car: 2 of 4 runs.
      */
     public function testBaseScenarioRealSoloRuns(): void
     {
         $crawler = $this->page('viewer', importBase: true);
 
         self::assertSame('50 %', self::value($crawler, 'real-solo'));
-        self::assertSame('2 vognløb med højst én borger', $crawler->filter('[data-test="real-solo"] .tile__note')->text());
+        self::assertSame('2 vognløb med én borger ad gangen', $crawler->filter('[data-test="real-solo"] .tile__note')->text());
         self::assertSame('ingen sammenligning', $crawler->filter('[data-test="real-solo-change"]')->text());
         self::assertCount(1, $crawler->filter('#help-real-solo'));
     }

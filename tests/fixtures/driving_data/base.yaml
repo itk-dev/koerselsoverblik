@@ -6,7 +6,7 @@
 # - person_ids: the distinct person ids P-001 to P-007.
 # - citizens: the citizens who were driven. P-006 has only a cancelled pickup, so
 #   P-006 is not driven.
-# - solo_runs: the runs with at most one citizen in the vehicle at a time, from
+# - solo_runs: the runs with exactly one citizen in the vehicle at a time, from
 #   passengers_after (R-01 run 2 and BOOKED). planned_solo agrees for these runs.
 # - last_drop_offs: the runs that are not fully cancelled.
 # - on_time: the last drop-off is at most 5 minutes late. R-01 run 1 is 4 minutes
