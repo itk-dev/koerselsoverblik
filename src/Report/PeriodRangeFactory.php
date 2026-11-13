@@ -28,13 +28,24 @@ final readonly class PeriodRangeFactory
 
     /**
      * @param string $dataStart the first date of the data as YYYY-MM-DD, or empty for no limit. The value of APP_DATA_START_DATE
+     *
+     * @throws \InvalidArgumentException if the value is not empty and is not a date as YYYY-MM-DD
      */
     public function __construct(
         #[Autowire(env: 'APP_DATA_START_DATE')]
         string $dataStart = '',
     ) {
+        if ('' === $dataStart) {
+            $this->dataStart = null;
+
+            return;
+        }
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $dataStart);
-        $this->dataStart = false === $date ? null : $date;
+        // The parser moves a date that does not exist, for example 31 February, to the next month.
+        if (false === $date || $date->format('Y-m-d') !== $dataStart) {
+            throw new \InvalidArgumentException('APP_DATA_START_DATE must be a date as YYYY-MM-DD.');
+        }
+        $this->dataStart = $date;
     }
 
     public function create(PeriodFilter $filter): PeriodSelectionDto

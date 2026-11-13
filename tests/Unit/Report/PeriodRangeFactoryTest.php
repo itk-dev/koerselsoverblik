@@ -195,11 +195,35 @@ final class PeriodRangeFactoryTest extends TestCase
         self::assertSame(self::DATA_START, $selection->filter->anchor->format('Y-m-d'));
     }
 
-    public function testInvalidDataStartIsNoLimit(): void
+    public function testEmptyDataStartIsNoLimit(): void
     {
-        $selection = self::select(['d' => '2026-03-03'], self::TODAY, 'May 2026');
+        $selection = self::select(['d' => '2026-03-03'], self::TODAY, '');
 
         self::assertSame('2026-03-01/2026-03-31', self::format($selection->selectedRange));
+    }
+
+    /**
+     * A fault in the settings must not turn the limit off without a message.
+     */
+    #[DataProvider('invalidDataStarts')]
+    public function testInvalidDataStartIsAnError(string $start): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('APP_DATA_START_DATE must be a date as YYYY-MM-DD.');
+
+        new PeriodRangeFactory($start);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function invalidDataStarts(): iterable
+    {
+        yield 'text' => ['May 2026'];
+        yield 'day first' => ['18-05-2026'];
+        // The parser moves 31 February to March.
+        yield 'date that does not exist' => ['2026-02-31'];
+        yield 'date with a time' => ['2026-05-18 10:00'];
     }
 
     /**
