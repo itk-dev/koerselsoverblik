@@ -8,9 +8,8 @@ See the [rules for plans](README.md#rules).
 
 ### Needs
 
-- #95, [Keep the copy of a row in its own entity](source-row-entity.md). The detail pages read the copy
-  with `getSourceRow()->getValues()`. If this feature starts first, read `getSourceValues()`, and
-  let the later feature change the call.
+- The detail pages read the copy with `getSourceRow()->getValues()`. #95 moved the copy to
+  `SourceRow`. A list query must not read the copies: the relation is lazy, so do not join it.
 - #81 shows the uploaded dates. When both features are merged, link each date of #81 to this page
   with the date as the first and the last date.
 
@@ -33,12 +32,10 @@ See the [rules for plans](README.md#rules).
   case, as the replacer expects.
 - `StopRowRepository::countInRange()` exists. Add the optional route to it, or add a second count
   method.
-- `RejectedStopRowRepository` (new, or from
-  [stop-row-replacer-deletes.md](stop-row-replacer-deletes.md)):
-  `findPageInRange()` and `countInRange()`. Use the same condition as
-  `StopRowReplacer::deleteRange()`, also for the rows with no date. Put the condition in one
-  private method of the repository, so that the delete and the list cannot differ. Order by
-  date, upload, row number and id.
+- `RejectedStopRowRepository` (from [#126](https://github.com/itk-dev/koerselsoverblik/issues/126)): add
+  `findPageInRange()` and `countInRange()`. Use its private condition method of the range, also
+  for the rows with no date. Then the delete and the list cannot differ. Order by date, upload,
+  row number and id.
 - The list queries do not read the copy. Doctrine does not load it (see the needed feature).
 
 ### Pagination
