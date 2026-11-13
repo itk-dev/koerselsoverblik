@@ -222,6 +222,54 @@ final class PunctualityCalculatorTest extends KernelTestCase
     }
 
     /**
+     * The routes of an ignored sub-agreement add nothing: no stops, no runs, no supplier and no
+     * worst route. When the flag is cleared, the figures come back.
+     */
+    public function testIgnoredSubAgreementAddsNothing(): void
+    {
+        $included = $this->route('A-01', $this->subAgreement('A', $this->supplier('Vognmand A')));
+        $ignoredSubAgreement = $this->subAgreement('I', $this->supplier('Vognmand B'))->setIgnored(true);
+        $ignored = $this->route('I-01', $ignoredSubAgreement);
+        $this->stop($included, '2026-01-05', 1, StopType::Pickup, StopStatus::Completed, 0);
+        $this->stop($included, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0, 1800);
+        $this->stop($ignored, '2026-01-05', 1, StopType::Pickup, StopStatus::Completed, 600);
+        $this->stop($ignored, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 600, 1800);
+        $onTime = new PunctualityFiguresDto(
+            new PunctualityCountDto(1, 1),
+            new PunctualityCountDto(1, 1),
+            new PunctualityCountDto(1, 1),
+            new PunctualityCountDto(1, 1),
+            new DelayBandsDto(1, 0, 0, 0),
+        );
+        $late = new PunctualityFiguresDto(
+            new PunctualityCountDto(0, 1),
+            new PunctualityCountDto(0, 1),
+            new PunctualityCountDto(0, 1),
+            new PunctualityCountDto(0, 1),
+            new DelayBandsDto(0, 1, 0, 0),
+        );
+
+        $report = $this->calculate('2026-01-05', '2026-01-05');
+
+        self::assertEquals($onTime, $report->total);
+        self::assertEquals([new SupplierPunctualityDto('Vognmand A', $onTime)], $report->suppliers);
+        self::assertEquals([new RoutePunctualityDto('A-01', 'Vognmand A', new PunctualityCountDto(1, 1))], $report->worstRoutes);
+
+        $ignoredSubAgreement->setIgnored(false);
+        $report = $this->calculate('2026-01-05', '2026-01-05');
+
+        self::assertEquals($onTime->add($late), $report->total);
+        self::assertEquals([
+            new SupplierPunctualityDto('Vognmand A', $onTime),
+            new SupplierPunctualityDto('Vognmand B', $late),
+        ], $report->suppliers);
+        self::assertEquals([
+            new RoutePunctualityDto('I-01', 'Vognmand B', new PunctualityCountDto(0, 1)),
+            new RoutePunctualityDto('A-01', 'Vognmand A', new PunctualityCountDto(1, 1)),
+        ], $report->worstRoutes);
+    }
+
+    /**
      * The worst routes have the lowest punctuality at the last drop-off. On the same punctuality,
      * the route with more runs is first, and then the route name decides. Only 10 routes are
      * given.

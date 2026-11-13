@@ -13,6 +13,7 @@ use App\Report\DateRangeDto;
 use App\Report\TripCountDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -30,13 +31,51 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function countInRange(ImportRangeDto $range): int
     {
-        return (int) $this->createQueryBuilder('row')
-            ->select('COUNT(row.id)')
+        $builder = $this->createQueryBuilder('row')->select('COUNT(row.id)');
+
+        return (int) $this->inRange($builder, $range)->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Gives the ids of the copies of the stop rows in the range. Read them before the delete,
+     * because a deleted row no longer points to its copy.
+     *
+     * @return list<int>
+     */
+    public function sourceRowIdsInRange(ImportRangeDto $range): array
+    {
+        $builder = $this->createQueryBuilder('row')->select('IDENTITY(row.sourceRow)');
+        /** @var list<int|string> $ids */
+        $ids = $this->inRange($builder, $range)->getQuery()->getSingleColumnResult();
+
+        // MariaDB can give an id as text.
+        return array_map(static fn (int|string $id): int => (int) $id, $ids);
+    }
+
+    /**
+     * Deletes the stop rows in the range, from all mappings. A DQL delete does not delete the
+     * copies.
+     *
+     * @return int the number of deleted rows
+     */
+    public function deleteInRange(ImportRangeDto $range): int
+    {
+        /** @var int $deleted a DQL delete gives the number of deleted rows */
+        $deleted = $this->inRange($this->createQueryBuilder('row')->delete(), $range)->getQuery()->execute();
+
+        return $deleted;
+    }
+
+    /**
+     * Limits the query to the stop rows in the range. The count, the ids and the delete use the
+     * same condition, so they cannot differ.
+     */
+    private function inRange(QueryBuilder $builder, ImportRangeDto $range): QueryBuilder
+    {
+        return $builder
             ->where('row.serviceDate BETWEEN :first AND :last')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
     }
 
     /**
@@ -66,7 +105,8 @@ class StopRowRepository extends ServiceEntityRepository
 
     /**
      * Counts the measured stops of each route, date and stop type in the range, and those of them
-     * that are on time. A measured stop is completed, and it has a delay (an actual time).
+     * that are on time. A measured stop is completed, and it has a delay (an actual time). The
+     * stops of an ignored sub-agreement are not counted.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      *
@@ -74,8 +114,7 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function countMeasuredStops(DateRangeDto $range, int $onTimeSeconds): array
     {
-        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
-        $rows = $this->createQueryBuilder('row')
+        $builder = $this->createQueryBuilder('row')
             ->select(
                 'IDENTITY(row.route) AS route',
                 'row.serviceDate AS serviceDate',
@@ -90,7 +129,10 @@ class StopRowRepository extends ServiceEntityRepository
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
             ->setParameter('completed', StopStatus::Completed)
-            ->setParameter('onTime', $onTimeSeconds)
+            ->setParameter('onTime', $onTimeSeconds);
+
+        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
+        $rows = IgnoredSubAgreementFilter::apply($builder, 'row.route')
             ->getQuery()
             ->getArrayResult();
 
@@ -106,12 +148,12 @@ class StopRowRepository extends ServiceEntityRepository
 
     /**
      * Counts the trips and the citizens of a date range. A trip is a pickup, with any status. A
-     * citizen was driven if a pickup of the citizen is not cancelled.
+     * citizen was driven if a pickup of the citizen is not cancelled. The pickups of an ignored
+     * sub-agreement are not counted.
      */
     public function countTrips(DateRangeDto $range): TripCountDto
     {
-        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
-        $row = $this->createQueryBuilder('row')
+        $builder = $this->createQueryBuilder('row')
             ->select(
                 'COUNT(row.id) AS trips',
                 'SUM(CASE WHEN row.stopStatus = :completed THEN 1 ELSE 0 END) AS completed',
@@ -127,7 +169,10 @@ class StopRowRepository extends ServiceEntityRepository
             ->setParameter('pickup', StopType::Pickup)
             ->setParameter('completed', StopStatus::Completed)
             ->setParameter('cancelled', StopStatus::Cancelled)
-            ->setParameter('pending', StopStatus::Pending)
+            ->setParameter('pending', StopStatus::Pending);
+
+        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
+        $row = IgnoredSubAgreementFilter::apply($builder, 'row.route')
             ->getQuery()
             ->getSingleResult();
 

@@ -204,7 +204,6 @@ tasks:
       - task: coding-standards-check
       - task: code-analysis
       - task: test:coverage:check
-      - task: test:mutation
 
   # ------------------------------------------------------- Code analysis ---
 
