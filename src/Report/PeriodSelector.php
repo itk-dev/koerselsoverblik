@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Report;
 
 use App\Clock\LocalCalendar;
+use App\Entity\Supplier;
 use App\Repository\SupplierRepository;
 
 /**
@@ -22,12 +23,14 @@ final readonly class PeriodSelector
 
     public function select(?string $type, ?string $date, ?string $comparison, ?string $supplier): PeriodSelectionDto
     {
-        $today = $this->calendar->today();
-        $filter = PeriodFilter::fromQuery($type, $date, $comparison, $supplier, $today);
-        if (null !== $filter->supplier && null === $this->suppliers->find($filter->supplier)) {
+        $filter = PeriodFilter::fromQuery($type, $date, $comparison, $supplier, $this->calendar->today());
+        // One query gives the suppliers of the filter bar and checks the selected supplier.
+        $suppliers = $this->suppliers->findBy([], ['name' => 'ASC']);
+        $ids = array_map(static fn (Supplier $item): ?int => $item->getId(), $suppliers);
+        if (null !== $filter->supplier && !\in_array($filter->supplier, $ids, true)) {
             $filter = $filter->withoutSupplier();
         }
 
-        return $this->periods->create($filter);
+        return $this->periods->create($filter)->withSuppliers($suppliers);
     }
 }

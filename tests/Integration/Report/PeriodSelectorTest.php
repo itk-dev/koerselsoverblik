@@ -29,6 +29,20 @@ final class PeriodSelectorTest extends KernelTestCase
         self::assertSame(PeriodType::Quarter, $selection->filter->type);
         self::assertSame('2026-04-01', $selection->selectedRange->firstDate->format('Y-m-d'));
         self::assertSame($supplier->getId(), $selection->filter->supplier);
+        self::assertSame([$supplier], $selection->suppliers);
+    }
+
+    /**
+     * The filter bar shows the suppliers in the order of the name.
+     */
+    public function testSuppliersAreInTheOrderOfTheName(): void
+    {
+        $this->supplier('Vognmand B');
+        $this->supplier('Vognmand A');
+
+        $selection = $this->selector()->select(null, null, null, null);
+
+        self::assertSame(['Vognmand A', 'Vognmand B'], array_map(static fn (Supplier $supplier): string => $supplier->getName(), $selection->suppliers));
     }
 
     public function testSupplierThatDoesNotExistGivesAllSuppliers(): void
@@ -42,11 +56,11 @@ final class PeriodSelectorTest extends KernelTestCase
         self::assertSame('2026-09-18', $selection->selectedRange->lastDate->format('Y-m-d'));
     }
 
-    private function supplier(): Supplier
+    private function supplier(string $name = 'Vognmand A'): Supplier
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
-        $supplier = new Supplier()->setName('Vognmand A');
+        $supplier = new Supplier()->setName($name);
         $entityManager->persist($supplier);
         $entityManager->flush();
 

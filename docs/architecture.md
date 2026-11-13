@@ -833,7 +833,8 @@ The parts of the filters:
   GET form. Only the button sends the form, because a form that is sent on each change reloads
   the page when a keyboard user moves through the options (WCAG 3.2.2).
 - `PeriodSelector` reads the filters for both controllers. A supplier id that does not exist
-  gives all suppliers.
+  gives all suppliers. The selector also gives the suppliers of the filter bar, from the same
+  query, so the template does not read the database.
 - With a supplier, `SupplierFilter` limits the queries of the trips, the citizens and the solo
   runs to the routes of the sub-agreements of the supplier. `PunctualityCalculator` gives the
   total and the worst routes of the supplier only. The supplier tables always show all

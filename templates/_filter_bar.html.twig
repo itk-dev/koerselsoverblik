@@ -46,7 +46,7 @@
             <label class="ctl__label" for="ctl-supplier">{{ 'filter.supplier'|trans }}</label>
             <select class="ctl__select" id="ctl-supplier" name="s" data-test="supplier">
                 <option value=""{{ filter.supplier is null ? ' selected' }}>{{ 'filter.all_suppliers'|trans }}</option>
-                {% for supplier in filter_suppliers() %}
+                {% for supplier in selection.suppliers %}
                     <option value="{{ supplier.id }}"{{ supplier.id == filter.supplier ? ' selected' }}>{{ supplier.name }}</option>
                 {% endfor %}
             </select>
