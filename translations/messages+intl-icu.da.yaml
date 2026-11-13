@@ -38,6 +38,12 @@ overview:
   punctuality:
     label: Rettidighed
     title: Rettidighed mod servicemålet
+  real_solo:
+    label: Reelt solo
+    note: "{count, number} vognløb med én borger ad gangen"
+    help:
+      title: Reelt solo
+      body: Andelen af vognløbene, hvor der aldrig var mere end én borger i bilen ad gangen. Det er ikke det samme som planlagt solokørsel. En del af turene er bestilt som samkørsel, men blev alligevel kørt med én borger. Tallet bruger antallet af borgere i bilen efter hvert stop, som ikke er aflyst. Aflyste vognløb og vognløb uden borgere i bilen indgår ikke. Et stop uden registrering indgår med det planlagte antal, så den aktuelle måned delvist viser planen.
 
 month:
   previous: Forrige måned

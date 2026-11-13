@@ -18,7 +18,7 @@
 
     {# A change of the volume is neither good nor bad, so the change has the tone "neutral".
        A month with no trips has no data, so the trips have no note. #}
-    <div class="tiles tiles--3">
+    <div class="tiles tiles--4">
         {% set trips = page.trips %}
         <twig:Tile
             :label="'overview.trips.label'|trans"
@@ -67,6 +67,24 @@
             <twig:block name="help">
                 <twig:HelpPopover id="help-punctuality" :title="('punctuality.help.' ~ measure.key ~ '.title')|trans">
                     <p>{{ ('punctuality.help.' ~ measure.key ~ '.body')|trans({minutes: tolerance_minutes}) }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+        {# A real solo run had exactly one citizen in the car at a time. The share has no target.
+           A month with no counted runs has no share, so the tile has no note. #}
+        {% set solo = page.realSolo %}
+        <twig:Tile
+            :label="'overview.real_solo.label'|trans"
+            :value="solo.current is null ? '–' : (solo.current|round)|number_format ~ ' %'"
+            :change="solo.change is null ? null : 'punctuality.points'|trans({change: solo.change|percentage_points})"
+            :changeIcon="trend_icon(solo.change)"
+            :spark="solo.history"
+            :note="solo.current is null ? null : 'overview.real_solo.note'|trans({count: page.currentSolo.soloRuns})"
+            test="real-solo"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-real-solo" :title="'overview.real_solo.help.title'|trans">
+                    <p>{{ 'overview.real_solo.help.body'|trans }}</p>
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>

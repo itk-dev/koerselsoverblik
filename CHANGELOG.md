@@ -274,3 +274,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The overview shows the punctuality: the tile "Rettidighed" (the drop-off per route run), the
   four measures against the service target, and the 12-month chart. The punctuality page and the
   overview share the templates of the goal panel and the chart.
+- [#110](https://github.com/itk-dev/koerselsoverblik/issues/110)
+  The overview shows the share of the real solo runs ("Reelt solo"). `RouteRun` has the peak
+  passengers: the most citizens in the car after a stop that is not cancelled. The migration adds
+  the column. Import the driving data again to fill it for the dates that were imported before.

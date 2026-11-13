@@ -56,6 +56,19 @@ final class OverviewPageTest extends WebTestCase
     }
 
     /**
+     * R-01 run 2 and BOOKED have exactly one citizen in the car: 2 of 4 runs.
+     */
+    public function testBaseScenarioRealSoloRuns(): void
+    {
+        $crawler = $this->page('viewer', importBase: true);
+
+        self::assertSame('50 %', self::value($crawler, 'real-solo'));
+        self::assertSame('2 vognløb med én borger ad gangen', $crawler->filter('[data-test="real-solo"] .tile__note')->text());
+        self::assertSame('ingen sammenligning', $crawler->filter('[data-test="real-solo-change"]')->text());
+        self::assertCount(1, $crawler->filter('#help-real-solo'));
+    }
+
+    /**
      * The overview shows the same punctuality as the punctuality page (PunctualityPageTest).
      */
     public function testBaseScenarioPunctuality(): void
@@ -77,7 +90,7 @@ final class OverviewPageTest extends WebTestCase
 
     /**
      * December 2025 has no trips. No trips is no data, so the tiles show "–", not 0, and the trips
-     * have no note. The chart shows the 12 months with no values.
+     * and the real solo runs have no note. The chart shows the 12 months with no values.
      */
     public function testMonthWithNoDataHasNoValues(): void
     {
@@ -88,6 +101,8 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('–', self::value($crawler, 'citizens'));
         self::assertCount(0, $crawler->filter('[data-test="trips"] .tile__note'));
         self::assertSame('–', self::value($crawler, 'punctuality'));
+        self::assertSame('–', self::value($crawler, 'real-solo'));
+        self::assertCount(0, $crawler->filter('[data-test="real-solo"] .tile__note'));
         foreach (['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] as $measure) {
             self::assertSame('–', self::value($crawler, 'measure-'.$measure));
         }

@@ -12,11 +12,30 @@ final readonly class OverviewPageDto
     /**
      * @param non-empty-list<MonthDto>     $months the months, the oldest first. The last month is the month of the page
      * @param non-empty-list<TripCountDto> $counts the trips and the citizens of each month, in the order of the months
+     * @param non-empty-list<SoloCountDto> $solos  the real solo runs of each month, in the order of the months
      */
     public function __construct(
         public array $months,
         public array $counts,
+        public array $solos,
     ) {
+    }
+
+    public function currentSolo(): SoloCountDto
+    {
+        return $this->solos[\count($this->solos) - 1];
+    }
+
+    /**
+     * Gives the share of the real solo runs, with the change in percentage points.
+     */
+    public function realSolo(): ShareTrendDto
+    {
+        $history = array_map(static fn (SoloCountDto $solo): ?float => $solo->percent(), $this->solos);
+        $current = $history[\count($history) - 1];
+        $before = $history[\count($history) - 2] ?? null;
+
+        return new ShareTrendDto($current, null === $current || null === $before ? null : $current - $before, $history);
     }
 
     public function month(): MonthDto

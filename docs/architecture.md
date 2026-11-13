@@ -319,6 +319,7 @@ erDiagram
         datetime last_drop_actual "null = not measured"
         int last_drop_delay_seconds "null = not measured"
         bool cancelled "all stops are cancelled"
+        int peak_passengers "null = no passenger count"
     }
     DAILY_STATS {
         int id PK
@@ -374,7 +375,7 @@ erDiagram
 | `StopRow` | One stop from the extract, with an optional row key from the mapping and the copy of the row. See [open decisions](#open-decisions) |
 | `RejectedStopRow` | A rejected row in the range of its upload, with the row number, the reason and the copy of the row. A later read through a corrected mapping can import it |
 | `SourceRow` | The copy of one row of the extract, for one `StopRow` or one `RejectedStopRow`. See [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row) |
-| `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay. The daily stats add the peak passengers, the distances and the durations. See [open decisions](#open-decisions) |
+| `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay, and the peak passengers. The daily stats add the distances and the durations. See [open decisions](#open-decisions) |
 | `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
@@ -680,6 +681,10 @@ would only delete data. The batch has no user. The command does not delete the f
    - A stop is measured when its status is `completed` and it has an actual time. For a stop that
      is not measured, the run keeps the planned time, and the actual time and the delay are null.
    - A run is cancelled when all its stops are cancelled.
+   - The peak passengers are the highest `passengers_after` of the stops that are not cancelled.
+     A cancelled stop can have a count that includes the cancelled citizen, so it does not count.
+     A pending stop counts, because it is often a driven stop with no registration. Thus the
+     peak of the current month partly shows the plan. A run with no count has no peak.
    - It saves the runs in groups of 500, as the replacer does.
 6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
    supplier.
@@ -878,11 +883,19 @@ the punctuality page (`templates/_month.html.twig`).
   and the 12-month chart are shared templates (`punctuality/_goal.html.twig` and
   `punctuality/_trend.html.twig`), so the overview and the punctuality page show the same figures.
   Each page gives the variables of the shared templates explicitly, with `with_context = false`.
+- `RouteRunRepository::countSoloRuns()` counts the runs that are not cancelled and have a peak
+  of 1 or more, and the real solo runs: the runs with a peak of 1. A run with a peak of 0 had no
+  citizen in the car, so it is neither solo nor shared, and the query does not count it. The query
+  also does not count the runs of an ignored sub-agreement.
+- The tile "Reelt solo" shows the share, with no tone, because the share has no target. A month
+  with no counted runs has no share. The tile then shows "–" and has no note.
+- A route run that was imported before the peak existed has no peak until the next import.
 - The current month is not complete, but the page compares it with all of the previous month.
   See "Partial month" in [Open decisions](#open-decisions).
 
-**Cost:** the page runs `countTrips()` for each of the 12 months, so one request runs 12
-queries. A query grouped by month, or the daily stats, can replace them when the data grows.
+**Cost:** the page runs `countTrips()` and `countSoloRuns()` for each of the 12 months, so one
+request runs 24 queries. A query grouped by month, or the daily stats, can replace them when the
+data grows.
 The request also has the cost of the punctuality page (#85).
 
 ## Security
@@ -1190,6 +1203,14 @@ pull request. The release and hotfix branches also run mutation testing on the w
   stop. Is the count from the stops correct (+1 for each pickup that is not cancelled, −1 for each
   drop-off)? Does a cancelled stop add to the driven kilometres? The product owner in the
   transport office answers before the daily stats are built.
+  - The real solo runs on the overview (#110) use the proposal: the peak of `passengers_after`
+    of the stops that are not cancelled. In the real exports after the fix of the export script,
+    almost all runs end with no passengers. The pending stops count, and the runs with a peak of
+    0 do not count. An answer can change these rules in `RouteRunCalculator` and
+    `RouteRunRepository::countSoloRuns()`.
+  - The empty kilometres wait for the answer. In the real exports, the cancelled stops and the
+    last stop of each route and date have a distance, so a share of the distances is not
+    reliable yet.
 - **Actual time (answered).** The actual time of a stop is `StatusUpdateTime`, the status
   registration by the driver.
 - **Route names and test routes.** Do all route names end with `-` or `_` and a number? Is

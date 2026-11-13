@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Report;
 
+use App\Repository\RouteRunRepository;
 use App\Repository\StopRowRepository;
 
 /**
@@ -19,6 +20,7 @@ final readonly class OverviewPageBuilder
 
     public function __construct(
         private StopRowRepository $stopRows,
+        private RouteRunRepository $routeRuns,
     ) {
     }
 
@@ -29,6 +31,7 @@ final readonly class OverviewPageBuilder
         return new OverviewPageDto(
             $months,
             array_map(fn (MonthDto $item): TripCountDto => $this->stopRows->countTrips($item->range()), $months),
+            array_map(fn (MonthDto $item): SoloCountDto => $this->routeRuns->countSoloRuns($item->range()), $months),
         );
     }
 }

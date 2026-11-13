@@ -124,7 +124,73 @@ final class RouteRunCalculatorTest extends TestCase
             self::stop(StopType::DropOff, StopStatus::Cancelled, '07:35'),
         ]);
 
-        self::assertEquals(new RouteRunDto(null, null, null, null, null, null, true), $run);
+        self::assertEquals(new RouteRunDto(null, null, null, null, null, null, true, null), $run);
+    }
+
+    /**
+     * The peak is the most passengers after a stop that is not cancelled. A cancelled pickup can
+     * have a count that includes the cancelled citizen, so it does not count.
+     */
+    public function testPeakPassengersAreTheMostPassengersAfterAStopThatIsNotCancelled(): void
+    {
+        $run = self::calculate([
+            self::stop(StopType::Pickup, StopStatus::Completed, '07:00', '07:02', passengersAfter: 1),
+            self::stop(StopType::Pickup, StopStatus::Cancelled, '07:05', passengersAfter: 3),
+            self::stop(StopType::Pickup, StopStatus::Pending, '07:10', passengersAfter: 2),
+            self::stop(StopType::DropOff, StopStatus::Completed, '07:25', '07:27', passengersAfter: 1),
+            self::stop(StopType::DropOff, StopStatus::Completed, '07:35', '07:39', passengersAfter: 0),
+        ]);
+
+        self::assertSame(2, $run->peakPassengers);
+    }
+
+    /**
+     * A stop with no count does not count. A run with no count has no peak.
+     */
+    public function testRunWithNoPassengerCountHasNoPeak(): void
+    {
+        $run = self::calculate([
+            self::stop(StopType::Pickup, StopStatus::Completed, '07:00', '07:02'),
+            self::stop(StopType::DropOff, StopStatus::Completed, '07:35', '07:39'),
+        ]);
+
+        self::assertNull($run->peakPassengers);
+    }
+
+    /**
+     * The extract can have a run where no citizen was in the car after any stop, for example a
+     * run with only drop-offs. Its peak is 0, not "no count".
+     */
+    public function testRunWithAnEmptyCarHasAPeakOfZero(): void
+    {
+        $run = self::calculate([
+            self::stop(StopType::DropOff, StopStatus::Completed, '07:35', '07:39', passengersAfter: 0),
+        ]);
+
+        self::assertSame(0, $run->peakPassengers);
+    }
+
+    /**
+     * The real extracts have a few negative counts. A car cannot have fewer than 0 citizens, so
+     * the peak is at least 0.
+     */
+    public function testNegativeCountGivesAPeakOfZero(): void
+    {
+        $run = self::calculate([
+            self::stop(StopType::DropOff, StopStatus::Completed, '07:35', '07:39', passengersAfter: -1),
+        ]);
+
+        self::assertSame(0, $run->peakPassengers);
+    }
+
+    public function testSoloRunHasAPeakOfOne(): void
+    {
+        $run = self::calculate([
+            self::stop(StopType::Pickup, StopStatus::Completed, '07:00', '07:02', passengersAfter: 1),
+            self::stop(StopType::DropOff, StopStatus::Completed, '07:35', '07:39'),
+        ]);
+
+        self::assertSame(1, $run->peakPassengers);
     }
 
     /**
@@ -183,12 +249,12 @@ final class RouteRunCalculatorTest extends TestCase
         return new RouteRunCalculator()->calculate($stops);
     }
 
-    private static function stop(StopType $type, StopStatus $status, string $planned, ?string $actual = null): RunStopDto
+    private static function stop(StopType $type, StopStatus $status, string $planned, ?string $actual = null, ?int $passengersAfter = null): RunStopDto
     {
         $plannedTime = self::at($planned);
         $actualTime = null === $actual ? null : self::at($actual);
 
-        return new RunStopDto($type, $status, $plannedTime, $actualTime, null === $actualTime ? null : $actualTime->getTimestamp() - $plannedTime->getTimestamp());
+        return new RunStopDto($type, $status, $plannedTime, $actualTime, null === $actualTime ? null : $actualTime->getTimestamp() - $plannedTime->getTimestamp(), $passengersAfter);
     }
 
     /**
