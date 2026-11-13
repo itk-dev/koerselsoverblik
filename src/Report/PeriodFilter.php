@@ -15,14 +15,14 @@ final readonly class PeriodFilter
     /**
      * @param \DateTimeImmutable $anchor   a date in the period, at 00:00
      * @param ?int               $supplier the id of the supplier, or null for all suppliers
-     * @param \DateTimeImmutable $today    the default of the anchor, so that the query can leave it out
+     * @param \DateTimeImmutable $today    today at 00:00. It is the default of the anchor and the last date of the periods
      */
     private function __construct(
         public PeriodType $type,
         public \DateTimeImmutable $anchor,
         public Comparison $comparison,
         public ?int $supplier,
-        private \DateTimeImmutable $today,
+        public \DateTimeImmutable $today,
     ) {
     }
 
@@ -58,14 +58,18 @@ final readonly class PeriodFilter
 
     /**
      * Gives the query string of the filter for path(). It leaves out a value that is the default.
+     * The date is the first date of the period, so that each period has one link. The current
+     * period has no date.
      *
      * @return array<string, string>
      */
     public function query(): array
     {
+        $first = $this->type->start($this->anchor);
+
         return array_filter([
             'p' => PeriodType::Month === $this->type ? null : $this->type->value,
-            'd' => $this->anchor == $this->today ? null : $this->anchor->format(self::DATE),
+            'd' => $first == $this->type->start($this->today) ? null : $first->format(self::DATE),
             'c' => Comparison::Previous === $this->comparison ? null : $this->comparison->value,
             's' => null === $this->supplier ? null : (string) $this->supplier,
         ], static fn (?string $value): bool => null !== $value);

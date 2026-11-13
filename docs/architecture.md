@@ -786,7 +786,8 @@ sequenceDiagram
 - the selected period
 - the comparison period: the previous period, or the same period last year. If the selected
   period has not ended, the comparison is cut to the same number of days.
-- the 12 trailing months for sparklines and the trend chart
+- the 12 trailing months for sparklines and the trend chart. They end at the month of the last
+  date of the period, up to today.
 
 The rules follow the prototype:
 
@@ -794,9 +795,18 @@ The rules follow the prototype:
   53). A month and a year are calendar periods.
 - A period ends today at the latest. A period that has not ended is partial. A day is never
   partial.
-- The previous and the next period move the anchor date (`d`). The next period has no link when
-  it starts after today.
+- The previous and the next period move the anchor date (`d`) to the first date of that period.
+  The next period has no link when it starts after today.
+- `PeriodFilter::query()` gives the first date of the period as `d`, and no `d` for the current
+  period. Thus, each period has one link.
 - The same day last year of 29 February is 28 February.
+
+Two rules are different from the prototype. In the prototype, the result changes with the date
+in the period:
+
+- The same week last year has the same ISO week number. Week 53 gives week 52 in a year that has
+  52 weeks.
+- The 12 months end at the month of the last date of the period, not at the month of `d`.
 - `PeriodSelectionDto` holds the selected period, the comparison period, the cut comparison
   range, the links and the 12 months.
 - `PeriodLabeler` gives the Danish labels of the prototype, for example "Uge 38 · 14. sep–20.

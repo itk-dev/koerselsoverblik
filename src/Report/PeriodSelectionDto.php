@@ -12,9 +12,9 @@ final readonly class PeriodSelectionDto
 {
     /**
      * @param DateRangeDto             $comparisonRange the dates of the comparison period, cut to the number of days of a period that has not ended
-     * @param \DateTimeImmutable       $previousAnchor  a date in the previous period
-     * @param ?\DateTimeImmutable      $nextAnchor      a date in the next period, or null if the next period starts after today
-     * @param non-empty-list<MonthDto> $months          the 12 months up to the month of the period, the oldest first
+     * @param \DateTimeImmutable       $previousAnchor  the first date of the previous period
+     * @param ?\DateTimeImmutable      $nextAnchor      the first date of the next period, or null if the next period starts after today
+     * @param non-empty-list<MonthDto> $months          the 12 months up to the month of the last date of the period, the oldest first
      */
     public function __construct(
         public PeriodFilter $filter,

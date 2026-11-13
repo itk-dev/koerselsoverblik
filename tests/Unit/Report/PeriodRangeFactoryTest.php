@@ -76,6 +76,15 @@ final class PeriodRangeFactoryTest extends TestCase
         yield 'previous week' => [['p' => 'week', 'd' => '2026-09-09'], '2026-08-31/2026-09-06', '2026-08-31/2026-09-06'];
         yield 'previous week, cut' => [['p' => 'week', 'd' => '2026-09-16'], '2026-09-07/2026-09-13', '2026-09-07/2026-09-11'];
         yield 'week 1 after week 53' => [['p' => 'week', 'd' => '2027-01-05'], '2026-12-28/2027-01-03', '2026-12-28/2027-01-03', '2027-06-01'];
+        // The same week last year has the same ISO week number, from each day of the week.
+        yield 'same week last year from a Monday' => [['p' => 'week', 'd' => '2026-09-07', 'c' => 'last_year'], '2025-09-08/2025-09-14', '2025-09-08/2025-09-14'];
+        yield 'same week last year from a Sunday' => [['p' => 'week', 'd' => '2026-09-13', 'c' => 'last_year'], '2025-09-08/2025-09-14', '2025-09-08/2025-09-14'];
+        yield 'same week last year, cut' => [['p' => 'week', 'c' => 'last_year'], '2025-09-15/2025-09-21', '2025-09-15/2025-09-19'];
+        // Week 1 of 2026 starts in 2025. Its ISO year is 2026, so last year is week 1 of 2025.
+        yield 'week 1 last year' => [['p' => 'week', 'd' => '2025-12-30', 'c' => 'last_year'], '2024-12-30/2025-01-05', '2024-12-30/2025-01-05'];
+        yield 'week 1 last year, after week 53' => [['p' => 'week', 'd' => '2027-01-05', 'c' => 'last_year'], '2025-12-29/2026-01-04', '2025-12-29/2026-01-04', '2027-06-01'];
+        // 2025 has 52 weeks. Week 53 of 2026 is compared with week 52, as 29 February with 28 February.
+        yield 'week 53 last year is week 52' => [['p' => 'week', 'd' => '2027-01-02', 'c' => 'last_year'], '2025-12-22/2025-12-28', '2025-12-22/2025-12-28', '2027-06-01'];
         yield 'previous month' => [['d' => '2026-08-20'], '2026-07-01/2026-07-31', '2026-07-01/2026-07-31'];
         yield 'previous month, cut' => [[], '2026-08-01/2026-08-31', '2026-08-01/2026-08-18'];
         yield 'previous month of March' => [['d' => '2026-03-31'], '2026-02-01/2026-02-28', '2026-02-01/2026-02-28'];
@@ -87,7 +96,8 @@ final class PeriodRangeFactoryTest extends TestCase
     }
 
     /**
-     * The next period has no link when it starts after today.
+     * The links go to the first date of the previous and the next period. The next period has no
+     * link when it starts after today.
      *
      * @param array<string, string> $query
      */
@@ -107,28 +117,52 @@ final class PeriodRangeFactoryTest extends TestCase
     {
         yield 'day' => [['p' => 'day', 'd' => '2026-09-15'], '2026-09-14', '2026-09-16'];
         yield 'today' => [['p' => 'day'], '2026-09-17', null];
-        yield 'week' => [['p' => 'week', 'd' => '2026-09-09'], '2026-09-02', '2026-09-16'];
-        yield 'current week' => [['p' => 'week', 'd' => '2026-09-16'], '2026-09-09', null];
+        yield 'week' => [['p' => 'week', 'd' => '2026-09-09'], '2026-08-31', '2026-09-14'];
+        // The next week of a Saturday is not after today. Its link is the Monday.
+        yield 'week from a Saturday' => [['p' => 'week', 'd' => '2026-09-12'], '2026-08-31', '2026-09-14'];
+        yield 'current week' => [['p' => 'week', 'd' => '2026-09-16'], '2026-09-07', null];
         yield 'month' => [['d' => '2026-08-20'], '2026-07-01', '2026-09-01'];
+        yield 'month from the 31st' => [['d' => '2026-07-31'], '2026-06-01', '2026-08-01'];
         yield 'current month' => [[], '2026-08-01', null];
         yield 'year' => [['p' => 'year', 'd' => '2025-05-05'], '2024-01-01', '2026-01-01'];
         yield 'current year' => [['p' => 'year'], '2025-01-01', null];
     }
 
-    public function testTrendHasTheTwelveMonthsUpToThePeriod(): void
+    /**
+     * The trend ends at the month of the last date of the period, up to today. The date in the
+     * period has no effect.
+     *
+     * @param array<string, string> $query
+     */
+    #[DataProvider('trends')]
+    public function testTrendHasTheTwelveMonthsUpToThePeriod(array $query, string $first, string $last): void
     {
-        $months = self::select(['p' => 'week', 'd' => '2026-03-04'])->months;
+        $months = self::select($query)->months;
 
         self::assertCount(12, $months);
-        self::assertSame('2025-04', $months[0]->query());
-        self::assertSame('2026-03', $months[11]->query());
+        self::assertSame($first, $months[0]->query());
+        self::assertSame($last, $months[11]->query());
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, string, string}>
+     */
+    public static function trends(): iterable
+    {
+        yield 'day' => [['p' => 'day', 'd' => '2026-03-04'], '2025-04', '2026-03'];
+        yield 'week in one month' => [['p' => 'week', 'd' => '2026-03-04'], '2025-04', '2026-03'];
+        yield 'week across two months' => [['p' => 'week', 'd' => '2026-03-31'], '2025-05', '2026-04'];
+        yield 'month' => [['d' => '2026-08-20'], '2025-09', '2026-08'];
+        yield 'year from May' => [['p' => 'year', 'd' => '2025-05-05'], '2025-01', '2025-12'];
+        yield 'year from 1 January' => [['p' => 'year', 'd' => '2025-01-01'], '2025-01', '2025-12'];
+        yield 'current year' => [['p' => 'year'], '2025-10', '2026-09'];
     }
 
     public function testSelectionKeepsTheFilter(): void
     {
         $filter = PeriodFilter::fromQuery('week', null, 'last_year', '3', new \DateTimeImmutable(self::TODAY));
 
-        self::assertSame($filter, new PeriodRangeFactory()->create($filter, new \DateTimeImmutable(self::TODAY))->filter);
+        self::assertSame($filter, new PeriodRangeFactory()->create($filter)->filter);
     }
 
     /**
@@ -136,10 +170,9 @@ final class PeriodRangeFactoryTest extends TestCase
      */
     private static function select(array $query, string $today = self::TODAY): PeriodSelectionDto
     {
-        $date = new \DateTimeImmutable($today);
-        $filter = PeriodFilter::fromQuery($query['p'] ?? null, $query['d'] ?? null, $query['c'] ?? null, null, $date);
+        $filter = PeriodFilter::fromQuery($query['p'] ?? null, $query['d'] ?? null, $query['c'] ?? null, null, new \DateTimeImmutable($today));
 
-        return new PeriodRangeFactory()->create($filter, $date);
+        return new PeriodRangeFactory()->create($filter);
     }
 
     private static function format(DateRangeDto $range): string
