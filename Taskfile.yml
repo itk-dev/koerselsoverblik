@@ -198,8 +198,9 @@ tasks:
 
   prepare-code:
     desc: Fix the coding standards, normalize composer.json, run the checks and the tests. Run it before you commit
-    # The tests run with no coverage, because Xdebug makes them about four times slower. CI runs
-    # the coverage gate. Run `task test:coverage:check` to run it locally.
+    # The tests run with no coverage, because Xdebug makes them about four times slower. The
+    # release and hotfix branches run the coverage gate. Run `task test:coverage:check` to run
+    # it locally.
     cmds:
       - task: rector:apply
       - task: coding-standards-apply

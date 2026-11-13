@@ -42,7 +42,8 @@ The project uses test-driven development. See "Development" in [README.md](READM
 
 - Write a failing test first. Then write the minimal code that makes it pass. Then refactor.
 - Do not write production code without a test that requires it.
-- Line coverage must be 100 %. Do not use `@codeCoverageIgnore`.
+- Line coverage must be 100 %. Do not use `@codeCoverageIgnore`. Only the release and hotfix
+  branches check the coverage in CI.
 - Infection requires a covered MSI of 100 % in `src/Report` and `src/Import`, and 80 % in the
   remaining mutated code. Only the release and hotfix branches run Infection. Do not run it during the
   work on an issue.
@@ -102,7 +103,8 @@ To find how the project is configured, use these commands. Do not guess:
 - Markdown lines have a maximum of 120 characters. markdownlint checks them.
 - Run `task prepare-code` before you commit. It fixes the coding standards, normalizes
   `composer.json`, and runs the checks and the tests. It does not measure the coverage.
-- CI runs the coverage gate. Run `task test:coverage:check` to run the gate locally.
+- The release and hotfix branches run the coverage gate. Run `task test:coverage:check` to run
+  the gate locally.
 
 ## Git and pull requests
 
