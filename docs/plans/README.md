@@ -73,6 +73,7 @@ feature that has an issue or an issue text.
 | Filter the punctuality page and the overview by supplier | In progress | [#117](https://github.com/itk-dev/koerselsoverblik/issues/117) | – | [filters.md](filters.md) |
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
 | Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #75, #117 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
+| Make the overview and the punctuality page fast with more driving data | In progress | [#134](https://github.com/itk-dev/koerselsoverblik/issues/134) | – | [report-queries.md](report-queries.md) |
 | Calculate the 12 months in one query | Ready | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | – | [punctuality-months-query.md](punctuality-months-query.md) |
 | Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
 | Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
