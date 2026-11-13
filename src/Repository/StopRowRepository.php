@@ -148,12 +148,12 @@ class StopRowRepository extends ServiceEntityRepository
 
     /**
      * Counts the trips and the citizens of a date range. A trip is a pickup, with any status. A
-     * citizen was driven if a pickup of the citizen is not cancelled.
+     * citizen was driven if a pickup of the citizen is not cancelled. The pickups of an ignored
+     * sub-agreement are not counted.
      */
     public function countTrips(DateRangeDto $range): TripCountDto
     {
-        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
-        $row = $this->createQueryBuilder('row')
+        $builder = $this->createQueryBuilder('row')
             ->select(
                 'COUNT(row.id) AS trips',
                 'SUM(CASE WHEN row.stopStatus = :completed THEN 1 ELSE 0 END) AS completed',
@@ -169,7 +169,10 @@ class StopRowRepository extends ServiceEntityRepository
             ->setParameter('pickup', StopType::Pickup)
             ->setParameter('completed', StopStatus::Completed)
             ->setParameter('cancelled', StopStatus::Cancelled)
-            ->setParameter('pending', StopStatus::Pending)
+            ->setParameter('pending', StopStatus::Pending);
+
+        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
+        $row = IgnoredSubAgreementFilter::apply($builder, 'row.route')
             ->getQuery()
             ->getSingleResult();
 
