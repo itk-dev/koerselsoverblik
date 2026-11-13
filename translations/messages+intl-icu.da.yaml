@@ -25,7 +25,7 @@ overview:
   lede: "{period} sammenlignet med {comparison}."
   trips:
     label: Personture
-    note: "{completed, number} gennemført · {cancelled, number} aflyst"
+    note: "{completed, number} gennemført · {cancelled, number} aflyst{pending, plural, =0 {} other { · # uden registrering}}"
     help:
       title: Personture
       body: Én persontur er én borgers tur fra afhentning til afsætning. Kører to borgere sammen i samme bil, tæller det som to personture. Tallet tæller alle bestilte ture i perioden, også de aflyste ture og de ture, hvor chaufføren ikke har registreret afhentningen. Status for afhentningen giver status for turen.
@@ -37,7 +37,6 @@ overview:
       body: Hvor mange forskellige borgere der blev kørt i perioden. Den samme borger tæller kun én gang, uanset antallet af ture. En borger, hvis ture alle blev aflyst, tæller ikke med. En tur, hvor chaufføren ikke har registreret afhentningen, tæller med. Tallet er en optælling af borger-id'erne i kørselsdata.
   punctuality:
     label: Rettidighed
-    note: Sidste afsætning pr. vognløb · Mål {target} %
     title: Rettidighed mod servicemålet
   suppliers:
     title: Leverandørerne side om side
@@ -47,10 +46,10 @@ overview:
     source: "Kilde: kørselsdata"
   real_solo:
     label: Reelt solo
-    note: "{count, number} vognløb med højst én borger"
+    note: "{count, number} vognløb med én borger ad gangen"
     help:
       title: Reelt solo
-      body: Andelen af vognløbene, hvor der aldrig var mere end én borger i bilen ad gangen. Det er ikke det samme som planlagt solokørsel. En del af turene er bestilt som samkørsel, men blev alligevel kørt med én borger. Tallet bruger antallet af borgere i bilen efter hvert stop, som ikke er aflyst. Aflyste vognløb indgår ikke.
+      body: Andelen af vognløbene, hvor der aldrig var mere end én borger i bilen ad gangen. Det er ikke det samme som planlagt solokørsel. En del af turene er bestilt som samkørsel, men blev alligevel kørt med én borger. Tallet bruger antallet af borgere i bilen efter hvert stop, som ikke er aflyst. Aflyste vognløb og vognløb uden borgere i bilen indgår ikke. Et stop uden registrering indgår med det planlagte antal, så den aktuelle måned delvist viser planen.
 
 period:
   week: "Uge {week} · {first}–{last} {year}"
@@ -308,10 +307,14 @@ sub_agreement:
   back: Tilbage til delaftalerne
   none: Der er ingen delaftaler endnu.
   created: Delaftalen er oprettet.
-  edit: Skift leverandør
+  edit: Redigér delaftale
   edit_title: Redigér delaftale {reference}
   saved: Delaftalen er gemt.
   supplier: Leverandør
   no_supplier: Ingen leverandør – vises som "Ukendt"
+  no_supplier_ignored: Ingen leverandør
+  ignored: Ignorér i beregningerne
+  ignored_help: Vognløbene i delaftalen indgår ikke i tallene. Importen gemmer stadig kørselsdata.
+  ignored_tag: Ignoreret
   routes: Vognløb
   no_routes: Der er ingen vognløb endnu. Importen af kørselsdata opretter dem.

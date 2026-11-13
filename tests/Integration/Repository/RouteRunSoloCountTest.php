@@ -14,7 +14,6 @@ use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
 use App\Import\RouteRunDto;
-use App\Import\SubAgreementReference;
 use App\Report\DateRangeDto;
 use App\Report\SoloCountDto;
 use App\Repository\RouteRunRepository;
@@ -22,7 +21,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Checks the real solo runs of a date range: the runs with at most one citizen in the car at a
+ * Checks the real solo runs of a date range: the runs with exactly one citizen in the car at a
  * time.
  */
 final class RouteRunSoloCountTest extends KernelTestCase
@@ -49,15 +48,17 @@ final class RouteRunSoloCountTest extends KernelTestCase
     }
 
     /**
-     * A cancelled run and a run with no passenger count are not counted.
+     * A cancelled run, a run with no passenger count and a run with no citizen in the car are not
+     * counted. A run with a peak of 0 is neither solo nor shared.
      */
-    public function testOnlyRunsWithAPeakThatAreNotCancelledCount(): void
+    public function testOnlyRunsWithACitizenThatAreNotCancelledCount(): void
     {
         $route = $this->route();
         $this->routeRun($route, '2026-02-02', 1, peak: 1);
         $this->routeRun($route, '2026-02-02', 2, peak: 3);
         $this->routeRun($route, '2026-02-02', 3, peak: null);
         $this->routeRun($route, '2026-02-02', 4, peak: null, cancelled: true);
+        $this->routeRun($route, '2026-02-02', 5, peak: 0);
 
         self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28'));
     }
@@ -73,19 +74,35 @@ final class RouteRunSoloCountTest extends KernelTestCase
         self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28'));
     }
 
+    /**
+     * The runs of an ignored sub-agreement do not count.
+     */
+    public function testIgnoredSubAgreementDoesNotCount(): void
+    {
+        $route = $this->route();
+        $ignored = $this->route('I', ignored: true);
+        $this->routeRun($route, '2026-02-02', 1, peak: 2);
+        $this->routeRun($ignored, '2026-02-02', 1, peak: 1);
+        $this->routeRun($ignored, '2026-02-02', 2, peak: 3);
+
+        self::assertEquals(new SoloCountDto(runs: 1, soloRuns: 0), $this->solo('2026-02-01', '2026-02-28'));
+    }
+
     public function testRangeWithNoRunsHasZeroCounts(): void
     {
         self::assertEquals(new SoloCountDto(0, 0), $this->solo('2026-02-01', '2026-02-28'));
     }
 
     /**
-     * With a supplier, only the routes of the sub-agreements of that supplier count.
+     * With a supplier, only the routes of the sub-agreements of that supplier count. An ignored
+     * sub-agreement of the supplier does not count.
      */
     public function testOnlyTheRoutesOfTheSupplierCount(): void
     {
         $supplier = new Supplier()->setName('Vognmand A');
         $this->entityManager->persist($supplier);
-        $this->routeRun($this->route('A-01', $supplier), '2026-02-02', 1, peak: 1);
+        $this->routeRun($this->route('A', supplier: $supplier), '2026-02-02', 1, peak: 1);
+        $this->routeRun($this->route('AI', ignored: true, supplier: $supplier), '2026-02-02', 1, peak: 1);
         $this->routeRun($this->route(), '2026-02-02', 1, peak: 2);
         $this->entityManager->flush();
 
@@ -102,11 +119,11 @@ final class RouteRunSoloCountTest extends KernelTestCase
         return $routeRuns->countSoloRuns(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)), $supplier);
     }
 
-    private function route(string $name = 'R-01', ?Supplier $supplier = null): Route
+    private function route(string $reference = 'R', bool $ignored = false, ?Supplier $supplier = null): Route
     {
-        $subAgreement = new SubAgreement()->setReference(SubAgreementReference::fromRouteName($name))->setSupplier($supplier);
+        $subAgreement = new SubAgreement()->setReference($reference)->setIgnored($ignored)->setSupplier($supplier);
         $this->entityManager->persist($subAgreement);
-        $route = new Route($name, $subAgreement);
+        $route = new Route($reference.'-01', $subAgreement);
         $this->entityManager->persist($route);
 
         return $route;

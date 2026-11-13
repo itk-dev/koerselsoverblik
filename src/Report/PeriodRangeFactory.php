@@ -15,9 +15,10 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  *   has not ended, the comparison is cut to the same number of days, so that a month that has
  *   not ended is not compared with a whole month. A comparison period before the start of the
  *   data has no range.
- * - The trend has the 12 months up to the month of the period.
+ * - The trend has the 12 months up to the month of the last date of the selected range.
  *
- * All dates are calendar dates at 00:00 in the PHP default time zone (ADR 005).
+ * All the ranges come from the first date of the period, so each date in a period gives the same
+ * result. All dates are calendar dates at 00:00 in the PHP default time zone (ADR 005).
  */
 final readonly class PeriodRangeFactory
 {
@@ -36,19 +37,21 @@ final readonly class PeriodRangeFactory
         $this->dataStart = false === $date ? null : $date;
     }
 
-    public function create(PeriodFilter $filter, \DateTimeImmutable $today): PeriodSelectionDto
+    public function create(PeriodFilter $filter): PeriodSelectionDto
     {
-        $today = new \DateTimeImmutable($today->format('Y-m-d'));
+        $today = $filter->today;
         // A date before the start of the data gives the start, so that the period has data.
         if (null !== $this->dataStart) {
             $filter = $filter->with(anchor: min(max($filter->anchor, $this->dataStart), $today));
         }
-        $selected = $this->period($filter->type, $filter->anchor, $today);
+        $type = $filter->type;
+        $first = $type->start($filter->anchor);
+        $selected = $this->period($type, $first, $today);
         // The range is empty only when the start of the data is after today.
         $selectedRange = $selected->range ?? DateRangeDto::create($filter->anchor, $filter->anchor);
-        $comparison = $this->period($filter->type, self::comparisonAnchor($filter), $today);
-        $previous = self::shift($filter->type, $filter->anchor, false);
-        $next = self::shift($filter->type, $filter->anchor, true);
+        $comparison = $this->period($type, self::comparisonStart($type, $first, $filter->comparison), $today);
+        $previous = self::shift($type, $first, -1);
+        $next = self::shift($type, $first, 1);
 
         return new PeriodSelectionDto(
             $filter,
@@ -56,15 +59,14 @@ final readonly class PeriodRangeFactory
             $selectedRange,
             $comparison,
             self::cut($comparison, $selected->endsAfterToday, $selectedRange),
-            null === $this->period($filter->type, $previous, $today)->range ? null : $previous,
-            self::start($filter->type, $next) > $today ? null : $next,
-            MonthDto::fromQuery($filter->anchor->format('Y-m'), $today)->trailing(self::MONTHS),
+            null === $this->period($type, $previous, $today)->range ? null : $previous,
+            $next > $today ? null : $next,
+            MonthDto::of($selectedRange->lastDate)->trailing(self::MONTHS),
         );
     }
 
-    private function period(PeriodType $type, \DateTimeImmutable $anchor, \DateTimeImmutable $today): PeriodDto
+    private function period(PeriodType $type, \DateTimeImmutable $first, \DateTimeImmutable $today): PeriodDto
     {
-        $first = self::start($type, $anchor);
         $months = $type->months();
         $last = null === $months
             ? $first->modify('+6 days')
@@ -83,46 +85,36 @@ final readonly class PeriodRangeFactory
     }
 
     /**
-     * Gives the first date of the period: the Monday of a week, or the first day of the month,
-     * the quarter or the half year.
+     * Gives the first date of the period that is a number of periods before or after a period.
      */
-    private static function start(PeriodType $type, \DateTimeImmutable $anchor): \DateTimeImmutable
+    private static function shift(PeriodType $type, \DateTimeImmutable $first, int $periods): \DateTimeImmutable
     {
         $months = $type->months();
-        if (null === $months) {
-            return $anchor->modify('monday this week');
-        }
-        $month = intdiv((int) $anchor->format('n') - 1, $months) * $months + 1;
-
-        return $anchor->setDate((int) $anchor->format('Y'), $month, 1);
-    }
-
-    /**
-     * Gives a date in the next period, or in the previous period.
-     */
-    private static function shift(PeriodType $type, \DateTimeImmutable $anchor, bool $forward): \DateTimeImmutable
-    {
-        $months = $type->months();
-        $sign = $forward ? '+' : '-';
 
         return null === $months
-            ? $anchor->modify($sign.'7 days')
-            : self::start($type, $anchor)->modify($sign.$months.' months');
+            ? $first->modify(\sprintf('%+d weeks', $periods))
+            : $first->modify(\sprintf('%+d months', $periods * $months));
     }
 
     /**
-     * Gives a date in the comparison period. The same day last year of 29 February is 28 February.
+     * Gives the first date of the comparison period. The same week last year has the same ISO
+     * week number. Week 53 gives week 52 in a year that has 52 weeks.
      */
-    private static function comparisonAnchor(PeriodFilter $filter): \DateTimeImmutable
+    private static function comparisonStart(PeriodType $type, \DateTimeImmutable $first, Comparison $comparison): \DateTimeImmutable
     {
-        if (Comparison::Previous === $filter->comparison) {
-            return self::shift($filter->type, $filter->anchor, false);
+        if (Comparison::Previous === $comparison) {
+            return self::shift($type, $first, -1);
         }
-        $year = (int) $filter->anchor->format('Y') - 1;
-        $month = (int) $filter->anchor->format('n');
-        $daysInMonth = (int) $filter->anchor->setDate($year, $month, 1)->format('t');
+        if (PeriodType::Week === $type) {
+            $year = (int) $first->format('o') - 1;
+            // 28 December is always in the last ISO week of its year.
+            $weeks = (int) $first->setDate($year, 12, 28)->format('W');
 
-        return $filter->anchor->setDate($year, $month, min((int) $filter->anchor->format('j'), $daysInMonth));
+            return $first->setISODate($year, min((int) $first->format('W'), $weeks));
+        }
+
+        // The other periods start on the first day of a month, so one year back is exact.
+        return $first->modify('-1 year');
     }
 
     /**

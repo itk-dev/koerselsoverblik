@@ -70,13 +70,72 @@ final class PeriodFilterTest extends TestCase
         yield 'date after today' => [['d' => '2026-09-19'], $defaults];
     }
 
+    /**
+     * Today has no time, so that it compares with the dates of the periods.
+     */
+    public function testTodayIsADate(): void
+    {
+        $filter = PeriodFilter::fromQuery(null, null, null, null, new \DateTimeImmutable(self::TODAY.' 14:30'));
+
+        self::assertSame(self::TODAY.' 00:00', $filter->today->format('Y-m-d H:i'));
+        self::assertSame(self::TODAY.' 00:00', $filter->anchor->format('Y-m-d H:i'));
+    }
+
     public function testQueryLeavesOutTheDefaults(): void
     {
         self::assertSame([], self::filter([])->query());
         self::assertSame(
-            ['p' => 'half_year', 'd' => '2025-03-04', 'c' => 'last_year', 's' => '2'],
+            ['p' => 'half_year', 'd' => '2025-01-01', 'c' => 'last_year', 's' => '2'],
             self::filter(['p' => 'half_year', 'd' => '2025-03-04', 'c' => 'last_year', 's' => '2'])->query(),
         );
+    }
+
+    /**
+     * The date in the query is the first date of the period, so that a period has one link.
+     *
+     * @param array<string, string> $query
+     */
+    #[DataProvider('firstDates')]
+    public function testQueryGivesTheFirstDateOfThePeriod(array $query, string $date): void
+    {
+        self::assertSame($date, self::filter($query)->query()['d'] ?? null);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, string}>
+     */
+    public static function firstDates(): iterable
+    {
+        yield 'week' => [['p' => 'week', 'd' => '2026-09-09'], '2026-09-07'];
+        yield 'week from a Sunday' => [['p' => 'week', 'd' => '2026-09-13'], '2026-09-07'];
+        yield 'month' => [['d' => '2026-08-20'], '2026-08-01'];
+        yield 'quarter' => [['p' => 'quarter', 'd' => '2026-06-30'], '2026-04-01'];
+        yield 'first quarter' => [['p' => 'quarter', 'd' => '2026-03-31'], '2026-01-01'];
+        yield 'half year' => [['p' => 'half_year', 'd' => '2025-12-31'], '2025-07-01'];
+    }
+
+    /**
+     * The current period has no date in the query, also when the anchor is not today.
+     *
+     * @param array<string, string> $query
+     */
+    #[DataProvider('currentPeriods')]
+    public function testQueryLeavesOutTheDateOfTheCurrentPeriod(array $query, string $anchor): void
+    {
+        $filter = self::filter($query)->with(anchor: new \DateTimeImmutable($anchor));
+
+        self::assertArrayNotHasKey('d', $filter->query());
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, string}>
+     */
+    public static function currentPeriods(): iterable
+    {
+        yield 'week' => [['p' => 'week'], '2026-09-14'];
+        yield 'month' => [[], '2026-09-01'];
+        yield 'quarter' => [['p' => 'quarter'], '2026-07-01'];
+        yield 'half year' => [['p' => 'half_year'], '2026-07-01'];
     }
 
     /**
@@ -86,16 +145,16 @@ final class PeriodFilterTest extends TestCase
     {
         $filter = self::filter(['p' => 'week', 'd' => '2026-02-03', 's' => '2']);
 
-        self::assertSame(['p' => 'quarter', 'd' => '2026-02-03', 's' => '2'], $filter->with(type: PeriodType::Quarter)->query());
-        self::assertSame(['p' => 'week', 'd' => '2026-01-27', 's' => '2'], $filter->with(anchor: new \DateTimeImmutable('2026-01-27'))->query());
-        self::assertSame(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year', 's' => '2'], $filter->with(comparison: Comparison::LastYear)->query());
+        self::assertSame(['p' => 'quarter', 'd' => '2026-01-01', 's' => '2'], $filter->with(type: PeriodType::Quarter)->query());
+        self::assertSame(['p' => 'week', 'd' => '2026-01-26', 's' => '2'], $filter->with(anchor: new \DateTimeImmutable('2026-01-27'))->query());
+        self::assertSame(['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year', 's' => '2'], $filter->with(comparison: Comparison::LastYear)->query());
     }
 
     public function testWithoutSupplierKeepsTheOtherFilters(): void
     {
         $filter = self::filter(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year', 's' => '2']);
 
-        self::assertSame(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year'], $filter->withoutSupplier()->query());
+        self::assertSame(['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year'], $filter->withoutSupplier()->query());
     }
 
     /**

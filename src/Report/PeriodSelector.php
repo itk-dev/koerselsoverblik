@@ -28,6 +28,6 @@ final readonly class PeriodSelector
             $filter = $filter->withoutSupplier();
         }
 
-        return $this->periods->create($filter, $today);
+        return $this->periods->create($filter);
     }
 }

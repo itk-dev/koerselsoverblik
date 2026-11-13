@@ -63,9 +63,7 @@ final class PunctualityPageBuilderTest extends KernelTestCase
 
     private static function select(string $type, string $date): PeriodSelectionDto
     {
-        $today = new \DateTimeImmutable('2026-11-09');
-
-        return new PeriodRangeFactory()->create(PeriodFilter::fromQuery($type, $date, null, null, $today), $today);
+        return new PeriodRangeFactory()->create(PeriodFilter::fromQuery($type, $date, null, null, new \DateTimeImmutable('2026-11-09')));
     }
 
     private function builder(): PunctualityPageBuilder

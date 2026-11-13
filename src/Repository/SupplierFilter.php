@@ -22,10 +22,11 @@ final class SupplierFilter
             return;
         }
 
+        // The aliases differ from those of IgnoredSubAgreementFilter, so that a query can use both.
         $query
-            ->join($alias.'.route', 'filterRoute')
-            ->join('filterRoute.subAgreement', 'filterSubAgreement')
-            ->andWhere('IDENTITY(filterSubAgreement.supplier) = :filterSupplier')
+            ->join($alias.'.route', 'supplierRoute')
+            ->join('supplierRoute.subAgreement', 'supplierSubAgreement')
+            ->andWhere('IDENTITY(supplierSubAgreement.supplier) = :filterSupplier')
             ->setParameter('filterSupplier', $supplierId);
     }
 }

@@ -10,6 +10,7 @@ use App\Report\DateRangeDto;
 use App\Report\SoloCountDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -23,18 +24,14 @@ class RouteRunRepository extends ServiceEntityRepository
     }
 
     /**
-     * Counts the runs of a date range that are not cancelled and have a passenger count, and the
-     * real solo runs of them: the runs with at most one citizen in the car at a time.
+     * Counts the runs of a date range that are not cancelled and had at least one citizen in the
+     * car, and the real solo runs of them: the runs with exactly one citizen in the car at a time.
+     * A run with a peak of 0 or no peak is not counted. The runs of an ignored sub-agreement are
+     * not counted.
      */
     public function countSoloRuns(DateRangeDto $range, ?int $supplierId = null): SoloCountDto
     {
-        $query = $this->createQueryBuilder('run')
-            ->select('COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers <= 1 THEN 1 ELSE 0 END) AS soloRuns')
-            ->where('run.serviceDate BETWEEN :first AND :last')
-            ->andWhere('run.cancelled = false')
-            ->andWhere('run.peakPassengers IS NOT NULL')
-            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
+        $query = $this->soloRunsQuery($range);
         SupplierFilter::apply($query, 'run', $supplierId);
         /** @var array{runs: int|string, soloRuns: int|string|null} $row */
         $row = $query->getQuery()->getSingleResult();
@@ -44,22 +41,17 @@ class RouteRunRepository extends ServiceEntityRepository
     }
 
     /**
-     * Counts the runs with a peak and the real solo runs of each route in a date range, as
-     * countSoloRuns() does for all routes.
+     * Counts the runs and the real solo runs of each route in a date range, with the rules of
+     * countSoloRuns(). A route with no counted run has no item.
      *
      * @return list<array{route: int, runs: int, soloRuns: int}>
      */
     public function countSoloRunsOfEachRoute(DateRangeDto $range): array
     {
         /** @var list<array{route: int|string, runs: int|string, soloRuns: int|string}> $rows */
-        $rows = $this->createQueryBuilder('run')
-            ->select('IDENTITY(run.route) AS route', 'COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers <= 1 THEN 1 ELSE 0 END) AS soloRuns')
-            ->where('run.serviceDate BETWEEN :first AND :last')
-            ->andWhere('run.cancelled = false')
-            ->andWhere('run.peakPassengers IS NOT NULL')
+        $rows = $this->soloRunsQuery($range)
+            ->addSelect('IDENTITY(run.route) AS route')
             ->groupBy('run.route')
-            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
             ->getQuery()
             ->getArrayResult();
 
@@ -69,6 +61,23 @@ class RouteRunRepository extends ServiceEntityRepository
             'runs' => (int) $row['runs'],
             'soloRuns' => (int) $row['soloRuns'],
         ], $rows);
+    }
+
+    /**
+     * Makes the query of the runs and the real solo runs. The rules are in one place, so that
+     * the tile and the supplier table of the overview give the same counts.
+     */
+    private function soloRunsQuery(DateRangeDto $range): QueryBuilder
+    {
+        $builder = $this->createQueryBuilder('run')
+            ->select('COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers = 1 THEN 1 ELSE 0 END) AS soloRuns')
+            ->where('run.serviceDate BETWEEN :first AND :last')
+            ->andWhere('run.cancelled = false')
+            ->andWhere('run.peakPassengers >= 1')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
+
+        return IgnoredSubAgreementFilter::apply($builder, 'run.route');
     }
 
     /**
@@ -88,7 +97,8 @@ class RouteRunRepository extends ServiceEntityRepository
     /**
      * Counts the measured first pickups and last drop-offs of each route and date in the range,
      * and the last drop-offs in each delay band. A delay on the edge of a band is in the lower
-     * band. A run with no delay at the stop is not measured there.
+     * band. A run with no delay at the stop is not measured there. The runs of an ignored
+     * sub-agreement are not counted.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      * @param int $upTo15Seconds the highest delay of the second band
@@ -98,8 +108,7 @@ class RouteRunRepository extends ServiceEntityRepository
      */
     public function countRunFigures(DateRangeDto $range, int $onTimeSeconds, int $upTo15Seconds, int $upTo30Seconds): array
     {
-        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
-        $rows = $this->createQueryBuilder('run')
+        $builder = $this->createQueryBuilder('run')
             ->select(
                 'IDENTITY(run.route) AS route',
                 'run.serviceDate AS serviceDate',
@@ -117,7 +126,10 @@ class RouteRunRepository extends ServiceEntityRepository
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
             ->setParameter('onTime', $onTimeSeconds)
             ->setParameter('upTo15', $upTo15Seconds)
-            ->setParameter('upTo30', $upTo30Seconds)
+            ->setParameter('upTo30', $upTo30Seconds);
+
+        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
+        $rows = IgnoredSubAgreementFilter::apply($builder, 'run.route')
             ->getQuery()
             ->getArrayResult();
 

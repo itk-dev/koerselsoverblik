@@ -48,7 +48,7 @@ final class OverviewPageTest extends WebTestCase
 
         self::assertSame('januar 2026', $crawler->filter('[data-test="period"]')->text());
         self::assertSame('7', self::value($crawler, 'trips'));
-        self::assertSame('5 gennemført · 1 aflyst', $crawler->filter('[data-test="trips"] .tile__note')->text());
+        self::assertSame('5 gennemført · 1 aflyst · 1 uden registrering', $crawler->filter('[data-test="trips"] .tile__note')->text());
         self::assertSame('6', self::value($crawler, 'citizens'));
         self::assertSame('Forskellige borgere, uanset antal ture', $crawler->filter('[data-test="citizens"] .tile__note')->text());
         // December 2025 has no data, so there is no change.
@@ -75,14 +75,14 @@ final class OverviewPageTest extends WebTestCase
     }
 
     /**
-     * R-01 run 2 and BOOKED have at most one citizen in the car: 2 of 4 runs.
+     * R-01 run 2 and BOOKED have exactly one citizen in the car: 2 of 4 runs.
      */
     public function testBaseScenarioRealSoloRuns(): void
     {
         $crawler = $this->page('viewer', importBase: true);
 
         self::assertSame('50 %', self::value($crawler, 'real-solo'));
-        self::assertSame('2 vognløb med højst én borger', $crawler->filter('[data-test="real-solo"] .tile__note')->text());
+        self::assertSame('2 vognløb med én borger ad gangen', $crawler->filter('[data-test="real-solo"] .tile__note')->text());
         self::assertSame('ingen sammenligning', $crawler->filter('[data-test="real-solo-change"]')->text());
         self::assertCount(1, $crawler->filter('#help-real-solo'));
     }
@@ -95,7 +95,7 @@ final class OverviewPageTest extends WebTestCase
         $crawler = $this->page('viewer', importBase: true);
 
         self::assertSame('75 %', self::value($crawler, 'punctuality'));
-        self::assertSame('Sidste afsætning pr. vognløb · Mål 90 %', $crawler->filter('[data-test="punctuality"] .tile__note')->text());
+        self::assertSame('Afsætning pr. vognløb · Mål 90 %', $crawler->filter('[data-test="punctuality"] .tile__note')->text());
         self::assertCount(1, $crawler->filter('#help-punctuality'));
         self::assertSame('2 af 4 målinger når målet', $crawler->filter('[data-test="goal-status"]')->text());
         self::assertSame('100 %', self::value($crawler, 'measure-pickup_per_citizen'));
@@ -108,7 +108,8 @@ final class OverviewPageTest extends WebTestCase
     }
 
     /**
-     * December 2025 has no trips. No trips is no data, so the tiles show "–", not 0.
+     * December 2025 has no trips. No trips is no data, so the tiles show "–", not 0, and the trips
+     * and the real solo runs have no note. The chart shows the 12 months with no values.
      */
     public function testMonthWithNoDataHasNoValues(): void
     {
@@ -117,18 +118,24 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('december 2025', $crawler->filter('[data-test="period"]')->text());
         self::assertSame('–', self::value($crawler, 'trips'));
         self::assertSame('–', self::value($crawler, 'citizens'));
-        self::assertSame('0 gennemført · 0 aflyst', $crawler->filter('[data-test="trips"] .tile__note')->text());
+        self::assertCount(0, $crawler->filter('[data-test="trips"] .tile__note'));
         self::assertSame('–', self::value($crawler, 'punctuality'));
         self::assertSame('–', self::value($crawler, 'real-solo'));
+        self::assertCount(0, $crawler->filter('[data-test="real-solo"] .tile__note'));
         self::assertCount(0, $crawler->filter('[data-test="overview-supplier-row"]'));
         self::assertCount(1, $crawler->filter('[data-test="overview-suppliers"] [data-test="no-data"]'));
         foreach (['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] as $measure) {
             self::assertSame('–', self::value($crawler, 'measure-'.$measure));
         }
+        self::assertSame('0 af 4 målinger når målet', $crawler->filter('[data-test="goal-status"]')->text());
+        $rows = $crawler->filter('[data-test="punctuality-trend"] .sr-only tbody tr');
+        self::assertCount(12, $rows);
+        self::assertSame(['–', '–', '–', '–'], $rows->last()->filter('td')->each(static fn (Crawler $cell): string => $cell->text()));
     }
 
     /**
-     * The next month is after the current month, so the current month has no link to it.
+     * The next month is after the current month, so the current month has no link to it. The
+     * link to the current month has no date.
      */
     public function testLinksToThePreviousAndTheNextMonth(): void
     {
@@ -136,7 +143,7 @@ final class OverviewPageTest extends WebTestCase
         $crawler = $client->request('GET', '/?d=2025-12-01');
 
         self::assertSame('/?d=2025-11-01', $crawler->filter('a[data-test="previous-period"]')->attr('href'));
-        self::assertSame('/?d=2026-01-01', $crawler->filter('a[data-test="next-period"]')->attr('href'));
+        self::assertSame('/', $crawler->filter('a[data-test="next-period"]')->attr('href'));
 
         $crawler = $client->request('GET', '/');
 
@@ -155,13 +162,14 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('Uge 2 · 5. jan–11. jan 2026', $crawler->filter('[data-test="period"]')->text());
         self::assertSame('uge 2 · 5. jan–11. jan 2026 sammenlignet med uge 2 · 6. jan–12. jan 2025.', $crawler->filter('[data-test="lede"]')->text());
         self::assertSame('7', self::value($crawler, 'trips'));
-        self::assertSame('/?d=2026-01-07&c=last_year', $crawler->filter('[data-test="period-month"]')->attr('href'));
+        // January 2026 is the current month, so its link has no date.
+        self::assertSame('/?c=last_year', $crawler->filter('[data-test="period-month"]')->attr('href'));
         self::assertSame('true', $crawler->filter('[data-test="period-week"]')->attr('aria-checked'));
-        self::assertSame('/?p=week&d=2025-12-31&c=last_year', $crawler->filter('[data-test="previous-period"]')->attr('href'));
+        self::assertSame('/?p=week&d=2025-12-29&c=last_year', $crawler->filter('[data-test="previous-period"]')->attr('href'));
         self::assertSame('last_year', $crawler->filter('[data-test="comparison"] option[selected]')->attr('value'));
         // The form sends the other filters with the comparison.
         self::assertSame(
-            ['p' => 'week', 'd' => '2026-01-07'],
+            ['p' => 'week', 'd' => '2026-01-05'],
             array_combine(
                 $crawler->filter('[data-filter-form] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('name')),
                 $crawler->filter('[data-filter-form] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')),

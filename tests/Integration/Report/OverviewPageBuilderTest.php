@@ -64,9 +64,7 @@ final class OverviewPageBuilderTest extends KernelTestCase
 
     private static function select(string $date, string $dataStart): PeriodSelectionDto
     {
-        $today = new \DateTimeImmutable('2026-11-09');
-
-        return new PeriodRangeFactory($dataStart)->create(PeriodFilter::fromQuery(null, $date, null, null, $today), $today);
+        return new PeriodRangeFactory($dataStart)->create(PeriodFilter::fromQuery(null, $date, null, null, new \DateTimeImmutable('2026-11-09')));
     }
 
     private function builder(): OverviewPageBuilder

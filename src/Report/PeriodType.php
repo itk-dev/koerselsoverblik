@@ -28,4 +28,19 @@ enum PeriodType: string
             self::HalfYear => 6,
         };
     }
+
+    /**
+     * Gives the first date of the period that contains the date: the Monday of a week, or the
+     * first day of the month, the quarter or the half year.
+     */
+    public function start(\DateTimeImmutable $date): \DateTimeImmutable
+    {
+        $months = $this->months();
+        if (null === $months) {
+            return $date->modify('monday this week');
+        }
+        $month = intdiv((int) $date->format('n') - 1, $months) * $months + 1;
+
+        return $date->setDate((int) $date->format('Y'), $month, 1);
+    }
 }

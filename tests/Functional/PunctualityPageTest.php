@@ -119,7 +119,8 @@ final class PunctualityPageTest extends WebTestCase
     }
 
     /**
-     * The next month is after the current month, so the current month has no link to it.
+     * The next month is after the current month, so the current month has no link to it. The
+     * link to the current month has no date.
      */
     public function testLinksToThePreviousAndTheNextMonth(): void
     {
@@ -127,7 +128,7 @@ final class PunctualityPageTest extends WebTestCase
         $crawler = $client->request('GET', '/punctuality?d=2025-12-01');
 
         self::assertSame('/punctuality?d=2025-11-01', $crawler->filter('a[data-test="previous-period"]')->attr('href'));
-        self::assertSame('/punctuality?d=2026-01-01', $crawler->filter('a[data-test="next-period"]')->attr('href'));
+        self::assertSame('/punctuality', $crawler->filter('a[data-test="next-period"]')->attr('href'));
 
         $crawler = $client->request('GET', '/punctuality');
 

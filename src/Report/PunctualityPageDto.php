@@ -58,6 +58,14 @@ final readonly class PunctualityPageDto
     }
 
     /**
+     * Gives the drop-off per route run, the measure that the transport office uses.
+     */
+    public function headline(): MeasureDto
+    {
+        return $this->measures[3];
+    }
+
+    /**
      * Gives the number of measures that reach the target. A measure with no value does not.
      */
     public function measuresAtTarget(): int

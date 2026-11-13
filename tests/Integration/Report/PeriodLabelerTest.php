@@ -85,8 +85,6 @@ final class PeriodLabelerTest extends KernelTestCase
      */
     private static function select(array $query, string $today = self::TODAY, string $start = ''): PeriodSelectionDto
     {
-        $date = new \DateTimeImmutable($today);
-
-        return new PeriodRangeFactory($start)->create(PeriodFilter::fromQuery($query['p'] ?? null, $query['d'] ?? null, $query['c'] ?? null, null, $date), $date);
+        return new PeriodRangeFactory($start)->create(PeriodFilter::fromQuery($query['p'] ?? null, $query['d'] ?? null, $query['c'] ?? null, null, new \DateTimeImmutable($today)));
     }
 }

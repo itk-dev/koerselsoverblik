@@ -235,6 +235,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dataset with the volume, the shares and the Aarhus school holidays of the real exports) and
   [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) (memory of the import that does
   not grow with the number of rows).
+- [#90](https://github.com/itk-dev/koerselsoverblik/issues/90)
+  Ignore a sub-agreement in the figures: `SubAgreement` has an `ignored` flag, and the edit page
+  has a checkbox for it. The punctuality queries skip the stops and the runs of an ignored
+  sub-agreement through `IgnoredSubAgreementFilter`. The import still stores them.
+- Plan for [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) (a note on the
+  punctuality page that names the ignored sub-agreements). The list does not show an ignored sub-agreement
+  with no supplier at the top. The open decision "Booked trips" is answered: an administrator
+  ignores "Turbestilling".
 - [#101](https://github.com/itk-dev/koerselsoverblik/issues/101)
   A realistic development dataset: one file for each ISO week, with the volume and the patterns
   of the school transport, the Aarhus school holidays, and route names that are not routes. The
@@ -242,6 +250,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   not a value from the real data. `app:fixtures:suppliers` gives the sub-agreements invented
   suppliers. `APP_DRIVING_DATA_MAX_DAYS` is now 7, and `APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE`
   is now 100 MiB.
+- [#95](https://github.com/itk-dev/koerselsoverblik/issues/95)
+  Keep the copy of a row in its own entity: `SourceRow` holds the copy, and `StopRow` and
+  `RejectedStopRow` refer to it. Doctrine does not read the copy with the row. The replacer
+  deletes the copies with no row after it deletes the rows of a range. The migration does not
+  keep the stored copies. It stops with no change if the database has driving data, so delete the
+  driving data of a developer database before you migrate it.
+- Mutation testing runs only on the release and hotfix branches. The changed-lines job of the
+  pull requests is removed, and `task prepare-code` does not run Infection.
+- [#126](https://github.com/itk-dev/koerselsoverblik/issues/126)
+  Delete the rows of a range in the repositories, and only their copies: `StopRowRangeDeleter`
+  deletes the rejected rows, the stop rows and their copies of a range. The queries are in
+  `StopRowRepository` and the new `RejectedStopRowRepository`. The delete of the copies uses their
+  ids, so it no longer reads the copies of other dates. Two imports of the same dates that overlap
+  can leave copies with no row. The new command `app:driving-data:delete-orphan-copies` deletes
+  them, and a cron job runs it each night. The two plans for the deletes are one plan, and the
+  driving data plans are in the order of the work.
 - [#106](https://github.com/itk-dev/koerselsoverblik/issues/106)
   The overview shows the trips and the distinct citizens who were driven in a month, with the
   change from the previous month, a 12-month sparkline and a help text. The month chooser of the
@@ -259,6 +283,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and the cancelled trips of each supplier, from `SupplierTableCalculator`.
 - [#118](https://github.com/itk-dev/koerselsoverblik/issues/118)
   No source text names the planning system. The page keeps the name "Rettidighed".
+- [#132](https://github.com/itk-dev/koerselsoverblik/issues/132)
+  The coverage gate runs only on the release and hotfix branches, together with the full mutation
+  testing, in the new workflow `release-checks.yaml`. The pull requests and `develop` run the tests
+  with no coverage.
 - [#115](https://github.com/itk-dev/koerselsoverblik/issues/115)
   The period logic of the filters: `PeriodFilter` reads the period, the date, the comparison and
   the supplier from the query string. `PeriodRangeFactory` gives the selected period, the

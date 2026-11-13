@@ -551,7 +551,7 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--itkaarhus-space-3);
 }
-/* The four measures are two pairs: four across, or two by two. */
+/* Four tiles: four across, or two by two. */
 .tiles--4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
