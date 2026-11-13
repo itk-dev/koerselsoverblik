@@ -164,7 +164,11 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('7', self::value($crawler, 'trips'));
         // January 2026 is the current month, so its link has no date.
         self::assertSame('/?c=last_year', $crawler->filter('[data-test="period-month"]')->attr('href'));
-        self::assertSame('true', $crawler->filter('[data-test="period-week"]')->attr('aria-checked'));
+        // The period switch is a list of links. The link of the selected type is the current one.
+        self::assertCount(1, $crawler->filter('nav [data-test="period-week"]'));
+        self::assertSame('true', $crawler->filter('[data-test="period-week"]')->attr('aria-current'));
+        self::assertNull($crawler->filter('[data-test="period-month"]')->attr('aria-current'));
+        self::assertNull($crawler->filter('[data-test="period-week"]')->attr('role'));
         self::assertSame('/?p=week&d=2025-12-29&c=last_year', $crawler->filter('[data-test="previous-period"]')->attr('href'));
         self::assertSame('last_year', $crawler->filter('[data-test="comparison"] option[selected]')->attr('value'));
         // The form sends the other filters with the comparison.

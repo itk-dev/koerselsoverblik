@@ -6,12 +6,13 @@
 <div class="controls" data-test="filter-bar">
     <div class="ctl">
         <span class="ctl__label" id="ctl-period-label">{{ 'filter.period'|trans }}</span>
-        <div class="seg" role="radiogroup" aria-labelledby="ctl-period-label">
+        {# Each type is a link to a new page, so the switch is navigation, not a radio group. #}
+        <nav class="seg" aria-labelledby="ctl-period-label">
             {% for type in period_types() %}
                 {% set active = type == filter.type %}
-                <a class="seg__btn{{ active ? ' is-active' }}" href="{{ path(route, filter.with(type).query) }}" role="radio" aria-checked="{{ active ? 'true' : 'false' }}" data-test="period-{{ type.value }}">{{ ('filter.type.' ~ type.value)|trans }}</a>
+                <a class="seg__btn{{ active ? ' is-active' }}" href="{{ path(route, filter.with(type).query) }}"{{ active ? ' aria-current="true"' }} data-test="period-{{ type.value }}">{{ ('filter.type.' ~ type.value)|trans }}</a>
             {% endfor %}
-        </div>
+        </nav>
     </div>
     <div class="ctl ctl--grow">
         <span class="ctl__label">{{ 'filter.selected'|trans }}</span>
