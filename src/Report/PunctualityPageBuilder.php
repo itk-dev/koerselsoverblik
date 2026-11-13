@@ -7,16 +7,11 @@ namespace App\Report;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * Calculates the figures of the punctuality page: the month of the page and the months before it,
- * for the sparklines and the charts.
+ * Calculates the figures of the punctuality page: the selected period, the comparison period, and
+ * the 12 months up to the period for the sparklines and the charts.
  */
 final readonly class PunctualityPageBuilder
 {
-    /**
-     * The number of months in the sparklines and the charts.
-     */
-    public const int MONTHS = 12;
-
     /**
      * @param int $target the value of APP_PUNCTUALITY_TARGET
      */
@@ -27,13 +22,15 @@ final readonly class PunctualityPageBuilder
     ) {
     }
 
-    public function build(MonthDto $month): PunctualityPageDto
+    public function build(PeriodSelectionDto $selection): PunctualityPageDto
     {
-        $months = $month->trailing(self::MONTHS);
+        $supplier = $selection->filter->supplier;
 
         return new PunctualityPageDto(
-            $months,
-            array_map(fn (MonthDto $item): PunctualityReportDto => $this->calculator->calculate($item->range()), $months),
+            $selection->months,
+            array_map(fn (MonthDto $item): PunctualityReportDto => $this->calculator->calculate($item->range(), $supplier), $selection->months),
+            $this->calculator->calculate($selection->selectedRange, $supplier),
+            null === $selection->comparisonRange ? null : $this->calculator->calculate($selection->comparisonRange, $supplier),
             $this->target,
         );
     }

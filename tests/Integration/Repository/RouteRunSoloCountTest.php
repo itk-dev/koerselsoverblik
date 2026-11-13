@@ -9,6 +9,7 @@ use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\Route;
 use App\Entity\RouteRun;
 use App\Entity\SubAgreement;
+use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
@@ -92,18 +93,35 @@ final class RouteRunSoloCountTest extends KernelTestCase
         self::assertEquals(new SoloCountDto(0, 0), $this->solo('2026-02-01', '2026-02-28'));
     }
 
-    private function solo(string $firstDate, string $lastDate): SoloCountDto
+    /**
+     * With a supplier, only the routes of the sub-agreements of that supplier count. An ignored
+     * sub-agreement of the supplier does not count.
+     */
+    public function testOnlyTheRoutesOfTheSupplierCount(): void
+    {
+        $supplier = new Supplier()->setName('Vognmand A');
+        $this->entityManager->persist($supplier);
+        $this->routeRun($this->route('A', supplier: $supplier), '2026-02-02', 1, peak: 1);
+        $this->routeRun($this->route('AI', ignored: true, supplier: $supplier), '2026-02-02', 1, peak: 1);
+        $this->routeRun($this->route(), '2026-02-02', 1, peak: 2);
+        $this->entityManager->flush();
+
+        self::assertEquals(new SoloCountDto(runs: 1, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28', $supplier->getId()));
+        self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28'));
+    }
+
+    private function solo(string $firstDate, string $lastDate, ?int $supplier = null): SoloCountDto
     {
         $this->entityManager->flush();
         $routeRuns = $this->entityManager->getRepository(RouteRun::class);
         self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
 
-        return $routeRuns->countSoloRuns(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)));
+        return $routeRuns->countSoloRuns(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)), $supplier);
     }
 
-    private function route(string $reference = 'R', bool $ignored = false): Route
+    private function route(string $reference = 'R', bool $ignored = false, ?Supplier $supplier = null): Route
     {
-        $subAgreement = new SubAgreement()->setReference($reference)->setIgnored($ignored);
+        $subAgreement = new SubAgreement()->setReference($reference)->setIgnored($ignored)->setSupplier($supplier);
         $this->entityManager->persist($subAgreement);
         $route = new Route($reference.'-01', $subAgreement);
         $this->entityManager->persist($route);

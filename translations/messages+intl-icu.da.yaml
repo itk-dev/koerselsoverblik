@@ -22,7 +22,7 @@ about:
 overview:
   title: Overblik
   heading: Bliver borgerkørslen bedre eller værre?
-  lede: "{month} sammenlignet med {previous}."
+  lede: "{period} sammenlignet med {comparison}."
   trips:
     label: Personture
     note: "{completed, number} gennemført · {cancelled, number} aflyst{pending, plural, =0 {} other { · # uden registrering}}"
@@ -49,31 +49,40 @@ overview:
     note: "{count, number} vognløb med én borger ad gangen"
     help:
       title: Reelt solo
-      body: Andelen af vognløbene, hvor der aldrig var mere end én borger i bilen ad gangen. Det er ikke det samme som planlagt solokørsel. En del af turene er bestilt som samkørsel, men blev alligevel kørt med én borger. Tallet bruger antallet af borgere i bilen efter hvert stop, som ikke er aflyst. Aflyste vognløb og vognløb uden borgere i bilen indgår ikke. Et stop uden registrering indgår med det planlagte antal, så den aktuelle måned delvist viser planen.
+      body: Andelen af vognløbene, hvor der aldrig var mere end én borger i bilen ad gangen. Det er ikke det samme som planlagt solokørsel. En del af turene er bestilt som samkørsel, men blev alligevel kørt med én borger. Tallet bruger antallet af borgere i bilen efter hvert stop, som ikke er aflyst. Aflyste vognløb og vognløb uden borgere i bilen indgår ikke. Et stop uden registrering indgår med det planlagte antal, så den aktuelle periode delvist viser planen.
 
 period:
-  day: "{weekday}. {day}. {month} {year}"
   week: "Uge {week} · {first}–{last} {year}"
   month: "{month} {year}"
+  quarter: "{quarter}. kvartal {year}"
+  half_year: "{half}. halvår {year}"
   day_short: "{day}. {month}"
   one_day: "{day}. {month} {year}"
   days_of_month: "{first}.–{last}. {month} {year}"
   days: "{first}–{last} {year}"
   until_today: "{range} (til og med i dag)"
+  partial: "{period} (delvis periode)"
+  no_data: en periode uden data
+  months_note: Kurverne viser hele måneder.
 
-weekday:
-  short:
-    1: man
-    2: tir
-    3: ons
-    4: tor
-    5: fre
-    6: lør
-    7: søn
+filter:
+  period: Periode
+  type:
+    week: Uge
+    month: Måned
+    quarter: Kvartal
+    half_year: Halvår
+  selected: Valgt periode
+  previous: Forrige periode
+  next: Næste periode
+  comparison: Sammenlign med
+  comparison_previous: Forrige periode
+  comparison_last_year: Samme periode sidste år
+  supplier: Leverandør
+  all_suppliers: Alle leverandører
+  show: Vis
 
 month:
-  previous: Forrige måned
-  next: Næste måned
   long:
     1: januar
     2: februar
@@ -103,7 +112,7 @@ month:
 
 punctuality:
   title: Rettidighed
-  lede: "{month} sammenlignet med {previous}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb."
+  lede: "{period} sammenlignet med {comparison}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb."
   goal:
     label: Servicemål
     rule: Højst {minutes} minutter for sent · {target} % rettidighed

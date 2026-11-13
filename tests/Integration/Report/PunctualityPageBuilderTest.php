@@ -12,7 +12,9 @@ use App\Entity\StopRow;
 use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
-use App\Report\MonthDto;
+use App\Report\PeriodFilter;
+use App\Report\PeriodRangeFactory;
+use App\Report\PeriodSelectionDto;
 use App\Report\PunctualityCalculator;
 use App\Report\PunctualityCountDto;
 use App\Report\PunctualityPageBuilder;
@@ -32,17 +34,36 @@ final class PunctualityPageBuilderTest extends KernelTestCase
     public function testPageHasTwelveMonths(): void
     {
         $this->importBase();
-        $month = MonthDto::fromQuery('2026-02', new \DateTimeImmutable('2026-11-09'));
 
-        $page = $this->builder()->build($month);
+        $page = $this->builder()->build(self::select('month', '2026-02-10'));
 
-        self::assertSame('2026-02', $page->month()->query());
         self::assertCount(12, $page->months);
+        self::assertCount(12, $page->reports);
         self::assertSame('2025-03', $page->months[0]->query());
-        // The base scenario is on 5 January, the month before the month of the page.
-        self::assertEquals(new PunctualityCountDto(5, 6), $page->previous()?->total->dropOffPerCitizen);
+        self::assertEquals(new PunctualityCountDto(5, 6), $page->reports[10]->total->dropOffPerCitizen);
+        // The base scenario is on 5 January, the comparison month.
+        self::assertEquals(new PunctualityCountDto(5, 6), $page->comparison?->total->dropOffPerCitizen);
         self::assertEquals(new PunctualityCountDto(0, 0), $page->current()->total->dropOffPerCitizen);
         self::assertSame(90, $page->target);
+    }
+
+    /**
+     * Week 2 of 2026 (5 to 11 January) has the base scenario. The week before it has no data.
+     */
+    public function testWeekHasItsOwnFigures(): void
+    {
+        $this->importBase();
+
+        $page = $this->builder()->build(self::select('week', '2026-01-07'));
+
+        self::assertEquals(new PunctualityCountDto(5, 6), $page->current()->total->dropOffPerCitizen);
+        self::assertEquals(new PunctualityCountDto(0, 0), $page->comparison?->total->dropOffPerCitizen);
+        self::assertSame('2026-01', $page->months[11]->query());
+    }
+
+    private static function select(string $type, string $date): PeriodSelectionDto
+    {
+        return new PeriodRangeFactory()->create(PeriodFilter::fromQuery($type, $date, null, null, new \DateTimeImmutable('2026-11-09')));
     }
 
     private function builder(): PunctualityPageBuilder

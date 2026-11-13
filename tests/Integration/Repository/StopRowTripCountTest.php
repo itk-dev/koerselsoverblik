@@ -11,6 +11,7 @@ use App\Entity\ImportBatch;
 use App\Entity\Route;
 use App\Entity\StopRow;
 use App\Entity\SubAgreement;
+use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
 use App\Import\Extract\StopRowDto;
 use App\Import\ImportRangeDto;
@@ -105,6 +106,26 @@ final class StopRowTripCountTest extends KernelTestCase
     }
 
     /**
+     * With a supplier, only the routes of the sub-agreements of that supplier count. An ignored
+     * sub-agreement of the supplier does not count.
+     */
+    public function testOnlyTheRoutesOfTheSupplierCount(): void
+    {
+        $supplier = new Supplier()->setName('Vognmand A');
+        $this->entityManager->persist($supplier);
+        $ofSupplier = $this->route('A', supplier: $supplier);
+        $ignored = $this->route('AI', ignored: true, supplier: $supplier);
+        $other = $this->route();
+        $this->stop($ofSupplier, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($ignored, '2026-02-02', 'P-C', StopType::Pickup, StopStatus::Completed);
+        $this->stop($other, '2026-02-02', 'P-B', StopType::Pickup, StopStatus::Completed);
+        $this->entityManager->flush();
+
+        self::assertEquals(new TripCountDto(1, 1, 0, 0, 1), $this->trips('2026-02-01', '2026-02-28', $supplier->getId()));
+        self::assertEquals(new TripCountDto(2, 2, 0, 0, 2), $this->trips('2026-02-01', '2026-02-28'));
+    }
+
+    /**
      * The trips and the citizens of an ignored sub-agreement do not count. P-A is driven on both
      * routes, so the citizen counts once, from the route that is not ignored.
      */
@@ -128,18 +149,18 @@ final class StopRowTripCountTest extends KernelTestCase
         self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $this->trips('2026-02-01', '2026-02-28'));
     }
 
-    private function trips(string $firstDate, string $lastDate): TripCountDto
+    private function trips(string $firstDate, string $lastDate, ?int $supplier = null): TripCountDto
     {
         $this->entityManager->flush();
         $stopRows = $this->entityManager->getRepository(StopRow::class);
         self::assertInstanceOf(StopRowRepository::class, $stopRows);
 
-        return $stopRows->countTrips(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)));
+        return $stopRows->countTrips(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)), $supplier);
     }
 
-    private function route(string $reference = 'R', bool $ignored = false): Route
+    private function route(string $reference = 'R', bool $ignored = false, ?Supplier $supplier = null): Route
     {
-        $subAgreement = new SubAgreement()->setReference($reference)->setIgnored($ignored);
+        $subAgreement = new SubAgreement()->setReference($reference)->setIgnored($ignored)->setSupplier($supplier);
         $this->entityManager->persist($subAgreement);
         $route = new Route($reference.'-01', $subAgreement);
         $this->entityManager->persist($route);

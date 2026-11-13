@@ -779,27 +779,40 @@ sequenceDiagram
 ```
 
 **Filters:** `PeriodFilter` maps the query string (`p` period, `d` date, `c` comparison,
-`s` supplier). Invalid values fall back to the defaults, so a link always works.
+`s` supplier). Invalid values fall back to the defaults, so a link always works. Each view has
+one URL: `PeriodFilter::query()`. A request with another query, for example the default values
+that the form sends, redirects to that URL (`PeriodFilter::isCanonical()`).
 
 **Periods:** `PeriodRangeFactory` turns the filter into three sets of date ranges:
 
 - the selected period
 - the comparison period: the previous period, or the same period last year. If the selected
-  period has not ended, the comparison is cut to the same number of days.
+  period has not ended, the comparison is cut to the same number of days. The days count from
+  the first date of each period, so 1–10 June compares with 1–10 May. If the cut comparison ends
+  before the start of the data, the comparison has no data.
 - the 12 trailing months for sparklines and the trend chart. They end at the month of the last
   date of the period, up to today.
 
-The rules follow the prototype:
+The rules follow the prototype, with other period types:
 
-- A day is one date. A week is an ISO week, from Monday to Sunday, also across a new year (week
-  53). A month and a year are calendar periods.
-- A period ends today at the latest. A period that has not ended is partial. A day is never
-  partial.
+- The period types are a week, a month, a quarter and a half year. The prototype has a day and a
+  year. The data starts in May 2026, so a quarter and a half year show a trend sooner than a
+  year.
+- A week is an ISO week, from Monday to Sunday, also across a new year (week 53). A month, a
+  quarter and a half year are calendar periods.
+- A period ends today at the latest, and starts at the start of the data
+  (`APP_DATA_START_DATE`) at the earliest. A period that is cut at one of these dates is
+  partial. A date before the start of the data gives the start of the data.
 - The previous and the next period move the anchor date (`d`) to the first date of that period.
-  The next period has no link when it starts after today.
+  The next period has no link when it starts after today. The previous period has no link when
+  it ends before the start of the data.
 - `PeriodFilter::query()` gives the first date of the period as `d`, and no `d` for the current
   period. Thus, each period has one link.
-- The same day last year of 29 February is 28 February.
+- A comparison period that starts before the start of the data is a partial period ("maj 2026
+  (delvis periode)"). The tiles with a count, for example the trips, then have no change,
+  because the change would only show the extra days. The tiles with a share keep the change. A
+  comparison period that ends before the start of the data has no data ("en periode uden
+  data"), and the tiles have no change.
 
 Two rules are different from the prototype. In the prototype, the result changes with the date
 in the period:
@@ -807,10 +820,25 @@ in the period:
 - The same week last year has the same ISO week number. Week 53 gives week 52 in a year that has
   52 weeks.
 - The 12 months end at the month of the last date of the period, not at the month of `d`.
+
+The parts of the filters:
+
 - `PeriodSelectionDto` holds the selected period, the comparison period, the cut comparison
   range, the links and the 12 months.
-- `PeriodLabeler` gives the Danish labels of the prototype, for example "Uge 38 · 14. sep–20.
-  sep 2026", and the phrase of a partial period: "1.–18. september 2026 (til og med i dag)".
+- `PeriodLabeler` gives the Danish labels, for example "Uge 38 · 14. sep–20. sep 2026" and "3.
+  kvartal 2026", and the phrase of a partial period: "1.–18. september 2026 (til og med i dag)".
+- `templates/_filter_bar.html.twig` is the filter bar of both pages. The period links are in a
+  `nav`, and the link of the selected type has `aria-current`. The period links and the previous
+  and next links keep the other filters. The comparison and the supplier are select boxes in a
+  GET form. Only the button sends the form, because a form that is sent on each change reloads
+  the page when a keyboard user moves through the options (WCAG 3.2.2).
+- `PeriodSelector` reads the filters for both controllers. A supplier id that does not exist
+  gives all suppliers. The selector also gives the suppliers of the filter bar, from the same
+  query, so the template does not read the database.
+- With a supplier, `SupplierFilter` limits the queries of the trips, the citizens and the solo
+  runs to the routes of the sub-agreements of the supplier. `PunctualityCalculator` gives the
+  total and the worst routes of the supplier only. The supplier tables always show all
+  suppliers.
 
 **Calculation:** `KpiCalculator` runs one aggregate query per range and returns a `Kpis` value
 object.
@@ -841,19 +869,19 @@ config file.
 `PunctualityCalculator` gives the figures of the "Rettidighed" page for a `DateRangeDto`. It
 reads `StopRow` and `RouteRun` directly. The daily stats can replace these queries later.
 
-The page is `/punctuality` (`PunctualityController`, `ROLE_VIEW_OVERVIEW`). `MonthDto` reads the
-month from `?month=YYYY-MM`. No value, an invalid value and a month after the current month
-give the current month from `LocalCalendar`. `PunctualityPageBuilder` calculates the month and
-the 11 months before it, for the sparklines and the charts. `PunctualityPageDto` gives the
-change of each measure from the previous month. The page does not show the driver changes, the
-no-shows and the locations of the prototype, because the import does not read their columns.
+The page is `/punctuality` (`PunctualityController`, `ROLE_VIEW_OVERVIEW`). The filter bar gives
+the period and the comparison (see "Periods" above). `PunctualityPageBuilder` calculates the
+selected period, the comparison period and the 12 months up to the period, for the sparklines
+and the charts. `PunctualityPageDto` gives the change of each measure from the comparison
+period. The page does not show the driver changes, the no-shows and the locations of the
+prototype, because the import does not read their columns.
 
-**Cost:** the page runs `PunctualityCalculator` for each of the 12 months, so one request runs
-36 queries. The page uses only the totals of the 11 earlier months. This is sufficient for the
-data of today. When the data grows, a query grouped by month, or the daily stats, can replace
-the 11 calculations.
+**Cost:** the page runs `PunctualityCalculator` for the 12 months, the selected period and the
+comparison period, so one request runs 42 queries. This is sufficient for the data of today.
+When the data grows, a query grouped by month, or the daily stats, can replace the 12
+calculations (#85).
 
-A month with no measured last drop-off has no data. The tiles of the late runs then show "–",
+A period with no measured last drop-off has no data. The tiles of the late runs then show "–",
 not 0, and the sparklines have a gap.
 
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
@@ -887,9 +915,9 @@ value shows as "–".
 
 ### Overview
 
-The overview (`/`, `OverviewController`, `ROLE_VIEW_OVERVIEW`) shows the figures of a month
-before the filters, the daily stats and `KpiCalculator` above exist. It uses the month chooser of
-the punctuality page (`templates/_month.html.twig`).
+The overview (`/`, `OverviewController`, `ROLE_VIEW_OVERVIEW`) shows the figures of the selected
+period before the daily stats and `KpiCalculator` above exist. It has the same filter bar as the
+punctuality page.
 
 - `StopRowRepository::countTrips()` counts the trips and the citizens of a `DateRangeDto` in one
   query. A trip is a pickup with any status. The citizens are the citizens who were driven: the
@@ -920,8 +948,8 @@ the punctuality page (`templates/_month.html.twig`).
   a run with a peak of 0 and a route of an ignored sub-agreement do not count. The punctuality of
   each supplier comes from the punctuality report of the month. The rows have the order of the
   punctuality page. The table has no empty kilometres and no complaints (see the open decisions).
-- The current month is not complete, but the page compares it with all of the previous month.
-  See "Partial month" in [Open decisions](#open-decisions).
+- The page compares a period that has not ended with the same number of days of the comparison
+  period (see "Periods" above).
 
 **Cost:** the page runs `countTrips()` and `countSoloRuns()` for each of the 12 months, so one
 request runs 24 queries. A query grouped by month, or the daily stats, can replace them when the

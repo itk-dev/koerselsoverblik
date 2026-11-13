@@ -174,10 +174,9 @@ class StopRowRepository extends ServiceEntityRepository
      * citizen was driven if a pickup of the citizen is not cancelled. The pickups of an ignored
      * sub-agreement are not counted.
      */
-    public function countTrips(DateRangeDto $range): TripCountDto
+    public function countTrips(DateRangeDto $range, ?int $supplierId = null): TripCountDto
     {
-        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
-        $row = $this->tripsQuery($range)
+        $query = $this->tripsQuery($range)
             ->addSelect(
                 'SUM(CASE WHEN row.stopStatus = :completed THEN 1 ELSE 0 END) AS completed',
                 'SUM(CASE WHEN row.stopStatus = :pending THEN 1 ELSE 0 END) AS pending',
@@ -185,9 +184,10 @@ class StopRowRepository extends ServiceEntityRepository
                 'COUNT(DISTINCT CASE WHEN row.stopStatus = :cancelled THEN NULL ELSE row.personId END) AS citizens',
             )
             ->setParameter('completed', StopStatus::Completed)
-            ->setParameter('pending', StopStatus::Pending)
-            ->getQuery()
-            ->getSingleResult();
+            ->setParameter('pending', StopStatus::Pending);
+        SupplierFilter::apply($query, 'row', $supplierId);
+        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
+        $row = $query->getQuery()->getSingleResult();
 
         // MariaDB gives a sum as text, and no sum when no row matches.
         return new TripCountDto(

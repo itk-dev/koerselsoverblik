@@ -42,10 +42,15 @@ The user interface is in Danish.
   - A 12-month chart of the four measures, and the late last drop-offs in delay bands.
   - The figures for each supplier, and the ten routes with the lowest punctuality.
   - Links to the previous and the next month.
-- **Filters:**
-  - period: day, week, month or year, with previous/next navigation
-  - comparison: previous period, or the same period last year
-  - supplier
+- **Filters:** a filter bar at the top of the overview and the punctuality page.
+  - period: week, month, quarter or half year, with previous/next navigation. The data starts
+    in May 2026, so a quarter and a half year show a trend sooner than a year
+  - comparison: previous period, or the same period last year. A period that has not ended is
+    compared with the same number of days. A comparison before the start of the data
+    (`APP_DATA_START_DATE`) is a partial period or has no data. The counts of a partial
+    comparison period have no change
+  - supplier: all suppliers, or one supplier. The figures are of the routes of that supplier.
+    The supplier tables always show all suppliers
   - The filters live in the URL, so a view can be shared as a link.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
 - **Administration:**
@@ -183,6 +188,7 @@ Set these in `.env.local`:
 | `TRUSTED_PROXIES` | The proxies whose `X-Forwarded-*` headers are trusted, so that URLs use https behind Traefik | `127.0.0.1,REMOTE_ADDR` |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for all four punctuality measures, in percent. Drawn as a line on the chart | `90` |
+| `APP_DATA_START_DATE` | The first date of the driving data, as `YYYY-MM-DD`. A period starts at this date at the earliest. A comparison period that starts before it is a partial period, and a comparison period that ends before it has no data. Set it on the server, for example to the go-live date of the planning system. A value that is not a date as `YYYY-MM-DD` gives an error on the pages | Empty (no limit) |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 | `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload. The users upload one day or one week | `7` |
 | `APP_DRIVING_DATA_MAX_FILE_SIZE` | The maximum size in bytes of an extract | `20971520` (20 MiB) |

@@ -56,7 +56,9 @@ final class PeriodFilterTest extends TestCase
     {
         $defaults = 'month|'.self::TODAY.'|previous|';
 
-        yield 'unknown period' => [['p' => 'quarter'], $defaults];
+        // The prototype has a day and a year. The application does not.
+        yield 'day' => [['p' => 'day'], $defaults];
+        yield 'year' => [['p' => 'year'], $defaults];
         yield 'date that is not a date' => [['d' => '2026-13-40'], $defaults];
         yield 'date in another format' => [['d' => '18-09-2026'], $defaults];
         yield 'date with a time' => [['d' => '2026-09-01T10:00'], $defaults];
@@ -83,8 +85,8 @@ final class PeriodFilterTest extends TestCase
     {
         self::assertSame([], self::filter([])->query());
         self::assertSame(
-            ['p' => 'year', 'd' => '2025-01-01', 'c' => 'last_year', 's' => '2'],
-            self::filter(['p' => 'year', 'd' => '2025-03-04', 'c' => 'last_year', 's' => '2'])->query(),
+            ['p' => 'half_year', 'd' => '2025-01-01', 'c' => 'last_year', 's' => '2'],
+            self::filter(['p' => 'half_year', 'd' => '2025-03-04', 'c' => 'last_year', 's' => '2'])->query(),
         );
     }
 
@@ -104,11 +106,12 @@ final class PeriodFilterTest extends TestCase
      */
     public static function firstDates(): iterable
     {
-        yield 'day' => [['p' => 'day', 'd' => '2026-09-15'], '2026-09-15'];
         yield 'week' => [['p' => 'week', 'd' => '2026-09-09'], '2026-09-07'];
         yield 'week from a Sunday' => [['p' => 'week', 'd' => '2026-09-13'], '2026-09-07'];
         yield 'month' => [['d' => '2026-08-20'], '2026-08-01'];
-        yield 'year' => [['p' => 'year', 'd' => '2025-12-31'], '2025-01-01'];
+        yield 'quarter' => [['p' => 'quarter', 'd' => '2026-06-30'], '2026-04-01'];
+        yield 'first quarter' => [['p' => 'quarter', 'd' => '2026-03-31'], '2026-01-01'];
+        yield 'half year' => [['p' => 'half_year', 'd' => '2025-12-31'], '2025-07-01'];
     }
 
     /**
@@ -131,7 +134,8 @@ final class PeriodFilterTest extends TestCase
     {
         yield 'week' => [['p' => 'week'], '2026-09-14'];
         yield 'month' => [[], '2026-09-01'];
-        yield 'year' => [['p' => 'year'], '2026-01-01'];
+        yield 'quarter' => [['p' => 'quarter'], '2026-07-01'];
+        yield 'half year' => [['p' => 'half_year'], '2026-07-01'];
     }
 
     /**
@@ -141,9 +145,62 @@ final class PeriodFilterTest extends TestCase
     {
         $filter = self::filter(['p' => 'week', 'd' => '2026-02-03', 's' => '2']);
 
-        self::assertSame(['p' => 'day', 'd' => '2026-02-03', 's' => '2'], $filter->with(type: PeriodType::Day)->query());
+        self::assertSame(['p' => 'quarter', 'd' => '2026-01-01', 's' => '2'], $filter->with(type: PeriodType::Quarter)->query());
         self::assertSame(['p' => 'week', 'd' => '2026-01-26', 's' => '2'], $filter->with(anchor: new \DateTimeImmutable('2026-01-27'))->query());
         self::assertSame(['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year', 's' => '2'], $filter->with(comparison: Comparison::LastYear)->query());
+    }
+
+    /**
+     * A query is canonical when it is the query of its filter. The order of the keys has no effect.
+     *
+     * @param array<string, mixed> $query
+     */
+    #[DataProvider('canonicalQueries')]
+    public function testIsCanonical(array $query, bool $canonical): void
+    {
+        $filter = PeriodFilter::fromQuery(
+            self::value($query, 'p'),
+            self::value($query, 'd'),
+            self::value($query, 'c'),
+            self::value($query, 's'),
+            new \DateTimeImmutable(self::TODAY),
+        );
+
+        self::assertSame($canonical, $filter->isCanonical($query));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, bool}>
+     */
+    public static function canonicalQueries(): iterable
+    {
+        yield 'no query' => [[], true];
+        yield 'all filters' => [['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year', 's' => '2'], true];
+        yield 'other order' => [['s' => '2', 'd' => '2026-02-02', 'p' => 'week'], true];
+        // The form always sends the comparison and the supplier.
+        yield 'defaults from the form' => [['c' => 'previous', 's' => ''], false];
+        yield 'date that is not the first date' => [['p' => 'week', 'd' => '2026-02-03'], false];
+        yield 'date of the current period' => [['d' => '2026-09-01'], false];
+        yield 'invalid date' => [['d' => 'abc'], false];
+        yield 'date as a list' => [['d' => ['2026-02-02']], false];
+        yield 'unknown parameter' => [['month' => '2026-06'], false];
+    }
+
+    public function testWithoutSupplierKeepsTheOtherFilters(): void
+    {
+        $filter = self::filter(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year', 's' => '2']);
+
+        self::assertSame(['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year'], $filter->withoutSupplier()->query());
+    }
+
+    /**
+     * Gives a value of the query as the controller does: a value that is not text gives null.
+     *
+     * @param array<string, mixed> $query
+     */
+    private static function value(array $query, string $name): ?string
+    {
+        return \is_string($query[$name] ?? null) ? $query[$name] : null;
     }
 
     /**

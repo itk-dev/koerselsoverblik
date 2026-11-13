@@ -29,12 +29,12 @@ class RouteRunRepository extends ServiceEntityRepository
      * A run with a peak of 0 or no peak is not counted. The runs of an ignored sub-agreement are
      * not counted.
      */
-    public function countSoloRuns(DateRangeDto $range): SoloCountDto
+    public function countSoloRuns(DateRangeDto $range, ?int $supplierId = null): SoloCountDto
     {
+        $query = $this->soloRunsQuery($range);
+        SupplierFilter::apply($query, 'run', $supplierId);
         /** @var array{runs: int|string, soloRuns: int|string|null} $row */
-        $row = $this->soloRunsQuery($range)
-            ->getQuery()
-            ->getSingleResult();
+        $row = $query->getQuery()->getSingleResult();
 
         // MariaDB gives a sum as text, and no sum when no row matches.
         return new SoloCountDto((int) $row['runs'], (int) $row['soloRuns']);

@@ -46,7 +46,10 @@ final readonly class PunctualityCalculator
     ) {
     }
 
-    public function calculate(DateRangeDto $range): PunctualityReportDto
+    /**
+     * @param ?int $supplierId the id of a supplier, so that the total and the worst routes are of that supplier only, or null for all suppliers. The figures of each supplier are always of all suppliers
+     */
+    public function calculate(DateRangeDto $range, ?int $supplierId = null): PunctualityReportDto
     {
         $figures = $this->figuresOfEachRoute($range);
         $routes = $this->routes->findWithSuppliers(array_keys($figures));
@@ -58,11 +61,15 @@ final readonly class PunctualityCalculator
         foreach ($figures as $routeId => $routeFigures) {
             $route = $routes[$routeId];
             // The routes of a sub-agreement with no supplier count as "Unknown".
-            $supplier = $route->getSubAgreement()->getSupplier()?->getName();
+            $supplier = $route->getSubAgreement()->getSupplier();
+            $name = $supplier?->getName();
+            $bySupplier[$name ?? ''] = ($bySupplier[$name ?? ''] ?? PunctualityFiguresDto::empty())->add($routeFigures);
+            if (null !== $supplierId && $supplier?->getId() !== $supplierId) {
+                continue;
+            }
 
             $total = $total->add($routeFigures);
-            $bySupplier[$supplier ?? ''] = ($bySupplier[$supplier ?? ''] ?? PunctualityFiguresDto::empty())->add($routeFigures);
-            $byRoute[] = new RoutePunctualityDto($route->getSourceKey(), $supplier, $routeFigures->dropOffPerRun);
+            $byRoute[] = new RoutePunctualityDto($route->getSourceKey(), $name, $routeFigures->dropOffPerRun);
         }
 
         return new PunctualityReportDto($total, self::suppliers($bySupplier), self::worstRoutes($byRoute));

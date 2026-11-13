@@ -292,3 +292,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the supplier from the query string. `PeriodRangeFactory` gives the selected period, the
   comparison period (cut when the period has not ended) and the 12 months. `PeriodLabeler`
   gives the Danish labels of the prototype. No page uses them yet.
+- [#116](https://github.com/itk-dev/koerselsoverblik/issues/116)
+  The overview and the punctuality page have the filter bar of the prototype: the period (week,
+  month, quarter or half year), the previous and the next period, and the comparison (the
+  previous period or the same period last year). It replaces `?month=` and the month chooser.
+  The tiles compare the selected period with the comparison period, and a period that has not
+  ended is compared with the same number of days. `APP_DATA_START_DATE` gives the start of the
+  data: a comparison before it is a partial period or has no data. The period types day and
+  year of the prototype are left out. After the review: the period switch is a `nav` with
+  `aria-current`, only the "Vis" button sends the form, a query that is not canonical
+  redirects, an invalid `APP_DATA_START_DATE` gives an error, the cut of the comparison counts
+  from the first date of the period, the counts of a comparison that starts before the data
+  have no change, and a period that is not a month has a note that the sparklines show months.
+- [#117](https://github.com/itk-dev/koerselsoverblik/issues/117)
+  The filter bar has the supplier select box ("Alle leverandører" or one supplier). With a
+  supplier, the tiles, the charts and the worst routes are of the routes of that supplier. The
+  supplier tables always show all suppliers. An unknown supplier id gives all suppliers.

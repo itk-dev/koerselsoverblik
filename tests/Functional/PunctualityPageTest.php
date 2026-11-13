@@ -16,7 +16,7 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Checks the "Rettidighed" page: the access, the month filter and the figures of the base
+ * Checks the "Rettidighed" page: the access, the filter bar and the figures of the base
  * scenario. The tests find the figures by their data-test attributes.
  */
 final class PunctualityPageTest extends WebTestCase
@@ -70,7 +70,7 @@ final class PunctualityPageTest extends WebTestCase
     {
         $crawler = $this->page('viewer', importBase: true);
 
-        self::assertSame('januar 2026', $crawler->filter('[data-test="month"]')->text());
+        self::assertSame('januar 2026', $crawler->filter('[data-test="period"]')->text());
         self::assertSame('100 %', self::value($crawler, 'measure-pickup_per_citizen'));
         self::assertSame('83 %', self::value($crawler, 'measure-drop_off_per_citizen'));
         self::assertSame('100 %', self::value($crawler, 'measure-pickup_per_run'));
@@ -102,9 +102,9 @@ final class PunctualityPageTest extends WebTestCase
      */
     public function testMonthWithNoDataHasNoValues(): void
     {
-        $crawler = $this->page('viewer', '?month=2025-12', importBase: true);
+        $crawler = $this->page('viewer', '?d=2025-12-01', importBase: true);
 
-        self::assertSame('december 2025', $crawler->filter('[data-test="month"]')->text());
+        self::assertSame('december 2025', $crawler->filter('[data-test="period"]')->text());
         foreach (['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] as $measure) {
             self::assertSame('–', self::value($crawler, 'measure-'.$measure));
         }
@@ -119,20 +119,21 @@ final class PunctualityPageTest extends WebTestCase
     }
 
     /**
-     * The next month is after the current month, so the current month has no link to it.
+     * The next month is after the current month, so the current month has no link to it. The
+     * link to the current month has no date.
      */
     public function testLinksToThePreviousAndTheNextMonth(): void
     {
         $client = $this->client('viewer');
-        $crawler = $client->request('GET', '/punctuality?month=2025-12');
+        $crawler = $client->request('GET', '/punctuality?d=2025-12-01');
 
-        self::assertSame('/punctuality?month=2025-11', $crawler->filter('a[data-test="previous-month"]')->attr('href'));
-        self::assertSame('/punctuality?month=2026-01', $crawler->filter('a[data-test="next-month"]')->attr('href'));
+        self::assertSame('/punctuality?d=2025-11-01', $crawler->filter('a[data-test="previous-period"]')->attr('href'));
+        self::assertSame('/punctuality', $crawler->filter('a[data-test="next-period"]')->attr('href'));
 
         $crawler = $client->request('GET', '/punctuality');
 
-        self::assertSame('/punctuality?month=2025-12', $crawler->filter('a[data-test="previous-month"]')->attr('href'));
-        self::assertCount(0, $crawler->filter('a[data-test="next-month"]'));
+        self::assertSame('/punctuality?d=2025-12-01', $crawler->filter('a[data-test="previous-period"]')->attr('href'));
+        self::assertCount(0, $crawler->filter('a[data-test="next-period"]'));
     }
 
     /**
@@ -142,8 +143,33 @@ final class PunctualityPageTest extends WebTestCase
     {
         $client = $this->client('viewer');
 
-        self::assertSame('januar 2026', $client->request('GET', '/punctuality?month=abc')->filter('[data-test="month"]')->text());
-        self::assertSame('januar 2026', $client->request('GET', '/punctuality?month[]=2025-12')->filter('[data-test="month"]')->text());
+        foreach (['?d=abc', '?d[]=2025-12-01'] as $query) {
+            $client->request('GET', '/punctuality'.$query);
+            self::assertResponseRedirects('/punctuality');
+            self::assertSame('januar 2026', $client->followRedirect()->filter('[data-test="period"]')->text());
+        }
+    }
+
+    /**
+     * The tiles show the whole week, but the sparklines and the charts show months.
+     */
+    public function testPeriodThatIsNotAMonthHasANoteOfTheMonths(): void
+    {
+        $client = $this->client('viewer');
+
+        self::assertSame('Kurverne viser hele måneder.', $client->request('GET', '/punctuality?p=week')->filter('[data-test="months-note"]')->text());
+        self::assertCount(0, $client->request('GET', '/punctuality')->filter('[data-test="months-note"]'));
+    }
+
+    /**
+     * Each view has one URL. The form sends the default values, so the page redirects them.
+     */
+    public function testQueryThatIsNotCanonicalRedirects(): void
+    {
+        $client = $this->client('viewer');
+        $client->request('GET', '/punctuality?c=last_year&s=');
+
+        self::assertResponseRedirects('/punctuality?c=last_year');
     }
 
     /**

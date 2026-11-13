@@ -57,6 +57,14 @@ final readonly class PeriodFilter
     }
 
     /**
+     * Gives the filter for all suppliers, for a supplier id that does not exist.
+     */
+    public function withoutSupplier(): self
+    {
+        return new self($this->type, $this->anchor, $this->comparison, null, $this->today);
+    }
+
+    /**
      * Gives the query string of the filter for path(). It leaves out a value that is the default.
      * The date is the first date of the period, so that each period has one link. The current
      * period has no date.
@@ -73,5 +81,21 @@ final readonly class PeriodFilter
             'c' => Comparison::Previous === $this->comparison ? null : $this->comparison->value,
             's' => null === $this->supplier ? null : (string) $this->supplier,
         ], static fn (?string $value): bool => null !== $value);
+    }
+
+    /**
+     * Tells if a query string is the query of this filter, so that each view has one URL. The
+     * order of the keys has no effect. A default value, an invalid value or an unknown parameter
+     * makes the query not canonical.
+     *
+     * @param array<array-key, mixed> $query
+     */
+    public function isCanonical(array $query): bool
+    {
+        $canonical = $this->query();
+        ksort($canonical);
+        ksort($query);
+
+        return $query === $canonical;
     }
 }
