@@ -15,7 +15,7 @@ final readonly class OverviewPageDto
      * @param non-empty-list<TripCountDto> $counts         the trips and the citizens of each month, in the order of the months
      * @param non-empty-list<SoloCountDto> $solos          the real solo runs of each month, in the order of the months
      * @param TripCountDto                 $selected       the trips and the citizens of the selected period
-     * @param ?TripCountDto                $comparison     the trips and the citizens of the comparison period, or null if it has no data
+     * @param ?TripCountDto                $comparison     the trips and the citizens of the comparison period, or null if it has no data or starts before the data
      * @param SoloCountDto                 $selectedSolo   the real solo runs of the selected period
      * @param ?SoloCountDto                $comparisonSolo the real solo runs of the comparison period, or null if it has no data
      */

@@ -47,7 +47,8 @@ The user interface is in Danish.
     in May 2026, so a quarter and a half year show a trend sooner than a year
   - comparison: previous period, or the same period last year. A period that has not ended is
     compared with the same number of days. A comparison before the start of the data
-    (`APP_DATA_START_DATE`) is a partial period or has no data
+    (`APP_DATA_START_DATE`) is a partial period or has no data. The counts of a partial
+    comparison period have no change
   - supplier: all suppliers, or one supplier. The figures are of the routes of that supplier.
     The supplier tables always show all suppliers
   - The filters live in the URL, so a view can be shared as a link.

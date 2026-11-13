@@ -62,6 +62,22 @@ final class OverviewPageBuilderTest extends KernelTestCase
         self::assertNull($page->comparisonSolo);
     }
 
+    /**
+     * The data starts on 2 January, so January has fewer days than February. The counts of
+     * January are not compared, because the change would only show the extra days. The share of
+     * the real solo runs is still compared.
+     */
+    public function testComparisonThatStartsBeforeTheDataHasNoCounts(): void
+    {
+        $this->importBase();
+
+        $page = $this->builder()->build(self::select('2026-02-10', '2026-01-02'));
+
+        self::assertNull($page->comparison);
+        self::assertNull($page->trips()->change);
+        self::assertEquals(new SoloCountDto(4, 2), $page->comparisonSolo);
+    }
+
     private static function select(string $date, string $dataStart): PeriodSelectionDto
     {
         return new PeriodRangeFactory($dataStart)->create(PeriodFilter::fromQuery(null, $date, null, null, new \DateTimeImmutable('2026-11-09')));

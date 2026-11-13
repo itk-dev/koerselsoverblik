@@ -807,7 +807,9 @@ The rules follow the prototype, with other period types:
 - `PeriodFilter::query()` gives the first date of the period as `d`, and no `d` for the current
   period. Thus, each period has one link.
 - A comparison period that starts before the start of the data is a partial period ("maj 2026
-  (delvis periode)"). A comparison period that ends before it has no data ("en periode uden
+  (delvis periode)"). The tiles with a count, for example the trips, then have no change,
+  because the change would only show the extra days. The tiles with a share keep the change. A
+  comparison period that ends before the start of the data has no data ("en periode uden
   data"), and the tiles have no change.
 
 Two rules are different from the prototype. In the prototype, the result changes with the date

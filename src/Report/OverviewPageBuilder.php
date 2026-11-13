@@ -24,13 +24,16 @@ final readonly class OverviewPageBuilder
         $months = $selection->months;
         $comparison = $selection->comparisonRange;
         $supplier = $selection->filter->supplier;
+        // A comparison that starts before the data has fewer days. A change of a count then only
+        // shows the extra days. A share has no such fault, so it is still compared.
+        $compareCounts = null !== $comparison && !$selection->comparison->startsBeforeData;
 
         return new OverviewPageDto(
             $months,
             array_map(fn (MonthDto $item): TripCountDto => $this->stopRows->countTrips($item->range(), $supplier), $months),
             array_map(fn (MonthDto $item): SoloCountDto => $this->routeRuns->countSoloRuns($item->range(), $supplier), $months),
             $this->stopRows->countTrips($selection->selectedRange, $supplier),
-            null === $comparison ? null : $this->stopRows->countTrips($comparison, $supplier),
+            $compareCounts ? $this->stopRows->countTrips($comparison, $supplier) : null,
             $this->routeRuns->countSoloRuns($selection->selectedRange, $supplier),
             null === $comparison ? null : $this->routeRuns->countSoloRuns($comparison, $supplier),
         );
