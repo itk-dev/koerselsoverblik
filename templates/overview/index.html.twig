@@ -16,7 +16,8 @@
         {{ months.nav('overview', month, has_next_month, 'overview.title'|trans) }}
     </header>
 
-    {# A change of the volume is neither good nor bad, so the change has the tone "neutral". #}
+    {# A change of the volume is neither good nor bad, so the change has the tone "neutral".
+       A month with no trips has no data, so the trips have no note. #}
     <div class="tiles tiles--2">
         {% set trips = page.trips %}
         <twig:Tile
@@ -25,7 +26,7 @@
             :change="trips.change is null ? null : trips.change|signed_number"
             :changeIcon="trend_icon(trips.change)"
             :spark="trips.history"
-            :note="'overview.trips.note'|trans({completed: count.completed, cancelled: count.cancelled})"
+            :note="trips.current is null ? null : 'overview.trips.note'|trans({completed: count.completed, cancelled: count.cancelled, pending: count.pending})"
             test="trips"
         >
             <twig:block name="help">

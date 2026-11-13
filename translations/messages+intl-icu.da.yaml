@@ -25,7 +25,7 @@ overview:
   lede: "{month} sammenlignet med {previous}."
   trips:
     label: Personture
-    note: "{completed, number} gennemført · {cancelled, number} aflyst"
+    note: "{completed, number} gennemført · {cancelled, number} aflyst{pending, plural, =0 {} other { · # uden registrering}}"
     help:
       title: Personture
       body: Én persontur er én borgers tur fra afhentning til afsætning. Kører to borgere sammen i samme bil, tæller det som to personture. Tallet tæller alle bestilte ture i perioden, også de aflyste ture og de ture, hvor chaufføren ikke har registreret afhentningen. Status for afhentningen giver status for turen.

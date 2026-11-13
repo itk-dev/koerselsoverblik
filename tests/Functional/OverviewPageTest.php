@@ -45,7 +45,7 @@ final class OverviewPageTest extends WebTestCase
 
         self::assertSame('januar 2026', $crawler->filter('[data-test="month"]')->text());
         self::assertSame('7', self::value($crawler, 'trips'));
-        self::assertSame('5 gennemført · 1 aflyst', $crawler->filter('[data-test="trips"] .tile__note')->text());
+        self::assertSame('5 gennemført · 1 aflyst · 1 uden registrering', $crawler->filter('[data-test="trips"] .tile__note')->text());
         self::assertSame('6', self::value($crawler, 'citizens'));
         self::assertSame('Forskellige borgere, uanset antal ture', $crawler->filter('[data-test="citizens"] .tile__note')->text());
         // December 2025 has no data, so there is no change.
@@ -56,7 +56,8 @@ final class OverviewPageTest extends WebTestCase
     }
 
     /**
-     * December 2025 has no trips. No trips is no data, so the tiles show "–", not 0.
+     * December 2025 has no trips. No trips is no data, so the tiles show "–", not 0, and the trips
+     * have no note.
      */
     public function testMonthWithNoDataHasNoValues(): void
     {
@@ -65,7 +66,7 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame('december 2025', $crawler->filter('[data-test="month"]')->text());
         self::assertSame('–', self::value($crawler, 'trips'));
         self::assertSame('–', self::value($crawler, 'citizens'));
-        self::assertSame('0 gennemført · 0 aflyst', $crawler->filter('[data-test="trips"] .tile__note')->text());
+        self::assertCount(0, $crawler->filter('[data-test="trips"] .tile__note'));
     }
 
     /**
