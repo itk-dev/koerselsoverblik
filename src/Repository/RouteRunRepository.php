@@ -23,17 +23,18 @@ class RouteRunRepository extends ServiceEntityRepository
     }
 
     /**
-     * Counts the runs of a date range that are not cancelled and have a passenger count, and the
-     * real solo runs of them: the runs with at most one citizen in the car at a time. The runs of
-     * an ignored sub-agreement are not counted.
+     * Counts the runs of a date range that are not cancelled and had at least one citizen in the
+     * car, and the real solo runs of them: the runs with exactly one citizen in the car at a time.
+     * A run with a peak of 0 or no peak is not counted. The runs of an ignored sub-agreement are
+     * not counted.
      */
     public function countSoloRuns(DateRangeDto $range): SoloCountDto
     {
         $builder = $this->createQueryBuilder('run')
-            ->select('COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers <= 1 THEN 1 ELSE 0 END) AS soloRuns')
+            ->select('COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers = 1 THEN 1 ELSE 0 END) AS soloRuns')
             ->where('run.serviceDate BETWEEN :first AND :last')
             ->andWhere('run.cancelled = false')
-            ->andWhere('run.peakPassengers IS NOT NULL')
+            ->andWhere('run.peakPassengers >= 1')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
 

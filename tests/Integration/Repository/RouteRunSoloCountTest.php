@@ -20,7 +20,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Checks the real solo runs of a date range: the runs with at most one citizen in the car at a
+ * Checks the real solo runs of a date range: the runs with exactly one citizen in the car at a
  * time.
  */
 final class RouteRunSoloCountTest extends KernelTestCase
@@ -47,15 +47,17 @@ final class RouteRunSoloCountTest extends KernelTestCase
     }
 
     /**
-     * A cancelled run and a run with no passenger count are not counted.
+     * A cancelled run, a run with no passenger count and a run with no citizen in the car are not
+     * counted. A run with a peak of 0 is neither solo nor shared.
      */
-    public function testOnlyRunsWithAPeakThatAreNotCancelledCount(): void
+    public function testOnlyRunsWithACitizenThatAreNotCancelledCount(): void
     {
         $route = $this->route();
         $this->routeRun($route, '2026-02-02', 1, peak: 1);
         $this->routeRun($route, '2026-02-02', 2, peak: 3);
         $this->routeRun($route, '2026-02-02', 3, peak: null);
         $this->routeRun($route, '2026-02-02', 4, peak: null, cancelled: true);
+        $this->routeRun($route, '2026-02-02', 5, peak: 0);
 
         self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28'));
     }

@@ -70,7 +70,7 @@
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
-        {# A real solo run had at most one citizen in the car at a time. The share has no target.
+        {# A real solo run had exactly one citizen in the car at a time. The share has no target.
            A month with no counted runs has no share, so the tile has no note. #}
         {% set solo = page.realSolo %}
         <twig:Tile
