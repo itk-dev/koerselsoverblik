@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% macro month_label(month) %}{{ ('month.long.' ~ month.number)|trans }} {{ month.year }}{% endmacro %}
+{% import '_month.html.twig' as months %}
 
 {% block title %}{{ 'punctuality.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
 
@@ -14,17 +14,9 @@
     <header class="page-head">
         <div>
             <h1 class="page-head__title">{{ 'punctuality.title'|trans }}</h1>
-            <p class="page-head__lede">{{ 'punctuality.lede'|trans({month: _self.month_label(month)|trim, previous: _self.month_label(month.previous)|trim}) }}</p>
+            <p class="page-head__lede">{{ 'punctuality.lede'|trans({month: months.label(month)|trim, previous: months.label(month.previous)|trim}) }}</p>
         </div>
-        <nav class="month-nav" aria-label="{{ 'punctuality.title'|trans }}">
-            <a class="month-nav__step" href="{{ path('punctuality', {month: month.previous.query}) }}" aria-label="{{ 'punctuality.previous_month'|trans }}" data-test="previous-month">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
-            <span class="month-nav__label" data-test="month">{{ _self.month_label(month)|trim }}</span>
-            {% if has_next_month %}
-                <a class="month-nav__step" href="{{ path('punctuality', {month: month.next.query}) }}" aria-label="{{ 'punctuality.next_month'|trans }}" data-test="next-month">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
-            {% else %}
-                <span class="month-nav__step is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
-            {% endif %}
-        </nav>
+        {{ months.nav('punctuality', month, has_next_month, 'punctuality.title'|trans) }}
     </header>
 
     {# The service target heads the four measures. #}

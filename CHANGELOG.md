@@ -266,3 +266,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   can leave copies with no row. The new command `app:driving-data:delete-orphan-copies` deletes
   them, and a cron job runs it each night. The two plans for the deletes are one plan, and the
   driving data plans are in the order of the work.
+- [#106](https://github.com/itk-dev/koerselsoverblik/issues/106)
+  The overview shows the trips and the distinct citizens who were driven in a month, with the
+  change from the previous month, a 12-month sparkline and a help text. The month chooser of the
+  punctuality page is now a shared template.

@@ -47,7 +47,10 @@
         // Equivalent mutant. PHP changes an int to a float for a float return type, also with
         // strict types. The cast is for PHPStan.
         CastFloat: {
-            ignoreSourceCodeByRegex: ['.*\\? null : \\(float\\) \\$value, \\$this->reports\\),.*'],
+            ignoreSourceCodeByRegex: [
+                '.*\\? null : \\(float\\) \\$value, \\$this->reports\\),.*',
+                '.*\\? null : \\(float\\) \\$item, \\$history\\),.*',
+            ],
         },
         // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
         // the temporary files of OpenSpout, so it is necessary.

@@ -10,6 +10,7 @@ use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
 use App\Import\RunStopDto;
 use App\Report\DateRangeDto;
+use App\Report\TripCountDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\QueryBuilder;
@@ -143,5 +144,45 @@ class StopRowRepository extends ServiceEntityRepository
             'onTime' => (int) $row['onTime'],
             'measured' => (int) $row['measured'],
         ], $rows);
+    }
+
+    /**
+     * Counts the trips and the citizens of a date range. A trip is a pickup, with any status. A
+     * citizen was driven if a pickup of the citizen is not cancelled. The pickups of an ignored
+     * sub-agreement are not counted.
+     */
+    public function countTrips(DateRangeDto $range): TripCountDto
+    {
+        $builder = $this->createQueryBuilder('row')
+            ->select(
+                'COUNT(row.id) AS trips',
+                'SUM(CASE WHEN row.stopStatus = :completed THEN 1 ELSE 0 END) AS completed',
+                'SUM(CASE WHEN row.stopStatus = :cancelled THEN 1 ELSE 0 END) AS cancelled',
+                'SUM(CASE WHEN row.stopStatus = :pending THEN 1 ELSE 0 END) AS pending',
+                // COUNT ignores NULL, so a cancelled pickup gives no person id.
+                'COUNT(DISTINCT CASE WHEN row.stopStatus = :cancelled THEN NULL ELSE row.personId END) AS citizens',
+            )
+            ->where('row.serviceDate BETWEEN :first AND :last')
+            ->andWhere('row.stopType = :pickup')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
+            ->setParameter('pickup', StopType::Pickup)
+            ->setParameter('completed', StopStatus::Completed)
+            ->setParameter('cancelled', StopStatus::Cancelled)
+            ->setParameter('pending', StopStatus::Pending);
+
+        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
+        $row = IgnoredSubAgreementFilter::apply($builder, 'row.route')
+            ->getQuery()
+            ->getSingleResult();
+
+        // MariaDB gives a sum as text, and no sum when no row matches.
+        return new TripCountDto(
+            (int) $row['trips'],
+            (int) $row['completed'],
+            (int) $row['cancelled'],
+            (int) $row['pending'],
+            (int) $row['citizens'],
+        );
     }
 }
