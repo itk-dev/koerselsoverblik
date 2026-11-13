@@ -13,6 +13,8 @@ See the [rules for plans](README.md#rules).
 
 - The page keeps the name "Rettidighed". Do not use the name "Punktlighed" of the prototype.
 - The filters apply to the punctuality page and to the overview.
+- Decide how to compare a period that is not complete, for example the current month. See
+  "Partial month" in the open decisions of [docs/architecture.md](../architecture.md#open-decisions).
 - Do this feature before #85 and #87, if possible:
   - #85 calculates the 12 months up to the period, so it needs the periods of #115.
   - #87 must apply the supplier filter of #117 to the locations.

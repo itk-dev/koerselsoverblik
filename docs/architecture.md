@@ -827,21 +827,6 @@ the 11 calculations.
 A month with no measured last drop-off has no data. The tiles of the late runs then show "–",
 not 0, and the sparklines have a gap.
 
-### Overview
-
-The overview (`/`, `OverviewController`, `ROLE_VIEW_OVERVIEW`) shows the figures of a month
-before the filters, the daily stats and `KpiCalculator` above exist. It uses the month chooser of
-the punctuality page (`templates/_month.html.twig`).
-
-- `StopRowRepository::countTrips()` counts the trips and the citizens of a `DateRangeDto` in one
-  query. A trip is a pickup with any status. The citizens are the citizens who were driven: the
-  distinct person ids of the pickups that are not cancelled, as in the prototype. A pickup with
-  no registration counts.
-- `OverviewPageBuilder` counts the month and the 11 months before it. `OverviewPageDto` gives the
-  change from the previous month and the history for the sparklines.
-- A month with no trips has no data. The tiles then show "–", not 0.
-- A change of the trips or the citizens has no tone, because more volume is not better or worse.
-
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
 value shows as "–".
@@ -870,6 +855,29 @@ value shows as "–".
   is not in the list.
 - **Tone:** `PunctualityTone` is ok at or above `APP_PUNCTUALITY_TARGET`, warn at or above 70 %,
   and danger below.
+
+### Overview
+
+The overview (`/`, `OverviewController`, `ROLE_VIEW_OVERVIEW`) shows the figures of a month
+before the filters, the daily stats and `KpiCalculator` above exist. It uses the month chooser of
+the punctuality page (`templates/_month.html.twig`).
+
+- `StopRowRepository::countTrips()` counts the trips and the citizens of a `DateRangeDto` in one
+  query. A trip is a pickup with any status. The citizens are the citizens who were driven: the
+  distinct person ids of the pickups that are not cancelled, as in the prototype. A pickup with
+  no registration counts.
+- The query does not count the pickups of the routes of an ignored sub-agreement.
+- `OverviewPageBuilder` counts the month and the 11 months before it. `OverviewPageDto` gives the
+  change from the previous month and the history for the sparklines.
+- A month with no trips has no data. The tiles then show "–", not 0, and the trips have no note.
+- The note of the trips gives the completed and the cancelled trips. It also gives the trips with
+  no registration when there are some, so that the parts add up to the trips.
+- A change of the trips or the citizens has no tone, because more volume is not better or worse.
+- The current month is not complete, but the page compares it with all of the previous month.
+  See "Partial month" in [Open decisions](#open-decisions).
+
+**Cost:** the page runs `countTrips()` for each of the 12 months, so one request runs 12
+queries. A query grouped by month, or the daily stats, can replace them when the data grows.
 
 ## Security
 
@@ -1203,6 +1211,11 @@ pull request. The release and hotfix branches also run mutation testing on the w
   no-show one of these, a cancellation code, or a column that the extract does not have? The
   product owner in the transport office answers before the punctuality page can show the
   no-shows.
+- **Partial month.** The overview and the punctuality page compare the current month, which is
+  not complete, with all of the previous month. On 20 January, the trips of 20 days are compared
+  with the trips of 31 days, so the change is too negative. The options: compare the same days of
+  the two months, show that the month is not complete, or show no change for the current month.
+  Decide this with the period filters.
 - **Role claim.** Which claim holds the roles, and which values does the identity provider
   send? Which group is assigned to the application? IT operations sets this up before go-live.
 
