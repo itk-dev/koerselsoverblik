@@ -71,6 +71,20 @@ final class RouteRunSoloCountTest extends KernelTestCase
         self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28'));
     }
 
+    /**
+     * The runs of an ignored sub-agreement do not count.
+     */
+    public function testIgnoredSubAgreementDoesNotCount(): void
+    {
+        $route = $this->route();
+        $ignored = $this->route('I', ignored: true);
+        $this->routeRun($route, '2026-02-02', 1, peak: 2);
+        $this->routeRun($ignored, '2026-02-02', 1, peak: 1);
+        $this->routeRun($ignored, '2026-02-02', 2, peak: 3);
+
+        self::assertEquals(new SoloCountDto(runs: 1, soloRuns: 0), $this->solo('2026-02-01', '2026-02-28'));
+    }
+
     public function testRangeWithNoRunsHasZeroCounts(): void
     {
         self::assertEquals(new SoloCountDto(0, 0), $this->solo('2026-02-01', '2026-02-28'));
@@ -85,11 +99,11 @@ final class RouteRunSoloCountTest extends KernelTestCase
         return $routeRuns->countSoloRuns(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)));
     }
 
-    private function route(): Route
+    private function route(string $reference = 'R', bool $ignored = false): Route
     {
-        $subAgreement = new SubAgreement()->setReference('R');
+        $subAgreement = new SubAgreement()->setReference($reference)->setIgnored($ignored);
         $this->entityManager->persist($subAgreement);
-        $route = new Route('R-01', $subAgreement);
+        $route = new Route($reference.'-01', $subAgreement);
         $this->entityManager->persist($route);
 
         return $route;
