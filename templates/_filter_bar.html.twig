@@ -1,7 +1,7 @@
 {# The filter bar of a page, as in the prototype. Needs route and selection. Each filter is in the
    query string, so that a view can be shared as a link. A link changes one filter and keeps the
-   others. The comparison is a select box in a GET form. assets/app.js sends the form when the
-   value changes. #}
+   others. The comparison and the supplier are select boxes in a GET form. Only the button sends
+   the form, so that a keyboard user can move through the options (WCAG 3.2.2). #}
 {% set filter = selection.filter %}
 <div class="controls" data-test="filter-bar">
     <div class="ctl">

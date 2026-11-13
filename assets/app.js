@@ -59,15 +59,6 @@ if (shell && rail && toggle && nav) {
   });
 }
 
-// The filter bar: a change of a select box sends its form, so the button is not necessary. With
-// no JavaScript, the button sends the form.
-document.querySelectorAll("[data-filter-form]").forEach((form) => {
-  form.querySelector("[data-filter-submit]")?.setAttribute("hidden", "");
-  form.addEventListener("change", () => {
-    form.requestSubmit();
-  });
-});
-
 const aboutOpen = document.querySelector("[data-about-open]");
 const aboutDialog = document.querySelector("[data-about-dialog]");
 

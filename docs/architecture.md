@@ -821,10 +821,11 @@ The parts of the filters:
   range, the links and the 12 months.
 - `PeriodLabeler` gives the Danish labels, for example "Uge 38 · 14. sep–20. sep 2026" and "3.
   kvartal 2026", and the phrase of a partial period: "1.–18. september 2026 (til og med i dag)".
-- `templates/_filter_bar.html.twig` is the filter bar of both pages. The period buttons and the
-  previous and next links keep the other filters. The comparison and the supplier are select
-  boxes in a GET form. `assets/app.js` sends the form when a value changes. With no JavaScript, a
-  button sends it.
+- `templates/_filter_bar.html.twig` is the filter bar of both pages. The period links are in a
+  `nav`, and the link of the selected type has `aria-current`. The period links and the previous
+  and next links keep the other filters. The comparison and the supplier are select boxes in a
+  GET form. Only the button sends the form, because a form that is sent on each change reloads
+  the page when a keyboard user moves through the options (WCAG 3.2.2).
 - `PeriodSelector` reads the filters for both controllers. A supplier id that does not exist
   gives all suppliers.
 - With a supplier, `SupplierFilter` limits the queries of the trips, the citizens and the solo
