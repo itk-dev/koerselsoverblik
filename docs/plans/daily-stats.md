@@ -31,7 +31,7 @@ figures from these rows.
 - Add `DailyStatsAggregator::rebuild()`. It finds the supplier of each route from the
   sub-agreement of the route, and replaces the rows of the range.
 - The aggregator skips the routes of an ignored sub-agreement. Its queries call
-  `IgnoredSubAgreementFilter::apply()`.
+  `CountedRouteFilter::apply()`.
 - When the supplier or the ignored flag of a sub-agreement changes, rebuild all dates of the
   routes of the sub-agreement. `SubAgreementController::new()` and `edit()` save both.
 - Add the step to `DrivingDataImporter::import()`, in the same transaction as the other steps.
@@ -42,4 +42,4 @@ figures from these rows.
 
 ## Open points
 
-- When the daily stats exist, #85 can read the totals of the months from them.
+- When the daily stats exist, the totals of the months (#134) can come from them.

@@ -39,7 +39,8 @@ Write each test first.
     page, and the extra query.
   - `CHANGELOG.md`: add an entry under "Unreleased".
 
-If #85 (the 12 months in one query) comes first, count the extra query in its limit of queries.
+Add the extra query to the number of queries in "Cost" in
+[docs/architecture.md](../architecture.md#punctuality).
 
 ## Open points
 

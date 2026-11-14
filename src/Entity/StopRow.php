@@ -18,6 +18,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: StopRowRepository::class)]
 #[ORM\UniqueConstraint(columns: ['mapping_name', 'row_key'])]
 #[ORM\Index(columns: ['service_date'])]
+// A figure query for a few routes reads only the dates of its range.
+#[ORM\Index(columns: ['route_id', 'service_date'])]
 class StopRow
 {
     #[ORM\Id]

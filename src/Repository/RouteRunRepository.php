@@ -18,8 +18,10 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class RouteRunRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
-    {
+    public function __construct(
+        ManagerRegistry $registry,
+        private readonly CountedRouteFilter $countedRoutes,
+    ) {
         parent::__construct($registry, RouteRun::class);
     }
 
@@ -31,13 +33,37 @@ class RouteRunRepository extends ServiceEntityRepository
      */
     public function countSoloRuns(DateRangeDto $range, ?int $supplierId = null): SoloCountDto
     {
-        $query = $this->soloRunsQuery($range);
-        SupplierFilter::apply($query, 'run', $supplierId);
         /** @var array{runs: int|string, soloRuns: int|string|null} $row */
-        $row = $query->getQuery()->getSingleResult();
+        $row = $this->soloRunsQuery($range, $supplierId)->getQuery()->getSingleResult();
 
         // MariaDB gives a sum as text, and no sum when no row matches.
         return new SoloCountDto((int) $row['runs'], (int) $row['soloRuns']);
+    }
+
+    /**
+     * Counts the runs and the real solo runs of each month in the range, with the rules of
+     * countSoloRuns(). A month with no counted run has no item.
+     *
+     * @param ?int $supplierId the id of a supplier, or null for all suppliers
+     *
+     * @return array<string, SoloCountDto> keyed by the month as YYYY-MM, as MonthDto::query()
+     */
+    public function countSoloRunsByMonth(DateRangeDto $range, ?int $supplierId = null): array
+    {
+        /** @var list<array{month: string, runs: int|string, soloRuns: int|string}> $rows */
+        $rows = $this->soloRunsQuery($range, $supplierId)
+            ->addSelect(MonthKey::of('run.serviceDate').' AS month')
+            ->groupBy('month')
+            ->getQuery()
+            ->getArrayResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            // MariaDB gives a sum as text.
+            $counts[$row['month']] = new SoloCountDto((int) $row['runs'], (int) $row['soloRuns']);
+        }
+
+        return $counts;
     }
 
     /**
@@ -49,7 +75,7 @@ class RouteRunRepository extends ServiceEntityRepository
     public function countSoloRunsOfEachRoute(DateRangeDto $range): array
     {
         /** @var list<array{route: int|string, runs: int|string, soloRuns: int|string}> $rows */
-        $rows = $this->soloRunsQuery($range)
+        $rows = $this->soloRunsQuery($range, null)
             ->addSelect('IDENTITY(run.route) AS route')
             ->groupBy('run.route')
             ->getQuery()
@@ -67,7 +93,7 @@ class RouteRunRepository extends ServiceEntityRepository
      * Makes the query of the runs and the real solo runs. The rules are in one place, so that
      * the tile and the supplier table of the overview give the same counts.
      */
-    private function soloRunsQuery(DateRangeDto $range): QueryBuilder
+    private function soloRunsQuery(DateRangeDto $range, ?int $supplierId): QueryBuilder
     {
         $builder = $this->createQueryBuilder('run')
             ->select('COUNT(run.id) AS runs', 'SUM(CASE WHEN run.peakPassengers = 1 THEN 1 ELSE 0 END) AS soloRuns')
@@ -77,7 +103,7 @@ class RouteRunRepository extends ServiceEntityRepository
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
 
-        return IgnoredSubAgreementFilter::apply($builder, 'run.route');
+        return $this->countedRoutes->apply($builder, 'run.route', $supplierId);
     }
 
     /**
@@ -95,23 +121,60 @@ class RouteRunRepository extends ServiceEntityRepository
     }
 
     /**
-     * Counts the measured first pickups and last drop-offs of each route and date in the range,
-     * and the last drop-offs in each delay band. A delay on the edge of a band is in the lower
-     * band. A run with no delay at the stop is not measured there. The runs of an ignored
-     * sub-agreement are not counted.
+     * Counts the measured first pickups and last drop-offs of each route in the range, and the
+     * last drop-offs in each delay band. A delay on the edge of a band is in the lower band. A run
+     * with no delay at the stop is not measured there. The runs of an ignored sub-agreement are
+     * not counted.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      * @param int $upTo15Seconds the highest delay of the second band
      * @param int $upTo30Seconds the highest delay of the third band
      *
-     * @return list<array{route: int, serviceDate: \DateTimeImmutable, firstPickupOnTime: int, firstPickupMeasured: int, lastDropOnTime: int, lastDropMeasured: int, lastDropUpTo15: int, lastDropUpTo30: int, lastDropOver30: int}>
+     * @return list<array{route: int, firstPickupOnTime: int, firstPickupMeasured: int, lastDropOnTime: int, lastDropMeasured: int, lastDropUpTo15: int, lastDropUpTo30: int, lastDropOver30: int}>
      */
     public function countRunFigures(DateRangeDto $range, int $onTimeSeconds, int $upTo15Seconds, int $upTo30Seconds): array
     {
+        /** @var list<array{route: int|string, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
+        $rows = $this->runFiguresQuery($range, $onTimeSeconds, $upTo15Seconds, $upTo30Seconds, null)
+            ->addSelect('IDENTITY(run.route) AS route')
+            ->groupBy('run.route')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): array => ['route' => (int) $row['route']] + self::runFigures($row), $rows);
+    }
+
+    /**
+     * Counts the run figures of each month in the range, with the rules of countRunFigures(). A
+     * month with no runs has no item.
+     *
+     * @param int  $onTimeSeconds the highest delay that is on time
+     * @param int  $upTo15Seconds the highest delay of the second band
+     * @param int  $upTo30Seconds the highest delay of the third band
+     * @param ?int $supplierId    the id of a supplier, or null for all suppliers
+     *
+     * @return list<array{month: string, firstPickupOnTime: int, firstPickupMeasured: int, lastDropOnTime: int, lastDropMeasured: int, lastDropUpTo15: int, lastDropUpTo30: int, lastDropOver30: int}> the month is YYYY-MM, as MonthDto::query()
+     */
+    public function countRunFiguresByMonth(DateRangeDto $range, int $onTimeSeconds, int $upTo15Seconds, int $upTo30Seconds, ?int $supplierId = null): array
+    {
+        /** @var list<array{month: string, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
+        $rows = $this->runFiguresQuery($range, $onTimeSeconds, $upTo15Seconds, $upTo30Seconds, $supplierId)
+            ->addSelect(MonthKey::of('run.serviceDate').' AS month')
+            ->groupBy('month')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): array => ['month' => $row['month']] + self::runFigures($row), $rows);
+    }
+
+    /**
+     * Makes the query of the run figures. The rules are in one place, so that the figures of a
+     * period and of each month are the same.
+     */
+    private function runFiguresQuery(DateRangeDto $range, int $onTimeSeconds, int $upTo15Seconds, int $upTo30Seconds, ?int $supplierId): QueryBuilder
+    {
         $builder = $this->createQueryBuilder('run')
             ->select(
-                'IDENTITY(run.route) AS route',
-                'run.serviceDate AS serviceDate',
                 'SUM(CASE WHEN run.firstPickupDelaySeconds <= :onTime THEN 1 ELSE 0 END) AS firstPickupOnTime',
                 'COUNT(run.firstPickupDelaySeconds) AS firstPickupMeasured',
                 'SUM(CASE WHEN run.lastDropDelaySeconds <= :onTime THEN 1 ELSE 0 END) AS lastDropOnTime',
@@ -121,22 +184,24 @@ class RouteRunRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN run.lastDropDelaySeconds > :upTo30 THEN 1 ELSE 0 END) AS lastDropOver30',
             )
             ->where('run.serviceDate BETWEEN :first AND :last')
-            ->groupBy('run.route, run.serviceDate')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
             ->setParameter('onTime', $onTimeSeconds)
             ->setParameter('upTo15', $upTo15Seconds)
             ->setParameter('upTo30', $upTo30Seconds);
 
-        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
-        $rows = IgnoredSubAgreementFilter::apply($builder, 'run.route')
-            ->getQuery()
-            ->getArrayResult();
+        return $this->countedRoutes->apply($builder, 'run.route', $supplierId);
+    }
 
+    /**
+     * @param array{firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string} $row
+     *
+     * @return array{firstPickupOnTime: int, firstPickupMeasured: int, lastDropOnTime: int, lastDropMeasured: int, lastDropUpTo15: int, lastDropUpTo30: int, lastDropOver30: int}
+     */
+    private static function runFigures(array $row): array
+    {
         // MariaDB gives a sum as text.
-        return array_map(static fn (array $row): array => [
-            'route' => (int) $row['route'],
-            'serviceDate' => $row['serviceDate'],
+        return [
             'firstPickupOnTime' => (int) $row['firstPickupOnTime'],
             'firstPickupMeasured' => (int) $row['firstPickupMeasured'],
             'lastDropOnTime' => (int) $row['lastDropOnTime'],
@@ -144,6 +209,6 @@ class RouteRunRepository extends ServiceEntityRepository
             'lastDropUpTo15' => (int) $row['lastDropUpTo15'],
             'lastDropUpTo30' => (int) $row['lastDropUpTo30'],
             'lastDropOver30' => (int) $row['lastDropOver30'],
-        ], $rows);
+        ];
     }
 }

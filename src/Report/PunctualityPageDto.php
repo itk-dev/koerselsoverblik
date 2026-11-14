@@ -5,23 +5,23 @@ declare(strict_types=1);
 namespace App\Report;
 
 /**
- * The figures of the punctuality page: the report of the selected period, the report of the
- * comparison period, and the reports of the 12 months up to the period for the history.
+ * The figures of the punctuality page: the report of the selected period, the total of the
+ * comparison period, and the totals of the 12 months up to the period for the history.
  */
 final readonly class PunctualityPageDto
 {
     /**
-     * @param non-empty-list<MonthDto>             $months     the months of the history, the oldest first
-     * @param non-empty-list<PunctualityReportDto> $reports    one report for each month
-     * @param PunctualityReportDto                 $selected   the report of the selected period
-     * @param ?PunctualityReportDto                $comparison the report of the comparison period, or null if the page has none
-     * @param int                                  $target     the value of APP_PUNCTUALITY_TARGET
+     * @param non-empty-list<MonthDto>              $months     the months of the history, the oldest first
+     * @param non-empty-list<PunctualityFiguresDto> $history    the total of each month, in the order of the months
+     * @param PunctualityReportDto                  $selected   the report of the selected period
+     * @param ?PunctualityFiguresDto                $comparison the total of the comparison period, or null if the page has none
+     * @param int                                   $target     the value of APP_PUNCTUALITY_TARGET
      */
     public function __construct(
         public array $months,
-        public array $reports,
+        public array $history,
         public PunctualityReportDto $selected,
-        public ?PunctualityReportDto $comparison,
+        public ?PunctualityFiguresDto $comparison,
         public int $target,
     ) {
         // The page reads the measures several times, so they are calculated one time.
@@ -100,7 +100,7 @@ final readonly class PunctualityPageDto
      */
     public function lateBandHistory(): array
     {
-        $bands = array_map(static fn (PunctualityReportDto $report): DelayBandsDto => $report->total->bands, $this->reports);
+        $bands = array_map(static fn (PunctualityFiguresDto $figures): DelayBandsDto => $figures->bands, $this->history);
 
         return [
             array_map(static fn (DelayBandsDto $band): float => $band->upTo15, $bands),
@@ -115,7 +115,7 @@ final readonly class PunctualityPageDto
     private function measure(string $key, string $cssClass, bool $dashed, \Closure $count): MeasureDto
     {
         $current = $count($this->selected->total)->percent();
-        $before = null === $this->comparison ? null : $count($this->comparison->total)->percent();
+        $before = null === $this->comparison ? null : $count($this->comparison)->percent();
 
         return new MeasureDto(
             $key,
@@ -123,7 +123,7 @@ final readonly class PunctualityPageDto
             $dashed,
             $count($this->selected->total),
             null === $current || null === $before ? null : $current - $before,
-            array_map(static fn (PunctualityReportDto $report): ?float => $count($report->total)->percent(), $this->reports),
+            array_map(static fn (PunctualityFiguresDto $figures): ?float => $count($figures)->percent(), $this->history),
         );
     }
 
@@ -134,16 +134,16 @@ final readonly class PunctualityPageDto
      */
     private function countTrend(\Closure $count): CountTrendDto
     {
-        $countOf = static fn (?PunctualityReportDto $report): ?int => null === $report || 0 === $report->total->dropOffPerRun->measured
+        $countOf = static fn (?PunctualityFiguresDto $figures): ?int => null === $figures || 0 === $figures->dropOffPerRun->measured
             ? null
-            : $count($report->total->bands);
-        $current = $countOf($this->selected);
+            : $count($figures->bands);
+        $current = $countOf($this->selected->total);
         $before = $countOf($this->comparison);
 
         return new CountTrendDto(
             $current,
             null === $current || null === $before ? null : $current - $before,
-            array_map(static fn (PunctualityReportDto $report): ?float => null === ($value = $countOf($report)) ? null : (float) $value, $this->reports),
+            array_map(static fn (PunctualityFiguresDto $figures): ?float => null === ($value = $countOf($figures)) ? null : (float) $value, $this->history),
         );
     }
 }

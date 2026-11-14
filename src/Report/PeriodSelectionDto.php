@@ -45,6 +45,35 @@ final readonly class PeriodSelectionDto
     }
 
     /**
+     * Gives the dates of the 12 months, from the first date of the oldest month to the last date
+     * of the newest month.
+     */
+    public function monthsRange(): DateRangeDto
+    {
+        return DateRangeDto::create($this->months[0]->range()->firstDate, $this->months[\count($this->months) - 1]->range()->lastDate);
+    }
+
+    /**
+     * Gives the position of the month that has the same dates as the range, so that a page can
+     * use the figures of that month and not calculate them again.
+     *
+     * @return ?int the index in the months, or null if no month has the same dates
+     */
+    public function monthIndexOf(?DateRangeDto $range): ?int
+    {
+        if (null === $range) {
+            return null;
+        }
+        foreach ($this->months as $index => $month) {
+            if ($month->range()->equals($range)) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Tells if the comparison has fewer days than its period, because the selected period has not
      * ended.
      */

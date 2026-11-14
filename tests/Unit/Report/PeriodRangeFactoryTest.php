@@ -257,6 +257,44 @@ final class PeriodRangeFactoryTest extends TestCase
         yield 'date with a time' => ['2026-05-18 10:00'];
     }
 
+    public function testMonthsRangeHasAllDatesOfTheMonths(): void
+    {
+        self::assertSame('2025-09-01/2026-08-31', self::format(self::select(['d' => '2026-08-20'])->monthsRange()));
+        // The current month has all its dates, also the dates after today.
+        self::assertSame('2025-10-01/2026-09-30', self::format(self::select([])->monthsRange()));
+    }
+
+    /**
+     * A period that has the same dates as a month of the history gets the position of that month.
+     * A partial month, a week and a month outside the history get no position.
+     *
+     * @param array<string, string> $query
+     */
+    #[DataProvider('monthIndexes')]
+    public function testMonthIndexOf(array $query, ?int $selected, ?int $comparison): void
+    {
+        $selection = self::select($query);
+
+        self::assertSame($selected, $selection->monthIndexOf($selection->selectedRange));
+        self::assertSame($comparison, $selection->monthIndexOf($selection->comparisonRange));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>, ?int, ?int}>
+     */
+    public static function monthIndexes(): iterable
+    {
+        yield 'ended month and the month before' => [['d' => '2026-08-20'], 11, 10];
+        yield 'ended month and the same month last year' => [['d' => '2026-08-20', 'c' => 'last_year'], 11, null];
+        yield 'current month and the cut month before' => [[], null, null];
+        yield 'week' => [['p' => 'week', 'd' => '2026-09-09'], null, null];
+    }
+
+    public function testNoRangeHasNoMonthIndex(): void
+    {
+        self::assertNull(self::select([])->monthIndexOf(null));
+    }
+
     /**
      * @param array<string, string> $query
      */

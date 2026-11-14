@@ -149,13 +149,64 @@ final class StopRowTripCountTest extends KernelTestCase
         self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $this->trips('2026-02-01', '2026-02-28'));
     }
 
+    /**
+     * With no counted route, nothing counts. The query has no list of routes.
+     */
+    public function testNoCountedRouteHasZeroCounts(): void
+    {
+        $this->stop($this->route('I', ignored: true), '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+
+        self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $this->trips('2026-02-01', '2026-02-28'));
+        self::assertSame([], $this->repository()->countTripsByMonth(self::range('2026-02-01', '2026-02-28')));
+    }
+
+    /**
+     * Each month has the counts of the range of that month. A citizen who is driven in two months
+     * counts in each month. A month with no trips has no item.
+     */
+    public function testTripsOfEachMonth(): void
+    {
+        $supplier = new Supplier()->setName('Vognmand A');
+        $this->entityManager->persist($supplier);
+        $ofSupplier = $this->route('A', supplier: $supplier);
+        $other = $this->route();
+        $ignored = $this->route('I', ignored: true, supplier: $supplier);
+        $this->stop($ofSupplier, '2026-01-31', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($other, '2026-01-31', 'P-B', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($ofSupplier, '2026-02-01', 'P-A', StopType::Pickup, StopStatus::Pending);
+        $this->stop($ofSupplier, '2026-02-01', 'P-A', StopType::DropOff, StopStatus::Completed);
+        $this->stop($ignored, '2026-02-02', 'P-C', StopType::Pickup, StopStatus::Completed);
+        $this->entityManager->flush();
+        $range = self::range('2026-01-01', '2026-03-31');
+
+        foreach ([null, $supplier->getId()] as $supplierId) {
+            $months = $this->repository()->countTripsByMonth($range, $supplierId);
+
+            self::assertSame(['2026-01', '2026-02'], array_keys($months));
+            self::assertEquals($this->trips('2026-01-01', '2026-01-31', $supplierId), $months['2026-01']);
+            self::assertEquals($this->trips('2026-02-01', '2026-02-28', $supplierId), $months['2026-02']);
+        }
+        self::assertEquals(new TripCountDto(trips: 2, completed: 1, cancelled: 1, pending: 0, citizens: 1), $this->repository()->countTripsByMonth($range)['2026-01']);
+        self::assertEquals(new TripCountDto(trips: 1, completed: 0, cancelled: 0, pending: 1, citizens: 1), $this->repository()->countTripsByMonth($range)['2026-02']);
+    }
+
     private function trips(string $firstDate, string $lastDate, ?int $supplier = null): TripCountDto
+    {
+        return $this->repository()->countTrips(self::range($firstDate, $lastDate), $supplier);
+    }
+
+    private function repository(): StopRowRepository
     {
         $this->entityManager->flush();
         $stopRows = $this->entityManager->getRepository(StopRow::class);
         self::assertInstanceOf(StopRowRepository::class, $stopRows);
 
-        return $stopRows->countTrips(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)), $supplier);
+        return $stopRows;
+    }
+
+    private static function range(string $firstDate, string $lastDate): DateRangeDto
+    {
+        return DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate));
     }
 
     private function route(string $reference = 'R', bool $ignored = false, ?Supplier $supplier = null): Route

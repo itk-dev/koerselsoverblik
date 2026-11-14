@@ -110,13 +110,62 @@ final class RouteRunSoloCountTest extends KernelTestCase
         self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28'));
     }
 
+    /**
+     * With no counted route, nothing counts. The query has no list of routes.
+     */
+    public function testNoCountedRouteHasZeroCounts(): void
+    {
+        $this->routeRun($this->route('I', ignored: true), '2026-02-02', 1, peak: 1);
+
+        self::assertEquals(new SoloCountDto(0, 0), $this->solo('2026-02-01', '2026-02-28'));
+        self::assertSame([], $this->repository()->countSoloRunsByMonth(self::range('2026-02-01', '2026-02-28')));
+    }
+
+    /**
+     * Each month has the counts of the range of that month. A month with no counted run has no
+     * item.
+     */
+    public function testSoloRunsOfEachMonth(): void
+    {
+        $supplier = new Supplier()->setName('Vognmand A');
+        $this->entityManager->persist($supplier);
+        $ofSupplier = $this->route('A', supplier: $supplier);
+        $other = $this->route();
+        $this->routeRun($ofSupplier, '2026-01-31', 1, peak: 1);
+        $this->routeRun($other, '2026-01-31', 1, peak: 2);
+        $this->routeRun($ofSupplier, '2026-02-01', 1, peak: 1);
+        $this->routeRun($this->route('I', ignored: true, supplier: $supplier), '2026-02-01', 1, peak: 1);
+        $this->routeRun($other, '2026-03-02', 1, peak: 0);
+        $this->entityManager->flush();
+        $range = self::range('2026-01-01', '2026-03-31');
+
+        foreach ([null, $supplier->getId()] as $supplierId) {
+            $months = $this->repository()->countSoloRunsByMonth($range, $supplierId);
+
+            self::assertSame(['2026-01', '2026-02'], array_keys($months));
+            self::assertEquals($this->solo('2026-01-01', '2026-01-31', $supplierId), $months['2026-01']);
+            self::assertEquals($this->solo('2026-02-01', '2026-02-28', $supplierId), $months['2026-02']);
+        }
+        self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->repository()->countSoloRunsByMonth($range)['2026-01']);
+    }
+
     private function solo(string $firstDate, string $lastDate, ?int $supplier = null): SoloCountDto
+    {
+        return $this->repository()->countSoloRuns(self::range($firstDate, $lastDate), $supplier);
+    }
+
+    private function repository(): RouteRunRepository
     {
         $this->entityManager->flush();
         $routeRuns = $this->entityManager->getRepository(RouteRun::class);
         self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
 
-        return $routeRuns->countSoloRuns(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)), $supplier);
+        return $routeRuns;
+    }
+
+    private static function range(string $firstDate, string $lastDate): DateRangeDto
+    {
+        return DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate));
     }
 
     private function route(string $reference = 'R', bool $ignored = false, ?Supplier $supplier = null): Route

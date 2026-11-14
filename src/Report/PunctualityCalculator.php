@@ -76,43 +76,103 @@ final readonly class PunctualityCalculator
     }
 
     /**
-     * Reads the counts of the stops and the runs, and adds them for each route. The counts of
-     * all dates of the range go to the same route.
+     * Gives the total of each month in the range. Two queries give all months, so that a page
+     * does not calculate each month by itself. A month with no stops and no runs has no item.
      *
-     * @return array<int, PunctualityFiguresDto> keyed by the route id
+     * @param ?int $supplierId the id of a supplier, or null for all suppliers
+     *
+     * @return array<string, PunctualityFiguresDto> keyed by the month as YYYY-MM, as MonthDto::query()
      */
-    private function figuresOfEachRoute(DateRangeDto $range): array
+    public function totalsByMonth(DateRangeDto $range, ?int $supplierId = null): array
     {
         $onTimeSeconds = $this->toleranceMinutes * self::SECONDS_IN_A_MINUTE;
-        $none = new PunctualityCountDto(0, 0);
-        $noBands = new DelayBandsDto(0, 0, 0, 0);
 
         $figures = [];
-        foreach ($this->stopRows->countMeasuredStops($range, $onTimeSeconds) as $row) {
-            $count = new PunctualityCountDto($row['onTime'], $row['measured']);
-            self::addTo($figures, $row['route'], StopType::Pickup === $row['stopType']
-                ? new PunctualityFiguresDto($count, $none, $none, $none, $noBands)
-                : new PunctualityFiguresDto($none, $count, $none, $none, $noBands));
+        foreach ($this->stopRows->countMeasuredStopsByMonth($range, $onTimeSeconds, $supplierId) as $row) {
+            self::addTo($figures, $row['month'], self::stopFigures($row));
         }
-        foreach ($this->routeRuns->countRunFigures($range, $onTimeSeconds, self::UP_TO_15_SECONDS, self::UP_TO_30_SECONDS) as $row) {
-            self::addTo($figures, $row['route'], new PunctualityFiguresDto(
-                $none,
-                $none,
-                new PunctualityCountDto($row['firstPickupOnTime'], $row['firstPickupMeasured']),
-                new PunctualityCountDto($row['lastDropOnTime'], $row['lastDropMeasured']),
-                new DelayBandsDto($row['lastDropOnTime'], $row['lastDropUpTo15'], $row['lastDropUpTo30'], $row['lastDropOver30']),
-            ));
+        foreach ($this->routeRuns->countRunFiguresByMonth($range, $onTimeSeconds, self::UP_TO_15_SECONDS, self::UP_TO_30_SECONDS, $supplierId) as $row) {
+            self::addTo($figures, $row['month'], self::runFigures($row));
         }
 
         return $figures;
     }
 
     /**
-     * @param array<int, PunctualityFiguresDto> $figures keyed by the route id
+     * Gives the total of a range, with no figures of each supplier and route.
+     *
+     * @param ?int $supplierId the id of a supplier, or null for all suppliers
      */
-    private static function addTo(array &$figures, int $route, PunctualityFiguresDto $add): void
+    public function total(DateRangeDto $range, ?int $supplierId = null): PunctualityFiguresDto
     {
-        $figures[$route] = ($figures[$route] ?? PunctualityFiguresDto::empty())->add($add);
+        // The counts of the months add up, because each stop and each run is in one month.
+        return array_reduce(
+            $this->totalsByMonth($range, $supplierId),
+            static fn (PunctualityFiguresDto $sum, PunctualityFiguresDto $month): PunctualityFiguresDto => $sum->add($month),
+            PunctualityFiguresDto::empty(),
+        );
+    }
+
+    /**
+     * Reads the counts of the stops and the runs of each route, and adds them. The queries group
+     * by the route, so each route has one item for each stop type and one for the runs.
+     *
+     * @return array<int, PunctualityFiguresDto> keyed by the route id
+     */
+    private function figuresOfEachRoute(DateRangeDto $range): array
+    {
+        $onTimeSeconds = $this->toleranceMinutes * self::SECONDS_IN_A_MINUTE;
+
+        $figures = [];
+        foreach ($this->stopRows->countMeasuredStops($range, $onTimeSeconds) as $row) {
+            self::addTo($figures, $row['route'], self::stopFigures($row));
+        }
+        foreach ($this->routeRuns->countRunFigures($range, $onTimeSeconds, self::UP_TO_15_SECONDS, self::UP_TO_30_SECONDS) as $row) {
+            self::addTo($figures, $row['route'], self::runFigures($row));
+        }
+
+        return $figures;
+    }
+
+    /**
+     * @param array{stopType: StopType, onTime: int, measured: int} $row
+     */
+    private static function stopFigures(array $row): PunctualityFiguresDto
+    {
+        $none = new PunctualityCountDto(0, 0);
+        $noBands = new DelayBandsDto(0, 0, 0, 0);
+        $count = new PunctualityCountDto($row['onTime'], $row['measured']);
+
+        return StopType::Pickup === $row['stopType']
+            ? new PunctualityFiguresDto($count, $none, $none, $none, $noBands)
+            : new PunctualityFiguresDto($none, $count, $none, $none, $noBands);
+    }
+
+    /**
+     * @param array{firstPickupOnTime: int, firstPickupMeasured: int, lastDropOnTime: int, lastDropMeasured: int, lastDropUpTo15: int, lastDropUpTo30: int, lastDropOver30: int} $row
+     */
+    private static function runFigures(array $row): PunctualityFiguresDto
+    {
+        $none = new PunctualityCountDto(0, 0);
+
+        return new PunctualityFiguresDto(
+            $none,
+            $none,
+            new PunctualityCountDto($row['firstPickupOnTime'], $row['firstPickupMeasured']),
+            new PunctualityCountDto($row['lastDropOnTime'], $row['lastDropMeasured']),
+            new DelayBandsDto($row['lastDropOnTime'], $row['lastDropUpTo15'], $row['lastDropUpTo30'], $row['lastDropOver30']),
+        );
+    }
+
+    /**
+     * @template TKey of int|string
+     *
+     * @param array<TKey, PunctualityFiguresDto> $figures keyed by the route id or the month
+     * @param TKey                               $key
+     */
+    private static function addTo(array &$figures, int|string $key, PunctualityFiguresDto $add): void
+    {
+        $figures[$key] = ($figures[$key] ?? PunctualityFiguresDto::empty())->add($add);
     }
 
     /**
