@@ -386,8 +386,15 @@ no `ON DELETE`, so the database blocks the delete of a supplier with sub-agreeme
 
 **An ignored sub-agreement is left out in the queries, not in the import.** The import stores
 its stop rows and builds its route runs. Each query that counts driving data for the figures
-calls `IgnoredSubAgreementFilter::apply()`. It joins the sub-agreement and skips the rows of an
-ignored sub-agreement. Thus a change of the flag needs no new import.
+calls `CountedRouteFilter::apply()`. The filter reads the ids of the routes of the sub-agreements
+that are not ignored, and limits the query with `IN (:ids)`. Thus a change of the flag needs no
+new import.
+
+The filter does not join the route and the sub-agreement. With a join, MariaDB starts at the few
+sub-agreements and reads the rows of each route for all dates. Thus each query reads all the
+history, and gets slower when the data grows. With a list of ids, MariaDB reads only the dates of
+the range. The index `stop_row (route_id, service_date)` gives the same result for a list of a
+few routes.
 
 **Derived tables are always rebuildable.** `RouteRun` and `DailyStats` are rebuilt from `StopRow`
 for the dates an import touched. When the supplier or the ignored flag of a sub-agreement
@@ -835,8 +842,8 @@ The parts of the filters:
 - `PeriodSelector` reads the filters for both controllers. A supplier id that does not exist
   gives all suppliers. The selector also gives the suppliers of the filter bar, from the same
   query, so the template does not read the database.
-- With a supplier, `SupplierFilter` limits the queries of the trips, the citizens and the solo
-  runs to the routes of the sub-agreements of the supplier. `PunctualityCalculator` gives the
+- With a supplier, `CountedRouteFilter` limits the queries of the totals to the routes of the
+  sub-agreements of the supplier. `PunctualityCalculator` gives the
   total and the worst routes of the supplier only. The supplier tables always show all
   suppliers.
 
@@ -876,10 +883,20 @@ and the charts. `PunctualityPageDto` gives the change of each measure from the c
 period. The page does not show the driver changes, the no-shows and the locations of the
 prototype, because the import does not read their columns.
 
-**Cost:** the page runs `PunctualityCalculator` for the 12 months, the selected period and the
-comparison period, so one request runs 42 queries. This is sufficient for the data of today.
-When the data grows, a query grouped by month, or the daily stats, can replace the 12
-calculations (#85).
+**Cost:** the months and the comparison period only need the total. Only the selected period
+needs the figures of each supplier and route.
+
+- `PunctualityCalculator::totalsByMonth()` gives the totals of the 12 months with two queries,
+  grouped by month: one for the stops and one for the runs.
+- `PunctualityCalculator::calculate()` gives the figures of each route, only for the selected
+  period.
+- `PunctualityCalculator::total()` gives the comparison period. A comparison period that has
+  the dates of a month of the history uses the total of that month.
+
+Each figure query also reads the ids of the counted routes (see "Data model"). Thus a request
+runs 9 to 13 queries. With more than one year of data, the page takes approximately 1 to 3
+seconds. A quarter takes the most time. The daily stats or a cache can make the page faster
+later (#134).
 
 A period with no measured last drop-off has no data. The tiles of the late runs then show "–",
 not 0, and the sparklines have a gap.
@@ -951,10 +968,12 @@ punctuality page.
 - The page compares a period that has not ended with the same number of days of the comparison
   period (see "Periods" above).
 
-**Cost:** the page runs `countTrips()` and `countSoloRuns()` for each of the 12 months, so one
-request runs 24 queries. A query grouped by month, or the daily stats, can replace them when the
-data grows.
-The request also has the cost of the punctuality page (#85).
+**Cost:** `countTripsByMonth()` and `countSoloRunsByMonth()` give the counts of the 12 months,
+grouped by month. The citizens of a month are the citizens who were driven in that month. A
+selected period or a comparison period that has the dates of a month of the history uses the
+counts of that month. Other periods run `countTrips()` and `countSoloRuns()`. The request also
+has the cost of the punctuality page and of the supplier table. Thus a request runs 18 to 30
+queries. With more than one year of data, the page takes approximately 2 to 6 seconds (#134).
 
 ## Security
 

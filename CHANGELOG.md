@@ -308,3 +308,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The filter bar has the supplier select box ("Alle leverandører" or one supplier). With a
   supplier, the tiles, the charts and the worst routes are of the routes of that supplier. The
   supplier tables always show all suppliers. An unknown supplier id gives all suppliers.
+- [#134](https://github.com/itk-dev/koerselsoverblik/issues/134)
+  The overview and the punctuality page are fast with more than one year of driving data.
+  `CountedRouteFilter` replaces `IgnoredSubAgreementFilter` and `SupplierFilter`. It limits the
+  figure queries with a list of route ids, not a join, so that MariaDB reads only the dates of
+  the range. One query for each figure, grouped by month, gives the totals of the 12 months. A
+  period that is a month of the history uses the figures of that month. A new index on
+  `stop_row (route_id, service_date)` helps the queries for a few routes. Closes #85.
