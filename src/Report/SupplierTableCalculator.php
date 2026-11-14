@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace App\Report;
 
+use App\Repository\RouteDayTotalsRepository;
 use App\Repository\RouteRepository;
-use App\Repository\RouteRunRepository;
-use App\Repository\StopRowRepository;
 
 /**
  * Calculates the supplier table of the overview: the trips, the cancelled trips, the real solo
- * runs and the punctuality of each supplier. It counts each route, and then adds the routes of
- * each supplier, as PunctualityCalculator does.
+ * runs and the punctuality of each supplier. It sums the totals of each route, and then adds the
+ * routes of each supplier, as PunctualityCalculator does.
  */
 final readonly class SupplierTableCalculator
 {
     public function __construct(
-        private StopRowRepository $stopRows,
-        private RouteRunRepository $routeRuns,
+        private RouteDayTotalsRepository $totals,
         private RouteRepository $routes,
     ) {
     }
@@ -29,20 +27,21 @@ final readonly class SupplierTableCalculator
      */
     public function calculate(DateRangeDto $range, PunctualityReportDto $punctuality): array
     {
-        $trips = array_column($this->stopRows->countTripsOfEachRoute($range), null, 'route');
-        $solos = array_column($this->routeRuns->countSoloRunsOfEachRoute($range), null, 'route');
+        // A route with no trips and no counted runs gives no row, for example a route with only a
+        // run with no citizen in the car.
+        $totals = array_filter($this->totals->sumOfEachRoute($range), static fn (DayTotalsDto $route): bool => $route->trips > 0 || $route->runs > 0);
 
         /** @var array<string, array{trips: int, cancelled: int, runs: int, soloRuns: int}> $bySupplier keyed by the supplier name, or '' for "Ukendt" */
         $bySupplier = [];
-        foreach ($this->routes->findWithSuppliers(array_keys($trips + $solos)) as $routeId => $route) {
+        foreach ($this->routes->findWithSuppliers(array_keys($totals)) as $routeId => $route) {
             // The routes of a sub-agreement with no supplier count as "Ukendt".
             $supplier = $route->getSubAgreement()->getSupplier()?->getName() ?? '';
             $sum = $bySupplier[$supplier] ?? ['trips' => 0, 'cancelled' => 0, 'runs' => 0, 'soloRuns' => 0];
             // A route can have trips and no counted runs, for example when all its stops are cancelled.
-            $sum['trips'] += $trips[$routeId]['trips'] ?? 0;
-            $sum['cancelled'] += $trips[$routeId]['cancelled'] ?? 0;
-            $sum['runs'] += $solos[$routeId]['runs'] ?? 0;
-            $sum['soloRuns'] += $solos[$routeId]['soloRuns'] ?? 0;
+            $sum['trips'] += $totals[$routeId]->trips;
+            $sum['cancelled'] += $totals[$routeId]->cancelledTrips;
+            $sum['runs'] += $totals[$routeId]->runs;
+            $sum['soloRuns'] += $totals[$routeId]->soloRuns;
             $bySupplier[$supplier] = $sum;
         }
 

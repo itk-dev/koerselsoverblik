@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Report;
 
-use App\Repository\RouteRunRepository;
+use App\Repository\RouteDayTotalsRepository;
 use App\Repository\StopRowRepository;
 
 /**
@@ -14,8 +14,8 @@ use App\Repository\StopRowRepository;
 final readonly class OverviewPageBuilder
 {
     public function __construct(
+        private RouteDayTotalsRepository $totals,
         private StopRowRepository $stopRows,
-        private RouteRunRepository $routeRuns,
     ) {
     }
 
@@ -27,34 +27,32 @@ final readonly class OverviewPageBuilder
         $supplier = $selection->filter->supplier;
         // A comparison that starts before the data has fewer days. A change of a count then only
         // shows the extra days. A share has no such fault, so it is still compared.
-        $compareCounts = null !== $comparison && !$selection->comparison->startsBeforeData;
+        $compareCounts = !$selection->comparison->startsBeforeData;
 
-        // One query for each figure gives all months.
-        $tripsByMonth = $this->stopRows->countTripsByMonth($selection->monthsRange(), $supplier);
-        $solosByMonth = $this->routeRuns->countSoloRunsByMonth($selection->monthsRange(), $supplier);
-        $trips = array_map(static fn (MonthDto $item): TripCountDto => $tripsByMonth[$item->query()] ?? new TripCountDto(0, 0, 0, 0, 0), $months);
-        $solos = array_map(static fn (MonthDto $item): SoloCountDto => $solosByMonth[$item->query()] ?? new SoloCountDto(0, 0), $months);
+        // The totals of each route and day give the trips and the solo runs. The citizens are
+        // distinct person ids, so they come from the stop rows.
+        $totalsByMonth = $this->totals->sumByMonth($selection->monthsRange(), $supplier);
+        $citizensByMonth = $this->stopRows->countCitizensByMonth($selection->monthsRange(), $supplier);
+        $monthTotals = array_map(static fn (MonthDto $item): DayTotalsDto => $totalsByMonth[$item->query()] ?? DayTotalsDto::empty(), $months);
+        $trips = array_map(static fn (MonthDto $item, DayTotalsDto $totals): TripCountDto => $totals->trips($citizensByMonth[$item->query()] ?? 0), $months, $monthTotals);
+        $solos = array_map(static fn (DayTotalsDto $totals): SoloCountDto => $totals->solo(), $monthTotals);
 
         // A period that is a month of the history uses the figures of that month.
-        $selectedMonth = $selection->monthIndexOf($selected);
-        $comparisonMonth = $selection->monthIndexOf($comparison);
+        $tripsOf = fn (DateRangeDto $range): TripCountDto => null === ($month = $selection->monthIndexOf($range))
+            ? $this->totals->sum($range, $supplier)->trips($this->stopRows->countCitizens($range, $supplier))
+            : $trips[$month];
+        $soloOf = fn (DateRangeDto $range): SoloCountDto => null === ($month = $selection->monthIndexOf($range))
+            ? $this->totals->sum($range, $supplier)->solo()
+            : $solos[$month];
 
         return new OverviewPageDto(
             $months,
             $trips,
             $solos,
-            null === $selectedMonth ? $this->stopRows->countTrips($selected, $supplier) : $trips[$selectedMonth],
-            match (true) {
-                !$compareCounts => null,
-                null !== $comparisonMonth => $trips[$comparisonMonth],
-                default => $this->stopRows->countTrips($comparison, $supplier),
-            },
-            null === $selectedMonth ? $this->routeRuns->countSoloRuns($selected, $supplier) : $solos[$selectedMonth],
-            match (true) {
-                null === $comparison => null,
-                null !== $comparisonMonth => $solos[$comparisonMonth],
-                default => $this->routeRuns->countSoloRuns($comparison, $supplier),
-            },
+            $tripsOf($selected),
+            null !== $comparison && $compareCounts ? $tripsOf($comparison) : null,
+            $soloOf($selected),
+            null === $comparison ? null : $soloOf($comparison),
         );
     }
 }
