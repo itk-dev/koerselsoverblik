@@ -396,6 +396,11 @@ history, and gets slower when the data grows. With a list of ids, MariaDB reads 
 the range. The index `stop_row (route_id, service_date)` gives the same result for a list of a
 few routes.
 
+Each figure query reads the list again. The lookup takes less than 1 ms, and a list in memory for
+the request can become old when the flag changes. With all suppliers, the list has nearly all
+routes. This is sufficient for some hundreds of routes. Check it again if the routes become
+thousands.
+
 **Derived tables are always rebuildable.** `RouteRun` and `DailyStats` are rebuilt from `StopRow`
 for the dates an import touched. When the supplier or the ignored flag of a sub-agreement
 changes, `DailyStats` is rebuilt for all dates of the routes of the sub-agreement. The derived
@@ -895,8 +900,8 @@ needs the figures of each supplier and route.
 
 Each figure query also reads the ids of the counted routes (see "Data model"). Thus a request
 runs 9 to 13 queries. With more than one year of data, the page takes approximately 1 to 3
-seconds. A quarter takes the most time. The daily stats or a cache can make the page faster
-later (#134).
+seconds. Before #134, it ran 42 queries and took approximately 6 to 11 seconds. A quarter takes
+the most time. The daily stats or a cache can make the page faster later.
 
 A period with no measured last drop-off has no data. The tiles of the late runs then show "–",
 not 0, and the sparklines have a gap.
@@ -920,8 +925,8 @@ value shows as "–".
   ignored sub-agreement.
 - **Delay bands** of the measured last drop-offs: on time, more than the tolerance to 15 minutes,
   more than 15 to 30 minutes, and more than 30 minutes. A delay on the edge is in the lower band.
-- **Supplier:** the queries count for each route and date, and the calculator adds the dates of
-  each route. `RouteRepository::findWithSuppliers()` then gives the supplier of the sub-agreement
+- **Supplier:** the queries count for each route. `RouteRepository::findWithSuppliers()` then
+  gives the supplier of the sub-agreement
   of each route. The routes of a sub-agreement with no supplier count as "Unknown". The suppliers
   are in the order of the name, with "Unknown" last.
 - **Worst routes:** the 10 routes with the lowest punctuality at the last drop-off. On the same
@@ -973,7 +978,8 @@ grouped by month. The citizens of a month are the citizens who were driven in th
 selected period or a comparison period that has the dates of a month of the history uses the
 counts of that month. Other periods run `countTrips()` and `countSoloRuns()`. The request also
 has the cost of the punctuality page and of the supplier table. Thus a request runs 18 to 30
-queries. With more than one year of data, the page takes approximately 2 to 6 seconds (#134).
+queries. With more than one year of data, the page takes approximately 2 to 7 seconds.
+Before #134, it ran 73 queries and took approximately 15 to 38 seconds.
 
 ## Security
 

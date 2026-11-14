@@ -73,8 +73,6 @@ feature that has an issue or an issue text.
 | Filter the punctuality page and the overview by supplier | In progress | [#117](https://github.com/itk-dev/koerselsoverblik/issues/117) | – | [filters.md](filters.md) |
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
 | Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #75, #117 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
-| Make the overview and the punctuality page fast with more driving data | In progress | [#134](https://github.com/itk-dev/koerselsoverblik/issues/134) | – | [report-queries.md](report-queries.md) |
-| Calculate the 12 months in one query | Ready | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | – | [punctuality-months-query.md](punctuality-months-query.md) |
 | Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
 | Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
 | Fix the month chooser, the chart labels and the number format | Blocked | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | #116 | [punctuality-layout.md](punctuality-layout.md) |
@@ -150,3 +148,5 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Remove the planning system from the source texts | [#118](https://github.com/itk-dev/koerselsoverblik/issues/118) | [#119](https://github.com/itk-dev/koerselsoverblik/pull/119) |
 | Calculate the selected period, the comparison and the 12 months | [#115](https://github.com/itk-dev/koerselsoverblik/issues/115) | [#120](https://github.com/itk-dev/koerselsoverblik/pull/120) |
 | Filter the punctuality page and the overview by period and comparison | [#116](https://github.com/itk-dev/koerselsoverblik/issues/116) | [#121](https://github.com/itk-dev/koerselsoverblik/pull/121) |
+| Calculate the 12 months in one query | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | [#135](https://github.com/itk-dev/koerselsoverblik/pull/135) |
+| Make the overview and the punctuality page fast with more driving data | [#134](https://github.com/itk-dev/koerselsoverblik/issues/134) | [#135](https://github.com/itk-dev/koerselsoverblik/pull/135) |
