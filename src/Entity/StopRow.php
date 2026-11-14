@@ -20,6 +20,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(columns: ['service_date'])]
 // A figure query for a few routes reads only the dates of its range.
 #[ORM\Index(columns: ['route_id', 'service_date'])]
+// The query of the citizens reads only this index, not the rows.
+#[ORM\Index(columns: ['service_date', 'stop_type', 'stop_status', 'route_id', 'person_id'])]
 class StopRow
 {
     #[ORM\Id]
