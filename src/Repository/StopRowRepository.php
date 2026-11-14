@@ -21,12 +21,6 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class StopRowRepository extends ServiceEntityRepository
 {
-    /**
-     * The month of the service date as YYYY-MM, as MonthDto::query(). SQL gives a date as
-     * YYYY-MM-DD.
-     */
-    private const string MONTH = 'SUBSTRING(row.serviceDate, 1, 7)';
-
     public function __construct(
         ManagerRegistry $registry,
         private readonly CountedRouteFilter $countedRoutes,
@@ -112,27 +106,26 @@ class StopRowRepository extends ServiceEntityRepository
     }
 
     /**
-     * Counts the measured stops of each route, date and stop type in the range, and those of them
-     * that are on time. A measured stop is completed, and it has a delay (an actual time). The
-     * stops of an ignored sub-agreement are not counted.
+     * Counts the measured stops of each route and stop type in the range, and those of them that
+     * are on time. A measured stop is completed, and it has a delay (an actual time). The stops of
+     * an ignored sub-agreement are not counted.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      *
-     * @return list<array{route: int, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int, measured: int}>
+     * @return list<array{route: int, stopType: StopType, onTime: int, measured: int}>
      */
     public function countMeasuredStops(DateRangeDto $range, int $onTimeSeconds): array
     {
-        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
+        /** @var list<array{route: int|string, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
         $rows = $this->measuredStopsQuery($range, $onTimeSeconds, null)
-            ->addSelect('IDENTITY(row.route) AS route', 'row.serviceDate AS serviceDate', 'row.stopType AS stopType')
-            ->groupBy('row.route, row.serviceDate, row.stopType')
+            ->addSelect('IDENTITY(row.route) AS route', 'row.stopType AS stopType')
+            ->groupBy('row.route, row.stopType')
             ->getQuery()
             ->getArrayResult();
 
         // MariaDB gives a sum as text.
         return array_map(static fn (array $row): array => [
             'route' => (int) $row['route'],
-            'serviceDate' => $row['serviceDate'],
             'stopType' => $row['stopType'],
             'onTime' => (int) $row['onTime'],
             'measured' => (int) $row['measured'],
@@ -152,7 +145,7 @@ class StopRowRepository extends ServiceEntityRepository
     {
         /** @var list<array{month: string, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
         $rows = $this->measuredStopsQuery($range, $onTimeSeconds, $supplierId)
-            ->addSelect(self::MONTH.' AS month', 'row.stopType AS stopType')
+            ->addSelect(MonthKey::of('row.serviceDate').' AS month', 'row.stopType AS stopType')
             ->groupBy('month, row.stopType')
             ->getQuery()
             ->getArrayResult();
@@ -237,7 +230,7 @@ class StopRowRepository extends ServiceEntityRepository
     {
         /** @var list<array{month: string, trips: int|string, completed: int|string, cancelled: int|string, pending: int|string, citizens: int|string}> $rows */
         $rows = $this->tripCountQuery($range, $supplierId)
-            ->addSelect(self::MONTH.' AS month')
+            ->addSelect(MonthKey::of('row.serviceDate').' AS month')
             ->groupBy('month')
             ->getQuery()
             ->getArrayResult();

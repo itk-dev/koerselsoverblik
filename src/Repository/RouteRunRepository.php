@@ -18,12 +18,6 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class RouteRunRepository extends ServiceEntityRepository
 {
-    /**
-     * The month of the service date as YYYY-MM, as MonthDto::query(). SQL gives a date as
-     * YYYY-MM-DD.
-     */
-    private const string MONTH = 'SUBSTRING(run.serviceDate, 1, 7)';
-
     public function __construct(
         ManagerRegistry $registry,
         private readonly CountedRouteFilter $countedRoutes,
@@ -58,7 +52,7 @@ class RouteRunRepository extends ServiceEntityRepository
     {
         /** @var list<array{month: string, runs: int|string, soloRuns: int|string}> $rows */
         $rows = $this->soloRunsQuery($range, $supplierId)
-            ->addSelect(self::MONTH.' AS month')
+            ->addSelect(MonthKey::of('run.serviceDate').' AS month')
             ->groupBy('month')
             ->getQuery()
             ->getArrayResult();
@@ -127,30 +121,27 @@ class RouteRunRepository extends ServiceEntityRepository
     }
 
     /**
-     * Counts the measured first pickups and last drop-offs of each route and date in the range,
-     * and the last drop-offs in each delay band. A delay on the edge of a band is in the lower
-     * band. A run with no delay at the stop is not measured there. The runs of an ignored
-     * sub-agreement are not counted.
+     * Counts the measured first pickups and last drop-offs of each route in the range, and the
+     * last drop-offs in each delay band. A delay on the edge of a band is in the lower band. A run
+     * with no delay at the stop is not measured there. The runs of an ignored sub-agreement are
+     * not counted.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      * @param int $upTo15Seconds the highest delay of the second band
      * @param int $upTo30Seconds the highest delay of the third band
      *
-     * @return list<array{route: int, serviceDate: \DateTimeImmutable, firstPickupOnTime: int, firstPickupMeasured: int, lastDropOnTime: int, lastDropMeasured: int, lastDropUpTo15: int, lastDropUpTo30: int, lastDropOver30: int}>
+     * @return list<array{route: int, firstPickupOnTime: int, firstPickupMeasured: int, lastDropOnTime: int, lastDropMeasured: int, lastDropUpTo15: int, lastDropUpTo30: int, lastDropOver30: int}>
      */
     public function countRunFigures(DateRangeDto $range, int $onTimeSeconds, int $upTo15Seconds, int $upTo30Seconds): array
     {
-        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
+        /** @var list<array{route: int|string, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
         $rows = $this->runFiguresQuery($range, $onTimeSeconds, $upTo15Seconds, $upTo30Seconds, null)
-            ->addSelect('IDENTITY(run.route) AS route', 'run.serviceDate AS serviceDate')
-            ->groupBy('run.route, run.serviceDate')
+            ->addSelect('IDENTITY(run.route) AS route')
+            ->groupBy('run.route')
             ->getQuery()
             ->getArrayResult();
 
-        return array_map(static fn (array $row): array => [
-            'route' => (int) $row['route'],
-            'serviceDate' => $row['serviceDate'],
-        ] + self::runFigures($row), $rows);
+        return array_map(static fn (array $row): array => ['route' => (int) $row['route']] + self::runFigures($row), $rows);
     }
 
     /**
@@ -168,7 +159,7 @@ class RouteRunRepository extends ServiceEntityRepository
     {
         /** @var list<array{month: string, firstPickupOnTime: int|string, firstPickupMeasured: int|string, lastDropOnTime: int|string, lastDropMeasured: int|string, lastDropUpTo15: int|string, lastDropUpTo30: int|string, lastDropOver30: int|string}> $rows */
         $rows = $this->runFiguresQuery($range, $onTimeSeconds, $upTo15Seconds, $upTo30Seconds, $supplierId)
-            ->addSelect(self::MONTH.' AS month')
+            ->addSelect(MonthKey::of('run.serviceDate').' AS month')
             ->groupBy('month')
             ->getQuery()
             ->getArrayResult();

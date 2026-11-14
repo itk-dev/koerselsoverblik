@@ -114,8 +114,8 @@ final readonly class PunctualityCalculator
     }
 
     /**
-     * Reads the counts of the stops and the runs, and adds them for each route. The counts of
-     * all dates of the range go to the same route.
+     * Reads the counts of the stops and the runs of each route, and adds them. The queries group
+     * by the route, so each route has one item for each stop type and one for the runs.
      *
      * @return array<int, PunctualityFiguresDto> keyed by the route id
      */
