@@ -161,7 +161,7 @@ flowchart TB
         parser["StopRowParser"]
         replacer["StopRowReplacer<br/>StopRowRangeDeleter"]
         builder["RouteBuilder"]
-        aggregator["DailyStatsAggregator"]
+        aggregator["RouteDayTotalsBuilder"]
         clearer["DrivingDataClearer"]
     end
 
@@ -375,8 +375,8 @@ erDiagram
 | `StopRow` | One stop from the extract, with an optional row key from the mapping and the copy of the row. See [open decisions](#open-decisions) |
 | `RejectedStopRow` | A rejected row in the range of its upload, with the row number, the reason and the copy of the row. A later read through a corrected mapping can import it |
 | `SourceRow` | The copy of one row of the extract, for one `StopRow` or one `RejectedStopRow`. See [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row) |
-| `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay, and the peak passengers. The daily stats add the distances and the durations. See [open decisions](#open-decisions) |
-| `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
+| `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay, and the peak passengers. A later feature adds the distances and the durations. See [open decisions](#open-decisions) |
+| `RouteDayTotals` | Derived: the counters for one route and date that the driving figures are summed from, and the tolerance of the build. It has all routes, also the routes of an ignored sub-agreement. It has no citizens and no person ids |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
 **A sub-agreement has one supplier.** The supplier has no dates. A change of the supplier
@@ -401,10 +401,19 @@ the request can become old when the flag changes. With all suppliers, the list h
 routes. This is sufficient for some hundreds of routes. Check it again if the routes become
 thousands.
 
-**Derived tables are always rebuildable.** `RouteRun` and `DailyStats` are rebuilt from `StopRow`
-for the dates an import touched. When the supplier or the ignored flag of a sub-agreement
-changes, `DailyStats` is rebuilt for all dates of the routes of the sub-agreement. The derived
-tables hold no information that can't be recalculated.
+**Derived tables are always rebuildable.** `RouteRun` and `RouteDayTotals` are rebuilt from
+`StopRow` for the dates an import touched. The derived tables hold no information that can't be
+recalculated.
+
+- A change of the supplier or the ignored flag of a sub-agreement needs no rebuild, because the
+  queries apply them with `CountedRouteFilter`.
+- The counts on time of `RouteDayTotals` depend on `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Each row
+  stores the tolerance of its build. A sum fails with `OtherToleranceException` if a row has
+  another tolerance. Then run `app:driving-data:rebuild-totals --no-debug`. It builds all dates
+  again in one transaction.
+- The citizens are distinct person ids, so the citizens of two days cannot be added. They stay a
+  query on `StopRow`. The index `stop_row (service_date, stop_type, stop_status, route_id,
+  person_id)` has all the columns of that query, so MariaDB does not read the rows.
 
 ## Importing driving data
 
@@ -420,7 +429,7 @@ sequenceDiagram
     participant M as MappingDto
     participant U as StopRowReplacer
     participant B as RouteBuilder
-    participant A as DailyStatsAggregator
+    participant A as RouteDayTotalsBuilder
     participant DB as MariaDB
 
     Admin->>C: POST /admin/import (file, first date, last date)
@@ -448,7 +457,7 @@ sequenceDiagram
     C->>B: rebuild(range)
     B->>DB: replace RouteRun rows in the range
     C->>A: rebuild(range)
-    A->>DB: replace DailyStats rows in the range
+    A->>DB: replace RouteDayTotals rows in the range
     C->>DB: update ImportBatch counts, commit
     C->>C: delete the file
     C-->>Admin: result page
@@ -698,8 +707,13 @@ would only delete data. The batch has no user. The command does not delete the f
      A pending stop counts, because it is often a driven stop with no registration. Thus the
      peak of the current month partly shows the plan. A run with no count has no peak.
    - It saves the runs in groups of 500, as the replacer does.
-6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
-   supplier.
+6. **Aggregate.** `RouteDayTotalsBuilder` replaces `RouteDayTotals` rows for the range, one per
+   route and date.
+   - Two grouped queries give the counters: `StopRowRepository::countDayTotals()` for the
+     measured stops and the trips, and `RouteRunRepository::countDayTotals()` for the measured
+     runs, the delay bands and the solo runs. They have the rules of the figures. They count all
+     routes, so they do not use `CountedRouteFilter`.
+   - It saves the rows in groups of 500, as the replacer does.
 7. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts,
    the rejection reasons and the warnings (`ImportBatch::complete()`). They never have a field
    value.
@@ -750,7 +764,7 @@ upload.
 
 1. The user selects **Clear** for a date.
 2. The user confirms.
-3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the date in one
+3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `RouteDayTotals` for the date in one
    transaction. `DailyCount` does not change.
 4. The application logs who cleared which date, and the deleted counts. The log has no field
    values.
@@ -782,7 +796,7 @@ sequenceDiagram
     R-->>C: date ranges (comparison cut to the same number of days if partial)
     loop current, comparison, each month
         C->>K: calculate(range, supplier)
-        K->>DB: SUM over DailyStats and DailyCount, distinct citizens
+        K->>DB: SUM over RouteDayTotals and DailyCount, distinct citizens
         K-->>C: Kpis
     end
     C->>C: Delta and Tone per figure
@@ -870,7 +884,7 @@ object.
 
 - Ratios are calculated from sums and never averaged from daily percentages.
 - A zero denominator gives "no value" (shown as "–"), not zero.
-- The supplier filter applies to `DailyStats`. `DailyCount` is office-wide.
+- The supplier filter applies to `RouteDayTotals`. `DailyCount` is office-wide.
 
 **Delta and tone:** `Delta` gives the change from the comparison period, and whether it is better
 or worse for that figure. `Tone` maps a value to ok, warn or danger using thresholds from one
@@ -878,8 +892,9 @@ config file.
 
 ### Punctuality
 
-`PunctualityCalculator` gives the figures of the "Rettidighed" page for a `DateRangeDto`. It
-reads `StopRow` and `RouteRun` directly. The daily stats can replace these queries later.
+`PunctualityCalculator` gives the figures of the "Rettidighed" page for a `DateRangeDto`. It adds
+the rows of `RouteDayTotals` with `RouteDayTotalsRepository`. The import counts the rows (see
+"Pipeline").
 
 The page is `/punctuality` (`PunctualityController`, `ROLE_VIEW_OVERVIEW`). The filter bar gives
 the period and the comparison (see "Periods" above). `PunctualityPageBuilder` calculates the
@@ -891,17 +906,17 @@ prototype, because the import does not read their columns.
 **Cost:** the months and the comparison period only need the total. Only the selected period
 needs the figures of each supplier and route.
 
-- `PunctualityCalculator::totalsByMonth()` gives the totals of the 12 months with two queries,
-  grouped by month: one for the stops and one for the runs.
+- `PunctualityCalculator::totalsByMonth()` gives the totals of the 12 months with one query,
+  grouped by month.
 - `PunctualityCalculator::calculate()` gives the figures of each route, only for the selected
   period.
 - `PunctualityCalculator::total()` gives the comparison period. A comparison period that has
   the dates of a month of the history uses the total of that month.
 
-Each figure query also reads the ids of the counted routes (see "Data model"). Thus a request
-runs 9 to 13 queries. With more than one year of data, the page takes approximately 1 to 3
-seconds. Before #134, it ran 42 queries and took approximately 6 to 11 seconds. A quarter takes
-the most time. The daily stats or a cache can make the page faster later.
+Each sum query also reads the ids of the counted routes (see "Data model"). Thus a request runs 5
+to 7 queries. With more than one year of data, the page takes less than 0.5 seconds. Before #136,
+it read the stop rows and the route runs, and took approximately 1 to 3 seconds. Before #134, it
+took approximately 6 to 11 seconds.
 
 A period with no measured last drop-off has no data. The tiles of the late runs then show "–",
 not 0, and the sparklines have a gap.
@@ -920,15 +935,15 @@ value shows as "–".
 - **On time:** a delay of at most `APP_PUNCTUALITY_TOLERANCE_MINUTES` × 60 seconds. An early stop
   is on time. Each measure is on time ÷ measured × 100. No measured rows give no value, not 0 %.
 - **No delay in SQL:** the import calculates `delay_seconds` in PHP ([Times](#times)). The queries
-  only compare it with the limits, and count.
+  of `RouteDayTotalsBuilder` only compare it with the limits, and count.
 - **Ignored sub-agreements:** the queries do not count the stops and the runs of the routes of an
   ignored sub-agreement.
 - **Delay bands** of the measured last drop-offs: on time, more than the tolerance to 15 minutes,
   more than 15 to 30 minutes, and more than 30 minutes. A delay on the edge is in the lower band.
-- **Supplier:** the queries count for each route. `RouteRepository::findWithSuppliers()` then
-  gives the supplier of the sub-agreement
-  of each route. The routes of a sub-agreement with no supplier count as "Unknown". The suppliers
-  are in the order of the name, with "Unknown" last.
+- **Supplier:** `RouteDayTotalsRepository::sumOfEachRoute()` adds the rows of each route.
+  `RouteRepository::findWithSuppliers()` then gives the supplier of the sub-agreement of each
+  route. The routes of a sub-agreement with no supplier count as "Unknown". The suppliers are in
+  the order of the name, with "Unknown" last.
 - **Worst routes:** the 10 routes with the lowest punctuality at the last drop-off. On the same
   punctuality, the route with more measured runs is first. A route with no measured last drop-off
   is not in the list.
@@ -938,14 +953,13 @@ value shows as "–".
 ### Overview
 
 The overview (`/`, `OverviewController`, `ROLE_VIEW_OVERVIEW`) shows the figures of the selected
-period before the daily stats and `KpiCalculator` above exist. It has the same filter bar as the
-punctuality page.
+period before `KpiCalculator` above exists. It has the same filter bar as the punctuality page.
 
-- `StopRowRepository::countTrips()` counts the trips and the citizens of a `DateRangeDto` in one
-  query. A trip is a pickup with any status. The citizens are the citizens who were driven: the
-  distinct person ids of the pickups that are not cancelled, as in the prototype. A pickup with
-  no registration counts.
-- The query does not count the pickups of the routes of an ignored sub-agreement.
+- The trips come from `RouteDayTotals`. A trip is a pickup with any status.
+- `StopRowRepository::countCitizens()` counts the citizens who were driven: the distinct person
+  ids of the pickups that are not cancelled, as in the prototype. A pickup with no registration
+  counts.
+- The queries do not count the pickups of the routes of an ignored sub-agreement.
 - `OverviewPageBuilder` counts the month and the 11 months before it. `OverviewPageDto` gives the
   change from the previous month and the history for the sparklines.
 - A month with no trips has no data. The tiles then show "–", not 0, and the trips have no note.
@@ -957,29 +971,31 @@ punctuality page.
   and the 12-month chart are shared templates (`punctuality/_goal.html.twig` and
   `punctuality/_trend.html.twig`), so the overview and the punctuality page show the same figures.
   Each page gives the variables of the shared templates explicitly, with `with_context = false`.
-- `RouteRunRepository::countSoloRuns()` counts the runs that are not cancelled and have a peak
-  of 1 or more, and the real solo runs: the runs with a peak of 1. A run with a peak of 0 had no
-  citizen in the car, so it is neither solo nor shared, and the query does not count it. The query
-  also does not count the runs of an ignored sub-agreement.
+- The solo runs come from `RouteDayTotals`. `RouteRunRepository::countDayTotals()` counts the
+  runs that are not cancelled and have a peak of 1 or more, and the real solo runs: the runs with
+  a peak of 1. A run with a peak of 0 had no citizen in the car, so it is neither solo nor shared,
+  and it does not count. The sums do not count the runs of an ignored sub-agreement.
 - The tile "Reelt solo" shows the share, with no tone, because the share has no target. A month
   with no counted runs has no share. The tile then shows "–" and has no note.
 - A route run that was imported before the peak existed has no peak until the next import.
-- `SupplierTableCalculator` gives the table "Leverandørerne side om side". It counts the trips,
+- `SupplierTableCalculator` gives the table "Leverandørerne side om side". It sums the trips,
   the cancelled trips and the real solo runs of each route, and adds the routes of each supplier,
   as `PunctualityCalculator` does. The counts of each route use the same rules as the tiles, so
-  a run with a peak of 0 and a route of an ignored sub-agreement do not count. The punctuality of
+  a run with a peak of 0 and a route of an ignored sub-agreement do not count. A route with no
+  trips and no counted runs gives no row. The punctuality of
   each supplier comes from the punctuality report of the month. The rows have the order of the
   punctuality page. The table has no empty kilometres and no complaints (see the open decisions).
 - The page compares a period that has not ended with the same number of days of the comparison
   period (see "Periods" above).
 
-**Cost:** `countTripsByMonth()` and `countSoloRunsByMonth()` give the counts of the 12 months,
-grouped by month. The citizens of a month are the citizens who were driven in that month. A
-selected period or a comparison period that has the dates of a month of the history uses the
-counts of that month. Other periods run `countTrips()` and `countSoloRuns()`. The request also
-has the cost of the punctuality page and of the supplier table. Thus a request runs 18 to 30
-queries. With more than one year of data, the page takes approximately 2 to 7 seconds.
-Before #134, it ran 73 queries and took approximately 15 to 38 seconds.
+**Cost:** `RouteDayTotalsRepository::sumByMonth()` gives the trips and the solo runs of the 12
+months, and `countCitizensByMonth()` gives the citizens. The citizens of a month are the citizens
+who were driven in that month. A selected period or a comparison period that has the dates of a
+month of the history uses the counts of that month. Other periods run `sum()` and
+`countCitizens()`. The request also has the cost of the punctuality page and of the supplier
+table. Thus a request runs 12 to 26 queries. With more than one year of data, the page takes
+approximately 1 to 2.5 seconds. Most of the time goes to the citizens. Before #136, it took
+approximately 2 to 7 seconds, and before #134 approximately 15 to 38 seconds.
 
 ## Security
 
@@ -1279,19 +1295,20 @@ whole code base.
 - **Stops with no registration.** How do the figures treat a stop that has no status
   registration from the driver (`pending`)? The proposal: it counts as a trip, because it is not
   cancelled. A run whose last drop-off has no actual time is not counted for punctuality. The
-  product owner in the transport office answers before the daily stats are built.
+  product owner in the transport office answers before the distances and the durations are added
+  to `RouteDayTotals`.
 - **Passengers and distances of a run.** The peak passengers, the empty kilometres and the solo
   runs need the number of passengers after each stop. In the reference extract,
   `passengersaftercancel` is not 0 after the last stop that is not cancelled in 7 of 80 runs. It
   does not always remove a cancelled pickup. Also, 55 cancelled stops have a distance to the next
   stop. Is the count from the stops correct (+1 for each pickup that is not cancelled, −1 for each
   drop-off)? Does a cancelled stop add to the driven kilometres? The product owner in the
-  transport office answers before the daily stats are built.
+  transport office answers before the distances and the durations are added to `RouteDayTotals`.
   - The real solo runs on the overview (#110) use the proposal: the peak of `passengers_after`
     of the stops that are not cancelled. In the real exports after the fix of the export script,
     almost all runs end with no passengers. The pending stops count, and the runs with a peak of
     0 do not count. An answer can change these rules in `RouteRunCalculator` and
-    `RouteRunRepository::countSoloRuns()`.
+    `RouteRunRepository::countDayTotals()`. Then run `app:driving-data:rebuild-totals`.
   - The empty kilometres wait for the answer. In the real exports, the cancelled stops and the
     last stop of each route and date have a distance, so a share of the distances is not
     reliable yet.

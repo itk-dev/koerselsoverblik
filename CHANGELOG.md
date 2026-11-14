@@ -315,3 +315,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the range. One query for each figure, grouped by month, gives the totals of the 12 months. A
   period that is a month of the history uses the figures of that month. A new index on
   `stop_row (route_id, service_date)` helps the queries for a few routes. Closes #85.
+- [#136](https://github.com/itk-dev/koerselsoverblik/issues/136)
+  The figures come from `RouteDayTotals`, the counters of each route and day, which each import
+  builds for its range. The pages add these rows, not the stop rows and the route runs. The
+  ignored flag and the supplier stay in the queries, so a change of a sub-agreement needs no
+  rebuild. The citizens stay a query on `stop_row`, with a new index that holds all its columns.
+  `app:driving-data:rebuild-totals` builds all dates again, after the first deploy and after a
+  change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. The table replaces the planned `DailyStats`.

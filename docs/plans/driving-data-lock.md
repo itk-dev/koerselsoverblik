@@ -138,5 +138,5 @@ Choose B, Redis, only in one of these cases:
   work, or will soon. If it does, choose B.
 - **Keep the sweep?** When the lock exists, decide whether the nightly
   `app:driving-data:delete-orphan-copies` stays as a safety net, or is removed.
-- **Other changes of the data:** check whether the change of a sub-agreement (the daily stats,
-  [daily-stats.md](daily-stats.md)) must also take the lock.
+- **Other changes of the data:** check whether `app:driving-data:rebuild-totals` (#136) must also
+  take the lock. A change of a sub-agreement rebuilds nothing, so it needs no lock.

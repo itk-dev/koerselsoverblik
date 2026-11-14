@@ -186,7 +186,7 @@ Set these in `.env.local`:
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
 | `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |
 | `TRUSTED_PROXIES` | The proxies whose `X-Forwarded-*` headers are trusted, so that URLs use https behind Traefik | `127.0.0.1,REMOTE_ADDR` |
-| `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time | `5` |
+| `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time. After a change, run `app:driving-data:rebuild-totals` (see [Deployment](#deployment)) | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for all four punctuality measures, in percent. Drawn as a line on the chart | `90` |
 | `APP_DATA_START_DATE` | The first date of the driving data, as `YYYY-MM-DD`. A period starts at this date at the earliest. A comparison period that starts before it is a partial period, and a comparison period that ends before it has no data. Set it on the server, for example to the go-live date of the planning system. A value that is not a date as `YYYY-MM-DD` gives an error on the pages | Empty (no limit) |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
@@ -694,6 +694,21 @@ itkdev-docker-compose-server exec phpfpm composer install --no-dev -o --classmap
 itkdev-docker-compose-server exec phpfpm bin/console doctrine:migrations:migrate --no-interaction
 itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 ```
+
+Each import builds the totals of each route and day of its range. Build the totals of all dates
+again in these cases:
+
+- After the first deploy of the totals (#136). Until then, the pages show no figures for the
+  dates that were imported before.
+- After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
+  message that tells to run the command.
+
+```shell
+itkdev-docker-compose-server exec phpfpm bin/console app:driving-data:rebuild-totals --no-debug
+```
+
+Use `--no-debug` also on a local machine. With debug, the build of all dates uses more memory
+than the container has.
 
 To set up a new server:
 
