@@ -78,9 +78,26 @@ final class OverviewPageBuilderTest extends KernelTestCase
         self::assertEquals(new SoloCountDto(4, 2), $page->comparisonSolo);
     }
 
-    private static function select(string $date, string $dataStart): PeriodSelectionDto
+    /**
+     * Week 2 of 2026 (5 to 11 January) has the base scenario. A week is not a month of the
+     * history, so it has its own counts. The week before it has no data.
+     */
+    public function testWeekHasItsOwnCounts(): void
     {
-        return new PeriodRangeFactory($dataStart)->create(PeriodFilter::fromQuery(null, $date, null, null, new \DateTimeImmutable('2026-11-09')));
+        $this->importBase();
+
+        $page = $this->builder()->build(self::select('2026-01-07', '', 'week'));
+
+        self::assertEquals(new TripCountDto(7, 5, 1, 1, 6), $page->current());
+        self::assertEquals(new SoloCountDto(4, 2), $page->currentSolo());
+        self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $page->comparison);
+        self::assertEquals(new SoloCountDto(0, 0), $page->comparisonSolo);
+        self::assertEquals(new TripCountDto(7, 5, 1, 1, 6), $page->counts[11]);
+    }
+
+    private static function select(string $date, string $dataStart, ?string $type = null): PeriodSelectionDto
+    {
+        return new PeriodRangeFactory($dataStart)->create(PeriodFilter::fromQuery($type, $date, null, null, new \DateTimeImmutable('2026-11-09')));
     }
 
     private function builder(): OverviewPageBuilder

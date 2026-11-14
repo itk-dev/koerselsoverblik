@@ -38,11 +38,11 @@ final class PunctualityPageBuilderTest extends KernelTestCase
         $page = $this->builder()->build(self::select('month', '2026-02-10'));
 
         self::assertCount(12, $page->months);
-        self::assertCount(12, $page->reports);
+        self::assertCount(12, $page->history);
         self::assertSame('2025-03', $page->months[0]->query());
-        self::assertEquals(new PunctualityCountDto(5, 6), $page->reports[10]->total->dropOffPerCitizen);
+        self::assertEquals(new PunctualityCountDto(5, 6), $page->history[10]->dropOffPerCitizen);
         // The base scenario is on 5 January, the comparison month.
-        self::assertEquals(new PunctualityCountDto(5, 6), $page->comparison?->total->dropOffPerCitizen);
+        self::assertEquals(new PunctualityCountDto(5, 6), $page->comparison?->dropOffPerCitizen);
         self::assertEquals(new PunctualityCountDto(0, 0), $page->current()->total->dropOffPerCitizen);
         self::assertSame(90, $page->target);
     }
@@ -57,7 +57,7 @@ final class PunctualityPageBuilderTest extends KernelTestCase
         $page = $this->builder()->build(self::select('week', '2026-01-07'));
 
         self::assertEquals(new PunctualityCountDto(5, 6), $page->current()->total->dropOffPerCitizen);
-        self::assertEquals(new PunctualityCountDto(0, 0), $page->comparison?->total->dropOffPerCitizen);
+        self::assertEquals(new PunctualityCountDto(0, 0), $page->comparison?->dropOffPerCitizen);
         self::assertSame('2026-01', $page->months[11]->query());
     }
 

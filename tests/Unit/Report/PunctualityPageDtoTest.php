@@ -144,9 +144,9 @@ final class PunctualityPageDtoTest extends TestCase
         ];
         $page = new PunctualityPageDto(
             MonthDto::fromQuery('2026-01', new \DateTimeImmutable('2026-11-09'))->trailing(2),
-            array_map(self::report(...), $months),
+            $months,
             self::report(self::figures([1, 2], [2, 2], [1, 1], [1, 2], [1, 1, 0, 0])),
-            self::report(self::figures([2, 2], [1, 2], [0, 1], [2, 2], [2, 0, 0, 0])),
+            self::figures([2, 2], [1, 2], [0, 1], [2, 2], [2, 0, 0, 0]),
             90,
         );
 
@@ -170,9 +170,8 @@ final class PunctualityPageDtoTest extends TestCase
     private static function page(array $figures): PunctualityPageDto
     {
         $months = MonthDto::fromQuery('2026-01', new \DateTimeImmutable('2026-11-09'))->trailing(\count($figures));
-        $reports = array_map(self::report(...), $figures);
 
-        return new PunctualityPageDto($months, $reports, $reports[\count($reports) - 1], $reports[\count($reports) - 2] ?? null, 90);
+        return new PunctualityPageDto($months, $figures, self::report($figures[\count($figures) - 1]), $figures[\count($figures) - 2] ?? null, 90);
     }
 
     private static function report(PunctualityFiguresDto $total): PunctualityReportDto

@@ -25,13 +25,31 @@ final readonly class PunctualityPageBuilder
     public function build(PeriodSelectionDto $selection): PunctualityPageDto
     {
         $supplier = $selection->filter->supplier;
+        // The months and the comparison only need the total. Only the selected period needs the
+        // figures of each supplier and route.
+        $byMonth = $this->calculator->totalsByMonth($selection->monthsRange(), $supplier);
+        $history = array_map(static fn (MonthDto $item): PunctualityFiguresDto => $byMonth[$item->query()] ?? PunctualityFiguresDto::empty(), $selection->months);
 
         return new PunctualityPageDto(
             $selection->months,
-            array_map(fn (MonthDto $item): PunctualityReportDto => $this->calculator->calculate($item->range(), $supplier), $selection->months),
+            $history,
             $this->calculator->calculate($selection->selectedRange, $supplier),
-            null === $selection->comparisonRange ? null : $this->calculator->calculate($selection->comparisonRange, $supplier),
+            $this->comparison($selection, $history),
             $this->target,
         );
+    }
+
+    /**
+     * @param non-empty-list<PunctualityFiguresDto> $history
+     */
+    private function comparison(PeriodSelectionDto $selection, array $history): ?PunctualityFiguresDto
+    {
+        $range = $selection->comparisonRange;
+        if (null === $range) {
+            return null;
+        }
+        $month = $selection->monthIndexOf($range);
+
+        return null === $month ? $this->calculator->total($range, $selection->filter->supplier) : $history[$month];
     }
 }

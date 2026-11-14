@@ -360,12 +360,62 @@ final class PunctualityCalculatorTest extends KernelTestCase
         self::assertSame([], $report->worstRoutes);
     }
 
+    /**
+     * The total of each month is the same as the total of the range of that month, with and with
+     * no supplier. An ignored sub-agreement adds nothing. A month with no data has no item.
+     */
+    public function testTotalsOfEachMonth(): void
+    {
+        $supplier = $this->supplier('Vognmand A');
+        $ofSupplier = $this->route('T-01', $this->subAgreement('T', $supplier));
+        $other = $this->route('S-01', $this->subAgreement('S'));
+        $ignored = $this->route('I-01', $this->subAgreement('I', $supplier)->setIgnored(true));
+        $this->stop($ofSupplier, '2026-01-05', 1, StopType::Pickup, StopStatus::Completed, 0);
+        $this->stop($ofSupplier, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0, 1800);
+        $this->stop($other, '2026-01-31', 1, StopType::Pickup, StopStatus::Completed, 400);
+        $this->stop($other, '2026-01-31', 1, StopType::DropOff, StopStatus::Completed, 1000, 1800);
+        $this->stop($ofSupplier, '2026-02-01', 1, StopType::Pickup, StopStatus::Completed, 0);
+        $this->stop($ofSupplier, '2026-02-01', 1, StopType::DropOff, StopStatus::Completed, 2000, 1800);
+        $this->stop($ignored, '2026-02-02', 1, StopType::Pickup, StopStatus::Completed, 600);
+        $this->stop($ignored, '2026-02-02', 1, StopType::DropOff, StopStatus::Completed, 600, 1800);
+        $this->entityManager->flush();
+        $calculator = $this->calculator();
+        $range = DateRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-03-31'));
+
+        foreach ([null, $supplier->getId()] as $supplierId) {
+            $totals = $calculator->totalsByMonth($range, $supplierId);
+
+            self::assertSame(['2026-01', '2026-02'], array_keys($totals));
+            self::assertEquals($this->calculate('2026-01-01', '2026-01-31', $supplierId)->total, $totals['2026-01']);
+            self::assertEquals($this->calculate('2026-02-01', '2026-02-28', $supplierId)->total, $totals['2026-02']);
+            self::assertEquals($this->calculate('2026-01-01', '2026-03-31', $supplierId)->total, $calculator->total($range, $supplierId));
+        }
+        self::assertEquals(new PunctualityCountDto(1, 2), $calculator->totalsByMonth($range)['2026-01']->dropOffPerRun);
+        self::assertEquals(new DelayBandsDto(0, 0, 0, 1), $calculator->totalsByMonth($range)['2026-02']->bands);
+    }
+
+    public function testRangeWithNoDataHasNoTotals(): void
+    {
+        $range = DateRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31'));
+
+        self::assertSame([], $this->calculator()->totalsByMonth($range));
+        self::assertEquals(PunctualityFiguresDto::empty(), $this->calculator()->total($range));
+    }
+
     private function calculate(string $firstDate, string $lastDate, ?int $supplier = null): PunctualityReportDto
+    {
+        return $this->calculator()->calculate(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)), $supplier);
+    }
+
+    /**
+     * Saves the stops, and builds the route runs of January and February from them.
+     */
+    private function calculator(): PunctualityCalculator
     {
         $this->entityManager->flush();
         $builder = self::getContainer()->get(RouteBuilder::class);
         self::assertInstanceOf(RouteBuilder::class, $builder);
-        $builder->rebuild(ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31'), 31));
+        $builder->rebuild(ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-02-28'), 59));
 
         $stopRows = $this->entityManager->getRepository(StopRow::class);
         self::assertInstanceOf(StopRowRepository::class, $stopRows);
@@ -375,8 +425,7 @@ final class PunctualityCalculatorTest extends KernelTestCase
         self::assertInstanceOf(RouteRepository::class, $routes);
 
         // The container removes a private service that no other service uses yet.
-        return new PunctualityCalculator($stopRows, $routeRuns, $routes, 5)
-            ->calculate(DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate)), $supplier);
+        return new PunctualityCalculator($stopRows, $routeRuns, $routes, 5);
     }
 
     private function supplier(string $name): Supplier
