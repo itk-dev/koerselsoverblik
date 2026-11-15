@@ -7,22 +7,25 @@ namespace App\Tests\Integration\Repository;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\Route;
+use App\Entity\RouteDayTotals;
 use App\Entity\RouteRun;
 use App\Entity\SubAgreement;
 use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
+use App\Import\RouteDayTotalsBuilder;
 use App\Import\RouteRunDto;
 use App\Report\DateRangeDto;
+use App\Report\DayTotalsDto;
 use App\Report\SoloCountDto;
-use App\Repository\RouteRunRepository;
+use App\Repository\RouteDayTotalsRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * Checks the real solo runs of a date range: the runs with exactly one citizen in the car at a
- * time.
+ * time. The counts come from the totals of each route and day.
  */
 final class RouteRunSoloCountTest extends KernelTestCase
 {
@@ -118,12 +121,12 @@ final class RouteRunSoloCountTest extends KernelTestCase
         $this->routeRun($this->route('I', ignored: true), '2026-02-02', 1, peak: 1);
 
         self::assertEquals(new SoloCountDto(0, 0), $this->solo('2026-02-01', '2026-02-28'));
-        self::assertSame([], $this->repository()->countSoloRunsByMonth(self::range('2026-02-01', '2026-02-28')));
+        self::assertSame([], $this->soloByMonth(self::range('2026-02-01', '2026-02-28')));
     }
 
     /**
-     * Each month has the counts of the range of that month. A month with no counted run has no
-     * item.
+     * Each month has the counts of the range of that month. A month with no item has no counted
+     * runs, as the pages read it. March only has a run with no citizen, so it counts nothing.
      */
     public function testSoloRunsOfEachMonth(): void
     {
@@ -140,27 +143,41 @@ final class RouteRunSoloCountTest extends KernelTestCase
         $range = self::range('2026-01-01', '2026-03-31');
 
         foreach ([null, $supplier->getId()] as $supplierId) {
-            $months = $this->repository()->countSoloRunsByMonth($range, $supplierId);
+            $months = $this->soloByMonth($range, $supplierId);
 
-            self::assertSame(['2026-01', '2026-02'], array_keys($months));
             self::assertEquals($this->solo('2026-01-01', '2026-01-31', $supplierId), $months['2026-01']);
             self::assertEquals($this->solo('2026-02-01', '2026-02-28', $supplierId), $months['2026-02']);
+            self::assertEquals(new SoloCountDto(0, 0), $months['2026-03'] ?? new SoloCountDto(0, 0));
         }
-        self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->repository()->countSoloRunsByMonth($range)['2026-01']);
+        self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->soloByMonth($range)['2026-01']);
     }
 
     private function solo(string $firstDate, string $lastDate, ?int $supplier = null): SoloCountDto
     {
-        return $this->repository()->countSoloRuns(self::range($firstDate, $lastDate), $supplier);
+        return $this->totals()->sum(self::range($firstDate, $lastDate), $supplier)->solo();
     }
 
-    private function repository(): RouteRunRepository
+    /**
+     * @return array<string, SoloCountDto>
+     */
+    private function soloByMonth(DateRangeDto $range, ?int $supplier = null): array
+    {
+        return array_map(static fn (DayTotalsDto $totals): SoloCountDto => $totals->solo(), $this->totals()->sumByMonth($range, $supplier));
+    }
+
+    /**
+     * Saves the runs, and builds the totals of the dates of the tests, as an import does.
+     */
+    private function totals(): RouteDayTotalsRepository
     {
         $this->entityManager->flush();
-        $routeRuns = $this->entityManager->getRepository(RouteRun::class);
-        self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
+        $builder = self::getContainer()->get(RouteDayTotalsBuilder::class);
+        self::assertInstanceOf(RouteDayTotalsBuilder::class, $builder);
+        $builder->rebuild(ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-03-31'), 90));
+        $totals = $this->entityManager->getRepository(RouteDayTotals::class);
+        self::assertInstanceOf(RouteDayTotalsRepository::class, $totals);
 
-        return $routeRuns;
+        return $totals;
     }
 
     private static function range(string $firstDate, string $lastDate): DateRangeDto

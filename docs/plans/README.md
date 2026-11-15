@@ -77,6 +77,7 @@ feature that has an issue or an issue text.
 | Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
 | Fix the month chooser, the chart labels and the number format | Blocked | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | #116 | [punctuality-layout.md](punctuality-layout.md) |
 | Show the ignored sub-agreements on the punctuality page | Ready | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | – | [ignored-sub-agreements-note.md](ignored-sub-agreements-note.md) |
+| Calculate the figures from the totals of each route and day | In progress | [#136](https://github.com/itk-dev/koerselsoverblik/issues/136) | – | [route-day-totals.md](route-day-totals.md) |
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
 
@@ -90,7 +91,7 @@ feature that has an issue or an issue text.
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
-| Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
+| Add the distances and the durations to the totals of each route and day | Blocked | – | #136, and the open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
 ### Release
 

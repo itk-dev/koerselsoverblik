@@ -8,7 +8,7 @@ use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\ImportBatch;
 use App\Entity\Route;
-use App\Entity\RouteRun;
+use App\Entity\RouteDayTotals;
 use App\Entity\StopRow;
 use App\Entity\SubAgreement;
 use App\Entity\Supplier;
@@ -19,6 +19,7 @@ use App\Import\Mapping\MappingProvider;
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
 use App\Import\RouteBuilder;
+use App\Import\RouteDayTotalsBuilder;
 use App\Report\DateRangeDto;
 use App\Report\DelayBandsDto;
 use App\Report\PunctualityCalculator;
@@ -27,9 +28,8 @@ use App\Report\PunctualityFiguresDto;
 use App\Report\PunctualityReportDto;
 use App\Report\RoutePunctualityDto;
 use App\Report\SupplierPunctualityDto;
+use App\Repository\RouteDayTotalsRepository;
 use App\Repository\RouteRepository;
-use App\Repository\RouteRunRepository;
-use App\Repository\StopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -408,24 +408,27 @@ final class PunctualityCalculatorTest extends KernelTestCase
     }
 
     /**
-     * Saves the stops, and builds the route runs of January and February from them.
+     * Saves the stops, and builds the route runs and the totals of January and February from
+     * them, as an import does.
      */
     private function calculator(): PunctualityCalculator
     {
         $this->entityManager->flush();
-        $builder = self::getContainer()->get(RouteBuilder::class);
-        self::assertInstanceOf(RouteBuilder::class, $builder);
-        $builder->rebuild(ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-02-28'), 59));
+        $range = ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-02-28'), 59);
+        $routeBuilder = self::getContainer()->get(RouteBuilder::class);
+        self::assertInstanceOf(RouteBuilder::class, $routeBuilder);
+        $routeBuilder->rebuild($range);
+        $totalsBuilder = self::getContainer()->get(RouteDayTotalsBuilder::class);
+        self::assertInstanceOf(RouteDayTotalsBuilder::class, $totalsBuilder);
+        $totalsBuilder->rebuild($range);
 
-        $stopRows = $this->entityManager->getRepository(StopRow::class);
-        self::assertInstanceOf(StopRowRepository::class, $stopRows);
-        $routeRuns = $this->entityManager->getRepository(RouteRun::class);
-        self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
+        $totals = $this->entityManager->getRepository(RouteDayTotals::class);
+        self::assertInstanceOf(RouteDayTotalsRepository::class, $totals);
         $routes = $this->entityManager->getRepository(Route::class);
         self::assertInstanceOf(RouteRepository::class, $routes);
 
         // The container removes a private service that no other service uses yet.
-        return new PunctualityCalculator($stopRows, $routeRuns, $routes, 5);
+        return new PunctualityCalculator($totals, $routes);
     }
 
     private function supplier(string $name): Supplier

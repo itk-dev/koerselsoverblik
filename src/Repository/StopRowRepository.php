@@ -10,7 +10,7 @@ use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
 use App\Import\RunStopDto;
 use App\Report\DateRangeDto;
-use App\Report\TripCountDto;
+use App\Report\DayTotalsDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\QueryBuilder;
@@ -21,6 +21,20 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class StopRowRepository extends ServiceEntityRepository
 {
+    /**
+     * The counters of DayTotalsDto that countDayTotals() gives.
+     */
+    private const array DAY_TOTALS_FIELDS = [
+        'pickupOnTime',
+        'pickupMeasured',
+        'dropOffOnTime',
+        'dropOffMeasured',
+        'trips',
+        'completedTrips',
+        'cancelledTrips',
+        'pendingTrips',
+    ];
+
     public function __construct(
         ManagerRegistry $registry,
         private readonly CountedRouteFilter $countedRoutes,
@@ -69,8 +83,8 @@ class StopRowRepository extends ServiceEntityRepository
     }
 
     /**
-     * Limits the query to the stop rows in the range. The count, the ids and the delete use the
-     * same condition, so they cannot differ.
+     * Limits the query to the stop rows in the range. The count, the ids, the delete and the
+     * counters use the same condition, so they cannot differ.
      */
     private function inRange(QueryBuilder $builder, ImportRangeDto $range): QueryBuilder
     {
@@ -78,6 +92,25 @@ class StopRowRepository extends ServiceEntityRepository
             ->where('row.serviceDate BETWEEN :first AND :last')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
+    }
+
+    /**
+     * Gives the first and the last date of the stored stop rows, or null if there are no stop
+     * rows.
+     *
+     * @return ?array{\DateTimeImmutable, \DateTimeImmutable}
+     */
+    public function dateSpan(): ?array
+    {
+        /** @var array{first: ?string, last: ?string} $row */
+        $row = $this->createQueryBuilder('row')
+            ->select('MIN(row.serviceDate) AS first', 'MAX(row.serviceDate) AS last')
+            ->getQuery()
+            ->getSingleResult();
+
+        return null === $row['first'] || null === $row['last']
+            ? null
+            : [new \DateTimeImmutable($row['first']), new \DateTimeImmutable($row['last'])];
     }
 
     /**
@@ -106,187 +139,99 @@ class StopRowRepository extends ServiceEntityRepository
     }
 
     /**
-     * Counts the measured stops of each route and stop type in the range, and those of them that
-     * are on time. A measured stop is completed, and it has a delay (an actual time). The stops of
-     * an ignored sub-agreement are not counted.
+     * Counts the stop counters of each route and date in the range, for all routes. The counters
+     * of the route runs are 0. RouteDayTotalsBuilder stores them.
+     *
+     * - A measured stop is completed, and it has a delay (an actual time). It is on time if the
+     *   delay is at most the tolerance.
+     * - A trip is a pickup, with any status: completed, cancelled or with no registration.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      *
-     * @return list<array{route: int, stopType: StopType, onTime: int, measured: int}>
+     * @return list<array{route: int, serviceDate: \DateTimeImmutable, totals: DayTotalsDto}>
      */
-    public function countMeasuredStops(DateRangeDto $range, int $onTimeSeconds): array
+    public function countDayTotals(ImportRangeDto $range, int $onTimeSeconds): array
     {
-        /** @var list<array{route: int|string, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
-        $rows = $this->measuredStopsQuery($range, $onTimeSeconds, null)
-            ->addSelect('IDENTITY(row.route) AS route', 'row.stopType AS stopType')
-            ->groupBy('row.route, row.stopType')
-            ->getQuery()
-            ->getArrayResult();
-
-        // MariaDB gives a sum as text.
-        return array_map(static fn (array $row): array => [
-            'route' => (int) $row['route'],
-            'stopType' => $row['stopType'],
-            'onTime' => (int) $row['onTime'],
-            'measured' => (int) $row['measured'],
-        ], $rows);
-    }
-
-    /**
-     * Counts the measured stops of each month and stop type in the range, with the rules of
-     * countMeasuredStops(). A month with no measured stops has no item.
-     *
-     * @param int  $onTimeSeconds the highest delay that is on time
-     * @param ?int $supplierId    the id of a supplier, or null for all suppliers
-     *
-     * @return list<array{month: string, stopType: StopType, onTime: int, measured: int}> the month is YYYY-MM, as MonthDto::query()
-     */
-    public function countMeasuredStopsByMonth(DateRangeDto $range, int $onTimeSeconds, ?int $supplierId = null): array
-    {
-        /** @var list<array{month: string, stopType: StopType, onTime: int|string, measured: int|string}> $rows */
-        $rows = $this->measuredStopsQuery($range, $onTimeSeconds, $supplierId)
-            ->addSelect(MonthKey::of('row.serviceDate').' AS month', 'row.stopType AS stopType')
-            ->groupBy('month, row.stopType')
-            ->getQuery()
-            ->getArrayResult();
-
-        // MariaDB gives a sum as text.
-        return array_map(static fn (array $row): array => [
-            'month' => $row['month'],
-            'stopType' => $row['stopType'],
-            'onTime' => (int) $row['onTime'],
-            'measured' => (int) $row['measured'],
-        ], $rows);
-    }
-
-    /**
-     * Makes the query of the measured stops. The rules are in one place, so that the figures of a
-     * period and of each month are the same.
-     */
-    private function measuredStopsQuery(DateRangeDto $range, int $onTimeSeconds, ?int $supplierId): QueryBuilder
-    {
+        $measured = 'row.stopType = :%s AND row.stopStatus = :completed AND row.delaySeconds IS NOT NULL';
+        $onTime = $measured.' AND row.delaySeconds <= :onTime';
         $builder = $this->createQueryBuilder('row')
             ->select(
-                'SUM(CASE WHEN row.delaySeconds <= :onTime THEN 1 ELSE 0 END) AS onTime',
-                'COUNT(row.id) AS measured',
+                'IDENTITY(row.route) AS route',
+                'row.serviceDate AS serviceDate',
+                \sprintf('SUM(CASE WHEN %s THEN 1 ELSE 0 END) AS pickupOnTime', \sprintf($onTime, 'pickup')),
+                \sprintf('SUM(CASE WHEN %s THEN 1 ELSE 0 END) AS pickupMeasured', \sprintf($measured, 'pickup')),
+                \sprintf('SUM(CASE WHEN %s THEN 1 ELSE 0 END) AS dropOffOnTime', \sprintf($onTime, 'dropOff')),
+                \sprintf('SUM(CASE WHEN %s THEN 1 ELSE 0 END) AS dropOffMeasured', \sprintf($measured, 'dropOff')),
+                'SUM(CASE WHEN row.stopType = :pickup THEN 1 ELSE 0 END) AS trips',
+                'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :completed THEN 1 ELSE 0 END) AS completedTrips',
+                'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :cancelled THEN 1 ELSE 0 END) AS cancelledTrips',
+                'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :pending THEN 1 ELSE 0 END) AS pendingTrips',
             )
-            ->where('row.serviceDate BETWEEN :first AND :last')
-            ->andWhere('row.stopStatus = :completed')
-            ->andWhere('row.delaySeconds IS NOT NULL')
-            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
+            ->groupBy('row.route, row.serviceDate')
+            ->setParameter('pickup', StopType::Pickup)
+            ->setParameter('dropOff', StopType::DropOff)
             ->setParameter('completed', StopStatus::Completed)
+            ->setParameter('cancelled', StopStatus::Cancelled)
+            ->setParameter('pending', StopStatus::Pending)
             ->setParameter('onTime', $onTimeSeconds);
 
-        return $this->countedRoutes->apply($builder, 'row.route', $supplierId);
-    }
+        /** @var list<array<string, mixed>&array{route: int|string, serviceDate: \DateTimeImmutable}> $rows */
+        $rows = $this->inRange($builder, $range)->getQuery()->getArrayResult();
 
-    /**
-     * Counts the trips and the cancelled trips of each route in a date range, with the rules of
-     * countTrips(). A route with no trips has no item.
-     *
-     * @return list<array{route: int, trips: int, cancelled: int}>
-     */
-    public function countTripsOfEachRoute(DateRangeDto $range): array
-    {
-        /** @var list<array{route: int|string, trips: int|string, cancelled: int|string}> $rows */
-        $rows = $this->tripsQuery($range, null)
-            ->addSelect('IDENTITY(row.route) AS route')
-            ->groupBy('row.route')
-            ->getQuery()
-            ->getArrayResult();
-
-        // MariaDB gives a sum as text.
         return array_map(static fn (array $row): array => [
+            // MariaDB can give an id as text.
             'route' => (int) $row['route'],
-            'trips' => (int) $row['trips'],
-            'cancelled' => (int) $row['cancelled'],
+            'serviceDate' => $row['serviceDate'],
+            'totals' => DayTotalsDto::fromRow($row, self::DAY_TOTALS_FIELDS),
         ], $rows);
     }
 
     /**
-     * Counts the trips and the citizens of a date range. A trip is a pickup, with any status. A
-     * citizen was driven if a pickup of the citizen is not cancelled. The pickups of an ignored
+     * Counts the citizens who were driven in the range: the distinct person ids of the pickups
+     * that are not cancelled. A pickup with no registration counts. The pickups of an ignored
      * sub-agreement are not counted.
+     *
+     * @param ?int $supplierId the id of a supplier, or null for all suppliers
      */
-    public function countTrips(DateRangeDto $range, ?int $supplierId = null): TripCountDto
+    public function countCitizens(DateRangeDto $range, ?int $supplierId = null): int
     {
-        /** @var array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row */
-        $row = $this->tripCountQuery($range, $supplierId)->getQuery()->getSingleResult();
-
-        return self::tripCount($row);
+        return (int) $this->citizensQuery($range, $supplierId)->getQuery()->getSingleScalarResult();
     }
 
     /**
-     * Counts the trips and the citizens of each month in the range, with the rules of
-     * countTrips(). The citizens of a month are the citizens who were driven in that month. A
-     * month with no trips has no item.
+     * Counts the citizens of each month in the range, with the rules of countCitizens(). The
+     * citizens of a month are the citizens who were driven in that month. A month with no
+     * citizens has no item.
      *
      * @param ?int $supplierId the id of a supplier, or null for all suppliers
      *
-     * @return array<string, TripCountDto> keyed by the month as YYYY-MM, as MonthDto::query()
+     * @return array<string, int> keyed by the month as YYYY-MM, as MonthDto::query()
      */
-    public function countTripsByMonth(DateRangeDto $range, ?int $supplierId = null): array
+    public function countCitizensByMonth(DateRangeDto $range, ?int $supplierId = null): array
     {
-        /** @var list<array{month: string, trips: int|string, completed: int|string, cancelled: int|string, pending: int|string, citizens: int|string}> $rows */
-        $rows = $this->tripCountQuery($range, $supplierId)
+        /** @var list<array{month: string, citizens: int|string}> $rows */
+        $rows = $this->citizensQuery($range, $supplierId)
             ->addSelect(MonthKey::of('row.serviceDate').' AS month')
             ->groupBy('month')
             ->getQuery()
             ->getArrayResult();
 
-        $counts = [];
+        $citizens = [];
         foreach ($rows as $row) {
-            $counts[$row['month']] = self::tripCount($row);
+            $citizens[$row['month']] = (int) $row['citizens'];
         }
 
-        return $counts;
+        return $citizens;
     }
 
-    /**
-     * Makes the query of the trips and the citizens.
-     */
-    private function tripCountQuery(DateRangeDto $range, ?int $supplierId): QueryBuilder
+    private function citizensQuery(DateRangeDto $range, ?int $supplierId): QueryBuilder
     {
-        return $this->tripsQuery($range, $supplierId)
-            ->addSelect(
-                'SUM(CASE WHEN row.stopStatus = :completed THEN 1 ELSE 0 END) AS completed',
-                'SUM(CASE WHEN row.stopStatus = :pending THEN 1 ELSE 0 END) AS pending',
-                // COUNT ignores NULL, so a cancelled pickup gives no person id.
-                'COUNT(DISTINCT CASE WHEN row.stopStatus = :cancelled THEN NULL ELSE row.personId END) AS citizens',
-            )
-            ->setParameter('completed', StopStatus::Completed)
-            ->setParameter('pending', StopStatus::Pending);
-    }
-
-    /**
-     * @param array{trips: int|string, completed: int|string|null, cancelled: int|string|null, pending: int|string|null, citizens: int|string} $row
-     */
-    private static function tripCount(array $row): TripCountDto
-    {
-        // MariaDB gives a sum as text, and no sum when no row matches.
-        return new TripCountDto(
-            (int) $row['trips'],
-            (int) $row['completed'],
-            (int) $row['cancelled'],
-            (int) $row['pending'],
-            (int) $row['citizens'],
-        );
-    }
-
-    /**
-     * Makes the query of the trips and the cancelled trips. The rules are in one place, so that
-     * the tile and the supplier table of the overview give the same counts.
-     */
-    private function tripsQuery(DateRangeDto $range, ?int $supplierId): QueryBuilder
-    {
+        // COUNT ignores NULL, so a pickup with no person id does not count.
         $builder = $this->createQueryBuilder('row')
-            ->select(
-                'COUNT(row.id) AS trips',
-                'SUM(CASE WHEN row.stopStatus = :cancelled THEN 1 ELSE 0 END) AS cancelled',
-            )
+            ->select('COUNT(DISTINCT row.personId) AS citizens')
             ->where('row.serviceDate BETWEEN :first AND :last')
             ->andWhere('row.stopType = :pickup')
+            ->andWhere('row.stopStatus <> :cancelled')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
             ->setParameter('pickup', StopType::Pickup)

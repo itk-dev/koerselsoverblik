@@ -9,6 +9,7 @@ use App\DataFixtures\DrivingData\Scenario;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\ImportBatch;
 use App\Entity\Route;
+use App\Entity\RouteDayTotals;
 use App\Entity\StopRow;
 use App\Entity\SubAgreement;
 use App\Entity\Supplier;
@@ -18,15 +19,18 @@ use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
+use App\Import\RouteDayTotalsBuilder;
 use App\Report\DateRangeDto;
 use App\Report\TripCountDto;
+use App\Repository\RouteDayTotalsRepository;
 use App\Repository\StopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * Checks the trips and the citizens of a date range: a trip is a pickup, also a cancelled pickup
- * and a pickup with no registration.
+ * and a pickup with no registration. The trips come from the totals of each route and day, and
+ * the citizens from the stop rows.
  */
 final class StopRowTripCountTest extends KernelTestCase
 {
@@ -157,7 +161,7 @@ final class StopRowTripCountTest extends KernelTestCase
         $this->stop($this->route('I', ignored: true), '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
 
         self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $this->trips('2026-02-01', '2026-02-28'));
-        self::assertSame([], $this->repository()->countTripsByMonth(self::range('2026-02-01', '2026-02-28')));
+        self::assertSame([], $this->tripsByMonth(self::range('2026-02-01', '2026-02-28')));
     }
 
     /**
@@ -180,22 +184,57 @@ final class StopRowTripCountTest extends KernelTestCase
         $range = self::range('2026-01-01', '2026-03-31');
 
         foreach ([null, $supplier->getId()] as $supplierId) {
-            $months = $this->repository()->countTripsByMonth($range, $supplierId);
+            $months = $this->tripsByMonth($range, $supplierId);
 
             self::assertSame(['2026-01', '2026-02'], array_keys($months));
             self::assertEquals($this->trips('2026-01-01', '2026-01-31', $supplierId), $months['2026-01']);
             self::assertEquals($this->trips('2026-02-01', '2026-02-28', $supplierId), $months['2026-02']);
         }
-        self::assertEquals(new TripCountDto(trips: 2, completed: 1, cancelled: 1, pending: 0, citizens: 1), $this->repository()->countTripsByMonth($range)['2026-01']);
-        self::assertEquals(new TripCountDto(trips: 1, completed: 0, cancelled: 0, pending: 1, citizens: 1), $this->repository()->countTripsByMonth($range)['2026-02']);
+        self::assertEquals(new TripCountDto(trips: 2, completed: 1, cancelled: 1, pending: 0, citizens: 1), $this->tripsByMonth($range)['2026-01']);
+        self::assertEquals(new TripCountDto(trips: 1, completed: 0, cancelled: 0, pending: 1, citizens: 1), $this->tripsByMonth($range)['2026-02']);
     }
 
+    /**
+     * Gives the trips from the totals of each route and day, and the citizens from the stop rows,
+     * as the overview does.
+     */
     private function trips(string $firstDate, string $lastDate, ?int $supplier = null): TripCountDto
     {
-        return $this->repository()->countTrips(self::range($firstDate, $lastDate), $supplier);
+        $range = self::range($firstDate, $lastDate);
+
+        return $this->totals()->sum($range, $supplier)->trips($this->stopRows()->countCitizens($range, $supplier));
     }
 
-    private function repository(): StopRowRepository
+    /**
+     * @return array<string, TripCountDto>
+     */
+    private function tripsByMonth(DateRangeDto $range, ?int $supplier = null): array
+    {
+        $citizens = $this->stopRows()->countCitizensByMonth($range, $supplier);
+        $months = [];
+        foreach ($this->totals()->sumByMonth($range, $supplier) as $month => $totals) {
+            $months[$month] = $totals->trips($citizens[$month] ?? 0);
+        }
+
+        return $months;
+    }
+
+    /**
+     * Saves the stops, and builds the totals of the dates of the tests, as an import does.
+     */
+    private function totals(): RouteDayTotalsRepository
+    {
+        $this->entityManager->flush();
+        $builder = self::getContainer()->get(RouteDayTotalsBuilder::class);
+        self::assertInstanceOf(RouteDayTotalsBuilder::class, $builder);
+        $builder->rebuild(ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-03-31'), 90));
+        $totals = $this->entityManager->getRepository(RouteDayTotals::class);
+        self::assertInstanceOf(RouteDayTotalsRepository::class, $totals);
+
+        return $totals;
+    }
+
+    private function stopRows(): StopRowRepository
     {
         $this->entityManager->flush();
         $stopRows = $this->entityManager->getRepository(StopRow::class);

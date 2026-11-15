@@ -8,6 +8,7 @@ use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\RejectedStopRow;
+use App\Entity\RouteDayTotals;
 use App\Entity\RouteRun;
 use App\Entity\SourceRow;
 use App\Entity\StopRow;
@@ -21,6 +22,7 @@ use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
 use App\Import\NoStopRowsException;
 use App\Import\RouteBuilder;
+use App\Import\RouteDayTotalsBuilder;
 use App\Import\RouteRunCalculator;
 use App\Import\RowIdConflictException;
 use App\Import\StopRowRangeDeleter;
@@ -179,6 +181,20 @@ final class DrivingDataImporterTest extends KernelTestCase
     }
 
     /**
+     * The import builds the totals of each route and day of the range, after the route runs. The
+     * base scenario has three routes on one date.
+     */
+    public function testImportBuildsTheTotalsOfEachRouteAndDay(): void
+    {
+        $this->writeScenario('base');
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+
+        self::assertSame(3, $this->entityManager->getRepository(RouteDayTotals::class)->count());
+    }
+
+    /**
      * The parse starts after the delete. A file with a missing column then also undoes the delete.
      */
     public function testFailedImportLeavesTheDataAsItWas(): void
@@ -268,12 +284,15 @@ final class DrivingDataImporterTest extends KernelTestCase
         self::assertInstanceOf(RejectedStopRowRepository::class, $rejectedRows);
         $sourceRows = $this->entityManager->getRepository(SourceRow::class);
         self::assertInstanceOf(SourceRowRepository::class, $sourceRows);
+        $totalsBuilder = self::getContainer()->get(RouteDayTotalsBuilder::class);
+        self::assertInstanceOf(RouteDayTotalsBuilder::class, $totalsBuilder);
 
         // The container removes a private service that no other service uses yet.
         return new DrivingDataImporter(
             $parser,
             new StopRowReplacer($this->entityManager, $subAgreements, new StopRowRangeDeleter($stopRows, $rejectedRows, $sourceRows)),
             new RouteBuilder($routeRuns, $stopRows, $this->entityManager, new RouteRunCalculator()),
+            $totalsBuilder,
             $stopRows,
             $this->entityManager,
             new MockClock('2026-01-07 10:15:00'),

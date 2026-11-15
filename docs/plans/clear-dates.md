@@ -12,8 +12,10 @@ See the [rules for plans](README.md#rules).
   this feature.
 - A rejected row with no date: use the rule of the replacer. The clear deletes it when the whole
   range of its batch is in the cleared range.
-- "Clearing driving data" in `docs/architecture.md` names `DailyStats`, which does not exist
-  yet. It does not name `RejectedStopRow`. Correct the section in this feature.
+- Delete the `RouteDayTotals` rows of the cleared dates with
+  `RouteDayTotalsRepository::deleteInRange()` (#136), in the same transaction.
+- "Clearing driving data" in `docs/architecture.md` does not name `RejectedStopRow`. Correct the
+  section in this feature.
 
 ## Open points
 

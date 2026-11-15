@@ -6,6 +6,7 @@ namespace App\Tests\Functional;
 
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\RouteDayTotals;
 use App\Entity\SubAgreement;
 use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
@@ -17,6 +18,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Checks the overview: the filter bar and the trips and the citizens of the base scenario.
@@ -292,6 +294,24 @@ final class OverviewPageTest extends WebTestCase
             self::assertInstanceOf(\DOMElement::class, $script);
             self::assertNotSame('', $script->getAttribute('nonce'));
         }
+    }
+
+    /**
+     * Totals that were built with another tolerance give a page that names the command, not the
+     * default error page.
+     */
+    public function testTotalsWithAnotherToleranceShowTheCommand(): void
+    {
+        $client = $this->client('viewer', importBase: true);
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
+        $entityManager->createQuery('UPDATE '.RouteDayTotals::class.' totals SET totals.toleranceMinutes = 10')->execute();
+
+        $crawler = $client->request('GET', '/');
+
+        self::assertResponseStatusCodeSame(Response::HTTP_SERVICE_UNAVAILABLE);
+        self::assertStringContainsString('app:driving-data:rebuild-totals', $crawler->filter('[data-test="other-tolerance"]')->text());
+        self::assertStringContainsString('ændret til 5 minutter', $crawler->filter('[data-test="other-tolerance"]')->text());
     }
 
     private function page(string $user, string $query = '', bool $importBase = false): Crawler

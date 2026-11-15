@@ -8,6 +8,7 @@ use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\ImportBatch;
 use App\Entity\Route;
+use App\Entity\RouteDayTotals;
 use App\Entity\RouteRun;
 use App\Entity\StopRow;
 use App\Entity\SubAgreement;
@@ -18,6 +19,7 @@ use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
+use App\Import\RouteDayTotalsBuilder;
 use App\Import\RouteRunDto;
 use App\Report\DateRangeDto;
 use App\Report\DelayBandsDto;
@@ -28,8 +30,7 @@ use App\Report\SoloCountDto;
 use App\Report\SupplierPunctualityDto;
 use App\Report\SupplierRowDto;
 use App\Report\SupplierTableCalculator;
-use App\Repository\RouteRunRepository;
-use App\Repository\StopRowRepository;
+use App\Repository\RouteDayTotalsRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -196,18 +197,14 @@ final class SupplierTableCalculatorTest extends KernelTestCase
 
         $rows = $this->calculate([]);
 
-        $range = DateRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31'));
-        $trips = $this->entityManager->getRepository(StopRow::class);
-        self::assertInstanceOf(StopRowRepository::class, $trips);
-        $runs = $this->entityManager->getRepository(RouteRun::class);
-        self::assertInstanceOf(RouteRunRepository::class, $runs);
-        $tripCount = $trips->countTrips($range);
-        $soloCount = $runs->countSoloRuns($range);
+        $totals = $this->entityManager->getRepository(RouteDayTotals::class);
+        self::assertInstanceOf(RouteDayTotalsRepository::class, $totals);
+        $sum = $totals->sum(DateRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31')));
         self::assertSame(['Vognmand A', 'Vognmand B'], array_map(static fn (SupplierRowDto $row): ?string => $row->supplier, $rows));
-        self::assertSame($tripCount->trips, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->trips, $rows)));
-        self::assertSame($tripCount->cancelled, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->cancelled, $rows)));
-        self::assertSame($soloCount->runs, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->solo->runs, $rows)));
-        self::assertSame($soloCount->soloRuns, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->solo->soloRuns, $rows)));
+        self::assertSame($sum->trips, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->trips, $rows)));
+        self::assertSame($sum->cancelledTrips, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->cancelled, $rows)));
+        self::assertSame($sum->runs, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->solo->runs, $rows)));
+        self::assertSame($sum->soloRuns, array_sum(array_map(static fn (SupplierRowDto $row): int => $row->solo->soloRuns, $rows)));
     }
 
     /**
@@ -244,6 +241,10 @@ final class SupplierTableCalculatorTest extends KernelTestCase
     private function calculate(array $suppliers): array
     {
         $this->entityManager->flush();
+        // The tests add stop rows and route runs directly, so the totals are built as an import does.
+        $totalsBuilder = self::getContainer()->get(RouteDayTotalsBuilder::class);
+        self::assertInstanceOf(RouteDayTotalsBuilder::class, $totalsBuilder);
+        $totalsBuilder->rebuild(ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31'), 31));
         $this->entityManager->clear();
         $calculator = self::getContainer()->get(SupplierTableCalculator::class);
         self::assertInstanceOf(SupplierTableCalculator::class, $calculator);
