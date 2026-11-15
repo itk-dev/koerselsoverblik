@@ -1222,12 +1222,17 @@ The project is developed test first, with 100 % line coverage and mutation testi
 | Unit | `Report`, `Import`, value objects, `FormatExtension` | PHPUnit |
 | Integration | Repositories and aggregate queries, replacement and clearing, commands | `KernelTestCase`, MariaDB, `dama/doctrine-test-bundle` |
 | Functional | Every route × role, forms, the OIDC login with a stubbed identity provider, upload end to end, a second confirmation of one upload, the overview | `WebTestCase` |
+| Fixtures | The code that makes invented data: `src/DataFixtures` and the fixture commands | PHPUnit group `fixtures`, outside the default run |
+
+The coverage gate and Infection measure the production code only. The fixture code is not
+production code, so `task test` does not run the `fixtures` group. `task test:fixtures` and a
+separate CI job run it.
 
 **Mutation testing (Infection):**
 
 - `src/Report` and `src/Import` require a covered MSI of 100 %. The rest of the mutated code
   requires 80 %.
-- Controllers, form types and Twig components are not mutated.
+- Controllers, form types, Twig components and the fixture code are not mutated.
 - Each Infection thread uses its own test database (`db_test<THREAD>`). The mutation tasks
   create and migrate them.
 - Only the release and hotfix branches run it, on the whole code base. Feature pull requests do
@@ -1289,8 +1294,8 @@ hold the connection details.
 phpfpm container. A second cron job runs `app:driving-data:delete-orphan-copies` each night.
 
 **CI:** GitHub Actions runs coding standards, PHPStan, Rector and the tests with no coverage on every
-pull request. The release and hotfix branches also run the coverage gate and mutation testing on the
-whole code base.
+pull request. A separate job runs the `fixtures` group. The release and hotfix branches also run the
+coverage gate and mutation testing on the production code.
 
 ## Open decisions
 
