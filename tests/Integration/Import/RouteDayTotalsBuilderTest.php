@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Import;
 
+use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\Route;
@@ -15,6 +16,7 @@ use App\Import\Mapping\MappingProvider;
 use App\Import\RouteDayTotalsBuilder;
 use App\Report\DayTotalsDto;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Events;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -91,6 +93,27 @@ final class RouteDayTotalsBuilderTest extends KernelTestCase
     }
 
     /**
+     * The builder writes the rows in groups, so the memory use does not grow with the range.
+     */
+    public function testMoreRowsThanOneGroupAreAllStored(): void
+    {
+        $values = self::baseRows()[0]->values;
+        $this->import(array_map(
+            static fn (int $number): ExtractRow => new ExtractRow(['route' => \sprintf('R%03d-01', $number)] + $values, 'S-'.$number),
+            range(1, 600),
+        ));
+        $flushes = new FlushCounter();
+        $this->entityManager->getEventManager()->addEventListener(Events::postFlush, $flushes);
+
+        $built = $this->builder()->rebuild(self::range('2026-01-05', '2026-01-05'));
+
+        // One flush for the full group, and one for the rows after it.
+        self::assertSame(2, $flushes->count);
+        self::assertSame(600, $built);
+        self::assertCount(600, $this->rows());
+    }
+
+    /**
      * @return list<RouteDayTotals>
      */
     private function rows(): array
@@ -113,13 +136,30 @@ final class RouteDayTotalsBuilderTest extends KernelTestCase
         return ImportRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate), 31);
     }
 
+    /**
+     * @return list<ExtractRow>
+     */
+    private static function baseRows(): array
+    {
+        return new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows;
+    }
+
     private function importBase(): void
     {
-        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml');
+        $this->import(self::baseRows());
+    }
+
+    /**
+     * Imports the rows on 5 January. The import builds the totals of that date.
+     *
+     * @param list<ExtractRow> $rows
+     */
+    private function import(array $rows): void
+    {
         $path = sys_get_temp_dir().'/'.uniqid('extract_', true).'.xlsx';
         $provider = self::getContainer()->get(MappingProvider::class);
         self::assertInstanceOf(MappingProvider::class, $provider);
-        new ExtractWriter()->write($path, $provider->default(), $scenario->rows);
+        new ExtractWriter()->write($path, $provider->default(), $rows);
         $importer = self::getContainer()->get(DrivingDataImporter::class);
         self::assertInstanceOf(DrivingDataImporter::class, $importer);
         $importer->import($path, self::range('2026-01-05', '2026-01-05'), $provider->default(), null, 'base.xlsx');
