@@ -26,11 +26,9 @@ when@test:
             # Infection sets "TEST_TOKEN" to the thread number in each mutant process. The
             # mutation tasks in Taskfile.yml create and migrate one database for each thread.
             dbname_suffix: '_test%env(default::TEST_TOKEN)%'
-            # No test reads the collected queries or the query log. Without this, the debug kernel
-            # keeps each query with a backtrace in memory, and the import tests have many queries.
+            # No test reads the collected queries. Without this, the debug kernel keeps each query
+            # with a backtrace in memory, and the import tests have many queries.
             profiling: false
-            profiling_collect_backtrace: false
-            logging: false
 
 when@prod:
     doctrine:
