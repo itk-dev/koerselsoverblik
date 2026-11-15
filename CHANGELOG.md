@@ -331,3 +331,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a sub-agreement builds the scopes that it changes, and `app:driving-data:rebuild-totals`
   builds all months. `app:fixtures:suppliers` also builds all months, because the import of the
   development dataset runs before the suppliers exist.
+- The plans agree with the issues and the pull requests again. #117, #132 and #136 are in
+  "Done", #122 and #105 are ready, and the plans list #128 and #131. #75 needs #131.
