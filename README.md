@@ -524,11 +524,12 @@ task test:mutation
   in a transaction that is rolled back.
 - **Fixture files:** the test extracts are made from YAML scenarios in `tests/fixtures/driving_data/`.
   The data is invented. Never commit real extracts.
-- **The "fixtures" group:** `src/DataFixtures` and the commands `app:fixtures:driving-data` and
-  `app:fixtures:suppliers` make invented data for development and for the tests. They are not
-  production code. Their tests have `#[Group('fixtures')]`. `task test`, the coverage gate and
-  Infection do not include them. `task test:fixtures` and a separate CI job run them. Give the
-  group to each new test of this code.
+- **The "fixtures" group:** `DevDatasetGenerator`, `DatasetSettings`, `SchoolCalendar` and the
+  commands `app:fixtures:driving-data` and `app:fixtures:suppliers` make the development dataset.
+  They are not production code. Their tests have `#[Group('fixtures')]`. `task test`, the
+  coverage gate and Infection do not include them. `task test:fixtures` and a separate CI job run
+  them. Give the group to each new test of this code. `ExtractWriter` and `ScenarioLoader` are
+  not in the group, because the production tests build their extracts with them.
 - **Functional tests:** they assert behaviour, not markup. Use text and `data-test` attributes, so
   that a layout change does not break them.
 - **Coverage:** PHPUnit measures coverage with Xdebug, because the phpfpm image has no pcov. Do
@@ -537,11 +538,13 @@ task test:mutation
 - **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
   `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
   components are not mutated; the functional tests cover them. The code of the "fixtures" group
-  is not mutated. The HTML report is written to `var/infection/`.
+  is not mutated. The extract writer and the scenario loader are mutated, because the parser
+  tests trust their files. The HTML report is written to `var/infection/`.
 - **Memory:** a full run must stay below the `memory_limit` of 256 MB in `php.ini`. PHP does not
   give memory back to the system during the run, so the peak of one test stays for all later
   tests. Do not keep large sets of rows in memory at the same time in a test. The test
-  environment does not collect the Doctrine queries (`config/packages/doctrine.yaml`).
+  environment does not collect the Doctrine queries (`config/packages/doctrine.yaml`). The test
+  log keeps at most 50 records in memory until an error (`config/packages/monolog.yaml`).
 - **How the two thresholds work:** Infection has one threshold for each run, so
   `infection.json5` sets 80 % for all mutated code. Then `bin/mutation-core-check.php` reads the
   JSON log and fails if a mutant escaped or timed out in `src/Report` or `src/Import`. It also

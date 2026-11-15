@@ -1222,17 +1222,19 @@ The project is developed test first, with 100 % line coverage and mutation testi
 | Unit | `Report`, `Import`, value objects, `FormatExtension` | PHPUnit |
 | Integration | Repositories and aggregate queries, replacement and clearing, commands | `KernelTestCase`, MariaDB, `dama/doctrine-test-bundle` |
 | Functional | Every route × role, forms, the OIDC login with a stubbed identity provider, upload end to end, a second confirmation of one upload, the overview | `WebTestCase` |
-| Fixtures | The code that makes invented data: `src/DataFixtures` and the fixture commands | PHPUnit group `fixtures`, outside the default run |
+| Fixtures | The code that makes the development dataset: `DevDatasetGenerator`, `DatasetSettings`, `SchoolCalendar` and the fixture commands | PHPUnit group `fixtures`, outside the default run |
 
-The coverage gate and Infection measure the production code only. The fixture code is not
-production code, so `task test` does not run the `fixtures` group. `task test:fixtures` and a
-separate CI job run it.
+The coverage gate and Infection measure the production code, and the test tools that the
+production tests trust: `ExtractWriter` and `ScenarioLoader`. The code of the development dataset
+is not production code, so `task test` does not run the `fixtures` group. `task test:fixtures`
+and a separate CI job run it.
 
 **Mutation testing (Infection):**
 
 - `src/Report` and `src/Import` require a covered MSI of 100 %. The rest of the mutated code
   requires 80 %.
-- Controllers, form types, Twig components and the fixture code are not mutated.
+- Controllers, form types, Twig components and the code of the development dataset are not
+  mutated.
 - Each Infection thread uses its own test database (`db_test<THREAD>`). The mutation tasks
   create and migrate them.
 - Only the release and hotfix branches run it, on the whole code base. Feature pull requests do

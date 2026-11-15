@@ -159,4 +159,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Make the overview and the punctuality page fast with more driving data | [#134](https://github.com/itk-dev/koerselsoverblik/issues/134) | [#135](https://github.com/itk-dev/koerselsoverblik/pull/135) |
 | Calculate the figures from the totals of each route and day | [#136](https://github.com/itk-dev/koerselsoverblik/issues/136) | [#137](https://github.com/itk-dev/koerselsoverblik/pull/137) |
 | Store the citizens of each month | [#138](https://github.com/itk-dev/koerselsoverblik/issues/138) | [#139](https://github.com/itk-dev/koerselsoverblik/pull/139) |
-| Decrease the memory use of the test suite, and test the fixture code outside the default run | [#131](https://github.com/itk-dev/koerselsoverblik/issues/131) | – |
+| Decrease the memory use of the test suite, and test the development dataset outside the default run | [#131](https://github.com/itk-dev/koerselsoverblik/issues/131) | [#141](https://github.com/itk-dev/koerselsoverblik/pull/141) |
