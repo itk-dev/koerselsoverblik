@@ -413,7 +413,13 @@ recalculated.
   again in one transaction.
 - The citizens are distinct person ids, so the citizens of two days cannot be added. They stay a
   query on `StopRow`. The index `stop_row (service_date, stop_type, stop_status, route_id,
-  person_id)` has all the columns of that query, so MariaDB does not read the rows.
+  person_id)` has all the columns of that query, so MariaDB does not read the rows. The index
+  starts with the date, so it also serves the queries of a date range. Thus `stop_row` has no
+  index on the date alone.
+- `DayTotalsDto::fromRow()` fails if a query row has no value for a counter that the query must
+  give. Thus a wrong alias in a query does not give zeros with no error.
+- `OtherToleranceListener` shows `OtherToleranceException` as a page with the status 503. The
+  page names the command, so that the admin does not have to read the log first.
 
 ## Importing driving data
 
