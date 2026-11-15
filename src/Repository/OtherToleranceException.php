@@ -11,11 +11,14 @@ namespace App\Repository;
  */
 final class OtherToleranceException extends \RuntimeException
 {
-    public function __construct(int $toleranceMinutes)
+    public const string COMMAND = 'app:driving-data:rebuild-totals';
+
+    public function __construct(public readonly int $toleranceMinutes)
     {
         parent::__construct(\sprintf(
-            'Some totals of each route and day were built with another tolerance than %d minutes. Run "app:driving-data:rebuild-totals".',
+            'Some totals of each route and day were built with another tolerance than %d minutes. Run "%s".',
             $toleranceMinutes,
+            self::COMMAND,
         ));
     }
 }
