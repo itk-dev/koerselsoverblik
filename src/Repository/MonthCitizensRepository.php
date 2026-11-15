@@ -32,17 +32,18 @@ class MonthCitizensRepository extends ServiceEntityRepository
      */
     public function byMonth(DateRangeDto $range, ?int $supplierId = null): array
     {
-        /** @var list<MonthCitizens> $rows */
+        /** @var list<array{firstDate: \DateTimeImmutable, citizens: int}> $rows */
         $rows = $this->inScope($this->createQueryBuilder('months'), $supplierId)
+            ->select('months.firstDate', 'months.citizens')
             ->andWhere('months.firstDate BETWEEN :first AND :last')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
             ->getQuery()
-            ->getResult();
+            ->getArrayResult();
 
         $citizens = [];
         foreach ($rows as $row) {
-            $citizens[$row->getFirstDate()->format('Y-m')] = $row->getCitizens();
+            $citizens[$row['firstDate']->format('Y-m')] = $row['citizens'];
         }
 
         return $citizens;
