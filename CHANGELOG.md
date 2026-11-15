@@ -322,3 +322,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rebuild. The citizens stay a query on `stop_row`, with a new index that holds all its columns.
   `app:driving-data:rebuild-totals` builds all dates again, after the first deploy and after a
   change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. The table replaces the planned `DailyStats`.
+- [#138](https://github.com/itk-dev/koerselsoverblik/issues/138)
+  `MonthCitizens` holds the citizens of each calendar month, for all suppliers and for each
+  supplier, with no person ids. The citizens sparkline of the overview reads it, so the overview
+  no longer counts 12 months of person ids. An import builds the months of its range, an edit of
+  a sub-agreement builds the scopes that it changes, and `app:driving-data:rebuild-totals`
+  builds all months.
