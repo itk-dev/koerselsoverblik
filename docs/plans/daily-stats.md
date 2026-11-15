@@ -13,7 +13,7 @@ decide how the trips, the peak passengers, the solo runs and the empty kilometre
 ## Implementation
 
 The goal: the overview reads its remaining figures from the totals of each route and day
-([route-day-totals.md](route-day-totals.md)). That table replaces the earlier design of
+(`RouteDayTotals`, see [Data model](../architecture.md#data-model)). That table replaces the earlier design of
 `DailyStats`, with one row for each date and supplier.
 
 - Add the driven and the empty kilometres, and the driven and the empty minutes, to `RouteRun`.

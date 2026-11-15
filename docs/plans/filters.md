@@ -18,6 +18,4 @@ See the [rules for plans](README.md#rules).
 - Open point: the supplier tables have the row "Ukendt" for the routes of a sub-agreement with
   no supplier. The supplier filter cannot select these routes. Decide if the filter needs this
   option.
-- Do this feature before #85 and #87, if possible:
-  - #85 calculates the 12 months up to the period, so it needs the periods of #115.
-  - #87 must apply the supplier filter of #117 to the locations.
+- #87 must apply the supplier filter of #117 to the locations.
