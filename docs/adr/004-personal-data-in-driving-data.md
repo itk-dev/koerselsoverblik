@@ -99,5 +99,7 @@ data is imported only then. If the decision changes, the parser and the data mod
 - [ ] Get the data protection adviser's view.
 - [ ] Get the decision accepted, or changed, before go-live.
 - [ ] Decide the retention period of the stop rows.
+- [ ] Decide whether the counts of `MonthCitizens` stay, or are deleted with the old stop rows.
+      Decide it before the retention job is built.
 - [ ] Decide what staff account data is stored (email, display name), and how long the
       authentication log is kept.

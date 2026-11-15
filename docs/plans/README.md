@@ -78,7 +78,6 @@ feature that has an issue or an issue text.
 | Fix the month chooser, the chart labels and the number format | Blocked | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | #116 | [punctuality-layout.md](punctuality-layout.md) |
 | Show the ignored sub-agreements on the punctuality page | Ready | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | – | [ignored-sub-agreements-note.md](ignored-sub-agreements-note.md) |
 | Calculate the figures from the totals of each route and day | In progress | [#136](https://github.com/itk-dev/koerselsoverblik/issues/136) | – | [route-day-totals.md](route-day-totals.md) |
-| Store the citizens of each month | In progress | [#138](https://github.com/itk-dev/koerselsoverblik/issues/138) | #136 | [month-citizens.md](month-citizens.md) |
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
 
@@ -152,3 +151,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Filter the punctuality page and the overview by period and comparison | [#116](https://github.com/itk-dev/koerselsoverblik/issues/116) | [#121](https://github.com/itk-dev/koerselsoverblik/pull/121) |
 | Calculate the 12 months in one query | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | [#135](https://github.com/itk-dev/koerselsoverblik/pull/135) |
 | Make the overview and the punctuality page fast with more driving data | [#134](https://github.com/itk-dev/koerselsoverblik/issues/134) | [#135](https://github.com/itk-dev/koerselsoverblik/pull/135) |
+| Store the citizens of each month | [#138](https://github.com/itk-dev/koerselsoverblik/issues/138) | [#PR](https://github.com/itk-dev/koerselsoverblik/pull/PR) |

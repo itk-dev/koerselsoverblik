@@ -425,6 +425,12 @@ dates. The derived tables hold no information that can't be recalculated.
   changes the counts of the old and the new supplier. With one year of data, the save then takes
   approximately 1.5 to 2.5 seconds, and the time grows with the history. A new sub-agreement has
   no routes until an import, so it builds nothing.
+- Each code path that changes the supplier or the ignored flag of a sub-agreement must build the
+  counts of `MonthCitizens` again. Otherwise a month on the overview shows an old count, with no
+  error. Today these paths are the edit of a sub-agreement and `app:fixtures:suppliers`.
+- `MonthCitizensBuilder::rebuildAll()` deletes all rows of a scope, and writes only the months
+  that have stop rows. When the retention job of ADR 004 deletes old stop rows, a later rebuild
+  thus deletes the counts of those months. Decide this before the job is built.
 - `DayTotalsDto::fromRow()` fails if a query row has no value for a counter that the query must
   give. Thus a wrong alias in a query does not give zeros with no error.
 - `OtherToleranceListener` shows `OtherToleranceException` as a page with the status 503. The
