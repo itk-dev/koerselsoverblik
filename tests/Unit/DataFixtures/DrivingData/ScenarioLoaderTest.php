@@ -9,13 +9,11 @@ use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingLoader;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Checks that the loader changes a scenario into extract rows with application values.
  */
-#[Group('fixtures')]
 final class ScenarioLoaderTest extends TestCase
 {
     private const string SCENARIOS = __DIR__.'/../../../fixtures/driving_data';
