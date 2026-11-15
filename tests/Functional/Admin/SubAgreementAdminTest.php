@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Admin;
 
+use App\Entity\MonthCitizens;
 use App\Entity\Route;
 use App\Entity\SubAgreement;
 use App\Entity\Supplier;
@@ -149,6 +150,33 @@ final class SubAgreementAdminTest extends WebTestCase
         $this->client->submitForm('Gem', ['sub_agreement[ignored]' => false]);
         $this->client->followRedirect();
         self::assertSelectorNotExists('[data-test="ignored"]');
+    }
+
+    /**
+     * The citizens of each month depend on the ignored flag and the supplier, so a change of them
+     * builds the counts again. There are no stop rows, so the old counts are deleted. A save with
+     * no change of them keeps the counts.
+     */
+    public function testChangeBuildsTheCitizensOfEachMonthAgain(): void
+    {
+        $supplierA = $this->supplier('Vognmand A');
+        $supplierB = $this->supplier('Vognmand B');
+        $subAgreement = $this->subAgreement('AB-CD', $supplierA);
+        $this->entityManager()->persist(new MonthCitizens(new \DateTimeImmutable('2026-01-01'), null, 99));
+        $this->entityManager()->persist(new MonthCitizens(new \DateTimeImmutable('2026-01-01'), $supplierA, 98));
+        $this->entityManager()->flush();
+
+        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/edit');
+        $this->client->submitForm('Gem');
+        self::assertSame(2, $this->entityManager()->getRepository(MonthCitizens::class)->count());
+
+        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/edit');
+        $this->client->submitForm('Gem', ['sub_agreement[supplier]' => (string) $supplierB->getId()]);
+        self::assertSame(1, $this->entityManager()->getRepository(MonthCitizens::class)->count());
+
+        $this->client->request('GET', '/admin/sub-agreements/'.$subAgreement->getId().'/edit');
+        $this->client->submitForm('Gem', ['sub_agreement[ignored]' => true]);
+        self::assertSame(0, $this->entityManager()->getRepository(MonthCitizens::class)->count());
     }
 
     /**

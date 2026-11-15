@@ -7,6 +7,7 @@ namespace App\Tests\Integration\Import;
 use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\MonthCitizens;
 use App\Entity\RejectedStopRow;
 use App\Entity\RouteDayTotals;
 use App\Entity\RouteRun;
@@ -20,6 +21,7 @@ use App\Import\ImportRangeDto;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
+use App\Import\MonthCitizensBuilder;
 use App\Import\NoStopRowsException;
 use App\Import\RouteBuilder;
 use App\Import\RouteDayTotalsBuilder;
@@ -195,6 +197,23 @@ final class DrivingDataImporterTest extends KernelTestCase
     }
 
     /**
+     * The import builds the citizens of the months of its range. The routes of the base scenario
+     * have no supplier, so the month has a count for all suppliers only. The citizens are in the
+     * "expected" section of the scenario.
+     */
+    public function testImportBuildsTheCitizensOfEachMonth(): void
+    {
+        $this->writeScenario('base');
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+
+        $months = $this->entityManager->getRepository(MonthCitizens::class)->findAll();
+        self::assertSame(['2026-01-01'], array_map(static fn (MonthCitizens $month): string => $month->getFirstDate()->format('Y-m-d'), $months));
+        self::assertSame([6], array_map(static fn (MonthCitizens $month): int => $month->getCitizens(), $months));
+        self::assertNull($months[0]->getSupplier());
+    }
+
+    /**
      * The parse starts after the delete. A file with a missing column then also undoes the delete.
      */
     public function testFailedImportLeavesTheDataAsItWas(): void
@@ -286,6 +305,8 @@ final class DrivingDataImporterTest extends KernelTestCase
         self::assertInstanceOf(SourceRowRepository::class, $sourceRows);
         $totalsBuilder = self::getContainer()->get(RouteDayTotalsBuilder::class);
         self::assertInstanceOf(RouteDayTotalsBuilder::class, $totalsBuilder);
+        $monthCitizens = self::getContainer()->get(MonthCitizensBuilder::class);
+        self::assertInstanceOf(MonthCitizensBuilder::class, $monthCitizens);
 
         // The container removes a private service that no other service uses yet.
         return new DrivingDataImporter(
@@ -293,6 +314,7 @@ final class DrivingDataImporterTest extends KernelTestCase
             new StopRowReplacer($this->entityManager, $subAgreements, new StopRowRangeDeleter($stopRows, $rejectedRows, $sourceRows)),
             new RouteBuilder($routeRuns, $stopRows, $this->entityManager, new RouteRunCalculator()),
             $totalsBuilder,
+            $monthCitizens,
             $stopRows,
             $this->entityManager,
             new MockClock('2026-01-07 10:15:00'),

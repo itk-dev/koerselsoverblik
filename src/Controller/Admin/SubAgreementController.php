@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\SubAgreement;
 use App\Form\SubAgreementType;
+use App\Import\MonthCitizensBuilder;
 use App\Repository\SubAgreementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -53,12 +54,19 @@ final class SubAgreementController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'admin_sub_agreement_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
-    public function edit(Request $request, SubAgreement $subAgreement, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, SubAgreement $subAgreement, EntityManagerInterface $entityManager, MonthCitizensBuilder $monthCitizens): Response
     {
+        $wasIgnored = $subAgreement->isIgnored();
+        $oldSupplierId = $subAgreement->getSupplier()?->getId();
         $form = $this->createForm(SubAgreementType::class, $subAgreement, ['edit_reference' => false]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
+            // The citizens of each month depend on the flag and the supplier. A new sub-agreement
+            // has no routes until an import, so only an edit builds them again.
+            $entityManager->wrapInTransaction(static function () use ($entityManager, $monthCitizens, $subAgreement, $wasIgnored, $oldSupplierId): void {
+                $entityManager->flush();
+                $monthCitizens->rebuildAfterSubAgreementChange($wasIgnored !== $subAgreement->isIgnored(), $oldSupplierId, $subAgreement->getSupplier()?->getId());
+            });
             $this->addFlash('success', 'sub_agreement.saved');
 
             return $this->redirectToRoute('admin_sub_agreement_show', ['id' => $subAgreement->getId()]);
