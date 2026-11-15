@@ -127,10 +127,16 @@ tasks:
         done'
 
   test:
-    desc: Run all tests
+    desc: Run all tests, except the "fixtures" group
     cmds:
       - task: test:db:setup
       - '{{ .PHPUNIT }} {{ .CLI_ARGS }}'
+
+  test:fixtures:
+    desc: Run the tests of the code that makes invented data (the "fixtures" group)
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT }} --group fixtures {{ .CLI_ARGS }}'
 
   test:unit:
     desc: Run the unit tests
@@ -141,7 +147,8 @@ tasks:
     desc: 'Run the tests in one file — `task test:file -- tests/Functional/SmokeTest.php`'
     cmds:
       - task: test:db:setup
-      - '{{ .PHPUNIT }} {{ .CLI_ARGS }}'
+      # "--all" also runs a file of the "fixtures" group, which phpunit.dist.xml excludes.
+      - '{{ .PHPUNIT }} --all {{ .CLI_ARGS }}'
 
   test:coverage:
     desc: Run all tests with coverage. The reports are in var/coverage/.

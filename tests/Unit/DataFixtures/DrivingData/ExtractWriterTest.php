@@ -12,6 +12,7 @@ use App\Import\Mapping\MappingLoader;
 use OpenSpout\Reader\XLSX\Options;
 use OpenSpout\Reader\XLSX\Reader;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
  * The mapping tests/fixtures/mappings/valid.yaml has the data on sheet 1, the header in row 2,
  * and the row id columns "Id" and "Run". "Run" is also the column of the run field.
  */
+#[Group('fixtures')]
 final class ExtractWriterTest extends TestCase
 {
     private const string MAPPINGS = __DIR__.'/../../../fixtures/mappings';

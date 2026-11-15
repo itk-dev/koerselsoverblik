@@ -11,12 +11,14 @@ use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\SchoolCalendar;
 use App\Import\Mapping\MappingLoader;
 use App\Import\SubAgreementReference;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Checks the development dataset: one ISO week at a time, the same rows for the same seed, the
  * volume of the school calendar, and the punctuality that the settings give.
  */
+#[Group('fixtures')]
 final class DevDatasetGeneratorTest extends TestCase
 {
     private const string DEFAULT_MAPPING = __DIR__.'/../../../../config/import/driving_data/default.yaml';
@@ -38,12 +40,12 @@ final class DevDatasetGeneratorTest extends TestCase
 
     public function testSameSeedGivesTheSameRows(): void
     {
-        self::assertEquals(self::generate(self::AUTUMN_WEEK), self::generate(self::AUTUMN_WEEK));
+        self::assertSame(self::fingerprint(self::AUTUMN_WEEK), self::fingerprint(self::AUTUMN_WEEK));
     }
 
     public function testOtherSeedGivesOtherRows(): void
     {
-        self::assertNotEquals(self::generate(self::AUTUMN_WEEK), self::generate(self::AUTUMN_WEEK, seed: 8));
+        self::assertNotSame(self::fingerprint(self::AUTUMN_WEEK), self::fingerprint(self::AUTUMN_WEEK, seed: 8));
     }
 
     public function testWeekHasRowsOnlyOnItsSevenDays(): void
@@ -191,12 +193,10 @@ final class DevDatasetGeneratorTest extends TestCase
      */
     public function testRowIdsAreUniqueAcrossWeeks(): void
     {
-        $rows = [...self::generate(self::SCHOOL_WEEK), ...self::generate('2026-09-21')];
-
-        $ids = array_map(static fn (ExtractRow $row): ?string => $row->rowId, $rows);
+        $ids = [...self::rowIds(self::SCHOOL_WEEK), ...self::rowIds('2026-09-21')];
 
         self::assertNotContains(null, $ids);
-        self::assertCount(\count($rows), array_unique($ids));
+        self::assertCount(\count($ids), array_unique($ids));
     }
 
     /**
@@ -250,6 +250,25 @@ final class DevDatasetGeneratorTest extends TestCase
         $settings = new DatasetSettings($seed, new \DateTimeImmutable('2026-01-01'), $start, $trend);
 
         return new DevDatasetGenerator(new SchoolCalendar())->week($settings, new \DateTimeImmutable($monday));
+    }
+
+    /**
+     * Gives a hash of all values of the rows of a week. Two weeks of rows together use much memory,
+     * so a test compares the hashes, not the rows.
+     */
+    private static function fingerprint(string $monday, int $seed = 7): string
+    {
+        return hash('xxh128', serialize(self::generate($monday, $seed)));
+    }
+
+    /**
+     * Gives only the row ids of a week. The rows of two weeks together use much memory.
+     *
+     * @return list<?string>
+     */
+    private static function rowIds(string $monday): array
+    {
+        return array_map(static fn (ExtractRow $row): ?string => $row->rowId, self::generate($monday));
     }
 
     /**

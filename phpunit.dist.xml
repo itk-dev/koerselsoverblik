@@ -31,6 +31,15 @@
         </testsuite>
     </testsuites>
 
+    <!-- The "fixtures" group tests the code that makes invented data for development and for the
+         tests. It is not production code, and it takes most of the time of a full run. Run it with
+         `task test:fixtures`. -->
+    <groups>
+        <exclude>
+            <group>fixtures</group>
+        </exclude>
+    </groups>
+
     <source ignoreSuppressionOfDeprecations="true"
             ignoreIndirectDeprecations="true"
             restrictNotices="true"
@@ -41,6 +50,10 @@
         </include>
         <exclude>
             <file>src/Kernel.php</file>
+            <!-- The code of the "fixtures" group. The default run does not test it. -->
+            <directory>src/DataFixtures</directory>
+            <file>src/Command/DrivingDataFixturesCommand.php</file>
+            <file>src/Command/SupplierFixturesCommand.php</file>
         </exclude>
 
         <deprecationTrigger>
