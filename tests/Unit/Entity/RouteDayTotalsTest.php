@@ -17,7 +17,7 @@ final class RouteDayTotalsTest extends TestCase
         $route = new Route('AB-CD-01', new SubAgreement()->setReference('AB-CD'));
         $serviceDate = new \DateTimeImmutable('2026-01-05');
         // Each counter has its own value, so that a counter in the wrong column fails the test.
-        $totals = new DayTotalsDto(...range(1, 17));
+        $totals = new DayTotalsDto(...range(1, \count(DayTotalsDto::FIELDS)));
 
         $row = new RouteDayTotals($route, $serviceDate, 5, $totals);
 
