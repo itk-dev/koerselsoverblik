@@ -17,12 +17,14 @@ use App\Import\Mapping\StopType;
 use App\Report\DateRangeDto;
 use App\Repository\MonthCitizensRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * Checks that the command gives the sub-agreements of the development dataset their invented
  * suppliers.
  */
+#[Group('fixtures')]
 final class SupplierFixturesCommandTest extends KernelTestCase
 {
     private EntityManagerInterface $entityManager;

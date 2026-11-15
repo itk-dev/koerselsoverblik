@@ -59,9 +59,22 @@ final class PunctualityPageBuilderTest extends KernelTestCase
         self::assertSame('2026-01', $page->months[11]->query());
     }
 
-    private static function select(string $type, string $date): PeriodSelectionDto
+    /**
+     * The page has no comparison when the comparison period is before the start of the data.
+     */
+    public function testPageHasNoComparisonBeforeTheStartOfTheData(): void
     {
-        return new PeriodRangeFactory()->create(PeriodFilter::fromQuery($type, $date, null, null, new \DateTimeImmutable('2026-11-09')));
+        $this->importBase();
+
+        $page = $this->builder()->build(self::select('month', '2026-01-05', dataStart: '2026-01-01'));
+
+        self::assertNull($page->comparison);
+        self::assertEquals(new PunctualityCountDto(5, 6), $page->current()->total->dropOffPerCitizen);
+    }
+
+    private static function select(string $type, string $date, string $dataStart = ''): PeriodSelectionDto
+    {
+        return new PeriodRangeFactory($dataStart)->create(PeriodFilter::fromQuery($type, $date, null, null, new \DateTimeImmutable('2026-11-09')));
     }
 
     private function builder(): PunctualityPageBuilder

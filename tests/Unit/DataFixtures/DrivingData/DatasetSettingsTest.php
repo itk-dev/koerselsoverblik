@@ -6,11 +6,13 @@ namespace App\Tests\Unit\DataFixtures\DrivingData;
 
 use App\DataFixtures\DrivingData\DatasetSettings;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Checks the punctuality slider of the development dataset.
  */
+#[Group('fixtures')]
 final class DatasetSettingsTest extends TestCase
 {
     #[DataProvider('punctuality')]

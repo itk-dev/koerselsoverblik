@@ -6,11 +6,13 @@ namespace App\Tests\Unit\DataFixtures\DrivingData;
 
 use App\DataFixtures\DrivingData\SchoolCalendar;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Checks the days of the Aarhus school calendar that the development dataset uses.
  */
+#[Group('fixtures')]
 final class SchoolCalendarTest extends TestCase
 {
     #[DataProvider('days')]

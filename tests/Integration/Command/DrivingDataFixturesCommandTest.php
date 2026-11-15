@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Command;
 
 use OpenSpout\Reader\XLSX\Options;
 use OpenSpout\Reader\XLSX\Reader;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Console\Tester\ExecutionResult;
@@ -16,6 +17,7 @@ use Symfony\Component\Console\Tester\ExecutionResult;
  *
  * The tests write few months, because a week of the development dataset is slow to write.
  */
+#[Group('fixtures')]
 final class DrivingDataFixturesCommandTest extends KernelTestCase
 {
     private const array DEFAULT_HEADER = [

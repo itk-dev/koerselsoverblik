@@ -6,16 +6,20 @@
     source: {
         directories: ['src'],
         // The functional tests cover this glue. Mutants in it are mostly equivalent.
-        // The generator and the fixtures command make invented data. Their mutants change only
-        // the data. The extract writer and the scenario loader are mutated, because the parser
-        // tests trust their files.
+        // The generator, its settings and calendar, and the fixture commands make the development
+        // dataset. They are not production code, and the "fixtures" group of PHPUnit tests them
+        // outside the default run (see phpunit.dist.xml). The extract writer and the scenario
+        // loader are mutated, because the parser tests trust their files.
         excludes: [
             'Controller',
             'Form',
             'Twig/Components',
             'Kernel.php',
             'DataFixtures/DrivingData/DevDatasetGenerator.php',
+            'DataFixtures/DrivingData/DatasetSettings.php',
+            'DataFixtures/DrivingData/SchoolCalendar.php',
             'Command/DrivingDataFixturesCommand.php',
+            'Command/SupplierFixturesCommand.php',
         ],
     },
     tmpDir: 'var/infection/tmp',

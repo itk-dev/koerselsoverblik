@@ -333,3 +333,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   development dataset runs before the suppliers exist.
 - The plans agree with the issues and the pull requests again. #117, #132 and #136 are in
   "Done", #122 and #105 are ready, and the plans list #128 and #131. #75 needs #131.
+- [#131](https://github.com/itk-dev/koerselsoverblik/issues/131)
+  The tests focus on the production code. The tests of the development dataset
+  (`DevDatasetGenerator`, `DatasetSettings`, `SchoolCalendar` and the fixture commands) are in the
+  PHPUnit group "fixtures". `task test`, the coverage gate and Infection do not include this code.
+  `task test:fixtures` and a separate CI job run the group. `ExtractWriter` and `ScenarioLoader`
+  stay in the default run, because the production tests trust their files. `task test` takes
+  about 25 seconds, not 4.5 minutes. The test environment does not collect the Doctrine queries,
+  the test log keeps at most 50 records in memory, and the dataset tests keep less data in
+  memory. The peak memory of `task test` is 91 MB, not 226 MB. New tests cover the production
+  lines that only the fixture tests covered.

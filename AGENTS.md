@@ -44,6 +44,11 @@ The project uses test-driven development. See "Development" in [README.md](READM
 - Do not write production code without a test that requires it.
 - Line coverage must be 100 %. Do not use `@codeCoverageIgnore`. Only the release and hotfix
   branches check the coverage in CI.
+- The code that makes the development dataset (`DevDatasetGenerator`, `DatasetSettings`,
+  `SchoolCalendar` and the fixture commands) is not production code. Give its tests
+  `#[Group('fixtures')]`. The coverage gate and Infection do not include it. Run its tests with
+  `task test:fixtures`. `ExtractWriter` and `ScenarioLoader` stay in the default run, because the
+  production tests build their extracts with them.
 - Infection requires a covered MSI of 100 % in `src/Report` and `src/Import`, and 80 % in the
   remaining mutated code. Only the release and hotfix branches run Infection. Do not run it during the
   work on an issue.
