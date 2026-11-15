@@ -43,10 +43,10 @@ final class DrivingDataFixturesCommandTest extends KernelTestCase
         $result = self::runFixturesCommand(['--months' => '2']);
 
         $this->assertCommandIsSuccessful($result);
-        self::assertStringContainsString('13 files', $result->getDisplay());
+        self::assertStringContainsString('14 files', $result->getDisplay());
 
         $directory = self::directory();
-        foreach (['base', 'range_edges', 'bad_values', 'duplicate_row_ids'] as $scenario) {
+        foreach (['base', 'range_edges', 'bad_values', 'duplicate_row_ids', 'two_weeks'] as $scenario) {
             self::assertFileExists($directory.'/'.$scenario.'.xlsx');
         }
         $weeks = array_map(basename(...), glob($directory.'/dev-*.xlsx') ?: []);

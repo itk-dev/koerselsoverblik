@@ -49,6 +49,25 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
         self::assertSame([5, 5, 5], array_map(static fn (RouteDayTotals $row): int => $row->getToleranceMinutes(), $rows));
     }
 
+    /**
+     * The command builds the dates in steps of APP_DRIVING_DATA_MAX_DAYS (7 in the tests). The
+     * two dates of the scenario are 15 days apart, so the second date is in the third step.
+     */
+    public function testDatesInMoreStepsAreBuilt(): void
+    {
+        $this->import('two_weeks.yaml', '2026-01-05', '2026-01-20');
+        $entityManager = $this->entityManager();
+        $entityManager->createQuery('DELETE FROM '.RouteDayTotals::class.' totals')->execute();
+
+        $tester = $this->execute();
+
+        self::assertStringContainsString('Built 2 totals of a route and a day.', $tester->getDisplay());
+        $entityManager->clear();
+        $rows = $entityManager->getRepository(RouteDayTotals::class)->findBy([], ['serviceDate' => 'ASC']);
+        self::assertSame(['2026-01-05', '2026-01-20'], array_map(static fn (RouteDayTotals $row): string => $row->getServiceDate()->format('Y-m-d'), $rows));
+        self::assertSame([1, 1], array_map(static fn (RouteDayTotals $row): int => $row->getTotals()->trips, $rows));
+    }
+
     public function testNoStopRowsGiveNoTotals(): void
     {
         $tester = $this->execute();
@@ -75,14 +94,19 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
 
     private function importBase(): void
     {
-        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml');
+        $this->import('base.yaml', '2026-01-05', '2026-01-05');
+    }
+
+    private function import(string $file, string $first, string $last): void
+    {
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/'.$file);
         $path = sys_get_temp_dir().'/'.uniqid('extract_', true).'.xlsx';
         $provider = self::getContainer()->get(MappingProvider::class);
         self::assertInstanceOf(MappingProvider::class, $provider);
         new ExtractWriter()->write($path, $provider->default(), $scenario->rows);
         $importer = self::getContainer()->get(DrivingDataImporter::class);
         self::assertInstanceOf(DrivingDataImporter::class, $importer);
-        $importer->import($path, ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31), $provider->default(), null, 'base.xlsx');
+        $importer->import($path, ImportRangeDto::create(new \DateTimeImmutable($first), new \DateTimeImmutable($last), 31), $provider->default(), null, $file);
         unlink($path);
     }
 }
