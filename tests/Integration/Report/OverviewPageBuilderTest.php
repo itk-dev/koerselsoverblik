@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Report;
 
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\MonthCitizens;
 use App\Entity\RouteDayTotals;
 use App\Entity\StopRow;
 use App\Import\DrivingDataImporter;
@@ -17,6 +18,7 @@ use App\Report\PeriodRangeFactory;
 use App\Report\PeriodSelectionDto;
 use App\Report\SoloCountDto;
 use App\Report\TripCountDto;
+use App\Repository\MonthCitizensRepository;
 use App\Repository\RouteDayTotalsRepository;
 use App\Repository\StopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -108,8 +110,10 @@ final class OverviewPageBuilderTest extends KernelTestCase
         self::assertInstanceOf(StopRowRepository::class, $stopRows);
         $totals = $entityManager->getRepository(RouteDayTotals::class);
         self::assertInstanceOf(RouteDayTotalsRepository::class, $totals);
+        $monthCitizens = $entityManager->getRepository(MonthCitizens::class);
+        self::assertInstanceOf(MonthCitizensRepository::class, $monthCitizens);
 
-        return new OverviewPageBuilder($totals, $stopRows);
+        return new OverviewPageBuilder($totals, $stopRows, $monthCitizens);
     }
 
     private function importBase(): void

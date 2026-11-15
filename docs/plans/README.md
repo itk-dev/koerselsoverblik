@@ -151,3 +151,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Filter the punctuality page and the overview by period and comparison | [#116](https://github.com/itk-dev/koerselsoverblik/issues/116) | [#121](https://github.com/itk-dev/koerselsoverblik/pull/121) |
 | Calculate the 12 months in one query | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | [#135](https://github.com/itk-dev/koerselsoverblik/pull/135) |
 | Make the overview and the punctuality page fast with more driving data | [#134](https://github.com/itk-dev/koerselsoverblik/issues/134) | [#135](https://github.com/itk-dev/koerselsoverblik/pull/135) |
+| Store the citizens of each month | [#138](https://github.com/itk-dev/koerselsoverblik/issues/138) | [#139](https://github.com/itk-dev/koerselsoverblik/pull/139) |

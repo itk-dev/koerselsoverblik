@@ -11,6 +11,7 @@ use App\Import\Extract\InvalidExtractException;
 use App\Import\Extract\MissingColumnsException;
 use App\Import\Extract\StopRowParser;
 use App\Import\Mapping\MappingDto;
+use App\Report\DateRangeDto;
 use App\Repository\StopRowRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,6 +28,7 @@ final readonly class DrivingDataImporter
         private StopRowReplacer $replacer,
         private RouteBuilder $routeBuilder,
         private RouteDayTotalsBuilder $totalsBuilder,
+        private MonthCitizensBuilder $monthCitizens,
         private StopRowRepository $stopRows,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
@@ -53,10 +55,10 @@ final readonly class DrivingDataImporter
     }
 
     /**
-     * Replaces the stop rows of the range with the rows of the file, builds the route runs and the
-     * totals of each route and day of the range again, and saves the batch. All in one
-     * transaction, so a failed import leaves the data as it was. After an exception, Doctrine has
-     * closed the entity manager.
+     * Replaces the stop rows of the range with the rows of the file, builds the route runs, the
+     * totals of each route and day, and the citizens of the months of the range again, and saves
+     * the batch. All in one transaction, so a failed import leaves the data as it was. After an
+     * exception, Doctrine has closed the entity manager.
      *
      * @param ?User  $user     the user of the upload page, or null for the console
      * @param string $fileName the name of the uploaded file, not the path of the temporary file
@@ -94,6 +96,7 @@ final readonly class DrivingDataImporter
             $this->routeBuilder->rebuild($range);
             // The totals read the route runs, so they come after them.
             $this->totalsBuilder->rebuild($range);
+            $this->monthCitizens->rebuild(DateRangeDto::create($range->firstDate, $range->lastDate));
 
             return $batch;
         });

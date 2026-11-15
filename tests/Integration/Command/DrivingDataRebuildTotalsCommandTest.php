@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Command;
 
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\MonthCitizens;
 use App\Entity\Route;
 use App\Entity\RouteDayTotals;
 use App\Import\DrivingDataImporter;
@@ -43,10 +44,11 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
         $tester = $this->execute();
 
         self::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        self::assertStringContainsString('Built 3 totals of a route and a day.', $tester->getDisplay());
+        self::assertStringContainsString('Built 3 totals of a route and a day, and the citizens of each month.', $tester->getDisplay());
         $entityManager->clear();
         $rows = $entityManager->getRepository(RouteDayTotals::class)->findAll();
         self::assertSame([5, 5, 5], array_map(static fn (RouteDayTotals $row): int => $row->getToleranceMinutes(), $rows));
+        self::assertSame(1, $entityManager->getRepository(MonthCitizens::class)->count());
     }
 
     /**
@@ -61,19 +63,27 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
 
         $tester = $this->execute();
 
-        self::assertStringContainsString('Built 2 totals of a route and a day.', $tester->getDisplay());
+        self::assertStringContainsString('Built 2 totals of a route and a day, and the citizens of each month.', $tester->getDisplay());
         $entityManager->clear();
         $rows = $entityManager->getRepository(RouteDayTotals::class)->findBy([], ['serviceDate' => 'ASC']);
         self::assertSame(['2026-01-05', '2026-01-20'], array_map(static fn (RouteDayTotals $row): string => $row->getServiceDate()->format('Y-m-d'), $rows));
         self::assertSame([1, 1], array_map(static fn (RouteDayTotals $row): int => $row->getTotals()->trips, $rows));
     }
 
+    /**
+     * With no stop rows, the command deletes the old citizens of each month.
+     */
     public function testNoStopRowsGiveNoTotals(): void
     {
+        $entityManager = $this->entityManager();
+        $entityManager->persist(new MonthCitizens(new \DateTimeImmutable('2025-06-01'), null, 3));
+        $entityManager->flush();
+
         $tester = $this->execute();
 
         self::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        self::assertStringContainsString('Built 0 totals of a route and a day.', $tester->getDisplay());
+        self::assertStringContainsString('Built 0 totals of a route and a day', $tester->getDisplay());
+        self::assertSame(0, $entityManager->getRepository(MonthCitizens::class)->count());
     }
 
     private function execute(): CommandTester

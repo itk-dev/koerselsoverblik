@@ -431,6 +431,9 @@ are ignored (see below).
 When you change the supplier of a sub-agreement, the figures for all dates of its routes change
 to the new supplier. A supplier with sub-agreements cannot be deleted.
 
+A change of the supplier or of **Ignorér i beregningerne** counts the citizens of each month
+again. Thus the save can take some seconds, and the time grows with the amount of driving data.
+
 Some routes are not route runs. For example, the booked trips have the route name
 "Turbestilling". To leave such a sub-agreement out of the figures:
 
@@ -695,11 +698,12 @@ itkdev-docker-compose-server exec phpfpm bin/console doctrine:migrations:migrate
 itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 ```
 
-Each import builds the totals of each route and day of its range. Build the totals of all dates
-again in these cases:
+Each import builds the totals of each route and day of its range, and the citizens of its months.
+Build them for all dates again in these cases:
 
-- After the first deploy of the totals (#136). Until then, the pages show no figures for the
-  dates that were imported before.
+- After the first deploy of the totals (#136) and of the citizens of each month (#138). Until
+  then, the pages show no figures for the dates that were imported before, and the citizens
+  sparkline shows no values.
 - After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
   message that tells to run the command.
 

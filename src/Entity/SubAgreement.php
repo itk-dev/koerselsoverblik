@@ -81,6 +81,10 @@ class SubAgreement
         return $this->supplier;
     }
 
+    /**
+     * A change of the supplier changes the citizens of each month. The caller must build them
+     * again with MonthCitizensBuilder.
+     */
     public function setSupplier(?Supplier $supplier): static
     {
         $this->supplier = $supplier;
@@ -93,6 +97,10 @@ class SubAgreement
         return $this->ignored;
     }
 
+    /**
+     * A change of the flag changes the citizens of each month. The caller must build them again
+     * with MonthCitizensBuilder.
+     */
     public function setIgnored(bool $ignored): static
     {
         $this->ignored = $ignored;

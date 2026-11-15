@@ -377,6 +377,7 @@ erDiagram
 | `SourceRow` | The copy of one row of the extract, for one `StopRow` or one `RejectedStopRow`. See [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row) |
 | `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay, and the peak passengers. A later feature adds the distances and the durations. See [open decisions](#open-decisions) |
 | `RouteDayTotals` | Derived: the counters for one route and date that the driving figures are summed from, and the tolerance of the build. It has all routes, also the routes of an ignored sub-agreement. It has no citizens and no person ids |
+| `MonthCitizens` | Derived: the number of citizens in one calendar month, for all suppliers (no supplier) or for one supplier. It has no person ids |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
 **A sub-agreement has one supplier.** The supplier has no dates. A change of the supplier
@@ -402,20 +403,34 @@ routes. This is sufficient for some hundreds of routes. Check it again if the ro
 thousands.
 
 **Derived tables are always rebuildable.** `RouteRun` and `RouteDayTotals` are rebuilt from
-`StopRow` for the dates an import touched. The derived tables hold no information that can't be
-recalculated.
+`StopRow` for the dates an import touched, and `MonthCitizens` for the full months of those
+dates. The derived tables hold no information that can't be recalculated.
 
-- A change of the supplier or the ignored flag of a sub-agreement needs no rebuild, because the
-  queries apply them with `CountedRouteFilter`.
+- A change of the supplier or the ignored flag of a sub-agreement needs no rebuild of
+  `RouteDayTotals`, because the queries apply them with `CountedRouteFilter`.
 - The counts on time of `RouteDayTotals` depend on `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Each row
   stores the tolerance of its build. A sum fails with `OtherToleranceException` if a row has
   another tolerance. Then run `app:driving-data:rebuild-totals --no-debug`. It builds all dates
-  again in one transaction.
-- The citizens are distinct person ids, so the citizens of two days cannot be added. They stay a
-  query on `StopRow`. The index `stop_row (service_date, stop_type, stop_status, route_id,
-  person_id)` has all the columns of that query, so MariaDB does not read the rows. The index
-  starts with the date, so it also serves the queries of a date range. Thus `stop_row` has no
-  index on the date alone.
+  of both tables again in one transaction.
+- The citizens are distinct person ids, so the citizens of two days or two months cannot be
+  added. `MonthCitizens` holds the count of each calendar month, for all suppliers and for each
+  supplier, with no person ids. A period that is not a calendar month is counted on `StopRow`.
+  The index `stop_row (service_date, stop_type, stop_status, route_id, person_id)` has all the
+  columns of that query, so MariaDB does not read the rows. The index starts with the date, so it
+  also serves the queries of a date range. Thus `stop_row` has no index on the date alone.
+- The counts of `MonthCitizens` depend on the sub-agreements. Thus an edit of a sub-agreement
+  builds all months again for the scopes that it changes, in the same transaction as the save.
+  `MonthCitizensBuilder::rebuildAfterSubAgreementChange()` finds the scopes. The ignored flag
+  changes the count of all suppliers and of the supplier of the sub-agreement. The supplier
+  changes the counts of the old and the new supplier. With one year of data, the save then takes
+  approximately 1.5 to 2.5 seconds, and the time grows with the history. A new sub-agreement has
+  no routes until an import, so it builds nothing.
+- Each code path that changes the supplier or the ignored flag of a sub-agreement must build the
+  counts of `MonthCitizens` again. Otherwise a month on the overview shows an old count, with no
+  error. Today these paths are the edit of a sub-agreement and `app:fixtures:suppliers`.
+- `MonthCitizensBuilder::rebuildAll()` deletes all rows of a scope, and writes only the months
+  that have stop rows. When the retention job of ADR 004 deletes old stop rows, a later rebuild
+  thus deletes the counts of those months. Decide this before the job is built.
 - `DayTotalsDto::fromRow()` fails if a query row has no value for a counter that the query must
   give. Thus a wrong alias in a query does not give zeros with no error.
 - `OtherToleranceListener` shows `OtherToleranceException` as a page with the status 503. The
@@ -464,6 +479,7 @@ sequenceDiagram
     B->>DB: replace RouteRun rows in the range
     C->>A: rebuild(range)
     A->>DB: replace RouteDayTotals rows in the range
+    C->>DB: replace MonthCitizens rows of the months of the range
     C->>DB: update ImportBatch counts, commit
     C->>C: delete the file
     C-->>Admin: result page
@@ -720,6 +736,10 @@ would only delete data. The batch has no user. The command does not delete the f
      runs, the delay bands and the solo runs. They have the rules of the figures. They count all
      routes, so they do not use `CountedRouteFilter`.
    - It saves the rows in groups of 500, as the replacer does.
+   - `MonthCitizensBuilder` then replaces the `MonthCitizens` rows of the full months of the
+     range: from the first day of the month of the first date to the last day of the month of the
+     last date. It counts each month with `StopRowRepository::countCitizensByMonth()`, for all
+     suppliers and for each supplier.
 7. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts,
    the rejection reasons and the warnings (`ImportBatch::complete()`). They never have a field
    value.
@@ -995,13 +1015,15 @@ period before `KpiCalculator` above exists. It has the same filter bar as the pu
   period (see "Periods" above).
 
 **Cost:** `RouteDayTotalsRepository::sumByMonth()` gives the trips and the solo runs of the 12
-months, and `countCitizensByMonth()` gives the citizens. The citizens of a month are the citizens
-who were driven in that month. A selected period or a comparison period that has the dates of a
-month of the history uses the counts of that month. Other periods run `sum()` and
-`countCitizens()`. The request also has the cost of the punctuality page and of the supplier
-table. Thus a request runs 12 to 26 queries. With more than one year of data, the page takes
-approximately 1 to 2.5 seconds. Most of the time goes to the citizens. Before #136, it took
-approximately 2 to 7 seconds, and before #134 approximately 15 to 38 seconds.
+months, and `MonthCitizensRepository::byMonth()` gives the citizens. The citizens of a month are
+the citizens who were driven in that month. A selected period or a comparison period that has the
+dates of a month of the history uses the counts of that month. Other periods run `sum()` and
+`countCitizens()`, so their cost grows with the length of the period, not with the history. The
+request also has the cost of the punctuality page and of the supplier table. Thus a request runs
+11 to 25 queries. With more than one year of data, the page takes approximately 0.4 seconds for a
+month or a week, and approximately 1 second for a quarter or a half year. Before #138, it took
+approximately 1 to 2.5 seconds, before #136 approximately 2 to 7 seconds, and before #134
+approximately 15 to 38 seconds.
 
 ## Security
 
