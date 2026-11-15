@@ -329,4 +329,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   supplier, with no person ids. The citizens sparkline of the overview reads it, so the overview
   no longer counts 12 months of person ids. An import builds the months of its range, an edit of
   a sub-agreement builds the scopes that it changes, and `app:driving-data:rebuild-totals`
-  builds all months.
+  builds all months. `app:fixtures:suppliers` also builds all months, because the import of the
+  development dataset runs before the suppliers exist.
