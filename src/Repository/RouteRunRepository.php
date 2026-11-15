@@ -16,6 +16,21 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class RouteRunRepository extends ServiceEntityRepository
 {
+    /**
+     * The counters of DayTotalsDto that countDayTotals() gives.
+     */
+    private const array DAY_TOTALS_FIELDS = [
+        'firstPickupOnTime',
+        'firstPickupMeasured',
+        'lastDropOnTime',
+        'lastDropMeasured',
+        'lastDropUpTo15',
+        'lastDropUpTo30',
+        'lastDropOver30',
+        'runs',
+        'soloRuns',
+    ];
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, RouteRun::class);
@@ -84,7 +99,7 @@ class RouteRunRepository extends ServiceEntityRepository
             // MariaDB can give an id as text.
             'route' => (int) $row['route'],
             'serviceDate' => $row['serviceDate'],
-            'totals' => DayTotalsDto::fromRow($row),
+            'totals' => DayTotalsDto::fromRow($row, self::DAY_TOTALS_FIELDS),
         ], $rows);
     }
 }
