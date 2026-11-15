@@ -81,17 +81,34 @@ final readonly class DayTotalsDto
     }
 
     /**
-     * Reads the counters from a query row. MariaDB gives a sum as text, and no sum when no row
-     * matches.
+     * Reads the counters from a query row. MariaDB gives a sum as text, and no sum (null) when no
+     * row matches. A counter that is not in $fields is 0. A missing key fails, so that a wrong
+     * alias in a query does not give zeros with no error.
      *
-     * @param array<string, mixed> $row keyed by the names in FIELDS, with other keys that are not read
+     * @param array<string, mixed> $row    keyed by the names in $fields, with other keys that are not read
+     * @param list<string>         $fields the counters that the query gives, from FIELDS
+     *
+     * @throws \UnexpectedValueException if a counter of $fields is missing or is not a number
      */
-    public static function fromRow(array $row): self
+    public static function fromRow(array $row, array $fields = self::FIELDS): self
     {
-        return new self(...array_map(static function (string $field) use ($row): int {
-            $value = $row[$field] ?? 0;
+        if ([] !== $unknown = array_diff($fields, self::FIELDS)) {
+            throw new \InvalidArgumentException(\sprintf('Unknown counters: %s.', implode(', ', $unknown)));
+        }
 
-            return is_numeric($value) ? (int) $value : 0;
+        return new self(...array_map(static function (string $field) use ($row, $fields): int {
+            if (!\in_array($field, $fields, true)) {
+                return 0;
+            }
+            if (!\array_key_exists($field, $row)) {
+                throw new \UnexpectedValueException(\sprintf('The query row has no counter "%s".', $field));
+            }
+            $value = $row[$field] ?? 0;
+            if (!is_numeric($value)) {
+                throw new \UnexpectedValueException(\sprintf('The counter "%s" is not a number.', $field));
+            }
+
+            return (int) $value;
         }, self::FIELDS));
     }
 

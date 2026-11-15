@@ -131,7 +131,7 @@ final class RouteDayTotalsRepositoryTest extends KernelTestCase
      */
     private function totals(Route $route, string $date, int $trips, int $toleranceMinutes = 5): void
     {
-        $totals = DayTotalsDto::fromRow(['trips' => $trips]);
+        $totals = DayTotalsDto::fromRow(['trips' => $trips], ['trips']);
         $this->entityManager->persist(new RouteDayTotals($route, new \DateTimeImmutable($date), $toleranceMinutes, $totals));
     }
 

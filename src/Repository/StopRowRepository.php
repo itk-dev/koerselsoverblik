@@ -21,6 +21,20 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class StopRowRepository extends ServiceEntityRepository
 {
+    /**
+     * The counters of DayTotalsDto that countDayTotals() gives.
+     */
+    private const array DAY_TOTALS_FIELDS = [
+        'pickupOnTime',
+        'pickupMeasured',
+        'dropOffOnTime',
+        'dropOffMeasured',
+        'trips',
+        'completedTrips',
+        'cancelledTrips',
+        'pendingTrips',
+    ];
+
     public function __construct(
         ManagerRegistry $registry,
         private readonly CountedRouteFilter $countedRoutes,
@@ -168,7 +182,7 @@ class StopRowRepository extends ServiceEntityRepository
             // MariaDB can give an id as text.
             'route' => (int) $row['route'],
             'serviceDate' => $row['serviceDate'],
-            'totals' => DayTotalsDto::fromRow($row),
+            'totals' => DayTotalsDto::fromRow($row, self::DAY_TOTALS_FIELDS),
         ], $rows);
     }
 

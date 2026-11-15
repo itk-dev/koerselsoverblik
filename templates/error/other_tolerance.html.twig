@@ -1,0 +1,26 @@
+{#
+    Shown by App\EventListener\OtherToleranceListener when the totals of each route and day were
+    built with another tolerance.
+
+    It does not use the layout: an error page must not depend on more than it needs.
+#}
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tallene skal beregnes igen - Kørselsoverblik</title>
+</head>
+<body>
+<main>
+    <h1>Kørselsoverblik</h1>
+
+    <div data-test="other-tolerance">
+        <p>Tallene kan <strong>ikke vises</strong> lige nu.</p>
+        <p>Tolerancen for rettidighed er ændret til {{ tolerance_minutes }} minutter, men nogle tal er beregnet med en anden tolerance.</p>
+        <p>En administrator skal køre kommandoen <code>{{ command }}</code>. Derefter virker siden igen.</p>
+    </div>
+</main>
+</body>
+</html>

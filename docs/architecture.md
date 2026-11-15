@@ -416,7 +416,8 @@ dates. The derived tables hold no information that can't be recalculated.
   added. `MonthCitizens` holds the count of each calendar month, for all suppliers and for each
   supplier, with no person ids. A period that is not a calendar month is counted on `StopRow`.
   The index `stop_row (service_date, stop_type, stop_status, route_id, person_id)` has all the
-  columns of that query, so MariaDB does not read the rows.
+  columns of that query, so MariaDB does not read the rows. The index starts with the date, so it
+  also serves the queries of a date range. Thus `stop_row` has no index on the date alone.
 - The counts of `MonthCitizens` depend on the sub-agreements. Thus an edit of a sub-agreement
   builds all months again for the scopes that it changes, in the same transaction as the save.
   `MonthCitizensBuilder::rebuildAfterSubAgreementChange()` finds the scopes. The ignored flag
@@ -424,6 +425,10 @@ dates. The derived tables hold no information that can't be recalculated.
   changes the counts of the old and the new supplier. With one year of data, the save then takes
   approximately 1.5 to 2.5 seconds, and the time grows with the history. A new sub-agreement has
   no routes until an import, so it builds nothing.
+- `DayTotalsDto::fromRow()` fails if a query row has no value for a counter that the query must
+  give. Thus a wrong alias in a query does not give zeros with no error.
+- `OtherToleranceListener` shows `OtherToleranceException` as a page with the status 503. The
+  page names the command, so that the admin does not have to read the log first.
 
 ## Importing driving data
 

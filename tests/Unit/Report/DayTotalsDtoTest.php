@@ -27,14 +27,53 @@ final class DayTotalsDtoTest extends TestCase
      * MariaDB gives a sum as text, and no sum when no row matches. A key that is not a counter is
      * not read.
      */
-    public function testFromRowReadsTextAndMissingCounters(): void
+    public function testFromRowReadsTextAndNull(): void
     {
-        $totals = DayTotalsDto::fromRow(['trips' => '7', 'runs' => 4, 'soloRuns' => null, 'route' => '12', 'month' => '2026-01']);
+        $row = array_fill_keys(DayTotalsDto::FIELDS, 0);
+        $totals = DayTotalsDto::fromRow(['trips' => '7', 'runs' => 4, 'soloRuns' => null, 'route' => '12', 'month' => '2026-01'] + $row);
 
         self::assertSame(7, $totals->trips);
         self::assertSame(4, $totals->runs);
         self::assertSame(0, $totals->soloRuns);
         self::assertSame(0, $totals->pickupOnTime);
+    }
+
+    /**
+     * A query of the build gives only some counters. The other counters are 0.
+     */
+    public function testFromRowReadsOnlyTheGivenCounters(): void
+    {
+        $totals = DayTotalsDto::fromRow(['trips' => '7', 'runs' => 4], ['trips']);
+
+        self::assertSame(7, $totals->trips);
+        self::assertSame(0, $totals->runs);
+    }
+
+    /**
+     * A wrong alias in a query must fail, not give 0.
+     */
+    public function testFromRowFailsOnAMissingCounter(): void
+    {
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessageIsOrContains('The query row has no counter "runs".');
+
+        DayTotalsDto::fromRow(['trips' => 7], ['trips', 'runs']);
+    }
+
+    public function testFromRowFailsOnAValueThatIsNotANumber(): void
+    {
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessageIsOrContains('The counter "trips" is not a number.');
+
+        DayTotalsDto::fromRow(['trips' => 'seven'], ['trips']);
+    }
+
+    public function testFromRowFailsOnAnUnknownCounter(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('Unknown counters: trip.');
+
+        DayTotalsDto::fromRow(['trip' => 7], ['trip']);
     }
 
     public function testAddAddsEachCounter(): void

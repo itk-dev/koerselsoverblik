@@ -321,7 +321,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ignored flag and the supplier stay in the queries, so a change of a sub-agreement needs no
   rebuild. The citizens stay a query on `stop_row`, with a new index that holds all its columns.
   `app:driving-data:rebuild-totals` builds all dates again, after the first deploy and after a
-  change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. The table replaces the planned `DailyStats`.
+  change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Before the admin runs the command, the pages
+  show a page that names the command. The index on `stop_row (service_date)` is removed, because
+  the new index starts with the date. The table replaces the planned `DailyStats`.
 - [#138](https://github.com/itk-dev/koerselsoverblik/issues/138)
   `MonthCitizens` holds the citizens of each calendar month, for all suppliers and for each
   supplier, with no person ids. The citizens sparkline of the overview reads it, so the overview
