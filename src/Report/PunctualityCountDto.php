@@ -23,6 +23,14 @@ final readonly class PunctualityCountDto
         return 0 === $this->measured ? null : $this->onTime / $this->measured * 100;
     }
 
+    /**
+     * Gives the measured stops or runs that are not on time.
+     */
+    public function late(): int
+    {
+        return $this->measured - $this->onTime;
+    }
+
     public function add(self $other): self
     {
         return new self($this->onTime + $other->onTime, $this->measured + $other->measured);

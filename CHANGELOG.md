@@ -367,3 +367,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   15 minutes. A note under the table tells what the delay columns count. In the worst routes,
   "Rettidighed" is the last column. The tiles "Forsinkede afsætninger" and "Over 30 minutter"
   have a "?" help.
+- [#103](https://github.com/itk-dev/koerselsoverblik/issues/103)
+  Rank the worst routes by the number of late runs at the last drop-off, not by the punctuality.
+  On the same number, the lower punctuality is first, and then the route name. A route with one
+  late run (0 %) is no longer above a route with many late runs. The panel has the title "De ti
+  vognløb med flest forsinkede afsætninger". `PunctualityCountDto::late()` gives the late count.

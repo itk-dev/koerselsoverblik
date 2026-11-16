@@ -304,8 +304,8 @@ final class PunctualityCalculatorTest extends KernelTestCase
     }
 
     /**
-     * The worst routes have the lowest punctuality at the last drop-off. On the same punctuality,
-     * the route with more runs is first, and then the route name decides. Only 10 routes are
+     * The worst routes have the most late runs at the last drop-off. On the same number, the route
+     * with the lower punctuality is first, and then the route name decides. Only 10 routes are
      * given.
      */
     public function testWorstRoutes(): void
@@ -320,6 +320,8 @@ final class PunctualityCalculatorTest extends KernelTestCase
         for ($number = 5; $number <= 12; ++$number) {
             $runs[\sprintf('W-%02d', $number)] = [true];
         }
+        // 3 late runs of 10 (70 %) are worse than 1 late run of 1 (0 %).
+        $runs['W-13'] = [false, false, false, true, true, true, true, true, true, true];
         foreach ($runs as $name => $onTime) {
             $route = $this->route($name, $subAgreement);
             foreach ($onTime as $index => $isOnTime) {
@@ -331,11 +333,11 @@ final class PunctualityCalculatorTest extends KernelTestCase
         $report = $this->calculate('2026-01-05', '2026-01-05');
 
         self::assertSame(
-            ['W-02', 'W-01', 'W-03', 'W-04', 'W-05', 'W-06', 'W-07', 'W-08', 'W-09', 'W-10'],
+            ['W-13', 'W-02', 'W-01', 'W-03', 'W-04', 'W-05', 'W-06', 'W-07', 'W-08', 'W-09'],
             array_map(static fn (RoutePunctualityDto $route): string => $route->route, $report->worstRoutes),
         );
-        self::assertEquals(new RoutePunctualityDto('W-02', null, new PunctualityCountDto(0, 2)), $report->worstRoutes[0]);
-        self::assertEquals(new RoutePunctualityDto('W-03', null, new PunctualityCountDto(1, 2)), $report->worstRoutes[2]);
+        self::assertEquals(new RoutePunctualityDto('W-13', null, new PunctualityCountDto(7, 10)), $report->worstRoutes[0]);
+        self::assertEquals(new RoutePunctualityDto('W-03', null, new PunctualityCountDto(1, 2)), $report->worstRoutes[3]);
     }
 
     /**

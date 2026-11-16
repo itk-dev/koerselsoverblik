@@ -70,7 +70,6 @@ feature that has an issue or an issue text.
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
 | Filter the pages by period, comparison and supplier (parent issue) | In progress | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | #122 | [filters.md](filters.md) |
-| Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
 | Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
 | Fix the month chooser, the chart labels and the number format | Ready | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | – | [punctuality-layout.md](punctuality-layout.md) |
 | Show the ignored sub-agreements on the punctuality page | Ready | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | – | [ignored-sub-agreements-note.md](ignored-sub-agreements-note.md) |
@@ -160,3 +159,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Read the location name from the extract | [#75](https://github.com/itk-dev/koerselsoverblik/issues/75) | [#130](https://github.com/itk-dev/koerselsoverblik/pull/130) |
 | Show the ten locations with the lowest punctuality | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | – |
 | Make the late drop-offs clear on the punctuality page | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | [#143](https://github.com/itk-dev/koerselsoverblik/pull/143) |
+| Rank the worst routes by the number of late runs | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – |

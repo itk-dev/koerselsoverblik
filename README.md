@@ -41,9 +41,9 @@ The user interface is in Danish.
     and a 12-month sparkline.
   - A 12-month chart of the four measures, and the late last drop-offs in delay bands.
   - The figures for each supplier, the ten locations with the lowest punctuality, and the ten
-    routes with the lowest punctuality. A location is the institution of a trip. Its punctuality
-    counts the pickups and the drop-offs for each citizen together. A location with too few
-    measured stops is not ranked.
+    routes with the most late runs at the last drop-off. A location is the institution of a trip.
+    Its punctuality counts the pickups and the drop-offs for each citizen together. A location
+    with too few measured stops is not ranked.
   - Links to the previous and the next month.
 - **Filters:** a filter bar at the top of the overview and the punctuality page.
   - period: week, month, quarter or half year, with previous/next navigation. The data starts
