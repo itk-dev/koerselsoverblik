@@ -987,9 +987,9 @@ value shows as "–".
   the order of the name, with "Unknown" last.
 - **Worst routes:** the 10 routes with the most late runs at the last drop-off. On the same
   number, the route with the lower punctuality is first, and then the route name decides. Thus a
-  route with one late run (0 %) is not above a route with many late runs. A route with no measured
-  last drop-off is not in the list. The list has no minimum of runs, because the period can be
-  one day.
+  route with one late run (0 %) is not above a route with many late runs. A route with no late
+  run is not in the list. If the period has measured runs, but none is late, the panel tells this,
+  and not "no data". The list has no minimum of runs, because the period can be one day.
 - **Worst locations:** the 10 locations with the lowest punctuality of the pickups and the
   drop-offs together, with the rule of the measures "pr. borger". On the same punctuality, the
   location with more measured stops is first, and then the name decides. A stop with no location

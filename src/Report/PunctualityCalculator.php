@@ -120,8 +120,8 @@ final readonly class PunctualityCalculator
     /**
      * Gives the routes with the most late runs at the last drop-off. On the same number, the route
      * with the lower punctuality is first, and then the route name decides. Thus a route with one
-     * run that is late (0 %) is not above a route with many late runs. A route with no measured
-     * last drop-off has no punctuality, so it is not in the list.
+     * run that is late (0 %) is not above a route with many late runs. A route with no late run is
+     * not in the list. This includes a route with no measured last drop-off.
      *
      * @param list<RoutePunctualityDto> $byRoute
      *
@@ -130,7 +130,7 @@ final readonly class PunctualityCalculator
     private static function worstRoutes(array $byRoute): array
     {
         // usort() gives a list, so the keys of the filter do not stay.
-        $routes = array_filter($byRoute, static fn (RoutePunctualityDto $route): bool => $route->lastDropOff->measured > 0);
+        $routes = array_filter($byRoute, static fn (RoutePunctualityDto $route): bool => $route->lastDropOff->late() > 0);
         usort($routes, static fn (RoutePunctualityDto $a, RoutePunctualityDto $b): int => [$b->lastDropOff->late(), $a->lastDropOff->percent(), $a->route]
             <=> [$a->lastDropOff->late(), $b->lastDropOff->percent(), $b->route]);
 

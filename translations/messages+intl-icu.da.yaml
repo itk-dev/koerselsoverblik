@@ -193,9 +193,10 @@ punctuality:
       title: Lokationer med lavest rettidighed
       body: "Lokationen er institutionen, som turen går til eller fra. Rettidigheden er andelen af afhentninger og afsætninger, der var højst {minutes} minutter efter det planlagte tidspunkt. Afhentninger og afsætninger tæller sammen, som i målingerne pr. borger. Aflyste stop og stop uden indtastning indgår ikke. En lokation skal have mindst {count, number} målte stop i perioden for at komme på listen. Få stop viser ikke et mønster."
   routes:
-    title: De ti vognløb med flest forsinkede afsætninger
+    title: De ti vognløb med flest forsinkede sidste afsætninger
     subtitle: Vognløbene med flest forsinkede sidste afsætninger i perioden. Ved samme antal står vognløbet med lavest rettidighed først.
     caption: De ti vognløb med flest forsinkede sidste afsætninger
+    none_late: Ingen vognløb havde en forsinket sidste afsætning i perioden.
     route: Vognløb
     supplier: Leverandør
     runs: Vognløb kørt

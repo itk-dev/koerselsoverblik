@@ -371,4 +371,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Rank the worst routes by the number of late runs at the last drop-off, not by the punctuality.
   On the same number, the lower punctuality is first, and then the route name. A route with one
   late run (0 %) is no longer above a route with many late runs. The panel has the title "De ti
-  vognløb med flest forsinkede afsætninger". `PunctualityCountDto::late()` gives the late count.
+  vognløb med flest forsinkede sidste afsætninger". `PunctualityCountDto::late()` gives the late
+  count.
+  After the review: a route with no late run is not in the list. If no run is late, the panel
+  tells this, and not "no data".

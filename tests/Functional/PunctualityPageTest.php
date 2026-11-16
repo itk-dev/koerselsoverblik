@@ -100,9 +100,9 @@ final class PunctualityPageTest extends WebTestCase
         );
         self::assertStringContainsString('sidste afsætning', $crawler->filter('[data-test="suppliers-note"]')->text());
         // The routes with the most late runs are first. The punctuality is the last column, because it comes from the counts.
-        self::assertStringContainsString('De ti vognløb med flest forsinkede afsætninger', $crawler->filter('[data-test="worst-routes"]')->text());
+        self::assertStringContainsString('De ti vognløb med flest forsinkede sidste afsætninger', $crawler->filter('[data-test="worst-routes"]')->text());
         self::assertSame(
-            [['R-01', 'Ukendt', '2', '1', '50 %'], ['BOOKED', 'Ukendt', '1', '0', '100 %'], ['R-02', 'Ukendt', '1', '0', '100 %']],
+            [['R-01', 'Ukendt', '2', '1', '50 %']],
             self::rows($crawler, 'worst-route-row'),
         );
         // The location, the measured stops, the late stops and the punctuality, the worst first.
@@ -166,6 +166,21 @@ final class PunctualityPageTest extends WebTestCase
         self::assertSame([], self::rows($crawler, 'worst-location-row'));
         self::assertSame('Ingen lokation har mindst 2 målte stop i perioden.', $crawler->filter('[data-test="worst-locations"] [data-test="no-data"]')->text());
         self::assertSame('1 lokation med færre end 2 målte stop indgår ikke.', $crawler->filter('[data-test="locations-left-out"]')->text());
+    }
+
+    /**
+     * The route BOOKED has one run, and it is on time. The period has data, so the panel of the
+     * worst routes tells that no run is late, and not "no data".
+     */
+    public function testRoutesWithNoLateRunAreNotListed(): void
+    {
+        $client = $this->client('viewer');
+        $this->importBase('BOOKED');
+
+        $crawler = $client->request('GET', '/punctuality');
+
+        self::assertSame([], self::rows($crawler, 'worst-route-row'));
+        self::assertSame('Ingen vognløb havde en forsinket sidste afsætning i perioden.', $crawler->filter('[data-test="worst-routes"] [data-test="no-data"]')->text());
     }
 
     /**
