@@ -147,10 +147,6 @@ final class SupplierTableCalculatorTest extends KernelTestCase
             plannedTime: new \DateTimeImmutable('2026-01-06 07:00'),
             actualTime: null,
             plannedSolo: null,
-            passengers: null,
-            pricePerMinute: null,
-            cancellationNoticeMin: null,
-            cancellationInTime: null,
             locationName: null,
         ), 'default', $onlyTrips, $this->batch()));
         $this->entityManager->persist(new RouteRun($onlyRuns, new \DateTimeImmutable('2026-01-06'), 1, new RouteRunDto(null, null, null, null, null, null, false, 1)));

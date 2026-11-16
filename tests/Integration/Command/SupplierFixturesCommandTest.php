@@ -93,10 +93,6 @@ final class SupplierFixturesCommandTest extends KernelTestCase
             plannedTime: $serviceDate->setTime(7, 0),
             actualTime: null,
             plannedSolo: null,
-            passengers: null,
-            pricePerMinute: null,
-            cancellationNoticeMin: null,
-            cancellationInTime: null,
             locationName: null,
         );
         foreach ([$subAgreement, $route, $batch, new StopRow($row, 'default', $route, $batch)] as $entity) {

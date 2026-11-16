@@ -21,10 +21,6 @@ enum FieldName: string
     case PlannedTime = 'planned_time';
     case ActualTime = 'actual_time';
     case PlannedSolo = 'planned_solo';
-    case Passengers = 'passengers';
-    case PricePerMinute = 'price_per_minute';
-    case CancellationNoticeMin = 'cancellation_notice_min';
-    case CancellationInTime = 'cancellation_in_time';
     case LocationName = 'location_name';
 
     /**
@@ -38,10 +34,10 @@ enum FieldName: string
         return match ($this) {
             self::Route, self::PersonId, self::StopType, self::StopStatus, self::LocationName => [FieldType::String],
             self::ServiceDate => [FieldType::Date, FieldType::DateTime],
-            self::Run, self::PassengersAfter, self::Passengers => [FieldType::Int],
-            self::NextDistanceKm, self::NextDurationMin, self::PricePerMinute, self::CancellationNoticeMin => [FieldType::Float],
+            self::Run, self::PassengersAfter => [FieldType::Int],
+            self::NextDistanceKm, self::NextDurationMin => [FieldType::Float],
             self::PlannedTime, self::ActualTime => [FieldType::Time, FieldType::DateTime],
-            self::PlannedSolo, self::CancellationInTime => [FieldType::Bool],
+            self::PlannedSolo => [FieldType::Bool],
         };
     }
 

@@ -344,8 +344,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   memory. The peak memory of `task test` is 91 MB, not 226 MB. New tests cover the production
   lines that only the fixture tests covered.
 - [#75](https://github.com/itk-dev/koerselsoverblik/issues/75)
-  Read the remaining prototype fields from the extract: the optional fields `passengers`,
-  `price_per_minute`, `cancellation_notice_min`, `cancellation_in_time` and `location_name`.
-  `StopRow` stores them in five new columns. The `default` mapping reads them as fields, and no
-  longer has their columns in `keep_columns`. The validate command shows the location name as
-  `(hidden)`.
+  Read the location name from the extract: the optional field `location_name`. `StopRow` stores
+  it in a new column. The `default` mapping reads `Placename` as the field, and no longer has it
+  in `keep_columns`. The validate command shows the location name as `(hidden)`. No feature uses
+  `passengers`, `prisprminut`, `aflysningsvarsel` and `RettidigAflysningsvarsel` yet, so they
+  stay kept columns.

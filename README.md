@@ -332,10 +332,6 @@ required, because each stop row needs them:
 | `planned_time` | `time` or `datetime` | Yes |
 | `actual_time` | `time` or `datetime` | Optional |
 | `planned_solo` | `bool` | Optional |
-| `passengers` | `int` | Optional |
-| `price_per_minute` | `float` | Optional |
-| `cancellation_notice_min` | `float` | Optional |
-| `cancellation_in_time` | `bool` | Optional |
 | `location_name` | `string` | Optional |
 
 A mapping with a `time` field must have a `service_date` with the type `date`.
@@ -369,10 +365,6 @@ fields:
   planned_time:      { column: <COLUMN_NAME>, type: time, required: true }
   actual_time:       { column: <COLUMN_NAME>, type: datetime, format: excel }
   planned_solo:      { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
-  passengers:        { column: <COLUMN_NAME>, type: int }
-  price_per_minute:  { column: <COLUMN_NAME>, type: float }
-  cancellation_notice_min: { column: <COLUMN_NAME>, type: float }
-  cancellation_in_time:    { column: <COLUMN_NAME>, type: bool, true_values: [<IN_TIME_VALUE>], false_values: [<NOT_IN_TIME_VALUE>] }
   location_name:     { column: <COLUMN_NAME>, type: string }
 ```
 

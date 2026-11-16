@@ -168,24 +168,17 @@ final class DrivingDataImporterTest extends KernelTestCase
     }
 
     /**
-     * The import stores the fields of the prototype in their own columns.
+     * The import stores the location name in its own column.
      */
-    public function testImportStoresTheFieldsOfThePrototype(): void
+    public function testImportStoresTheLocationName(): void
     {
         $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
-        $values['passengers'] = 2;
-        $values['price_per_minute'] = 4.25;
-        $values['cancellation_notice_min'] = -12.5;
-        $values['cancellation_in_time'] = true;
         $values['location_name'] = 'Skole 7';
         new ExtractWriter()->write($this->path, $this->mapping(), [new ExtractRow($values)]);
 
-        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'prototype.xlsx');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'location.xlsx');
 
-        self::assertEquals(
-            ['passengers' => 2, 'price_per_minute' => 4.25, 'cancellation_notice_min' => -12.5, 'cancellation_in_time' => 1, 'location_name' => 'Skole 7'],
-            $this->entityManager->getConnection()->fetchAssociative('SELECT passengers, price_per_minute, cancellation_notice_min, cancellation_in_time, location_name FROM stop_row'),
-        );
+        self::assertSame('Skole 7', $this->entityManager->getConnection()->fetchOne('SELECT location_name FROM stop_row'));
     }
 
     /**

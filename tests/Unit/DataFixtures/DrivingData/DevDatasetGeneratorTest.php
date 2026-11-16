@@ -171,10 +171,10 @@ final class DevDatasetGeneratorTest extends TestCase
     }
 
     /**
-     * The rows have the fields of the prototype. The institution end of a trip has a location
-     * name. Only a cancelled stop has a cancellation notice.
+     * The rows have the location name and the kept columns of the prototype. The institution end
+     * of a trip has a location name. Only a cancelled stop has a cancellation notice.
      */
-    public function testRowsHaveTheFieldsOfThePrototype(): void
+    public function testRowsHaveTheLocationNameAndTheKeptColumnsOfThePrototype(): void
     {
         $rows = self::generate(self::SCHOOL_WEEK);
         $places = array_filter($rows, static fn (ExtractRow $row): bool => null !== $row->values['location_name']);
@@ -182,13 +182,13 @@ final class DevDatasetGeneratorTest extends TestCase
         self::assertGreaterThan(0.3 * \count($rows), \count($places));
         self::assertLessThan(0.7 * \count($rows), \count($places));
         foreach ($rows as $row) {
-            self::assertIsInt($row->values['passengers']);
-            self::assertIsFloat($row->values['price_per_minute']);
-            self::assertIsBool($row->values['cancellation_in_time']);
+            self::assertIsInt($row->kept['passengers']);
+            self::assertIsFloat($row->kept['prisprminut']);
+            self::assertContains($row->kept['RettidigAflysningsvarsel'], ['yes', 'no']);
             $cancelled = 'cancelled' === $row->values['stop_status'];
-            self::assertSame($cancelled, \is_float($row->values['cancellation_notice_min']));
+            self::assertSame($cancelled, \is_float($row->kept['aflysningsvarsel']));
             if (!$cancelled) {
-                self::assertFalse($row->values['cancellation_in_time']);
+                self::assertSame('no', $row->kept['RettidigAflysningsvarsel']);
             }
         }
     }

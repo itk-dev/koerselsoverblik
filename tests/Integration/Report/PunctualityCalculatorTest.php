@@ -480,10 +480,6 @@ final class PunctualityCalculatorTest extends KernelTestCase
             plannedTime: $planned,
             actualTime: null === $delaySeconds ? null : $planned->modify(\sprintf('%+d seconds', $delaySeconds)),
             plannedSolo: null,
-            passengers: null,
-            pricePerMinute: null,
-            cancellationNoticeMin: null,
-            cancellationInTime: null,
             locationName: null,
         );
         $this->entityManager->persist(new StopRow($row, 'default', $route, $this->batch()));

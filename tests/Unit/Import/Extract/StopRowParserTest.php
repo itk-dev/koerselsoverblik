@@ -34,7 +34,6 @@ use OpenSpout\Common\Entity\Cell\EmptyCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\XLSX\Writer;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -53,12 +52,12 @@ final class StopRowParserTest extends TestCase
     /**
      * The columns of the simple mapping, in the order of the fields.
      */
-    private const array HEADER = ['Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Booked', 'Price', 'Notice', 'InTime', 'Place'];
+    private const array HEADER = ['Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Place'];
 
     /**
      * One row for the simple mapping. The dates and times are Excel serial numbers of 5 January 2026.
      */
-    private const array ROW = ['R-01', 'P-001', 46027, 1, 'P', 'C', 1, 2.5, 5, 46027.3, 46027.31, 'Y', 2, 4.25, -12.5, 'N', 'Skole 1'];
+    private const array ROW = ['R-01', 'P-001', 46027, 1, 'P', 'C', 1, 2.5, 5, 46027.3, 46027.31, 'Y', 'Skole 1'];
 
     private string $path = '';
 
@@ -236,10 +235,6 @@ final class StopRowParserTest extends TestCase
                 'Planned' => 46027.3,
                 'Actual' => 46027.31,
                 'Solo' => 'Y',
-                'Booked' => 2,
-                'Price' => 4.25,
-                'Notice' => -12.5,
-                'InTime' => 'N',
                 'Place' => 'Skole 1',
                 // A kept column that is not in the file is not an error.
                 'Note' => ' first ',
@@ -259,7 +254,7 @@ final class StopRowParserTest extends TestCase
 
         self::assertSame('S-1', $rows[0]->sourceValues['Id']);
         self::assertSame(1, $rows[0]->sourceValues['Run']);
-        self::assertCount(18, $rows[0]->sourceValues);
+        self::assertCount(14, $rows[0]->sourceValues);
     }
 
     public function testRejectedRowHasACopyAndTheServiceDate(): void
@@ -551,50 +546,31 @@ final class StopRowParserTest extends TestCase
 
         self::assertNull($rows[0]->actualTime);
         self::assertNull($rows[0]->plannedSolo);
-        self::assertNull($rows[0]->passengers);
         self::assertNull($rows[0]->locationName);
     }
 
-    public function testRowGivesTheFieldsOfThePrototype(): void
+    public function testRowGivesTheLocationName(): void
     {
         $this->writeRows([self::HEADER, self::ROW]);
 
         [$rows] = $this->parse(self::simpleMapping());
 
-        self::assertSame(2, $rows[0]->passengers);
-        self::assertSame(4.25, $rows[0]->pricePerMinute);
-        self::assertSame(-12.5, $rows[0]->cancellationNoticeMin);
-        self::assertFalse($rows[0]->cancellationInTime);
         self::assertSame('Skole 1', $rows[0]->locationName);
     }
 
     /**
-     * The fields of the prototype are optional. A bad value gives an empty value and a warning, and
-     * the row is imported.
+     * The location name is optional. A bad value gives an empty value and a warning, and the row
+     * is imported.
      */
-    #[DataProvider('badPrototypeValues')]
-    public function testBadValueInAFieldOfThePrototypeGivesAWarning(int $index, float|string $value, FieldName $field, RejectionReason $reason): void
+    public function testBadLocationNameGivesAWarning(): void
     {
-        $row = self::ROW;
-        $row[$index] = $value;
-        $this->writeRows([self::HEADER, array_values($row)]);
+        $this->writeRows([self::HEADER, [...\array_slice(self::ROW, 0, 12), 1.5]]);
 
         [$rows, $rejected] = $this->parse(self::simpleMapping());
 
         self::assertSame([], $rejected);
-        self::assertSame([[2, $field, $reason]], self::warnings($rows));
-    }
-
-    /**
-     * @return iterable<string, array{int, float|string, FieldName, RejectionReason}>
-     */
-    public static function badPrototypeValues(): iterable
-    {
-        yield 'passengers' => [12, 2.5, FieldName::Passengers, RejectionReason::NotWholeNumber];
-        yield 'price per minute' => [13, 'cheap', FieldName::PricePerMinute, RejectionReason::NotNumber];
-        yield 'cancellation notice' => [14, 'early', FieldName::CancellationNoticeMin, RejectionReason::NotNumber];
-        yield 'cancellation in time' => [15, 'maybe', FieldName::CancellationInTime, RejectionReason::UnknownBoolValue];
-        yield 'location name' => [16, 1.5, FieldName::LocationName, RejectionReason::NotText];
+        self::assertNull($rows[0]->locationName);
+        self::assertSame([[2, FieldName::LocationName, RejectionReason::NotText]], self::warnings($rows));
     }
 
     public function testMissingSheetRejectsTheFile(): void
@@ -819,10 +795,6 @@ final class StopRowParserTest extends TestCase
                 'planned_time' => self::simpleField(FieldName::PlannedTime, FieldType::DateTime, true),
                 'actual_time' => self::simpleField(FieldName::ActualTime, FieldType::DateTime, $isRequired(FieldName::ActualTime)),
                 'planned_solo' => self::simpleField(FieldName::PlannedSolo, FieldType::Bool, $isRequired(FieldName::PlannedSolo), [], ['Y'], ['N']),
-                'passengers' => self::simpleField(FieldName::Passengers, FieldType::Int, $isRequired(FieldName::Passengers)),
-                'price_per_minute' => self::simpleField(FieldName::PricePerMinute, FieldType::Float, $isRequired(FieldName::PricePerMinute)),
-                'cancellation_notice_min' => self::simpleField(FieldName::CancellationNoticeMin, FieldType::Float, $isRequired(FieldName::CancellationNoticeMin)),
-                'cancellation_in_time' => self::simpleField(FieldName::CancellationInTime, FieldType::Bool, $isRequired(FieldName::CancellationInTime), [], ['Y'], ['N']),
                 'location_name' => self::simpleField(FieldName::LocationName, FieldType::String, $isRequired(FieldName::LocationName)),
             ],
             keepColumns: $keepColumns,
