@@ -6,7 +6,8 @@ namespace App\Report;
 
 /**
  * A count of the month of a page, with the change from the previous month and the count of each
- * month. A month with no measured last drop-offs has no count.
+ * month. A month with no data has no count. The page that makes the count sets the rule for no
+ * data.
  */
 final readonly class CountTrendDto
 {

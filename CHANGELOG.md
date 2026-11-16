@@ -266,6 +266,83 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   can leave copies with no row. The new command `app:driving-data:delete-orphan-copies` deletes
   them, and a cron job runs it each night. The two plans for the deletes are one plan, and the
   driving data plans are in the order of the work.
+- [#106](https://github.com/itk-dev/koerselsoverblik/issues/106)
+  The overview shows the trips and the distinct citizens who were driven in a month, with the
+  change from the previous month, a 12-month sparkline and a help text. The month chooser of the
+  punctuality page is now a shared template.
+- [#109](https://github.com/itk-dev/koerselsoverblik/issues/109)
+  The overview shows the punctuality: the tile "Rettidighed" (the drop-off per route run), the
+  four measures against the service target, and the 12-month chart. The punctuality page and the
+  overview share the templates of the goal panel and the chart.
+- [#110](https://github.com/itk-dev/koerselsoverblik/issues/110)
+  The overview shows the share of the real solo runs ("Reelt solo"). `RouteRun` has the peak
+  passengers: the most citizens in the car after a stop that is not cancelled. The migration adds
+  the column. Import the driving data again to fill it for the dates that were imported before.
+- [#113](https://github.com/itk-dev/koerselsoverblik/issues/113)
+  The overview shows the suppliers side by side: the trips, the punctuality, the real solo runs
+  and the cancelled trips of each supplier, from `SupplierTableCalculator`.
+- [#118](https://github.com/itk-dev/koerselsoverblik/issues/118)
+  No source text names the planning system. The page keeps the name "Rettidighed".
+- [#132](https://github.com/itk-dev/koerselsoverblik/issues/132)
+  The coverage gate runs only on the release and hotfix branches, together with the full mutation
+  testing, in the new workflow `release-checks.yaml`. The pull requests and `develop` run the tests
+  with no coverage.
+- [#115](https://github.com/itk-dev/koerselsoverblik/issues/115)
+  The period logic of the filters: `PeriodFilter` reads the period, the date, the comparison and
+  the supplier from the query string. `PeriodRangeFactory` gives the selected period, the
+  comparison period (cut when the period has not ended) and the 12 months. `PeriodLabeler`
+  gives the Danish labels of the prototype. No page uses them yet.
+- [#116](https://github.com/itk-dev/koerselsoverblik/issues/116)
+  The overview and the punctuality page have the filter bar of the prototype: the period (week,
+  month, quarter or half year), the previous and the next period, and the comparison (the
+  previous period or the same period last year). It replaces `?month=` and the month chooser.
+  The tiles compare the selected period with the comparison period, and a period that has not
+  ended is compared with the same number of days. `APP_DATA_START_DATE` gives the start of the
+  data: a comparison before it is a partial period or has no data. The period types day and
+  year of the prototype are left out. After the review: the period switch is a `nav` with
+  `aria-current`, only the "Vis" button sends the form, a query that is not canonical
+  redirects, an invalid `APP_DATA_START_DATE` gives an error, the cut of the comparison counts
+  from the first date of the period, the counts of a comparison that starts before the data
+  have no change, and a period that is not a month has a note that the sparklines show months.
+- [#117](https://github.com/itk-dev/koerselsoverblik/issues/117)
+  The filter bar has the supplier select box ("Alle leverandører" or one supplier). With a
+  supplier, the tiles, the charts and the worst routes are of the routes of that supplier. The
+  supplier tables always show all suppliers. An unknown supplier id gives all suppliers.
+- [#134](https://github.com/itk-dev/koerselsoverblik/issues/134)
+  The overview and the punctuality page are fast with more than one year of driving data.
+  `CountedRouteFilter` replaces `IgnoredSubAgreementFilter` and `SupplierFilter`. It limits the
+  figure queries with a list of route ids, not a join, so that MariaDB reads only the dates of
+  the range. One query for each figure, grouped by month, gives the totals of the 12 months. A
+  period that is a month of the history uses the figures of that month. A new index on
+  `stop_row (route_id, service_date)` helps the queries for a few routes. Closes #85.
+- [#136](https://github.com/itk-dev/koerselsoverblik/issues/136)
+  The figures come from `RouteDayTotals`, the counters of each route and day, which each import
+  builds for its range. The pages add these rows, not the stop rows and the route runs. The
+  ignored flag and the supplier stay in the queries, so a change of a sub-agreement needs no
+  rebuild. The citizens stay a query on `stop_row`, with a new index that holds all its columns.
+  `app:driving-data:rebuild-totals` builds all dates again, after the first deploy and after a
+  change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Before the admin runs the command, the pages
+  show a page that names the command. The index on `stop_row (service_date)` is removed, because
+  the new index starts with the date. The table replaces the planned `DailyStats`.
+- [#138](https://github.com/itk-dev/koerselsoverblik/issues/138)
+  `MonthCitizens` holds the citizens of each calendar month, for all suppliers and for each
+  supplier, with no person ids. The citizens sparkline of the overview reads it, so the overview
+  no longer counts 12 months of person ids. An import builds the months of its range, an edit of
+  a sub-agreement builds the scopes that it changes, and `app:driving-data:rebuild-totals`
+  builds all months. `app:fixtures:suppliers` also builds all months, because the import of the
+  development dataset runs before the suppliers exist.
+- The plans agree with the issues and the pull requests again. #117, #132 and #136 are in
+  "Done", #122 and #105 are ready, and the plans list #128 and #131. #75 needs #131.
+- [#131](https://github.com/itk-dev/koerselsoverblik/issues/131)
+  The tests focus on the production code. The tests of the development dataset
+  (`DevDatasetGenerator`, `DatasetSettings`, `SchoolCalendar` and the fixture commands) are in the
+  PHPUnit group "fixtures". `task test`, the coverage gate and Infection do not include this code.
+  `task test:fixtures` and a separate CI job run the group. `ExtractWriter` and `ScenarioLoader`
+  stay in the default run, because the production tests trust their files. `task test` takes
+  about 25 seconds, not 4.5 minutes. The test environment does not collect the Doctrine queries,
+  the test log keeps at most 50 records in memory, and the dataset tests keep less data in
+  memory. The peak memory of `task test` is 91 MB, not 226 MB. New tests cover the production
+  lines that only the fixture tests covered.
 - [#75](https://github.com/itk-dev/koerselsoverblik/issues/75)
   Read the remaining prototype fields from the extract: the optional fields `passengers`,
   `price_per_minute`, `cancellation_notice_min`, `cancellation_in_time` and `location_name`.

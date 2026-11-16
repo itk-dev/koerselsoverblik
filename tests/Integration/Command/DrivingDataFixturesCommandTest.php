@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Command;
 
 use OpenSpout\Reader\XLSX\Options;
 use OpenSpout\Reader\XLSX\Reader;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Console\Tester\ExecutionResult;
@@ -16,6 +17,7 @@ use Symfony\Component\Console\Tester\ExecutionResult;
  *
  * The tests write few months, because a week of the development dataset is slow to write.
  */
+#[Group('fixtures')]
 final class DrivingDataFixturesCommandTest extends KernelTestCase
 {
     private const array DEFAULT_HEADER = [
@@ -43,10 +45,10 @@ final class DrivingDataFixturesCommandTest extends KernelTestCase
         $result = self::runFixturesCommand(['--months' => '2']);
 
         $this->assertCommandIsSuccessful($result);
-        self::assertStringContainsString('13 files', $result->getDisplay());
+        self::assertStringContainsString('14 files', $result->getDisplay());
 
         $directory = self::directory();
-        foreach (['base', 'range_edges', 'bad_values', 'duplicate_row_ids'] as $scenario) {
+        foreach (['base', 'range_edges', 'bad_values', 'duplicate_row_ids', 'two_weeks'] as $scenario) {
             self::assertFileExists($directory.'/'.$scenario.'.xlsx');
         }
         $weeks = array_map(basename(...), glob($directory.'/dev-*.xlsx') ?: []);

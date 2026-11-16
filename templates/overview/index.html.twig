@@ -2,7 +2,136 @@
 
 {% block title %}{{ 'overview.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
 
+{% block topbar_controls %}{{ include('_filter_bar.html.twig', {route: 'overview'}) }}{% endblock %}
+
 {% block body %}
-    <h1>{{ 'overview.title'|trans }}</h1>
-    <p>{{ 'overview.placeholder'|trans }}</p>
+    {% set count = page.current %}
+
+    <header class="page-head">
+        <div>
+            <h1 class="page-head__title">{{ 'overview.heading'|trans }}</h1>
+            <p class="page-head__lede" data-test="lede">{{ 'overview.lede'|trans({period: period_phrase(selection), comparison: comparison_phrase(selection)}) }}</p>
+            {# The tiles show the whole period, but the sparklines show months. #}
+            {% if selection.filter.type.value != 'month' %}
+                <p class="page-head__lede" data-test="months-note">{{ 'period.months_note'|trans }}</p>
+            {% endif %}
+        </div>
+    </header>
+
+    {# A change of the volume is neither good nor bad, so the change has the tone "neutral".
+       A month with no trips has no data, so the trips have no note. #}
+    <div class="tiles tiles--4">
+        {% set trips = page.trips %}
+        <twig:Tile
+            :label="'overview.trips.label'|trans"
+            :value="trips.current is null ? '–' : trips.current|number_format"
+            :change="trips.change is null ? null : trips.change|signed_number"
+            :changeIcon="trend_icon(trips.change)"
+            :spark="trips.history"
+            :note="trips.current is null ? null : 'overview.trips.note'|trans({completed: count.completed, cancelled: count.cancelled, pending: count.pending})"
+            test="trips"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-trips" :title="'overview.trips.help.title'|trans">
+                    <p>{{ 'overview.trips.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+        {% set citizens = page.citizens %}
+        <twig:Tile
+            :label="'overview.citizens.label'|trans"
+            :value="citizens.current is null ? '–' : citizens.current|number_format"
+            :change="citizens.change is null ? null : citizens.change|signed_number"
+            :changeIcon="trend_icon(citizens.change)"
+            :spark="citizens.history"
+            :note="'overview.citizens.note'|trans"
+            test="citizens"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-citizens" :title="'overview.citizens.help.title'|trans">
+                    <p>{{ 'overview.citizens.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+        {% set measure = punctuality.headline %}
+        <twig:Tile
+            :label="'overview.punctuality.label'|trans"
+            :value="measure.percent|punctuality_percent"
+            :tone="punctuality_tone(measure.percent)"
+            :change="measure.change is null ? null : 'punctuality.points'|trans({change: measure.change|percentage_points})"
+            :changeTone="trend_tone(measure.change)"
+            :changeIcon="trend_icon(measure.change)"
+            :spark="measure.history"
+            :sparkClass="measure.cssClass"
+            :note="('punctuality.measure.' ~ measure.key)|trans ~ ' · ' ~ 'punctuality.target_note'|trans({target: punctuality.target})"
+            test="punctuality"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-punctuality" :title="('punctuality.help.' ~ measure.key ~ '.title')|trans">
+                    <p>{{ ('punctuality.help.' ~ measure.key ~ '.body')|trans({minutes: tolerance_minutes}) }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+        {# A real solo run had exactly one citizen in the car at a time. The share has no target.
+           A month with no counted runs has no share, so the tile has no note. #}
+        {% set solo = page.realSolo %}
+        <twig:Tile
+            :label="'overview.real_solo.label'|trans"
+            :value="solo.current is null ? '–' : (solo.current|round)|number_format ~ ' %'"
+            :change="solo.change is null ? null : 'punctuality.points'|trans({change: solo.change|percentage_points})"
+            :changeIcon="trend_icon(solo.change)"
+            :spark="solo.history"
+            :note="solo.current is null ? null : 'overview.real_solo.note'|trans({count: page.currentSolo.soloRuns})"
+            test="real-solo"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-real-solo" :title="'overview.real_solo.help.title'|trans">
+                    <p>{{ 'overview.real_solo.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+    </div>
+
+    {{ include('punctuality/_goal.html.twig', {page: punctuality, tolerance_minutes: tolerance_minutes}, with_context: false) }}
+    {{ include('punctuality/_trend.html.twig', {
+        page: punctuality,
+        labels: punctuality.months|map(item => ('month.short.' ~ item.number)|trans),
+        trend_title: 'overview.punctuality.title'|trans,
+    }, with_context: false) }}
+
+    <twig:Panel :title="'overview.suppliers.title'|trans" :subtitle="'overview.suppliers.subtitle'|trans" data-test="overview-suppliers">
+        {% if suppliers is empty %}
+            <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'overview.suppliers.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'punctuality.suppliers.supplier'|trans }}</th>
+                            <th scope="col" class="num">{{ 'overview.trips.label'|trans }}</th>
+                            <th scope="col" class="num">{{ 'overview.punctuality.label'|trans }}</th>
+                            <th scope="col" class="num">{{ 'overview.real_solo.label'|trans }}</th>
+                            <th scope="col" class="num">{{ 'overview.suppliers.cancelled'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in suppliers %}
+                            {% set tone = punctuality_tone(row.dropOffPerRun.percent) %}
+                            {% set solo = row.solo.percent %}
+                            {% set cancelled = row.cancelledPercent %}
+                            <tr data-test="overview-supplier-row">
+                                <th scope="row">{{ row.supplier ?? 'punctuality.suppliers.unknown'|trans }}</th>
+                                <td class="num">{{ row.trips|number_format }}</td>
+                                <td class="num{{ tone ? ' t-' ~ tone }}">{{ row.dropOffPerRun.percent|punctuality_percent }}</td>
+                                <td class="num">{{ solo is null ? '–' : (solo|round)|number_format ~ ' %' }}</td>
+                                <td class="num">{{ cancelled is null ? '–' : (cancelled|round)|number_format ~ ' %' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">{{ 'overview.suppliers.source'|trans }}</twig:block>
+    </twig:Panel>
 {% endblock %}

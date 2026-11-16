@@ -4,20 +4,58 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Report\OverviewPageBuilder;
+use App\Report\PeriodSelector;
+use App\Report\PunctualityPageBuilder;
+use App\Report\SupplierTableCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * A placeholder for the overview. M1-25 adds the figures.
+ * The overview: the key figures of the selected period, compared with the comparison period.
  */
 #[IsGranted('ROLE_VIEW_OVERVIEW')]
 final class OverviewController extends AbstractController
 {
+    /**
+     * The filters are in the query string. An invalid value gives null, and then its default. A
+     * query that is not canonical redirects, so that each view has one URL.
+     */
     #[Route('/', name: 'overview', methods: ['GET'])]
-    public function __invoke(): Response
-    {
-        return $this->render('overview/index.html.twig');
+    public function __invoke(
+        Request $request,
+        OverviewPageBuilder $builder,
+        PunctualityPageBuilder $punctualityBuilder,
+        SupplierTableCalculator $supplierTable,
+        PeriodSelector $periods,
+        #[Autowire(param: 'app.punctuality_tolerance_minutes')]
+        int $toleranceMinutes,
+        #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
+        ?string $p = null,
+        #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
+        ?string $d = null,
+        #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
+        ?string $c = null,
+        #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
+        ?string $s = null,
+    ): Response {
+        $selection = $periods->select($p, $d, $c, $s);
+        if (!$selection->filter->isCanonical($request->query->all())) {
+            return $this->redirectToRoute('overview', $selection->filter->query());
+        }
+        $punctuality = $punctualityBuilder->build($selection);
+
+        return $this->render('overview/index.html.twig', [
+            'selection' => $selection,
+            'page' => $builder->build($selection),
+            'punctuality' => $punctuality,
+            'suppliers' => $supplierTable->calculate($selection->selectedRange, $punctuality->current()),
+            'tolerance_minutes' => $toleranceMinutes,
+        ]);
     }
 }

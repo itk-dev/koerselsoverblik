@@ -1,0 +1,43 @@
+# An upload for 2026-01-05 to 2026-01-20, with rows on the first and the last date
+# only. The dates are more than 7 days apart, so a build in steps of 7 days takes
+# more than one step.
+date: 2026-01-05
+range: { first: 2026-01-05, last: 2026-01-20 }
+routes:
+  R-01:
+    runs:
+      1:
+        - person: P-001
+          type: pickup
+          planned: "08:00"
+          actual: "08:01"
+          passengers_after: 1
+          km: 4.0
+          min: 9
+        - person: P-001
+          type: drop_off
+          planned: "08:20"
+          actual: "08:22"
+          passengers_after: 0
+          km: 2.0
+          min: 5
+        - person: P-002
+          type: pickup
+          date: 2026-01-20
+          planned: "08:00"
+          actual: "08:00"
+          passengers_after: 1
+          km: 4.0
+          min: 9
+        - person: P-002
+          type: drop_off
+          date: 2026-01-20
+          planned: "08:20"
+          actual: "08:21"
+          passengers_after: 0
+          km: 2.0
+          min: 5
+expected:
+  stop_rows: 4
+  rejected_rows: 0
+  empty_dates: 14

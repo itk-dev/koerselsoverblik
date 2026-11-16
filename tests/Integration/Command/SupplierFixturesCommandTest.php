@@ -4,15 +4,27 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Command;
 
+use App\Entity\ImportBatch;
+use App\Entity\MonthCitizens;
+use App\Entity\Route;
+use App\Entity\StopRow;
 use App\Entity\SubAgreement;
 use App\Entity\Supplier;
+use App\Import\Extract\StopRowDto;
+use App\Import\ImportRangeDto;
+use App\Import\Mapping\StopStatus;
+use App\Import\Mapping\StopType;
+use App\Report\DateRangeDto;
+use App\Repository\MonthCitizensRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * Checks that the command gives the sub-agreements of the development dataset their invented
  * suppliers.
  */
+#[Group('fixtures')]
 final class SupplierFixturesCommandTest extends KernelTestCase
 {
     private EntityManagerInterface $entityManager;
@@ -40,15 +52,67 @@ final class SupplierFixturesCommandTest extends KernelTestCase
         self::assertNull($this->supplierOf('Turbestilling'));
     }
 
-    public function testSecondRunAddsNoSuppliers(): void
+    /**
+     * NV-TA and VE-RO have the same supplier. The second run finds the supplier of the first run.
+     */
+    public function testEachSupplierIsCreatedOnce(): void
     {
-        $this->entityManager->persist(new SubAgreement()->setReference('NV-TA'));
+        foreach (['NV-TA', 'VE-RO'] as $reference) {
+            $this->entityManager->persist(new SubAgreement()->setReference($reference));
+        }
         $this->entityManager->flush();
 
         self::runCommand('app:fixtures:suppliers');
         self::runCommand('app:fixtures:suppliers');
 
         self::assertCount(1, $this->entityManager->getRepository(Supplier::class)->findBy(['name' => 'Vognmand A']));
+    }
+
+    /**
+     * The import ran before the suppliers existed, so it built only the count of all suppliers.
+     * The command builds the counts of each supplier.
+     */
+    public function testCommandBuildsTheCitizensOfEachSupplier(): void
+    {
+        $subAgreement = new SubAgreement()->setReference('NV-TA');
+        $route = new Route('NV-TA-01', $subAgreement);
+        $batch = new ImportBatch('default', 'test.xlsx', null, new \DateTimeImmutable(), ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 1));
+        $serviceDate = new \DateTimeImmutable('2026-01-05');
+        $row = new StopRowDto(
+            rowNumber: 1,
+            rowKey: 'S-1',
+            route: $route->getSourceKey(),
+            personId: 'P-A',
+            serviceDate: $serviceDate,
+            run: 1,
+            stopType: StopType::Pickup,
+            stopStatus: StopStatus::Completed,
+            passengersAfter: null,
+            nextDistanceKm: null,
+            nextDurationMin: null,
+            plannedTime: $serviceDate->setTime(7, 0),
+            actualTime: null,
+            plannedSolo: null,
+            passengers: null,
+            pricePerMinute: null,
+            cancellationNoticeMin: null,
+            cancellationInTime: null,
+            locationName: null,
+        );
+        foreach ([$subAgreement, $route, $batch, new StopRow($row, 'default', $route, $batch)] as $entity) {
+            $this->entityManager->persist($entity);
+        }
+        $this->entityManager->flush();
+
+        self::runCommand('app:fixtures:suppliers');
+
+        $this->entityManager->clear();
+        $supplier = $this->entityManager->getRepository(Supplier::class)->findOneBy(['name' => 'Vognmand A']);
+        self::assertInstanceOf(Supplier::class, $supplier);
+        $months = $this->entityManager->getRepository(MonthCitizens::class);
+        self::assertInstanceOf(MonthCitizensRepository::class, $months);
+        $january = DateRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31'));
+        self::assertSame(['2026-01' => 1], $months->byMonth($january, $supplier->getId()));
     }
 
     private function supplierOf(string $reference): ?string

@@ -68,12 +68,13 @@ final class RouteBuilderTest extends KernelTestCase
         $built = $this->builder()->rebuild(self::range('2026-01-05'));
 
         self::assertSame(4, $built);
+        // The last value is the peak passengers. R-01 run 2 and BOOKED are the solo runs.
         self::assertSame([
-            'BOOKED/1' => ['2026-01-05 13:00', '2026-01-05 13:03', 180, '2026-01-05 13:30', '2026-01-05 13:30', 0, false],
-            'R-01/1' => ['2026-01-05 07:00', '2026-01-05 07:02', 120, '2026-01-05 07:35', '2026-01-05 07:39', 240, false],
-            'R-01/2' => ['2026-01-05 09:00', '2026-01-05 09:05', 300, '2026-01-05 09:20', '2026-01-05 09:31', 660, false],
-            // The run ends after midnight, on the next day.
-            'R-02/1' => ['2026-01-05 23:40', '2026-01-05 23:41', 60, '2026-01-06 00:30', '2026-01-06 00:33', 180, false],
+            'BOOKED/1' => ['2026-01-05 13:00', '2026-01-05 13:03', 180, '2026-01-05 13:30', '2026-01-05 13:30', 0, false, 1],
+            'R-01/1' => ['2026-01-05 07:00', '2026-01-05 07:02', 120, '2026-01-05 07:35', '2026-01-05 07:39', 240, false, 2],
+            'R-01/2' => ['2026-01-05 09:00', '2026-01-05 09:05', 300, '2026-01-05 09:20', '2026-01-05 09:31', 660, false, 1],
+            // The run ends after midnight, on the next day. The cancelled pickup does not count.
+            'R-02/1' => ['2026-01-05 23:40', '2026-01-05 23:41', 60, '2026-01-06 00:30', '2026-01-06 00:33', 180, false, 2],
         ], $this->storedRuns());
     }
 
@@ -225,6 +226,7 @@ final class RouteBuilderTest extends KernelTestCase
                 $run->getLastDropActual()?->format('Y-m-d H:i'),
                 $run->getLastDropDelaySeconds(),
                 $run->isCancelled(),
+                $run->getPeakPassengers(),
             ];
         }
         ksort($runs);

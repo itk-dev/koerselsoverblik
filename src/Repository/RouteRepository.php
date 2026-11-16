@@ -19,6 +19,32 @@ class RouteRepository extends ServiceEntityRepository
     }
 
     /**
+     * Gives the ids of the routes that the figures count: the routes of a sub-agreement that is
+     * not ignored, and of the supplier if a supplier is given.
+     *
+     * @param ?int $supplierId the id of a supplier, or null for all suppliers
+     *
+     * @return list<int>
+     */
+    public function countedIds(?int $supplierId = null): array
+    {
+        $builder = $this->createQueryBuilder('route')
+            ->select('route.id')
+            ->join('route.subAgreement', 'subAgreement')
+            ->where('subAgreement.ignored = false');
+        if (null !== $supplierId) {
+            $builder
+                ->andWhere('IDENTITY(subAgreement.supplier) = :supplier')
+                ->setParameter('supplier', $supplierId);
+        }
+        /** @var list<int|string> $ids */
+        $ids = $builder->getQuery()->getSingleColumnResult();
+
+        // MariaDB can give an id as text.
+        return array_map(static fn (int|string $id): int => (int) $id, $ids);
+    }
+
+    /**
      * Gives the routes with their sub-agreement and its supplier, in one query.
      *
      * @param list<int> $ids

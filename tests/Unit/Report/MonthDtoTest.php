@@ -26,6 +26,17 @@ final class MonthDtoTest extends TestCase
         self::assertSame('2026-02-28', $month->range()->lastDate->format('Y-m-d'));
     }
 
+    /**
+     * The month of a date starts on the first day at 00:00, also from the last day at a time.
+     */
+    public function testMonthOfADate(): void
+    {
+        $month = MonthDto::of(new \DateTimeImmutable('2026-03-31 15:45'));
+
+        self::assertSame('2026-03-01 00:00:00', $month->range()->firstDate->format('Y-m-d H:i:s'));
+        self::assertSame('2026-03-31', $month->range()->lastDate->format('Y-m-d'));
+    }
+
     public function testLastDateOfAMonthInALeapYear(): void
     {
         self::assertSame('2024-02-29', self::fromQuery('2024-02')->range()->lastDate->format('Y-m-d'));

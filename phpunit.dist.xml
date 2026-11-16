@@ -31,6 +31,16 @@
         </testsuite>
     </testsuites>
 
+    <!-- The "fixtures" group tests the code that makes the development dataset. It is not
+         production code, and it takes most of the time of a full run. Run it with
+         `task test:fixtures`. The extract writer and the scenario loader are not in the group,
+         because the production tests trust their files. -->
+    <groups>
+        <exclude>
+            <group>fixtures</group>
+        </exclude>
+    </groups>
+
     <source ignoreSuppressionOfDeprecations="true"
             ignoreIndirectDeprecations="true"
             restrictNotices="true"
@@ -41,6 +51,12 @@
         </include>
         <exclude>
             <file>src/Kernel.php</file>
+            <!-- The code of the "fixtures" group. The default run does not test it. -->
+            <file>src/DataFixtures/DrivingData/DevDatasetGenerator.php</file>
+            <file>src/DataFixtures/DrivingData/DatasetSettings.php</file>
+            <file>src/DataFixtures/DrivingData/SchoolCalendar.php</file>
+            <file>src/Command/DrivingDataFixturesCommand.php</file>
+            <file>src/Command/SupplierFixturesCommand.php</file>
         </exclude>
 
         <deprecationTrigger>

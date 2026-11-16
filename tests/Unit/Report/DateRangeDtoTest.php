@@ -29,6 +29,15 @@ final class DateRangeDtoTest extends TestCase
         self::assertEquals($range->firstDate, $range->lastDate);
     }
 
+    public function testEqualsComparesTheDates(): void
+    {
+        $range = DateRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-31'));
+
+        self::assertTrue($range->equals(DateRangeDto::create(new \DateTimeImmutable('2026-01-05 13:45'), new \DateTimeImmutable('2026-01-31'))));
+        self::assertFalse($range->equals(DateRangeDto::create(new \DateTimeImmutable('2026-01-04'), new \DateTimeImmutable('2026-01-31'))));
+        self::assertFalse($range->equals(DateRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-30'))));
+    }
+
     public function testLastDateBeforeTheFirstDateIsRejected(): void
     {
         $this->expectException(\InvalidArgumentException::class);

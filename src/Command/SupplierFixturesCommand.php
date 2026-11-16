@@ -7,6 +7,7 @@ namespace App\Command;
 use App\DataFixtures\DrivingData\DevDatasetGenerator;
 use App\Entity\SubAgreement;
 use App\Entity\Supplier;
+use App\Import\MonthCitizensBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -16,6 +17,9 @@ use Symfony\Component\DependencyInjection\Attribute\When;
 /**
  * Gives the sub-agreements of the development dataset their invented suppliers. Run it after the
  * import, because the import creates the sub-agreements.
+ *
+ * The import ran before the suppliers existed, so it built only the citizens of all suppliers.
+ * Thus the command builds the citizens of each month again.
  */
 #[AsCommand(name: 'app:fixtures:suppliers', description: 'Give the sub-agreements of the development dataset their invented suppliers')]
 #[When(env: 'dev')]
@@ -24,6 +28,7 @@ final readonly class SupplierFixturesCommand
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private MonthCitizensBuilder $monthCitizens,
     ) {
     }
 
@@ -49,6 +54,7 @@ final readonly class SupplierFixturesCommand
             ++$count;
         }
         $this->entityManager->flush();
+        $this->monthCitizens->rebuildAll();
 
         $io->success(\sprintf('Gave %d sub-agreements a supplier.', $count));
 

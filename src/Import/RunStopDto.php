@@ -13,7 +13,8 @@ use App\Import\Mapping\StopType;
 final readonly class RunStopDto
 {
     /**
-     * @param ?int $delaySeconds the actual time minus the planned time, or null if the stop has no actual time
+     * @param ?int $delaySeconds    the actual time minus the planned time, or null if the stop has no actual time
+     * @param ?int $passengersAfter the number of citizens in the car after the stop, or null if the extract has no count
      */
     public function __construct(
         public StopType $type,
@@ -21,6 +22,7 @@ final readonly class RunStopDto
         public \DateTimeImmutable $plannedTime,
         public ?\DateTimeImmutable $actualTime,
         public ?int $delaySeconds,
+        public ?int $passengersAfter = null,
     ) {
     }
 

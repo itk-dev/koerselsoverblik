@@ -4,51 +4,32 @@ declare(strict_types=1);
 
 namespace App\Report;
 
-use App\Import\Mapping\StopType;
+use App\Repository\RouteDayTotalsRepository;
 use App\Repository\RouteRepository;
-use App\Repository\RouteRunRepository;
-use App\Repository\StopRowRepository;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Calculates the punctuality figures of a period: the four measures, the delay bands of the last
  * drop-off and the worst routes, in total and for each supplier. See "Calculating the figures" in
  * docs/architecture.md.
  *
- * The import calculates each delay in PHP (ADR 005). The queries only compare a delay with the
- * limits, and count.
+ * The figures are sums of the totals of each route and day. The import counts them.
  */
 final readonly class PunctualityCalculator
 {
-    private const int SECONDS_IN_A_MINUTE = 60;
-
-    /**
-     * The highest delay of the band "more than the tolerance to 15 minutes".
-     */
-    private const int UP_TO_15_SECONDS = 15 * self::SECONDS_IN_A_MINUTE;
-
-    /**
-     * The highest delay of the band "more than 15 to 30 minutes".
-     */
-    private const int UP_TO_30_SECONDS = 30 * self::SECONDS_IN_A_MINUTE;
-
     private const int WORST_ROUTES = 10;
 
-    /**
-     * @param int $toleranceMinutes the value of APP_PUNCTUALITY_TOLERANCE_MINUTES
-     */
     public function __construct(
-        private StopRowRepository $stopRows,
-        private RouteRunRepository $routeRuns,
+        private RouteDayTotalsRepository $totals,
         private RouteRepository $routes,
-        #[Autowire(param: 'app.punctuality_tolerance_minutes')]
-        private int $toleranceMinutes,
     ) {
     }
 
-    public function calculate(DateRangeDto $range): PunctualityReportDto
+    /**
+     * @param ?int $supplierId the id of a supplier, so that the total and the worst routes are of that supplier only, or null for all suppliers. The figures of each supplier are always of all suppliers
+     */
+    public function calculate(DateRangeDto $range, ?int $supplierId = null): PunctualityReportDto
     {
-        $figures = $this->figuresOfEachRoute($range);
+        $figures = array_map(static fn (DayTotalsDto $totals): PunctualityFiguresDto => $totals->punctuality(), $this->totals->sumOfEachRoute($range));
         $routes = $this->routes->findWithSuppliers(array_keys($figures));
 
         $total = PunctualityFiguresDto::empty();
@@ -58,54 +39,41 @@ final readonly class PunctualityCalculator
         foreach ($figures as $routeId => $routeFigures) {
             $route = $routes[$routeId];
             // The routes of a sub-agreement with no supplier count as "Unknown".
-            $supplier = $route->getSubAgreement()->getSupplier()?->getName();
+            $supplier = $route->getSubAgreement()->getSupplier();
+            $name = $supplier?->getName();
+            $bySupplier[$name ?? ''] = ($bySupplier[$name ?? ''] ?? PunctualityFiguresDto::empty())->add($routeFigures);
+            if (null !== $supplierId && $supplier?->getId() !== $supplierId) {
+                continue;
+            }
 
             $total = $total->add($routeFigures);
-            $bySupplier[$supplier ?? ''] = ($bySupplier[$supplier ?? ''] ?? PunctualityFiguresDto::empty())->add($routeFigures);
-            $byRoute[] = new RoutePunctualityDto($route->getSourceKey(), $supplier, $routeFigures->dropOffPerRun);
+            $byRoute[] = new RoutePunctualityDto($route->getSourceKey(), $name, $routeFigures->dropOffPerRun);
         }
 
         return new PunctualityReportDto($total, self::suppliers($bySupplier), self::worstRoutes($byRoute));
     }
 
     /**
-     * Reads the counts of the stops and the runs, and adds them for each route. The counts of
-     * all dates of the range go to the same route.
+     * Gives the total of each month in the range. One query gives all months, so that a page does
+     * not calculate each month by itself. A month with no totals has no item.
      *
-     * @return array<int, PunctualityFiguresDto> keyed by the route id
+     * @param ?int $supplierId the id of a supplier, or null for all suppliers
+     *
+     * @return array<string, PunctualityFiguresDto> keyed by the month as YYYY-MM, as MonthDto::query()
      */
-    private function figuresOfEachRoute(DateRangeDto $range): array
+    public function totalsByMonth(DateRangeDto $range, ?int $supplierId = null): array
     {
-        $onTimeSeconds = $this->toleranceMinutes * self::SECONDS_IN_A_MINUTE;
-        $none = new PunctualityCountDto(0, 0);
-        $noBands = new DelayBandsDto(0, 0, 0, 0);
-
-        $figures = [];
-        foreach ($this->stopRows->countMeasuredStops($range, $onTimeSeconds) as $row) {
-            $count = new PunctualityCountDto($row['onTime'], $row['measured']);
-            self::addTo($figures, $row['route'], StopType::Pickup === $row['stopType']
-                ? new PunctualityFiguresDto($count, $none, $none, $none, $noBands)
-                : new PunctualityFiguresDto($none, $count, $none, $none, $noBands));
-        }
-        foreach ($this->routeRuns->countRunFigures($range, $onTimeSeconds, self::UP_TO_15_SECONDS, self::UP_TO_30_SECONDS) as $row) {
-            self::addTo($figures, $row['route'], new PunctualityFiguresDto(
-                $none,
-                $none,
-                new PunctualityCountDto($row['firstPickupOnTime'], $row['firstPickupMeasured']),
-                new PunctualityCountDto($row['lastDropOnTime'], $row['lastDropMeasured']),
-                new DelayBandsDto($row['lastDropOnTime'], $row['lastDropUpTo15'], $row['lastDropUpTo30'], $row['lastDropOver30']),
-            ));
-        }
-
-        return $figures;
+        return array_map(static fn (DayTotalsDto $totals): PunctualityFiguresDto => $totals->punctuality(), $this->totals->sumByMonth($range, $supplierId));
     }
 
     /**
-     * @param array<int, PunctualityFiguresDto> $figures keyed by the route id
+     * Gives the total of a range, with no figures of each supplier and route.
+     *
+     * @param ?int $supplierId the id of a supplier, or null for all suppliers
      */
-    private static function addTo(array &$figures, int $route, PunctualityFiguresDto $add): void
+    public function total(DateRangeDto $range, ?int $supplierId = null): PunctualityFiguresDto
     {
-        $figures[$route] = ($figures[$route] ?? PunctualityFiguresDto::empty())->add($add);
+        return $this->totals->sum($range, $supplierId)->punctuality();
     }
 
     /**

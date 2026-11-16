@@ -161,7 +161,7 @@ flowchart TB
         parser["StopRowParser"]
         replacer["StopRowReplacer<br/>StopRowRangeDeleter"]
         builder["RouteBuilder"]
-        aggregator["DailyStatsAggregator"]
+        aggregator["RouteDayTotalsBuilder"]
         clearer["DrivingDataClearer"]
     end
 
@@ -324,6 +324,7 @@ erDiagram
         datetime last_drop_actual "null = not measured"
         int last_drop_delay_seconds "null = not measured"
         bool cancelled "all stops are cancelled"
+        int peak_passengers "null = no passenger count"
     }
     DAILY_STATS {
         int id PK
@@ -379,8 +380,9 @@ erDiagram
 | `StopRow` | One stop from the extract, with an optional row key from the mapping and the copy of the row. See [open decisions](#open-decisions) |
 | `RejectedStopRow` | A rejected row in the range of its upload, with the row number, the reason and the copy of the row. A later read through a corrected mapping can import it |
 | `SourceRow` | The copy of one row of the extract, for one `StopRow` or one `RejectedStopRow`. See [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row) |
-| `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay. The daily stats add the peak passengers, the distances and the durations. See [open decisions](#open-decisions) |
-| `DailyStats` | Derived: the counters for one date and supplier that every driving figure is summed from |
+| `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay, and the peak passengers. A later feature adds the distances and the durations. See [open decisions](#open-decisions) |
+| `RouteDayTotals` | Derived: the counters for one route and date that the driving figures are summed from, and the tolerance of the build. It has all routes, also the routes of an ignored sub-agreement. It has no citizens and no person ids |
+| `MonthCitizens` | Derived: the number of citizens in one calendar month, for all suppliers (no supplier) or for one supplier. It has no person ids |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
 **A sub-agreement has one supplier.** The supplier has no dates. A change of the supplier
@@ -390,13 +392,54 @@ no `ON DELETE`, so the database blocks the delete of a supplier with sub-agreeme
 
 **An ignored sub-agreement is left out in the queries, not in the import.** The import stores
 its stop rows and builds its route runs. Each query that counts driving data for the figures
-calls `IgnoredSubAgreementFilter::apply()`. It joins the sub-agreement and skips the rows of an
-ignored sub-agreement. Thus a change of the flag needs no new import.
+calls `CountedRouteFilter::apply()`. The filter reads the ids of the routes of the sub-agreements
+that are not ignored, and limits the query with `IN (:ids)`. Thus a change of the flag needs no
+new import.
 
-**Derived tables are always rebuildable.** `RouteRun` and `DailyStats` are rebuilt from `StopRow`
-for the dates an import touched. When the supplier or the ignored flag of a sub-agreement
-changes, `DailyStats` is rebuilt for all dates of the routes of the sub-agreement. The derived
-tables hold no information that can't be recalculated.
+The filter does not join the route and the sub-agreement. With a join, MariaDB starts at the few
+sub-agreements and reads the rows of each route for all dates. Thus each query reads all the
+history, and gets slower when the data grows. With a list of ids, MariaDB reads only the dates of
+the range. The index `stop_row (route_id, service_date)` gives the same result for a list of a
+few routes.
+
+Each figure query reads the list again. The lookup takes less than 1 ms, and a list in memory for
+the request can become old when the flag changes. With all suppliers, the list has nearly all
+routes. This is sufficient for some hundreds of routes. Check it again if the routes become
+thousands.
+
+**Derived tables are always rebuildable.** `RouteRun` and `RouteDayTotals` are rebuilt from
+`StopRow` for the dates an import touched, and `MonthCitizens` for the full months of those
+dates. The derived tables hold no information that can't be recalculated.
+
+- A change of the supplier or the ignored flag of a sub-agreement needs no rebuild of
+  `RouteDayTotals`, because the queries apply them with `CountedRouteFilter`.
+- The counts on time of `RouteDayTotals` depend on `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Each row
+  stores the tolerance of its build. A sum fails with `OtherToleranceException` if a row has
+  another tolerance. Then run `app:driving-data:rebuild-totals --no-debug`. It builds all dates
+  of both tables again in one transaction.
+- The citizens are distinct person ids, so the citizens of two days or two months cannot be
+  added. `MonthCitizens` holds the count of each calendar month, for all suppliers and for each
+  supplier, with no person ids. A period that is not a calendar month is counted on `StopRow`.
+  The index `stop_row (service_date, stop_type, stop_status, route_id, person_id)` has all the
+  columns of that query, so MariaDB does not read the rows. The index starts with the date, so it
+  also serves the queries of a date range. Thus `stop_row` has no index on the date alone.
+- The counts of `MonthCitizens` depend on the sub-agreements. Thus an edit of a sub-agreement
+  builds all months again for the scopes that it changes, in the same transaction as the save.
+  `MonthCitizensBuilder::rebuildAfterSubAgreementChange()` finds the scopes. The ignored flag
+  changes the count of all suppliers and of the supplier of the sub-agreement. The supplier
+  changes the counts of the old and the new supplier. With one year of data, the save then takes
+  approximately 1.5 to 2.5 seconds, and the time grows with the history. A new sub-agreement has
+  no routes until an import, so it builds nothing.
+- Each code path that changes the supplier or the ignored flag of a sub-agreement must build the
+  counts of `MonthCitizens` again. Otherwise a month on the overview shows an old count, with no
+  error. Today these paths are the edit of a sub-agreement and `app:fixtures:suppliers`.
+- `MonthCitizensBuilder::rebuildAll()` deletes all rows of a scope, and writes only the months
+  that have stop rows. When the retention job of ADR 004 deletes old stop rows, a later rebuild
+  thus deletes the counts of those months. Decide this before the job is built.
+- `DayTotalsDto::fromRow()` fails if a query row has no value for a counter that the query must
+  give. Thus a wrong alias in a query does not give zeros with no error.
+- `OtherToleranceListener` shows `OtherToleranceException` as a page with the status 503. The
+  page names the command, so that the admin does not have to read the log first.
 
 ## Importing driving data
 
@@ -412,7 +455,7 @@ sequenceDiagram
     participant M as MappingDto
     participant U as StopRowReplacer
     participant B as RouteBuilder
-    participant A as DailyStatsAggregator
+    participant A as RouteDayTotalsBuilder
     participant DB as MariaDB
 
     Admin->>C: POST /admin/import (file, first date, last date)
@@ -440,7 +483,8 @@ sequenceDiagram
     C->>B: rebuild(range)
     B->>DB: replace RouteRun rows in the range
     C->>A: rebuild(range)
-    A->>DB: replace DailyStats rows in the range
+    A->>DB: replace RouteDayTotals rows in the range
+    C->>DB: replace MonthCitizens rows of the months of the range
     C->>DB: update ImportBatch counts, commit
     C->>C: delete the file
     C-->>Admin: result page
@@ -686,9 +730,22 @@ would only delete data. The batch has no user. The command does not delete the f
    - A stop is measured when its status is `completed` and it has an actual time. For a stop that
      is not measured, the run keeps the planned time, and the actual time and the delay are null.
    - A run is cancelled when all its stops are cancelled.
+   - The peak passengers are the highest `passengers_after` of the stops that are not cancelled.
+     A cancelled stop can have a count that includes the cancelled citizen, so it does not count.
+     A pending stop counts, because it is often a driven stop with no registration. Thus the
+     peak of the current month partly shows the plan. A run with no count has no peak.
    - It saves the runs in groups of 500, as the replacer does.
-6. **Aggregate.** `DailyStatsAggregator` replaces `DailyStats` rows for the range, one per
-   supplier.
+6. **Aggregate.** `RouteDayTotalsBuilder` replaces `RouteDayTotals` rows for the range, one per
+   route and date.
+   - Two grouped queries give the counters: `StopRowRepository::countDayTotals()` for the
+     measured stops and the trips, and `RouteRunRepository::countDayTotals()` for the measured
+     runs, the delay bands and the solo runs. They have the rules of the figures. They count all
+     routes, so they do not use `CountedRouteFilter`.
+   - It saves the rows in groups of 500, as the replacer does.
+   - `MonthCitizensBuilder` then replaces the `MonthCitizens` rows of the full months of the
+     range: from the first day of the month of the first date to the last day of the month of the
+     last date. It counts each month with `StopRowRepository::countCitizensByMonth()`, for all
+     suppliers and for each supplier.
 7. **Clean up.** The uploaded file is deleted, and the `ImportBatch` is updated with the counts,
    the rejection reasons and the warnings (`ImportBatch::complete()`). They never have a field
    value.
@@ -739,7 +796,7 @@ upload.
 
 1. The user selects **Clear** for a date.
 2. The user confirms.
-3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `DailyStats` for the date in one
+3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `RouteDayTotals` for the date in one
    transaction. `DailyCount` does not change.
 4. The application logs who cleared which date, and the deleted counts. The log has no field
    values.
@@ -771,7 +828,7 @@ sequenceDiagram
     R-->>C: date ranges (comparison cut to the same number of days if partial)
     loop current, comparison, each month
         C->>K: calculate(range, supplier)
-        K->>DB: SUM over DailyStats and DailyCount, distinct citizens
+        K->>DB: SUM over RouteDayTotals and DailyCount, distinct citizens
         K-->>C: Kpis
     end
     C->>C: Delta and Tone per figure
@@ -780,14 +837,66 @@ sequenceDiagram
 ```
 
 **Filters:** `PeriodFilter` maps the query string (`p` period, `d` date, `c` comparison,
-`s` supplier). Invalid values fall back to the defaults, so a link always works.
+`s` supplier). Invalid values fall back to the defaults, so a link always works. Each view has
+one URL: `PeriodFilter::query()`. A request with another query, for example the default values
+that the form sends, redirects to that URL (`PeriodFilter::isCanonical()`).
 
 **Periods:** `PeriodRangeFactory` turns the filter into three sets of date ranges:
 
 - the selected period
 - the comparison period: the previous period, or the same period last year. If the selected
-  period has not ended, the comparison is cut to the same number of days.
-- the 12 trailing months for sparklines and the trend chart
+  period has not ended, the comparison is cut to the same number of days. The days count from
+  the first date of each period, so 1–10 June compares with 1–10 May. If the cut comparison ends
+  before the start of the data, the comparison has no data.
+- the 12 trailing months for sparklines and the trend chart. They end at the month of the last
+  date of the period, up to today.
+
+The rules follow the prototype, with other period types:
+
+- The period types are a week, a month, a quarter and a half year. The prototype has a day and a
+  year. The data starts in May 2026, so a quarter and a half year show a trend sooner than a
+  year.
+- A week is an ISO week, from Monday to Sunday, also across a new year (week 53). A month, a
+  quarter and a half year are calendar periods.
+- A period ends today at the latest, and starts at the start of the data
+  (`APP_DATA_START_DATE`) at the earliest. A period that is cut at one of these dates is
+  partial. A date before the start of the data gives the start of the data.
+- The previous and the next period move the anchor date (`d`) to the first date of that period.
+  The next period has no link when it starts after today. The previous period has no link when
+  it ends before the start of the data.
+- `PeriodFilter::query()` gives the first date of the period as `d`, and no `d` for the current
+  period. Thus, each period has one link.
+- A comparison period that starts before the start of the data is a partial period ("maj 2026
+  (delvis periode)"). The tiles with a count, for example the trips, then have no change,
+  because the change would only show the extra days. The tiles with a share keep the change. A
+  comparison period that ends before the start of the data has no data ("en periode uden
+  data"), and the tiles have no change.
+
+Two rules are different from the prototype. In the prototype, the result changes with the date
+in the period:
+
+- The same week last year has the same ISO week number. Week 53 gives week 52 in a year that has
+  52 weeks.
+- The 12 months end at the month of the last date of the period, not at the month of `d`.
+
+The parts of the filters:
+
+- `PeriodSelectionDto` holds the selected period, the comparison period, the cut comparison
+  range, the links and the 12 months.
+- `PeriodLabeler` gives the Danish labels, for example "Uge 38 · 14. sep–20. sep 2026" and "3.
+  kvartal 2026", and the phrase of a partial period: "1.–18. september 2026 (til og med i dag)".
+- `templates/_filter_bar.html.twig` is the filter bar of both pages. The period links are in a
+  `nav`, and the link of the selected type has `aria-current`. The period links and the previous
+  and next links keep the other filters. The comparison and the supplier are select boxes in a
+  GET form. Only the button sends the form, because a form that is sent on each change reloads
+  the page when a keyboard user moves through the options (WCAG 3.2.2).
+- `PeriodSelector` reads the filters for both controllers. A supplier id that does not exist
+  gives all suppliers. The selector also gives the suppliers of the filter bar, from the same
+  query, so the template does not read the database.
+- With a supplier, `CountedRouteFilter` limits the queries of the totals to the routes of the
+  sub-agreements of the supplier. `PunctualityCalculator` gives the
+  total and the worst routes of the supplier only. The supplier tables always show all
+  suppliers.
 
 **Calculation:** `KpiCalculator` runs one aggregate query per range and returns a `Kpis` value
 object.
@@ -807,7 +916,7 @@ object.
 
 - Ratios are calculated from sums and never averaged from daily percentages.
 - A zero denominator gives "no value" (shown as "–"), not zero.
-- The supplier filter applies to `DailyStats`. `DailyCount` is office-wide.
+- The supplier filter applies to `RouteDayTotals`. `DailyCount` is office-wide.
 
 **Delta and tone:** `Delta` gives the change from the comparison period, and whether it is better
 or worse for that figure. `Tone` maps a value to ok, warn or danger using thresholds from one
@@ -815,22 +924,33 @@ config file.
 
 ### Punctuality
 
-`PunctualityCalculator` gives the figures of the "Rettidighed" page for a `DateRangeDto`. It
-reads `StopRow` and `RouteRun` directly. The daily stats can replace these queries later.
+`PunctualityCalculator` gives the figures of the "Rettidighed" page for a `DateRangeDto`. It adds
+the rows of `RouteDayTotals` with `RouteDayTotalsRepository`. The import counts the rows (see
+"Pipeline").
 
-The page is `/punctuality` (`PunctualityController`, `ROLE_VIEW_OVERVIEW`). `MonthDto` reads the
-month from `?month=YYYY-MM`. No value, an invalid value and a month after the current month
-give the current month from `LocalCalendar`. `PunctualityPageBuilder` calculates the month and
-the 11 months before it, for the sparklines and the charts. `PunctualityPageDto` gives the
-change of each measure from the previous month. The page does not show the driver changes, the
-no-shows and the locations of the prototype, because the import does not read their columns.
+The page is `/punctuality` (`PunctualityController`, `ROLE_VIEW_OVERVIEW`). The filter bar gives
+the period and the comparison (see "Periods" above). `PunctualityPageBuilder` calculates the
+selected period, the comparison period and the 12 months up to the period, for the sparklines
+and the charts. `PunctualityPageDto` gives the change of each measure from the comparison
+period. The page does not show the driver changes, the no-shows and the locations of the
+prototype, because the import does not read their columns.
 
-**Cost:** the page runs `PunctualityCalculator` for each of the 12 months, so one request runs
-36 queries. The page uses only the totals of the 11 earlier months. This is sufficient for the
-data of today. When the data grows, a query grouped by month, or the daily stats, can replace
-the 11 calculations.
+**Cost:** the months and the comparison period only need the total. Only the selected period
+needs the figures of each supplier and route.
 
-A month with no measured last drop-off has no data. The tiles of the late runs then show "–",
+- `PunctualityCalculator::totalsByMonth()` gives the totals of the 12 months with one query,
+  grouped by month.
+- `PunctualityCalculator::calculate()` gives the figures of each route, only for the selected
+  period.
+- `PunctualityCalculator::total()` gives the comparison period. A comparison period that has
+  the dates of a month of the history uses the total of that month.
+
+Each sum query also reads the ids of the counted routes (see "Data model"). Thus a request runs 5
+to 7 queries. With more than one year of data, the page takes less than 0.5 seconds. Before #136,
+it read the stop rows and the route runs, and took approximately 1 to 3 seconds. Before #134, it
+took approximately 6 to 11 seconds.
+
+A period with no measured last drop-off has no data. The tiles of the late runs then show "–",
 not 0, and the sparklines have a gap.
 
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
@@ -847,20 +967,69 @@ value shows as "–".
 - **On time:** a delay of at most `APP_PUNCTUALITY_TOLERANCE_MINUTES` × 60 seconds. An early stop
   is on time. Each measure is on time ÷ measured × 100. No measured rows give no value, not 0 %.
 - **No delay in SQL:** the import calculates `delay_seconds` in PHP ([Times](#times)). The queries
-  only compare it with the limits, and count.
+  of `RouteDayTotalsBuilder` only compare it with the limits, and count.
 - **Ignored sub-agreements:** the queries do not count the stops and the runs of the routes of an
   ignored sub-agreement.
 - **Delay bands** of the measured last drop-offs: on time, more than the tolerance to 15 minutes,
   more than 15 to 30 minutes, and more than 30 minutes. A delay on the edge is in the lower band.
-- **Supplier:** the queries count for each route and date, and the calculator adds the dates of
-  each route. `RouteRepository::findWithSuppliers()` then gives the supplier of the sub-agreement
-  of each route. The routes of a sub-agreement with no supplier count as "Unknown". The suppliers
-  are in the order of the name, with "Unknown" last.
+- **Supplier:** `RouteDayTotalsRepository::sumOfEachRoute()` adds the rows of each route.
+  `RouteRepository::findWithSuppliers()` then gives the supplier of the sub-agreement of each
+  route. The routes of a sub-agreement with no supplier count as "Unknown". The suppliers are in
+  the order of the name, with "Unknown" last.
 - **Worst routes:** the 10 routes with the lowest punctuality at the last drop-off. On the same
   punctuality, the route with more measured runs is first. A route with no measured last drop-off
   is not in the list.
 - **Tone:** `PunctualityTone` is ok at or above `APP_PUNCTUALITY_TARGET`, warn at or above 70 %,
   and danger below.
+
+### Overview
+
+The overview (`/`, `OverviewController`, `ROLE_VIEW_OVERVIEW`) shows the figures of the selected
+period before `KpiCalculator` above exists. It has the same filter bar as the punctuality page.
+
+- The trips come from `RouteDayTotals`. A trip is a pickup with any status.
+- `StopRowRepository::countCitizens()` counts the citizens who were driven: the distinct person
+  ids of the pickups that are not cancelled, as in the prototype. A pickup with no registration
+  counts.
+- The queries do not count the pickups of the routes of an ignored sub-agreement.
+- `OverviewPageBuilder` counts the month and the 11 months before it. `OverviewPageDto` gives the
+  change from the previous month and the history for the sparklines.
+- A month with no trips has no data. The tiles then show "–", not 0, and the trips have no note.
+- The note of the trips gives the completed and the cancelled trips. It also gives the trips with
+  no registration when there are some, so that the parts add up to the trips.
+- A change of the trips or the citizens has no tone, because more volume is not better or worse.
+- The punctuality comes from `PunctualityPageBuilder` for the same month. The tile
+  "Rettidighed" shows `PunctualityPageDto::headline()`, the drop-off per route run. The goal panel
+  and the 12-month chart are shared templates (`punctuality/_goal.html.twig` and
+  `punctuality/_trend.html.twig`), so the overview and the punctuality page show the same figures.
+  Each page gives the variables of the shared templates explicitly, with `with_context = false`.
+- The solo runs come from `RouteDayTotals`. `RouteRunRepository::countDayTotals()` counts the
+  runs that are not cancelled and have a peak of 1 or more, and the real solo runs: the runs with
+  a peak of 1. A run with a peak of 0 had no citizen in the car, so it is neither solo nor shared,
+  and it does not count. The sums do not count the runs of an ignored sub-agreement.
+- The tile "Reelt solo" shows the share, with no tone, because the share has no target. A month
+  with no counted runs has no share. The tile then shows "–" and has no note.
+- A route run that was imported before the peak existed has no peak until the next import.
+- `SupplierTableCalculator` gives the table "Leverandørerne side om side". It sums the trips,
+  the cancelled trips and the real solo runs of each route, and adds the routes of each supplier,
+  as `PunctualityCalculator` does. The counts of each route use the same rules as the tiles, so
+  a run with a peak of 0 and a route of an ignored sub-agreement do not count. A route with no
+  trips and no counted runs gives no row. The punctuality of
+  each supplier comes from the punctuality report of the month. The rows have the order of the
+  punctuality page. The table has no empty kilometres and no complaints (see the open decisions).
+- The page compares a period that has not ended with the same number of days of the comparison
+  period (see "Periods" above).
+
+**Cost:** `RouteDayTotalsRepository::sumByMonth()` gives the trips and the solo runs of the 12
+months, and `MonthCitizensRepository::byMonth()` gives the citizens. The citizens of a month are
+the citizens who were driven in that month. A selected period or a comparison period that has the
+dates of a month of the history uses the counts of that month. Other periods run `sum()` and
+`countCitizens()`, so their cost grows with the length of the period, not with the history. The
+request also has the cost of the punctuality page and of the supplier table. Thus a request runs
+11 to 25 queries. With more than one year of data, the page takes approximately 0.4 seconds for a
+month or a week, and approximately 1 second for a quarter or a half year. Before #138, it took
+approximately 1 to 2.5 seconds, before #136 approximately 2 to 7 seconds, and before #134
+approximately 15 to 38 seconds.
 
 ## Security
 
@@ -1059,12 +1228,19 @@ The project is developed test first, with 100 % line coverage and mutation testi
 | Unit | `Report`, `Import`, value objects, `FormatExtension` | PHPUnit |
 | Integration | Repositories and aggregate queries, replacement and clearing, commands | `KernelTestCase`, MariaDB, `dama/doctrine-test-bundle` |
 | Functional | Every route × role, forms, the OIDC login with a stubbed identity provider, upload end to end, a second confirmation of one upload, the overview | `WebTestCase` |
+| Fixtures | The code that makes the development dataset: `DevDatasetGenerator`, `DatasetSettings`, `SchoolCalendar` and the fixture commands | PHPUnit group `fixtures`, outside the default run |
+
+The coverage gate and Infection measure the production code, and the test tools that the
+production tests trust: `ExtractWriter` and `ScenarioLoader`. The code of the development dataset
+is not production code, so `task test` does not run the `fixtures` group. `task test:fixtures`
+and a separate CI job run it.
 
 **Mutation testing (Infection):**
 
 - `src/Report` and `src/Import` require a covered MSI of 100 %. The rest of the mutated code
   requires 80 %.
-- Controllers, form types and Twig components are not mutated.
+- Controllers, form types, Twig components and the code of the development dataset are not
+  mutated.
 - Each Infection thread uses its own test database (`db_test<THREAD>`). The mutation tasks
   create and migrate them.
 - Only the release and hotfix branches run it, on the whole code base. Feature pull requests do
@@ -1125,8 +1301,9 @@ hold the connection details.
 **Cron:** a cron job on the server runs `app:driving-data:purge-uploads` every 15 minutes in the
 phpfpm container. A second cron job runs `app:driving-data:delete-orphan-copies` each night.
 
-**CI:** GitHub Actions runs coding standards, PHPStan, Rector and tests with the coverage gate on every
-pull request. The release and hotfix branches also run mutation testing on the whole code base.
+**CI:** GitHub Actions runs coding standards, PHPStan, Rector and the tests with no coverage on every
+pull request. A separate job runs the `fixtures` group. The release and hotfix branches also run the
+coverage gate and mutation testing on the production code.
 
 ## Open decisions
 
@@ -1159,14 +1336,23 @@ pull request. The release and hotfix branches also run mutation testing on the w
 - **Stops with no registration.** How do the figures treat a stop that has no status
   registration from the driver (`pending`)? The proposal: it counts as a trip, because it is not
   cancelled. A run whose last drop-off has no actual time is not counted for punctuality. The
-  product owner in the transport office answers before the daily stats are built.
+  product owner in the transport office answers before the distances and the durations are added
+  to `RouteDayTotals`.
 - **Passengers and distances of a run.** The peak passengers, the empty kilometres and the solo
   runs need the number of passengers after each stop. In the reference extract,
   `passengersaftercancel` is not 0 after the last stop that is not cancelled in 7 of 80 runs. It
   does not always remove a cancelled pickup. Also, 55 cancelled stops have a distance to the next
   stop. Is the count from the stops correct (+1 for each pickup that is not cancelled, −1 for each
   drop-off)? Does a cancelled stop add to the driven kilometres? The product owner in the
-  transport office answers before the daily stats are built.
+  transport office answers before the distances and the durations are added to `RouteDayTotals`.
+  - The real solo runs on the overview (#110) use the proposal: the peak of `passengers_after`
+    of the stops that are not cancelled. In the real exports after the fix of the export script,
+    almost all runs end with no passengers. The pending stops count, and the runs with a peak of
+    0 do not count. An answer can change these rules in `RouteRunCalculator` and
+    `RouteRunRepository::countDayTotals()`. Then run `app:driving-data:rebuild-totals`.
+  - The empty kilometres wait for the answer. In the real exports, the cancelled stops and the
+    last stop of each route and date have a distance, so a share of the distances is not
+    reliable yet.
 - **Actual time (answered).** The actual time of a stop is `StatusUpdateTime`, the status
   registration by the driver.
 - **Route names and test routes.** Do all route names end with `-` or `_` and a number? Is
@@ -1194,6 +1380,11 @@ pull request. The release and hotfix branches also run mutation testing on the w
   no-show one of these, a cancellation code, or a column that the extract does not have? The
   product owner in the transport office answers before the punctuality page can show the
   no-shows.
+- **Partial month.** The overview and the punctuality page compare the current month, which is
+  not complete, with all of the previous month. On 20 January, the trips of 20 days are compared
+  with the trips of 31 days, so the change is too negative. The options: compare the same days of
+  the two months, show that the month is not complete, or show no change for the current month.
+  Decide this with the period filters.
 - **Role claim.** Which claim holds the roles, and which values does the identity provider
   send? Which group is assigned to the application? IT operations sets this up before go-live.
 

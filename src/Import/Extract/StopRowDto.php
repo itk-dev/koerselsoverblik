@@ -45,7 +45,7 @@ final readonly class StopRowDto
     public ?int $delaySeconds;
 
     /**
-     * @param int                           $rowNumber    the 1-based row number in the sheet
+     * @param int                           $rowNumber             the 1-based row number in the sheet
      * @param ?string                       $rowKey                the values of the row id columns, or null if the mapping has no row id
      * @param ?int                          $passengers            the passengers after the stop, before the cancellations are removed
      * @param ?float                        $cancellationNoticeMin the minutes from the cancellation to the planned time. A negative value is a cancellation after the planned time

@@ -31,6 +31,13 @@ changes of the driving data never overlap.
 - When the lock is taken, stop at once with a clear message. Do not wait. The upload page shows
   the message in Danish, and the console command shows it in English.
 - Let the clear of a date (#81) take the same lock, if #81 is merged first.
+- Let `app:driving-data:rebuild-totals` (#136) take the same lock. The command deletes and builds
+  all totals in one transaction. An import at the same time can break the unique index of the
+  totals, or wait for a lock of the database.
+- Let the edit of a sub-agreement take the same lock. The save deletes and writes the citizens of
+  each month (#138). A save at the same time as an import can count from a snapshot with no rows
+  of the import. Then the months of the import keep old counts. When the lock is taken, the edit
+  page shows the message in Danish, and saves nothing.
 - Update "Pipeline" in `docs/architecture.md`, the deployment section of the README, and
   `CHANGELOG.md`.
 
@@ -39,6 +46,7 @@ changes of the driving data never overlap.
 ## Acceptance criteria
 
 - Two imports never overlap. The second import stops with the message, and changes no data.
+- An edit of a sub-agreement and an import never overlap.
 - The lock is released after an import, also after a failed import.
 - An import that stops with no release (for example a killed process) does not block the next
   imports for more than the TTL of the lock.
@@ -131,6 +139,8 @@ Choose B, Redis, only in one of these cases:
 - An integration test of the importer with a spy store (`PersistingStoreInterface`) in the test.
   The import saves and deletes the key `driving-data`. The preview does not.
 - A functional test of the upload page: the message when the lock is taken.
+- A functional test of the edit page of a sub-agreement: the message when the lock is taken, and
+  no change of the sub-agreement.
 
 ## Open points
 
@@ -138,5 +148,6 @@ Choose B, Redis, only in one of these cases:
   work, or will soon. If it does, choose B.
 - **Keep the sweep?** When the lock exists, decide whether the nightly
   `app:driving-data:delete-orphan-copies` stays as a safety net, or is removed.
-- **Other changes of the data:** check whether the change of a sub-agreement (the daily stats,
-  [daily-stats.md](daily-stats.md)) must also take the lock.
+- **Other changes of the data:** the edit of a sub-agreement builds the citizens of each month
+  again, so it takes the lock (see the tasks). A new sub-agreement has no routes, so it builds
+  nothing and needs no lock.

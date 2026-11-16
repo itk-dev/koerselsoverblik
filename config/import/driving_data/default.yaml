@@ -92,8 +92,8 @@ fields:
     cancellation_in_time:
         column: RettidigAflysningsvarsel
         type: bool
-        true_values: ["yes"]
-        false_values: ["no"]
+        true_values: ['yes']
+        false_values: ['no']
     # The institution of the trip. Never show it with a person id, or write it to a log or to the
     # output of a command.
     location_name: { column: Placename, type: string }

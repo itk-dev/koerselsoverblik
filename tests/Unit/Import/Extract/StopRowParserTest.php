@@ -82,7 +82,7 @@ final class StopRowParserTest extends TestCase
 
         self::assertSame($scenario->expected['stop_rows'], \count($rows));
         self::assertSame($scenario->expected['rejected_rows'], \count($rejected));
-        self::assertSame($scenario->expected['citizens'], \count(array_unique(array_map(static fn (StopRowDto $row): ?string => $row->personId, $rows))));
+        self::assertSame($scenario->expected['person_ids'], \count(array_unique(array_map(static fn (StopRowDto $row): ?string => $row->personId, $rows))));
 
         $first = $rows[0];
         // The header is in row 3, so the first stop is in row 4.
@@ -577,7 +577,7 @@ final class StopRowParserTest extends TestCase
     {
         $row = self::ROW;
         $row[$index] = $value;
-        $this->writeRows([self::HEADER, $row]);
+        $this->writeRows([self::HEADER, array_values($row)]);
 
         [$rows, $rejected] = $this->parse(self::simpleMapping());
 

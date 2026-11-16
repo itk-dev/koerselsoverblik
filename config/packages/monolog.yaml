@@ -33,6 +33,9 @@ when@test:
                 handler: nested
                 excluded_http_codes: [404, 405]
                 channels: ['!event']
+                # The handler keeps the records in memory until an error. With no limit, it keeps
+                # each SQL query of a long test. The last records still show what led to an error.
+                buffer_size: 50
             nested:
                 type: stream
                 path: '%kernel.logs_dir%/%kernel.environment%.log'

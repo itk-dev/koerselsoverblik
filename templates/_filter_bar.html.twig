@@ -1,0 +1,56 @@
+{# The filter bar of a page, as in the prototype. Needs route and selection. Each filter is in the
+   query string, so that a view can be shared as a link. A link changes one filter and keeps the
+   others. The comparison and the supplier are select boxes in a GET form. Only the button sends
+   the form, so that a keyboard user can move through the options (WCAG 3.2.2). #}
+{% set filter = selection.filter %}
+<div class="controls" data-test="filter-bar">
+    <div class="ctl">
+        <span class="ctl__label" id="ctl-period-label">{{ 'filter.period'|trans }}</span>
+        {# Each type is a link to a new page, so the switch is navigation, not a radio group. #}
+        <nav class="seg" aria-labelledby="ctl-period-label">
+            {% for type in period_types() %}
+                {% set active = type == filter.type %}
+                <a class="seg__btn{{ active ? ' is-active' }}" href="{{ path(route, filter.with(type).query) }}"{{ active ? ' aria-current="true"' }} data-test="period-{{ type.value }}">{{ ('filter.type.' ~ type.value)|trans }}</a>
+            {% endfor %}
+        </nav>
+    </div>
+    <div class="ctl ctl--grow">
+        <span class="ctl__label">{{ 'filter.selected'|trans }}</span>
+        <div class="stepper">
+            {% if selection.previousAnchor %}
+                <a class="stepper__btn" href="{{ path(route, filter.with(null, selection.previousAnchor).query) }}" aria-label="{{ 'filter.previous'|trans }}" data-test="previous-period">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+            {% else %}
+                <span class="stepper__btn is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
+            {% endif %}
+            <span class="stepper__label" data-test="period">{{ period_label(selection.selected) }}</span>
+            {% if selection.nextAnchor %}
+                <a class="stepper__btn" href="{{ path(route, filter.with(null, selection.nextAnchor).query) }}" aria-label="{{ 'filter.next'|trans }}" data-test="next-period">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+            {% else %}
+                <span class="stepper__btn is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <form class="controls__form" method="get" action="{{ path(route) }}" data-filter-form>
+        {% for name, value in filter.query|filter((value, name) => name not in ['c', 's']) %}
+            <input type="hidden" name="{{ name }}" value="{{ value }}">
+        {% endfor %}
+        <div class="ctl">
+            <label class="ctl__label" for="ctl-comparison">{{ 'filter.comparison'|trans }}</label>
+            <select class="ctl__select" id="ctl-comparison" name="c" data-test="comparison">
+                {% for comparison in comparisons() %}
+                    <option value="{{ comparison.value }}"{{ comparison == filter.comparison ? ' selected' }}>{{ ('filter.comparison_' ~ comparison.value)|trans }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="ctl">
+            <label class="ctl__label" for="ctl-supplier">{{ 'filter.supplier'|trans }}</label>
+            <select class="ctl__select" id="ctl-supplier" name="s" data-test="supplier">
+                <option value=""{{ filter.supplier is null ? ' selected' }}>{{ 'filter.all_suppliers'|trans }}</option>
+                {% for supplier in selection.suppliers %}
+                    <option value="{{ supplier.id }}"{{ supplier.id == filter.supplier ? ' selected' }}>{{ supplier.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="itkaarhus-btn itkaarhus-btn--secondary itkaarhus-btn--sm" type="submit" data-filter-submit>{{ 'filter.show'|trans }}</button>
+    </form>
+</div>

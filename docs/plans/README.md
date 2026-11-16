@@ -63,27 +63,18 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the trips and the citizens on the overview | In progress | [#106](https://github.com/itk-dev/koerselsoverblik/issues/106) | – | – |
-| Show the punctuality on the overview | In progress | [#109](https://github.com/itk-dev/koerselsoverblik/issues/109) | – | – |
-| Show the real solo runs on the overview | In progress | [#110](https://github.com/itk-dev/koerselsoverblik/issues/110) | – | – |
-| Show the suppliers side by side on the overview | In progress | [#113](https://github.com/itk-dev/koerselsoverblik/issues/113) | – | – |
-| Show the conclusion on the overview | Blocked | [#122](https://github.com/itk-dev/koerselsoverblik/issues/122) | #116, #117 | [overview-conclusion.md](overview-conclusion.md) |
+| Show the conclusion on the overview | Ready | [#122](https://github.com/itk-dev/koerselsoverblik/issues/122) | – | [overview-conclusion.md](overview-conclusion.md) |
 
 ### Punctuality page
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Filter the pages by period, comparison and supplier (parent issue) | In progress | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | #115, #116, #117, #118, #122 | [filters.md](filters.md) |
-| Calculate the selected period, the comparison and the 12 months | In progress | [#115](https://github.com/itk-dev/koerselsoverblik/issues/115) | – | [filters.md](filters.md) |
-| Filter the punctuality page and the overview by period and comparison | In progress | [#116](https://github.com/itk-dev/koerselsoverblik/issues/116) | – | [filters.md](filters.md) |
-| Filter the punctuality page and the overview by supplier | In progress | [#117](https://github.com/itk-dev/koerselsoverblik/issues/117) | – | [filters.md](filters.md) |
-| Remove the planning system from the source texts | In progress | [#118](https://github.com/itk-dev/koerselsoverblik/issues/118) | – | – |
+| Filter the pages by period, comparison and supplier (parent issue) | In progress | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | #122 | [filters.md](filters.md) |
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
-| Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #117 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
-| Calculate the 12 months in one query | Blocked | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | #115 | [punctuality-months-query.md](punctuality-months-query.md) |
+| Show the ten locations with the lowest punctuality | Ready | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | – | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
 | Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
 | Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
-| Fix the month chooser, the chart labels and the number format | Blocked | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | #116 | [punctuality-layout.md](punctuality-layout.md) |
+| Fix the month chooser, the chart labels and the number format | Ready | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | – | [punctuality-layout.md](punctuality-layout.md) |
 | Show the ignored sub-agreements on the punctuality page | Ready | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | – | [ignored-sub-agreements-note.md](ignored-sub-agreements-note.md) |
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
@@ -97,7 +88,13 @@ feature that has an issue or an issue text.
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
-| Aggregate the daily stats | Blocked | – | Open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
+| Add the distances and the durations to the totals of each route and day | Blocked | – | The open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
+
+### Documentation
+
+| Feature | Status | Issue | Needs | Plan |
+| --- | --- | --- | --- | --- |
+| Explain each figure of the user interface | In progress | [#128](https://github.com/itk-dev/koerselsoverblik/issues/128) | – | – |
 
 ### Release
 
@@ -148,4 +145,18 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Make the development dataset realistic | [#101](https://github.com/itk-dev/koerselsoverblik/issues/101) | [#107](https://github.com/itk-dev/koerselsoverblik/pull/107) |
 | Keep the copy of a row in its own entity | [#95](https://github.com/itk-dev/koerselsoverblik/issues/95) | [#124](https://github.com/itk-dev/koerselsoverblik/pull/124) |
 | Delete the rows of a range in the repositories, and only their copies | [#126](https://github.com/itk-dev/koerselsoverblik/issues/126) | [#127](https://github.com/itk-dev/koerselsoverblik/pull/127) |
+| Show the trips and the citizens on the overview | [#106](https://github.com/itk-dev/koerselsoverblik/issues/106) | [#108](https://github.com/itk-dev/koerselsoverblik/pull/108) |
+| Show the punctuality on the overview | [#109](https://github.com/itk-dev/koerselsoverblik/issues/109) | [#111](https://github.com/itk-dev/koerselsoverblik/pull/111) |
+| Show the real solo runs on the overview | [#110](https://github.com/itk-dev/koerselsoverblik/issues/110) | [#112](https://github.com/itk-dev/koerselsoverblik/pull/112) |
+| Show the suppliers side by side on the overview | [#113](https://github.com/itk-dev/koerselsoverblik/issues/113) | [#114](https://github.com/itk-dev/koerselsoverblik/pull/114) |
+| Remove the planning system from the source texts | [#118](https://github.com/itk-dev/koerselsoverblik/issues/118) | [#119](https://github.com/itk-dev/koerselsoverblik/pull/119) |
+| Calculate the selected period, the comparison and the 12 months | [#115](https://github.com/itk-dev/koerselsoverblik/issues/115) | [#120](https://github.com/itk-dev/koerselsoverblik/pull/120) |
+| Filter the punctuality page and the overview by period and comparison | [#116](https://github.com/itk-dev/koerselsoverblik/issues/116) | [#121](https://github.com/itk-dev/koerselsoverblik/pull/121) |
+| Filter the punctuality page and the overview by supplier | [#117](https://github.com/itk-dev/koerselsoverblik/issues/117) | [#123](https://github.com/itk-dev/koerselsoverblik/pull/123) |
+| Run the coverage gate only on the release and hotfix branches | [#132](https://github.com/itk-dev/koerselsoverblik/issues/132) | [#133](https://github.com/itk-dev/koerselsoverblik/pull/133) |
+| Calculate the 12 months in one query | [#85](https://github.com/itk-dev/koerselsoverblik/issues/85) | [#135](https://github.com/itk-dev/koerselsoverblik/pull/135) |
+| Make the overview and the punctuality page fast with more driving data | [#134](https://github.com/itk-dev/koerselsoverblik/issues/134) | [#135](https://github.com/itk-dev/koerselsoverblik/pull/135) |
+| Calculate the figures from the totals of each route and day | [#136](https://github.com/itk-dev/koerselsoverblik/issues/136) | [#137](https://github.com/itk-dev/koerselsoverblik/pull/137) |
+| Store the citizens of each month | [#138](https://github.com/itk-dev/koerselsoverblik/issues/138) | [#139](https://github.com/itk-dev/koerselsoverblik/pull/139) |
+| Decrease the memory use of the test suite, and test the development dataset outside the default run | [#131](https://github.com/itk-dev/koerselsoverblik/issues/131) | [#141](https://github.com/itk-dev/koerselsoverblik/pull/141) |
 | Read the remaining prototype fields from the extract | [#75](https://github.com/itk-dev/koerselsoverblik/issues/75) | [#130](https://github.com/itk-dev/koerselsoverblik/pull/130) |

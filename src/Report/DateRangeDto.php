@@ -29,6 +29,11 @@ final readonly class DateRangeDto
         return $range;
     }
 
+    public function equals(self $other): bool
+    {
+        return $this->firstDate == $other->firstDate && $this->lastDate == $other->lastDate;
+    }
+
     private static function day(\DateTimeInterface $date): \DateTimeImmutable
     {
         return new \DateTimeImmutable($date->format('Y-m-d'));

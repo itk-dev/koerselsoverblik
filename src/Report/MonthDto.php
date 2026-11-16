@@ -22,7 +22,7 @@ final readonly class MonthDto
      */
     public static function fromQuery(?string $value, \DateTimeImmutable $today): self
     {
-        $current = new self(new \DateTimeImmutable($today->format('Y-m-01')));
+        $current = self::of($today);
         // The value gets the first day, so that the day of the system clock cannot move the date
         // to the next month. The time of the date is not used.
         $date = null === $value ? false : \DateTimeImmutable::createFromFormat('Y-m-d', $value.'-01');
@@ -30,9 +30,17 @@ final readonly class MonthDto
             return $current;
         }
 
-        $month = new self(new \DateTimeImmutable($date->format('Y-m-01')));
+        $month = self::of($date);
 
         return $current->isBefore($month) ? $current : $month;
+    }
+
+    /**
+     * Gives the month that contains the date.
+     */
+    public static function of(\DateTimeImmutable $date): self
+    {
+        return new self($date->modify('first day of this month')->setTime(0, 0));
     }
 
     public function query(): string

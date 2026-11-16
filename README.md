@@ -27,8 +27,14 @@ The user interface is in Danish.
 
 - **Overview:** eight key figures for a chosen period, each with the change from a comparison
   period and a 12-month trend.
+  - The trips ("Personture"), with the completed and the cancelled trips, and the trips with no
+    registration. The distinct citizens who were driven ("Unikke borgere"). Each figure has a
+    help text.
+  - The share of the real solo runs ("Reelt solo"): the runs with exactly one citizen in the car
+    at a time.
   - Punctuality over 12 months, against the target.
-  - The figures per supplier, side by side.
+  - The figures per supplier, side by side: the trips, the punctuality, the real solo runs and
+    the cancelled trips.
 - **Rettidighed (punctuality):** the four punctuality measures of a month against the service
   target: pickups and drop-offs, for each citizen and for each route run.
   - Each measure has its tone, the change from the previous month, the distance to the target
@@ -36,10 +42,15 @@ The user interface is in Danish.
   - A 12-month chart of the four measures, and the late last drop-offs in delay bands.
   - The figures for each supplier, and the ten routes with the lowest punctuality.
   - Links to the previous and the next month.
-- **Filters:**
-  - period: day, week, month or year, with previous/next navigation
-  - comparison: previous period, or the same period last year
-  - supplier
+- **Filters:** a filter bar at the top of the overview and the punctuality page.
+  - period: week, month, quarter or half year, with previous/next navigation. The data starts
+    in May 2026, so a quarter and a half year show a trend sooner than a year
+  - comparison: previous period, or the same period last year. A period that has not ended is
+    compared with the same number of days. A comparison before the start of the data
+    (`APP_DATA_START_DATE`) is a partial period or has no data. The counts of a partial
+    comparison period have no change
+  - supplier: all suppliers, or one supplier. The figures are of the routes of that supplier.
+    The supplier tables always show all suppliers
   - The filters live in the URL, so a view can be shared as a link.
 - **Daily counts:** enter the number of mails, complaints and phone calls per day in a week grid.
 - **Administration:**
@@ -75,7 +86,7 @@ averages of daily percentages.
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
 | Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
-| Solo routes | Route runs where no more than one citizen was in the vehicle at any time. Shown with the share of all route runs | Driving data |
+| Solo routes | Route runs with exactly one citizen in the vehicle at a time. Shown with the share of the route runs that had a citizen in the vehicle | Driving data |
 | Punctuality (%) | Share of the measured stops that were within the tolerance of the planned time. Four measures: all pickups, all drop-offs, the first pickup of each route run and the last drop-off of each route run. A stop is measured when the driver registered it as completed. Cancelled stops and stops with no registration are excluded | Driving data |
 | Complaints | Complaints received. Shown with complaints per 1,000 trips | Manual entry |
 | Mails | Citizen enquiries received by mail | Manual entry |
@@ -175,8 +186,9 @@ Set these in `.env.local`:
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
 | `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |
 | `TRUSTED_PROXIES` | The proxies whose `X-Forwarded-*` headers are trusted, so that URLs use https behind Traefik | `127.0.0.1,REMOTE_ADDR` |
-| `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time | `5` |
+| `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time. After a change, run `app:driving-data:rebuild-totals` (see [Deployment](#deployment)) | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for all four punctuality measures, in percent. Drawn as a line on the chart | `90` |
+| `APP_DATA_START_DATE` | The first date of the driving data, as `YYYY-MM-DD`. A period starts at this date at the earliest. A comparison period that starts before it is a partial period, and a comparison period that ends before it has no data. Set it on the server, for example to the go-live date of the planning system. A value that is not a date as `YYYY-MM-DD` gives an error on the pages | Empty (no limit) |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 | `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload. The users upload one day or one week | `7` |
 | `APP_DRIVING_DATA_MAX_FILE_SIZE` | The maximum size in bytes of an extract | `20971520` (20 MiB) |
@@ -429,6 +441,9 @@ are ignored (see below).
 When you change the supplier of a sub-agreement, the figures for all dates of its routes change
 to the new supplier. A supplier with sub-agreements cannot be deleted.
 
+A change of the supplier or of **Ignorér i beregningerne** counts the citizens of each month
+again. Thus the save can take some seconds, and the time grows with the amount of driving data.
+
 Some routes are not route runs. For example, the booked trips have the route name
 "Turbestilling". To leave such a sub-agreement out of the figures:
 
@@ -492,16 +507,19 @@ decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
 The project is developed test first, with **100 % line coverage** and **mutation testing**.
 
 ```shell
-# All tests
+# All tests, except the "fixtures" group
 task test
+
+# The tests of the fixture code (slow)
+task test:fixtures
 
 # Unit tests only (fast)
 task test:unit
 
-# A single file
+# A single file, also of the "fixtures" group
 task test:file -- tests/Unit/Report/PeriodRangeFactoryTest.php
 
-# Fail if line coverage is below 100 %, as CI does
+# Fail if line coverage is below 100 %, as the release-branch run does
 task test:coverage:check
 
 # Mutation testing on the whole code base, as the release-branch run does
@@ -516,16 +534,27 @@ task test:mutation
   in a transaction that is rolled back.
 - **Fixture files:** the test extracts are made from YAML scenarios in `tests/fixtures/driving_data/`.
   The data is invented. Never commit real extracts.
+- **The "fixtures" group:** `DevDatasetGenerator`, `DatasetSettings`, `SchoolCalendar` and the
+  commands `app:fixtures:driving-data` and `app:fixtures:suppliers` make the development dataset.
+  They are not production code. Their tests have `#[Group('fixtures')]`. `task test`, the
+  coverage gate and Infection do not include them. `task test:fixtures` and a separate CI job run
+  them. Give the group to each new test of this code. `ExtractWriter` and `ScenarioLoader` are
+  not in the group, because the production tests build their extracts with them.
 - **Functional tests:** they assert behaviour, not markup. Use text and `data-test` attributes, so
   that a layout change does not break them.
 - **Coverage:** PHPUnit measures coverage with Xdebug, because the phpfpm image has no pcov. Do
-  not use `@codeCoverageIgnore`. The only exclusions are `src/Kernel.php` and `migrations/`.
+  not use `@codeCoverageIgnore`. The only exclusions are `src/Kernel.php`, `migrations/` and the
+  code of the "fixtures" group.
 - **Mutation thresholds:** Infection requires a covered MSI of 100 % for `src/Report` and
   `src/Import`, and 80 % for the rest of the mutated code. Controllers, form types and Twig
-  components are not mutated; the functional tests cover them. `DevDatasetGenerator` and the
-  fixtures command are not mutated, because their mutants change only invented data. The extract
-  writer and the scenario loader are mutated, because the parser tests trust their files.
-  The HTML report is written to `var/infection/`.
+  components are not mutated; the functional tests cover them. The code of the "fixtures" group
+  is not mutated. The extract writer and the scenario loader are mutated, because the parser
+  tests trust their files. The HTML report is written to `var/infection/`.
+- **Memory:** a full run must stay below the `memory_limit` of 256 MB in `php.ini`. PHP does not
+  give memory back to the system during the run, so the peak of one test stays for all later
+  tests. Do not keep large sets of rows in memory at the same time in a test. The test
+  environment does not collect the Doctrine queries (`config/packages/doctrine.yaml`). The test
+  log keeps at most 50 records in memory until an error (`config/packages/monolog.yaml`).
 - **How the two thresholds work:** Infection has one threshold for each run, so
   `infection.json5` sets 80 % for all mutated code. Then `bin/mutation-core-check.php` reads the
   JSON log and fails if a mutant escaped or timed out in `src/Report` or `src/Import`. It also
@@ -554,6 +583,9 @@ task test:mutation
   the whole code base is required before a release is merged to `main`. Feature pull requests,
   `develop` and `task prepare-code` do not run it, because it is slow. Fix the escaped mutants on
   the release branch.
+- **When the coverage gate runs:** only on the `release/*` and `hotfix/*` branches, together with
+  the full mutation testing. Feature pull requests and `develop` run the tests with no coverage,
+  because Xdebug makes the tests slow. Fix a coverage gap on the release branch.
 - **Logic placement:** keep logic in plain PHP classes and keep controllers and forms thin, so most
   tests are fast unit tests.
 - **Spikes:** throwaway experiments go on `spike/*` branches and are never merged.
@@ -572,8 +604,10 @@ task rector:check
 task rector:apply
 ```
 
-`task prepare-code` applies Rector and runs the coding standards, code analysis and tests with the coverage check.
-Run it before pushing. GitHub Actions runs the same checks on every pull request.
+`task prepare-code` applies Rector and runs the coding standards, code analysis and tests. It does not measure the
+coverage, because Xdebug makes the tests much slower. Run it before pushing. GitHub Actions runs the same checks on
+every pull request. Only the release and hotfix branches run the coverage gate. Run `task test:coverage:check` to run
+the gate locally.
 
 ### Fixtures
 
@@ -687,6 +721,22 @@ itkdev-docker-compose-server exec phpfpm composer install --no-dev -o --classmap
 itkdev-docker-compose-server exec phpfpm bin/console doctrine:migrations:migrate --no-interaction
 itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 ```
+
+Each import builds the totals of each route and day of its range, and the citizens of its months.
+Build them for all dates again in these cases:
+
+- After the first deploy of the totals (#136) and of the citizens of each month (#138). Until
+  then, the pages show no figures for the dates that were imported before, and the citizens
+  sparkline shows no values.
+- After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
+  message that tells to run the command.
+
+```shell
+itkdev-docker-compose-server exec phpfpm bin/console app:driving-data:rebuild-totals --no-debug
+```
+
+Use `--no-debug` also on a local machine. With debug, the build of all dates uses more memory
+than the container has.
 
 To set up a new server:
 

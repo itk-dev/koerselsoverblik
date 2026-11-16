@@ -127,10 +127,16 @@ tasks:
         done'
 
   test:
-    desc: Run all tests
+    desc: Run all tests, except the "fixtures" group
     cmds:
       - task: test:db:setup
       - '{{ .PHPUNIT }} {{ .CLI_ARGS }}'
+
+  test:fixtures:
+    desc: Run the tests of the code that makes invented data (the "fixtures" group)
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT }} --group fixtures {{ .CLI_ARGS }}'
 
   test:unit:
     desc: Run the unit tests
@@ -141,16 +147,17 @@ tasks:
     desc: 'Run the tests in one file — `task test:file -- tests/Functional/SmokeTest.php`'
     cmds:
       - task: test:db:setup
-      - '{{ .PHPUNIT }} {{ .CLI_ARGS }}'
+      # "--all" also runs a file of the "fixtures" group, which phpunit.dist.xml excludes.
+      - '{{ .PHPUNIT }} --all {{ .CLI_ARGS }}'
 
   test:coverage:
-    desc: Run all tests with coverage. The reports are in var/coverage/.
+    desc: Run all tests, except the "fixtures" group, with coverage. The reports are in var/coverage/.
     cmds:
       - task: test:db:setup
       - '{{ .PHPUNIT_COVERAGE }} --coverage-clover {{ .COVERAGE_DIR }}/clover.xml --coverage-html {{ .COVERAGE_DIR }}/html --coverage-text'
 
   test:coverage:check:
-    desc: Run all tests, and fail if line coverage is below 100 %
+    desc: Run all tests, except the "fixtures" group, and fail if line coverage is below 100 %
     cmds:
       - task: test:coverage
       - '{{ .PHP }} vendor/bin/coverage-check {{ .COVERAGE_DIR }}/clover.xml 100'
@@ -197,13 +204,16 @@ tasks:
       - '{{ .PHP }} bin/mutation-core-check.php {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}'
 
   prepare-code:
-    desc: Fix the coding standards, normalize composer.json and run all checks. Run it before you commit
+    desc: Fix the coding standards, normalize composer.json, run the checks and the tests. Run it before you commit
+    # The tests run with no coverage, because Xdebug makes them about four times slower. The
+    # release and hotfix branches run the coverage gate. Run `task test:coverage:check` to run
+    # it locally.
     cmds:
       - task: rector:apply
       - task: coding-standards-apply
       - task: coding-standards-check
       - task: code-analysis
-      - task: test:coverage:check
+      - task: test
 
   # ------------------------------------------------------- Code analysis ---
 
