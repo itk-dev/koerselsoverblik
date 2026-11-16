@@ -187,10 +187,9 @@ final class PunctualityCalculatorTest extends KernelTestCase
             new SupplierPunctualityDto(null, $onTime),
         ], $report->suppliers);
         self::assertEquals($lateDropOff->add($latePickup)->add($onTime), $report->total);
+        // S-01 and U-01 have no late run at the last drop-off, so they are not worst routes.
         self::assertEquals([
             new RoutePunctualityDto('T-01', 'Vognmand A', new PunctualityCountDto(0, 1)),
-            new RoutePunctualityDto('S-01', 'Vognmand B', new PunctualityCountDto(1, 1)),
-            new RoutePunctualityDto('U-01', null, new PunctualityCountDto(1, 1)),
         ], $report->worstRoutes);
     }
 
@@ -219,8 +218,7 @@ final class PunctualityCalculatorTest extends KernelTestCase
 
     /**
      * The figures of a supplier add all the routes and all the dates of the range. The figures of
-     * a route add all the dates of the range. On the same punctuality, the route with more runs is
-     * first.
+     * a route add all the dates of the range, so the route with more late runs is first.
      */
     public function testFiguresAddTheRoutesAndTheDatesOfTheRange(): void
     {
@@ -251,7 +249,6 @@ final class PunctualityCalculatorTest extends KernelTestCase
         self::assertEquals([
             new RoutePunctualityDto('T-01', 'Vognmand A', new PunctualityCountDto(0, 3)),
             new RoutePunctualityDto('U-01', null, new PunctualityCountDto(0, 1)),
-            new RoutePunctualityDto('S-01', 'Vognmand A', new PunctualityCountDto(2, 2)),
         ], $report->worstRoutes);
     }
 
@@ -287,7 +284,7 @@ final class PunctualityCalculatorTest extends KernelTestCase
 
         self::assertEquals($onTime, $report->total);
         self::assertEquals([new SupplierPunctualityDto('Vognmand A', $onTime)], $report->suppliers);
-        self::assertEquals([new RoutePunctualityDto('A-01', 'Vognmand A', new PunctualityCountDto(1, 1))], $report->worstRoutes);
+        self::assertSame([], $report->worstRoutes);
 
         $ignoredSubAgreement->setIgnored(false);
         $report = $this->calculate('2026-01-05', '2026-01-05');
@@ -299,27 +296,29 @@ final class PunctualityCalculatorTest extends KernelTestCase
         ], $report->suppliers);
         self::assertEquals([
             new RoutePunctualityDto('I-01', 'Vognmand B', new PunctualityCountDto(0, 1)),
-            new RoutePunctualityDto('A-01', 'Vognmand A', new PunctualityCountDto(1, 1)),
         ], $report->worstRoutes);
     }
 
     /**
-     * The worst routes have the lowest punctuality at the last drop-off. On the same punctuality,
-     * the route with more runs is first, and then the route name decides. Only 10 routes are
-     * given.
+     * The worst routes have the most late runs at the last drop-off. On the same number, the route
+     * with the lower punctuality is first, and then the route name decides. A route with no late
+     * run is not in the list. Only 10 routes are given.
      */
     public function testWorstRoutes(): void
     {
         $subAgreement = $this->subAgreement('W');
         $runs = [
+            'W-00' => [true],
             'W-01' => [false],
             'W-02' => [false, false],
             'W-03' => [true, false],
             'W-04' => [false, true],
         ];
         for ($number = 5; $number <= 12; ++$number) {
-            $runs[\sprintf('W-%02d', $number)] = [true];
+            $runs[\sprintf('W-%02d', $number)] = [true, false];
         }
+        // 3 late runs of 10 (70 %) are worse than 1 late run of 1 (0 %).
+        $runs['W-13'] = [false, false, false, true, true, true, true, true, true, true];
         foreach ($runs as $name => $onTime) {
             $route = $this->route($name, $subAgreement);
             foreach ($onTime as $index => $isOnTime) {
@@ -331,11 +330,11 @@ final class PunctualityCalculatorTest extends KernelTestCase
         $report = $this->calculate('2026-01-05', '2026-01-05');
 
         self::assertSame(
-            ['W-02', 'W-01', 'W-03', 'W-04', 'W-05', 'W-06', 'W-07', 'W-08', 'W-09', 'W-10'],
+            ['W-13', 'W-02', 'W-01', 'W-03', 'W-04', 'W-05', 'W-06', 'W-07', 'W-08', 'W-09'],
             array_map(static fn (RoutePunctualityDto $route): string => $route->route, $report->worstRoutes),
         );
-        self::assertEquals(new RoutePunctualityDto('W-02', null, new PunctualityCountDto(0, 2)), $report->worstRoutes[0]);
-        self::assertEquals(new RoutePunctualityDto('W-03', null, new PunctualityCountDto(1, 2)), $report->worstRoutes[2]);
+        self::assertEquals(new RoutePunctualityDto('W-13', null, new PunctualityCountDto(7, 10)), $report->worstRoutes[0]);
+        self::assertEquals(new RoutePunctualityDto('W-03', null, new PunctualityCountDto(1, 2)), $report->worstRoutes[3]);
     }
 
     /**

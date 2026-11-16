@@ -10,8 +10,8 @@ use App\Report\PunctualityFiguresDto;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Checks the counts of the punctuality measures: the percent, no value for no measured rows, and
- * the sum of two counts.
+ * Checks the counts of the punctuality measures: the percent, no value for no measured rows, the
+ * late count, and the sum of two counts.
  */
 final class PunctualityCountDtoTest extends TestCase
 {
@@ -28,6 +28,12 @@ final class PunctualityCountDtoTest extends TestCase
     public function testNoMeasuredRowsGiveNoPercent(): void
     {
         self::assertNull(new PunctualityCountDto(0, 0)->percent());
+    }
+
+    public function testLateIsMeasuredThatAreNotOnTime(): void
+    {
+        self::assertSame(1, new PunctualityCountDto(5, 6)->late());
+        self::assertSame(0, new PunctualityCountDto(0, 0)->late());
     }
 
     public function testAddGivesTheSum(): void

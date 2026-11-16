@@ -176,7 +176,7 @@
                             <tr data-test="worst-location-row">
                                 <th scope="row">{{ location.location }}</th>
                                 <td class="num">{{ count.measured|number_format }}</td>
-                                <td class="num">{{ (count.measured - count.onTime)|number_format }}</td>
+                                <td class="num">{{ count.late|number_format }}</td>
                                 <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
                             </tr>
                         {% endfor %}
@@ -192,9 +192,10 @@
         </twig:block>
     </twig:Panel>
 
-    <twig:Panel :title="'punctuality.routes.title'|trans" :subtitle="'punctuality.routes.subtitle'|trans">
+    <twig:Panel :title="'punctuality.routes.title'|trans" :subtitle="'punctuality.routes.subtitle'|trans" data-test="worst-routes">
         {% if report.worstRoutes is empty %}
-            <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>
+            {# With measured runs, the period has data, but no run is late. #}
+            <p class="empty" data-test="no-data">{{ figures.dropOffPerRun.measured > 0 ? 'punctuality.routes.none_late'|trans : 'punctuality.no_data'|trans }}</p>
         {% else %}
             <div class="table-wrap">
                 <table class="itkaarhus-table data-table">
@@ -216,7 +217,7 @@
                                 <th scope="row">{{ route.route }}</th>
                                 <td>{{ route.supplier ?? 'punctuality.suppliers.unknown'|trans }}</td>
                                 <td class="num">{{ count.measured|number_format }}</td>
-                                <td class="num">{{ (count.measured - count.onTime)|number_format }}</td>
+                                <td class="num">{{ count.late|number_format }}</td>
                                 <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
                             </tr>
                         {% endfor %}
