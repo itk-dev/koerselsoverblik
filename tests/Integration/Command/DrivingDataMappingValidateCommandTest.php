@@ -79,8 +79,10 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
         self::assertMatchesRegularExpression('/4\s+1\s+R-01\s+\(hidden\)\s+2026-01-05/', $display);
         // The times are wall-clock times, as in the file.
         self::assertMatchesRegularExpression('/2026-01-05 07:00:00\s+2026-01-05 07:02:00/', $display);
-        self::assertSame(5, substr_count($display, '(hidden)'));
+        // The 5 rows of the preview hide their person ids, and the 2 drop-offs hide their location.
+        self::assertSame(7, substr_count($display, '(hidden)'));
         self::assertStringNotContainsString('P-00', $display);
+        self::assertStringNotContainsString('Skole', $display);
         self::assertStringContainsString('The file agrees with the mapping.', $display);
     }
 

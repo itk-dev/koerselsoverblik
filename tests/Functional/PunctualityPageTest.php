@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Import\DrivingDataImporter;
@@ -92,6 +93,22 @@ final class PunctualityPageTest extends WebTestCase
             [['R-01', 'Ukendt', '2', '50 %', '1'], ['BOOKED', 'Ukendt', '1', '100 %', '0'], ['R-02', 'Ukendt', '1', '100 %', '0']],
             self::rows($crawler, 'worst-route-row'),
         );
+        // The location, the measured stops, the late stops and the punctuality, the worst first.
+        // The test environment has a minimum of 2 stops, so "Skole C" with 1 stop is left out.
+        self::assertSame(
+            [['Skole A', '3', '1', '67 %'], ['Skole B', '3', '0', '100 %']],
+            self::rows($crawler, 'worst-location-row'),
+        );
+        self::assertSame('1 lokation med færre end 2 målte stop indgår ikke.', $crawler->filter('[data-test="locations-left-out"]')->text());
+        self::assertStringContainsString('mindst 2 målte', $crawler->filter('#help-locations')->text());
+        self::assertStringContainsString('t-danger', (string) $crawler->filter('[data-test="worst-location-row"]')->first()->filter('td')->last()->attr('class'));
+        // The locations are after the suppliers and before the worst routes.
+        self::assertSame(
+            ['supplier-row', 'worst-location-row', 'worst-route-row'],
+            array_values(array_unique($crawler->filter('[data-test="supplier-row"], [data-test="worst-location-row"], [data-test="worst-route-row"]')->each(
+                static fn (Crawler $row): string => (string) $row->attr('data-test'),
+            ))),
+        );
 
         // Each chart has a hidden data table.
         self::assertCount(2, $crawler->filter('figure.chart .sr-only table'));
@@ -115,7 +132,26 @@ final class PunctualityPageTest extends WebTestCase
         self::assertSame('tile__value', $crawler->filter('[data-test="over-30-value"]')->attr('class'));
         self::assertSame([], self::rows($crawler, 'supplier-row'));
         self::assertSame([], self::rows($crawler, 'worst-route-row'));
-        self::assertCount(2, $crawler->filter('[data-test="no-data"]'));
+        self::assertSame([], self::rows($crawler, 'worst-location-row'));
+        self::assertSame(['Ingen data i perioden.'], $crawler->filter('[data-test="worst-locations"] [data-test="no-data"]')->each(static fn (Crawler $text): string => $text->text()));
+        self::assertCount(0, $crawler->filter('[data-test="locations-left-out"]'));
+        self::assertCount(3, $crawler->filter('[data-test="no-data"]'));
+    }
+
+    /**
+     * The route BOOKED has one stop at "Skole C". The test environment has a minimum of 2 stops,
+     * so the panel names the minimum, and not "no data".
+     */
+    public function testLocationsWithTooFewStopsAreNotRanked(): void
+    {
+        $client = $this->client('viewer');
+        $this->importBase('BOOKED');
+
+        $crawler = $client->request('GET', '/punctuality');
+
+        self::assertSame([], self::rows($crawler, 'worst-location-row'));
+        self::assertSame('Ingen lokation har mindst 2 målte stop i perioden.', $crawler->filter('[data-test="worst-locations"] [data-test="no-data"]')->text());
+        self::assertSame('1 lokation med færre end 2 målte stop indgår ikke.', $crawler->filter('[data-test="locations-left-out"]')->text());
     }
 
     /**
@@ -208,13 +244,19 @@ final class PunctualityPageTest extends WebTestCase
         return $client;
     }
 
-    private function importBase(): void
+    /**
+     * @param ?string $route the one route of the scenario to import, or null for all routes
+     */
+    private function importBase(?string $route = null): void
     {
-        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml');
+        $rows = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows;
+        if (null !== $route) {
+            $rows = array_values(array_filter($rows, static fn (ExtractRow $row): bool => $route === $row->values['route']));
+        }
         $path = sys_get_temp_dir().'/'.uniqid('extract_', true).'.xlsx';
         $provider = self::getContainer()->get(MappingProvider::class);
         self::assertInstanceOf(MappingProvider::class, $provider);
-        new ExtractWriter()->write($path, $provider->default(), $scenario->rows);
+        new ExtractWriter()->write($path, $provider->default(), $rows);
         $importer = self::getContainer()->get(DrivingDataImporter::class);
         self::assertInstanceOf(DrivingDataImporter::class, $importer);
         $importer->import($path, ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31), $provider->default(), null, 'base.xlsx');

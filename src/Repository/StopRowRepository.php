@@ -11,6 +11,7 @@ use App\Import\Mapping\StopType;
 use App\Import\RunStopDto;
 use App\Report\DateRangeDto;
 use App\Report\DayTotalsDto;
+use App\Report\PunctualityCountDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\QueryBuilder;
@@ -183,6 +184,48 @@ class StopRowRepository extends ServiceEntityRepository
             'route' => (int) $row['route'],
             'serviceDate' => $row['serviceDate'],
             'totals' => DayTotalsDto::fromRow($row, self::DAY_TOTALS_FIELDS),
+        ], $rows);
+    }
+
+    /**
+     * Counts the measured stops of each location, route and date in the range, for all routes.
+     * LocationDayTotalsBuilder stores them.
+     *
+     * - A measured stop is a completed pickup or drop-off with a delay (an actual time), as in the
+     *   measures "pr. borger". It is on time if the delay is at most the tolerance.
+     * - A stop with no location name is not counted.
+     *
+     * @param int $onTimeSeconds the highest delay that is on time
+     *
+     * @return list<array{route: int, serviceDate: \DateTimeImmutable, location: string, stops: PunctualityCountDto}>
+     */
+    public function countLocationDayTotals(ImportRangeDto $range, int $onTimeSeconds): array
+    {
+        $builder = $this->createQueryBuilder('row')
+            ->select(
+                'IDENTITY(row.route) AS route',
+                'row.serviceDate AS serviceDate',
+                'row.locationName AS location',
+                'SUM(CASE WHEN row.delaySeconds <= :onTime THEN 1 ELSE 0 END) AS onTime',
+                'COUNT(row.id) AS measured',
+            );
+        $this->inRange($builder, $range)
+            ->andWhere('row.locationName IS NOT NULL')
+            ->andWhere('row.stopStatus = :completed')
+            ->andWhere('row.delaySeconds IS NOT NULL')
+            ->groupBy('row.route, row.serviceDate, row.locationName')
+            ->setParameter('completed', StopStatus::Completed)
+            ->setParameter('onTime', $onTimeSeconds);
+
+        /** @var list<array{route: int|string, serviceDate: \DateTimeImmutable, location: string, onTime: int|string, measured: int|string}> $rows */
+        $rows = $builder->getQuery()->getArrayResult();
+
+        return array_map(static fn (array $row): array => [
+            // MariaDB can give an id and a sum as text.
+            'route' => (int) $row['route'],
+            'serviceDate' => $row['serviceDate'],
+            'location' => $row['location'],
+            'stops' => new PunctualityCountDto((int) $row['onTime'], (int) $row['measured']),
         ], $rows);
     }
 

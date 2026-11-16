@@ -7,6 +7,7 @@ namespace App\Tests\Integration\Import;
 use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\LocationDayTotals;
 use App\Entity\MonthCitizens;
 use App\Entity\RejectedStopRow;
 use App\Entity\RouteDayTotals;
@@ -18,6 +19,7 @@ use App\Import\DrivingDataImporter;
 use App\Import\Extract\MissingColumnsException;
 use App\Import\Extract\StopRowParser;
 use App\Import\ImportRangeDto;
+use App\Import\LocationDayTotalsBuilder;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
@@ -211,6 +213,20 @@ final class DrivingDataImporterTest extends KernelTestCase
     }
 
     /**
+     * The import builds the measured stops of each location, route and day of the range. The
+     * base scenario has measured stops at three locations, on three routes.
+     */
+    public function testImportBuildsTheTotalsOfEachLocation(): void
+    {
+        $this->writeScenario('base');
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+
+        self::assertSame(3, $this->entityManager->getRepository(LocationDayTotals::class)->count());
+    }
+
+    /**
      * The import builds the citizens of the months of its range. The routes of the base scenario
      * have no supplier, so the month has a count for all suppliers only. The citizens are in the
      * "expected" section of the scenario.
@@ -319,6 +335,8 @@ final class DrivingDataImporterTest extends KernelTestCase
         self::assertInstanceOf(SourceRowRepository::class, $sourceRows);
         $totalsBuilder = self::getContainer()->get(RouteDayTotalsBuilder::class);
         self::assertInstanceOf(RouteDayTotalsBuilder::class, $totalsBuilder);
+        $locationTotalsBuilder = self::getContainer()->get(LocationDayTotalsBuilder::class);
+        self::assertInstanceOf(LocationDayTotalsBuilder::class, $locationTotalsBuilder);
         $monthCitizens = self::getContainer()->get(MonthCitizensBuilder::class);
         self::assertInstanceOf(MonthCitizensBuilder::class, $monthCitizens);
 
@@ -328,6 +346,7 @@ final class DrivingDataImporterTest extends KernelTestCase
             new StopRowReplacer($this->entityManager, $subAgreements, new StopRowRangeDeleter($stopRows, $rejectedRows, $sourceRows)),
             new RouteBuilder($routeRuns, $stopRows, $this->entityManager, new RouteRunCalculator()),
             $totalsBuilder,
+            $locationTotalsBuilder,
             $monthCitizens,
             $stopRows,
             $this->entityManager,

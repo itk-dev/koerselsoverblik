@@ -14,6 +14,8 @@ See the [rules for plans](README.md#rules).
   range of its batch is in the cleared range.
 - Delete the `RouteDayTotals` rows of the cleared dates with
   `RouteDayTotalsRepository::deleteInRange()` (#136), in the same transaction.
+- Delete the `LocationDayTotals` rows of the cleared dates with
+  `LocationDayTotalsRepository::deleteInRange()` (#87), in the same transaction.
 - Build the `MonthCitizens` rows of the months of the cleared dates again with
   `MonthCitizensBuilder::rebuild()` (#138), in the same transaction.
 - "Clearing driving data" in `docs/architecture.md` does not name `RejectedStopRow`. Correct the

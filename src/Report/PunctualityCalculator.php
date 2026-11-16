@@ -4,28 +4,39 @@ declare(strict_types=1);
 
 namespace App\Report;
 
+use App\Repository\LocationDayTotalsRepository;
 use App\Repository\RouteDayTotalsRepository;
 use App\Repository\RouteRepository;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Calculates the punctuality figures of a period: the four measures, the delay bands of the last
- * drop-off and the worst routes, in total and for each supplier. See "Calculating the figures" in
- * docs/architecture.md.
+ * drop-off, the worst routes and the worst locations, in total and for each supplier. See
+ * "Calculating the figures" in docs/architecture.md.
  *
- * The figures are sums of the totals of each route and day. The import counts them.
+ * The figures are sums of the totals of each route and day, and of each location and day. The
+ * import counts them.
  */
 final readonly class PunctualityCalculator
 {
     private const int WORST_ROUTES = 10;
 
+    private const int WORST_LOCATIONS = 10;
+
+    /**
+     * @param int $locationMinStops the value of APP_PUNCTUALITY_LOCATION_MIN_STOPS
+     */
     public function __construct(
         private RouteDayTotalsRepository $totals,
+        private LocationDayTotalsRepository $locationTotals,
         private RouteRepository $routes,
+        #[Autowire(param: 'app.punctuality_location_min_stops')]
+        private int $locationMinStops,
     ) {
     }
 
     /**
-     * @param ?int $supplierId the id of a supplier, so that the total and the worst routes are of that supplier only, or null for all suppliers. The figures of each supplier are always of all suppliers
+     * @param ?int $supplierId the id of a supplier, so that the total, the worst routes and the worst locations are of that supplier only, or null for all suppliers. The figures of each supplier are always of all suppliers
      */
     public function calculate(DateRangeDto $range, ?int $supplierId = null): PunctualityReportDto
     {
@@ -50,7 +61,12 @@ final readonly class PunctualityCalculator
             $byRoute[] = new RoutePunctualityDto($route->getSourceKey(), $name, $routeFigures->dropOffPerRun);
         }
 
-        return new PunctualityReportDto($total, self::suppliers($bySupplier), self::worstRoutes($byRoute));
+        return new PunctualityReportDto(
+            $total,
+            self::suppliers($bySupplier),
+            self::worstRoutes($byRoute),
+            $this->worstLocations($this->locationTotals->sumOfEachLocation($range, $supplierId)),
+        );
     }
 
     /**
@@ -118,5 +134,27 @@ final readonly class PunctualityCalculator
             <=> [$b->lastDropOff->percent(), $a->lastDropOff->measured, $b->route]);
 
         return \array_slice($routes, 0, self::WORST_ROUTES);
+    }
+
+    /**
+     * Gives the locations with the lowest punctuality of the pickups and the drop-offs together.
+     * On the same punctuality, the location with more measured stops is first, and then the name
+     * decides. A location with fewer measured stops than the minimum is not ranked, because a few
+     * stops do not show a pattern.
+     *
+     * @param list<LocationPunctualityDto> $locations
+     */
+    private function worstLocations(array $locations): WorstLocationsDto
+    {
+        // usort() gives a list, so the keys of the filter do not stay.
+        $ranked = array_filter($locations, fn (LocationPunctualityDto $location): bool => $location->stops->measured >= $this->locationMinStops);
+        usort($ranked, static fn (LocationPunctualityDto $a, LocationPunctualityDto $b): int => [$a->stops->percent(), $b->stops->measured, $a->location]
+            <=> [$b->stops->percent(), $a->stops->measured, $b->location]);
+
+        return new WorstLocationsDto(
+            \array_slice($ranked, 0, self::WORST_LOCATIONS),
+            \count($locations) - \count($ranked),
+            $this->locationMinStops,
+        );
     }
 }

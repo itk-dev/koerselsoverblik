@@ -40,7 +40,10 @@ The user interface is in Danish.
   - Each measure has its tone, the change from the previous month, the distance to the target
     and a 12-month sparkline.
   - A 12-month chart of the four measures, and the late last drop-offs in delay bands.
-  - The figures for each supplier, and the ten routes with the lowest punctuality.
+  - The figures for each supplier, the ten locations with the lowest punctuality, and the ten
+    routes with the lowest punctuality. A location is the institution of a trip. Its punctuality
+    counts the pickups and the drop-offs for each citizen together. A location with too few
+    measured stops is not ranked.
   - Links to the previous and the next month.
 - **Filters:** a filter bar at the top of the overview and the punctuality page.
   - period: week, month, quarter or half year, with previous/next navigation. The data starts
@@ -188,6 +191,7 @@ Set these in `.env.local`:
 | `TRUSTED_PROXIES` | The proxies whose `X-Forwarded-*` headers are trusted, so that URLs use https behind Traefik | `127.0.0.1,REMOTE_ADDR` |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time. After a change, run `app:driving-data:rebuild-totals` (see [Deployment](#deployment)) | `5` |
 | `APP_PUNCTUALITY_TARGET` | Target for all four punctuality measures, in percent. Drawn as a line on the chart | `90` |
+| `APP_PUNCTUALITY_LOCATION_MIN_STOPS` | The minimum number of measured pickups and drop-offs of a location in the period. A location with fewer stops is not in the list of the worst locations. The "?" help of the list shows the value | `10` |
 | `APP_DATA_START_DATE` | The first date of the driving data, as `YYYY-MM-DD`. A period starts at this date at the earliest. A comparison period that starts before it is a partial period, and a comparison period that ends before it has no data. Set it on the server, for example to the go-live date of the planning system. A value that is not a date as `YYYY-MM-DD` gives an error on the pages | Empty (no limit) |
 | `APP_DRIVING_DATA_MAPPING` | Name of the [import mapping](#import-mappings) used for uploads | `default` |
 | `APP_DRIVING_DATA_MAX_DAYS` | The maximum number of days in the date range of one upload. The users upload one day or one week | `7` |
@@ -714,12 +718,13 @@ itkdev-docker-compose-server exec phpfpm bin/console doctrine:migrations:migrate
 itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 ```
 
-Each import builds the totals of each route and day of its range, and the citizens of its months.
-Build them for all dates again in these cases:
+Each import builds the totals of each route and day of its range, the totals of each location
+and day, and the citizens of its months. Build them for all dates again in these cases:
 
-- After the first deploy of the totals (#136) and of the citizens of each month (#138). Until
-  then, the pages show no figures for the dates that were imported before, and the citizens
-  sparkline shows no values.
+- After the first deploy of the totals (#136), of the citizens of each month (#138) and of the
+  totals of each location (#87). Until then, the pages show no figures for the dates that were
+  imported before, the citizens sparkline shows no values, and the punctuality page shows no
+  locations.
 - After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
   message that tells to run the command.
 

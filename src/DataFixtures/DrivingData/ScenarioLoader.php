@@ -76,6 +76,7 @@ final class ScenarioLoader
                 // A time of 24:00 or more is on the next calendar day.
                 'actual_time' => null === $actual ? null : $serviceDate->add(self::time($path, $actual)),
                 'planned_solo' => self::bool($path, $stop['solo'] ?? false, 'solo'),
+                'location_name' => self::optionalString($path, $stop['location'] ?? null, 'location'),
             ],
             rowId: \array_key_exists('row_id', $stop) ? self::string($path, $stop['row_id'], 'row_id') : null,
             raw: self::raw($path, $stop['raw'] ?? []),
@@ -108,6 +109,11 @@ final class ScenarioLoader
     private static function string(string $path, mixed $value, string $name): string
     {
         return \is_string($value) ? $value : self::invalid($path, \sprintf('"%s" must be text.', $name));
+    }
+
+    private static function optionalString(string $path, mixed $value, string $name): ?string
+    {
+        return null === $value ? null : self::string($path, $value, $name);
     }
 
     private static function bool(string $path, mixed $value, string $name): bool

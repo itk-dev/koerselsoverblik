@@ -128,6 +128,51 @@
         <twig:block name="foot">{{ 'punctuality.source'|trans }}</twig:block>
     </twig:Panel>
 
+    {% set locations = report.worstLocations %}
+    <twig:Panel :title="'punctuality.locations.title'|trans" :subtitle="'punctuality.locations.subtitle'|trans" data-test="worst-locations">
+        <twig:block name="help">
+            <twig:HelpPopover id="help-locations" :title="'punctuality.locations.help.title'|trans">
+                <p>{{ 'punctuality.locations.help.body'|trans({minutes: tolerance_minutes, count: locations.minStops}) }}</p>
+            </twig:HelpPopover>
+        </twig:block>
+        {% if locations.locations is empty %}
+            {# With left-out locations, the period has data, but no location has enough stops. #}
+            <p class="empty" data-test="no-data">{{ locations.leftOut > 0 ? 'punctuality.locations.too_few'|trans({count: locations.minStops}) : 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'punctuality.locations.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'punctuality.locations.location'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.locations.stops'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.locations.late'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.locations.punctuality'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for location in locations.locations %}
+                            {% set count = location.stops %}
+                            {% set tone = punctuality_tone(count.percent) %}
+                            <tr data-test="worst-location-row">
+                                <th scope="row">{{ location.location }}</th>
+                                <td class="num">{{ count.measured|number_format }}</td>
+                                <td class="num">{{ (count.measured - count.onTime)|number_format }}</td>
+                                <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">
+            {{ 'punctuality.locations.foot'|trans }}
+            {% if locations.leftOut > 0 %}
+                <span data-test="locations-left-out">{{ 'punctuality.locations.left_out'|trans({left: locations.leftOut, count: locations.minStops}) }}</span>
+            {% endif %}
+        </twig:block>
+    </twig:Panel>
+
     <twig:Panel :title="'punctuality.routes.title'|trans" :subtitle="'punctuality.routes.subtitle'|trans">
         {% if report.worstRoutes is empty %}
             <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>

@@ -742,6 +742,11 @@ body {
     var(--itkaarhus-space-3);
   border-bottom: var(--hairline);
 }
+.panel__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-2);
+}
 .panel__title {
   margin: 0;
   font-size: var(--itkaarhus-text-md);

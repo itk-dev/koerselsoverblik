@@ -18,4 +18,3 @@ See the [rules for plans](README.md#rules).
 - Open point: the supplier tables have the row "Ukendt" for the routes of a sub-agreement with
   no supplier. The supplier filter cannot select these routes. Decide if the filter needs this
   option.
-- #87 must apply the supplier filter of #117 to the locations.

@@ -349,3 +349,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in `keep_columns`. The validate command shows the location name as `(hidden)`. No feature uses
   `passengers`, `prisprminut`, `aflysningsvarsel` and `RettidigAflysningsvarsel` yet, so they
   stay kept columns.
+- [#87](https://github.com/itk-dev/koerselsoverblik/issues/87)
+  The punctuality page shows the ten locations with the lowest punctuality, after the supplier
+  table and before the worst routes. A location counts the completed pickups and drop-offs with
+  a delay, as the measures "pr. borger". The import builds the new derived table
+  `LocationDayTotals`: the measured stops of each location, route and day. The page does not read
+  the stop rows. `app:driving-data:rebuild-totals` also builds the locations. Run it after the
+  deploy. The supplier filter and the ignored sub-agreements apply. A test scenario stop can have
+  a `location`.
+  After the review: a location needs at least `APP_PUNCTUALITY_LOCATION_MIN_STOPS` (default 10)
+  measured stops in the period to be ranked. The "?" help of the panel gives the rule and the
+  minimum, and the panel foot gives the number of left-out locations. A panel can have a "?"
+  help next to its title.
