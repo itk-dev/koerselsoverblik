@@ -139,7 +139,12 @@
                 </table>
             </div>
         {% endif %}
-        <twig:block name="foot"><span data-test="suppliers-note">{{ 'punctuality.suppliers.note'|trans }}</span> {{ 'punctuality.source'|trans }}</twig:block>
+        <twig:block name="foot">
+            {% if report.suppliers is not empty %}
+                <span data-test="suppliers-note">{{ 'punctuality.suppliers.note'|trans }}</span>
+            {% endif %}
+            {{ 'punctuality.source'|trans }}
+        </twig:block>
     </twig:Panel>
 
     {% set locations = report.worstLocations %}

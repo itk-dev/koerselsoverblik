@@ -177,7 +177,7 @@ punctuality:
     supplier: Leverandør
     runs: Vognløb
     unknown: Ukendt
-    note: De tre forsinkelser fordeler vognløbene efter forsinkelsen ved den sidste afsætning, som i fordelingen for den valgte periode. De øvrige vognløb er til tiden.
+    note: Kolonnerne med forsinkelser fordeler vognløbene efter forsinkelsen ved den sidste afsætning, som i fordelingen for den valgte periode. De øvrige vognløb er til tiden.
   locations:
     title: De ti lokationer med lavest rettidighed
     subtitle: Institutionen, turen går til eller fra. Afhentninger og afsætninger pr. borger tæller sammen.
