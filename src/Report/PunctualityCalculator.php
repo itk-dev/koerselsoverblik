@@ -4,28 +4,33 @@ declare(strict_types=1);
 
 namespace App\Report;
 
+use App\Repository\LocationDayTotalsRepository;
 use App\Repository\RouteDayTotalsRepository;
 use App\Repository\RouteRepository;
 
 /**
  * Calculates the punctuality figures of a period: the four measures, the delay bands of the last
- * drop-off and the worst routes, in total and for each supplier. See "Calculating the figures" in
- * docs/architecture.md.
+ * drop-off, the worst routes and the worst locations, in total and for each supplier. See
+ * "Calculating the figures" in docs/architecture.md.
  *
- * The figures are sums of the totals of each route and day. The import counts them.
+ * The figures are sums of the totals of each route and day, and of each location and day. The
+ * import counts them.
  */
 final readonly class PunctualityCalculator
 {
     private const int WORST_ROUTES = 10;
 
+    private const int WORST_LOCATIONS = 10;
+
     public function __construct(
         private RouteDayTotalsRepository $totals,
+        private LocationDayTotalsRepository $locationTotals,
         private RouteRepository $routes,
     ) {
     }
 
     /**
-     * @param ?int $supplierId the id of a supplier, so that the total and the worst routes are of that supplier only, or null for all suppliers. The figures of each supplier are always of all suppliers
+     * @param ?int $supplierId the id of a supplier, so that the total, the worst routes and the worst locations are of that supplier only, or null for all suppliers. The figures of each supplier are always of all suppliers
      */
     public function calculate(DateRangeDto $range, ?int $supplierId = null): PunctualityReportDto
     {
@@ -50,7 +55,12 @@ final readonly class PunctualityCalculator
             $byRoute[] = new RoutePunctualityDto($route->getSourceKey(), $name, $routeFigures->dropOffPerRun);
         }
 
-        return new PunctualityReportDto($total, self::suppliers($bySupplier), self::worstRoutes($byRoute));
+        return new PunctualityReportDto(
+            $total,
+            self::suppliers($bySupplier),
+            self::worstRoutes($byRoute),
+            self::worstLocations($this->locationTotals->sumOfEachLocation($range, $supplierId)),
+        );
     }
 
     /**
@@ -118,5 +128,22 @@ final readonly class PunctualityCalculator
             <=> [$b->lastDropOff->percent(), $a->lastDropOff->measured, $b->route]);
 
         return \array_slice($routes, 0, self::WORST_ROUTES);
+    }
+
+    /**
+     * Gives the locations with the lowest punctuality of the pickups and the drop-offs together.
+     * On the same punctuality, the location with more measured stops is first, and then the name
+     * decides. Each location has measured stops, because the import counts only measured stops.
+     *
+     * @param list<LocationPunctualityDto> $locations
+     *
+     * @return list<LocationPunctualityDto>
+     */
+    private static function worstLocations(array $locations): array
+    {
+        usort($locations, static fn (LocationPunctualityDto $a, LocationPunctualityDto $b): int => [$a->stops->percent(), $b->stops->measured, $a->location]
+            <=> [$b->stops->percent(), $a->stops->measured, $b->location]);
+
+        return \array_slice($locations, 0, self::WORST_LOCATIONS);
     }
 }

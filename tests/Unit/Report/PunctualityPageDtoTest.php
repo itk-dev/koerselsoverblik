@@ -176,7 +176,7 @@ final class PunctualityPageDtoTest extends TestCase
 
     private static function report(PunctualityFiguresDto $total): PunctualityReportDto
     {
-        return new PunctualityReportDto($total, [], []);
+        return new PunctualityReportDto($total, [], [], []);
     }
 
     /**

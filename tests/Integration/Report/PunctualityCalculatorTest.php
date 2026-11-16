@@ -7,6 +7,7 @@ namespace App\Tests\Integration\Report;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\ImportBatch;
+use App\Entity\LocationDayTotals;
 use App\Entity\Route;
 use App\Entity\RouteDayTotals;
 use App\Entity\StopRow;
@@ -15,6 +16,7 @@ use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
 use App\Import\Extract\StopRowDto;
 use App\Import\ImportRangeDto;
+use App\Import\LocationDayTotalsBuilder;
 use App\Import\Mapping\MappingProvider;
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
@@ -22,12 +24,14 @@ use App\Import\RouteBuilder;
 use App\Import\RouteDayTotalsBuilder;
 use App\Report\DateRangeDto;
 use App\Report\DelayBandsDto;
+use App\Report\LocationPunctualityDto;
 use App\Report\PunctualityCalculator;
 use App\Report\PunctualityCountDto;
 use App\Report\PunctualityFiguresDto;
 use App\Report\PunctualityReportDto;
 use App\Report\RoutePunctualityDto;
 use App\Report\SupplierPunctualityDto;
+use App\Repository\LocationDayTotalsRepository;
 use App\Repository\RouteDayTotalsRepository;
 use App\Repository\RouteRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -83,6 +87,12 @@ final class PunctualityCalculatorTest extends KernelTestCase
         );
         self::assertEquals($figures, $report->total);
         self::assertEquals([new SupplierPunctualityDto(null, $figures)], $report->suppliers);
+        /** @var array<string, array{int, int}> $locations */
+        $locations = $scenario->expected['locations'];
+        self::assertEquals(
+            array_map(static fn (string $location, array $count): LocationPunctualityDto => new LocationPunctualityDto($location, new PunctualityCountDto(...$count)), array_keys($locations), $locations),
+            $report->worstLocations,
+        );
     }
 
     /**
@@ -184,8 +194,8 @@ final class PunctualityCalculatorTest extends KernelTestCase
     }
 
     /**
-     * With a supplier, the total and the worst routes are of that supplier only. The supplier
-     * table always shows all suppliers.
+     * With a supplier, the total, the worst routes and the worst locations are of that supplier
+     * only. The supplier table always shows all suppliers.
      */
     public function testFiguresOfOneSupplier(): void
     {
@@ -193,9 +203,9 @@ final class PunctualityCalculatorTest extends KernelTestCase
         $routeOfA = $this->route('T-01', $this->subAgreement('T', $supplierA));
         $routeOfB = $this->route('S-01', $this->subAgreement('S', $this->supplier('Vognmand B')));
         $unknown = $this->route('U-01', $this->subAgreement('U'));
-        $this->stop($routeOfA, '2026-01-06', 1, StopType::DropOff, StopStatus::Completed, 1000);
-        $this->stop($routeOfB, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0);
-        $this->stop($unknown, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0);
+        $this->stop($routeOfA, '2026-01-06', 1, StopType::DropOff, StopStatus::Completed, 1000, location: 'Skole 1');
+        $this->stop($routeOfB, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0, location: 'Skole 1');
+        $this->stop($unknown, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0, location: 'Skole 2');
         $this->entityManager->flush();
 
         $report = $this->calculate('2026-01-05', '2026-01-06', $supplierA->getId());
@@ -203,6 +213,7 @@ final class PunctualityCalculatorTest extends KernelTestCase
         self::assertEquals(new PunctualityCountDto(0, 1), $report->total->dropOffPerRun);
         self::assertSame(['Vognmand A', 'Vognmand B', null], array_map(static fn (SupplierPunctualityDto $item): ?string => $item->supplier, $report->suppliers));
         self::assertSame(['T-01'], array_map(static fn (RoutePunctualityDto $route): string => $route->route, $report->worstRoutes));
+        self::assertEquals([new LocationPunctualityDto('Skole 1', new PunctualityCountDto(0, 1))], $report->worstLocations);
     }
 
     /**
@@ -327,6 +338,57 @@ final class PunctualityCalculatorTest extends KernelTestCase
     }
 
     /**
+     * The worst locations have the lowest punctuality of the pickups and the drop-offs together.
+     * On the same punctuality, the location with more measured stops is first, and then the name
+     * decides. A location adds the stops of all its routes and dates. Only 10 locations are given.
+     */
+    public function testWorstLocations(): void
+    {
+        $first = $this->route('L-01', $this->subAgreement('L'));
+        $second = $this->route('M-01', $this->subAgreement('M'));
+        $delays = [
+            'Skole 01' => [600],
+            'Skole 02' => [600, 600],
+            'Skole 03' => [0, 600],
+            'Skole 04' => [600, 0],
+        ];
+        for ($number = 5; $number <= 12; ++$number) {
+            $delays[\sprintf('Skole %02d', $number)] = [0];
+        }
+        foreach ($delays as $location => $locationDelays) {
+            foreach ($locationDelays as $index => $delay) {
+                // The stops of a location are on two routes and two dates.
+                $this->stop(0 === $index ? $first : $second, 0 === $index ? '2026-01-05' : '2026-01-06', 1, 0 === $index ? StopType::Pickup : StopType::DropOff, StopStatus::Completed, $delay, location: $location);
+            }
+        }
+
+        $report = $this->calculate('2026-01-05', '2026-01-06');
+
+        self::assertSame(
+            ['Skole 02', 'Skole 01', 'Skole 03', 'Skole 04', 'Skole 05', 'Skole 06', 'Skole 07', 'Skole 08', 'Skole 09', 'Skole 10'],
+            array_map(static fn (LocationPunctualityDto $location): string => $location->location, $report->worstLocations),
+        );
+        self::assertEquals(new LocationPunctualityDto('Skole 02', new PunctualityCountDto(0, 2)), $report->worstLocations[0]);
+        self::assertEquals(new LocationPunctualityDto('Skole 03', new PunctualityCountDto(1, 2)), $report->worstLocations[2]);
+    }
+
+    /**
+     * The stops of an ignored sub-agreement add no location.
+     */
+    public function testIgnoredSubAgreementAddsNoLocation(): void
+    {
+        $included = $this->route('A-01', $this->subAgreement('A'));
+        $ignored = $this->route('I-01', $this->subAgreement('I')->setIgnored(true));
+        $this->stop($included, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 0, location: 'Skole 1');
+        $this->stop($ignored, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 600, location: 'Skole 1');
+        $this->stop($ignored, '2026-01-05', 1, StopType::DropOff, StopStatus::Completed, 600, location: 'Skole 2');
+
+        $report = $this->calculate('2026-01-05', '2026-01-05');
+
+        self::assertEquals([new LocationPunctualityDto('Skole 1', new PunctualityCountDto(1, 1))], $report->worstLocations);
+    }
+
+    /**
      * A route with no measured last drop-off is not in the list of the worst routes.
      */
     public function testRouteWithNoMeasuredLastDropOffIsNotAWorstRoute(): void
@@ -347,8 +409,8 @@ final class PunctualityCalculatorTest extends KernelTestCase
     public function testRangeWithNoDataHasNoValues(): void
     {
         $route = $this->route('R-01', $this->subAgreement('R'));
-        $this->stop($route, '2026-01-04', 1, StopType::Pickup, StopStatus::Completed, 0);
-        $this->stop($route, '2026-01-07', 1, StopType::DropOff, StopStatus::Completed, 0, 1800);
+        $this->stop($route, '2026-01-04', 1, StopType::Pickup, StopStatus::Completed, 0, location: 'Skole 1');
+        $this->stop($route, '2026-01-07', 1, StopType::DropOff, StopStatus::Completed, 0, 1800, 'Skole 1');
 
         $report = $this->calculate('2026-01-05', '2026-01-06');
 
@@ -358,6 +420,7 @@ final class PunctualityCalculatorTest extends KernelTestCase
         }
         self::assertSame([], $report->suppliers);
         self::assertSame([], $report->worstRoutes);
+        self::assertSame([], $report->worstLocations);
     }
 
     /**
@@ -421,14 +484,19 @@ final class PunctualityCalculatorTest extends KernelTestCase
         $totalsBuilder = self::getContainer()->get(RouteDayTotalsBuilder::class);
         self::assertInstanceOf(RouteDayTotalsBuilder::class, $totalsBuilder);
         $totalsBuilder->rebuild($range);
+        $locationTotalsBuilder = self::getContainer()->get(LocationDayTotalsBuilder::class);
+        self::assertInstanceOf(LocationDayTotalsBuilder::class, $locationTotalsBuilder);
+        $locationTotalsBuilder->rebuild($range);
 
         $totals = $this->entityManager->getRepository(RouteDayTotals::class);
         self::assertInstanceOf(RouteDayTotalsRepository::class, $totals);
+        $locationTotals = $this->entityManager->getRepository(LocationDayTotals::class);
+        self::assertInstanceOf(LocationDayTotalsRepository::class, $locationTotals);
         $routes = $this->entityManager->getRepository(Route::class);
         self::assertInstanceOf(RouteRepository::class, $routes);
 
         // The container removes a private service that no other service uses yet.
-        return new PunctualityCalculator($totals, $routes);
+        return new PunctualityCalculator($totals, $locationTotals, $routes);
     }
 
     private function supplier(string $name): Supplier
@@ -458,10 +526,11 @@ final class PunctualityCalculatorTest extends KernelTestCase
     /**
      * Stores one stop. The planned time is 07:00 on the date, plus the given seconds.
      *
-     * @param ?int $delaySeconds the actual time minus the planned time, or null for no actual time
-     * @param int  $plannedAfter the seconds after 07:00 of the planned time
+     * @param ?int    $delaySeconds the actual time minus the planned time, or null for no actual time
+     * @param int     $plannedAfter the seconds after 07:00 of the planned time
+     * @param ?string $location     the location name, or null for no location
      */
-    private function stop(Route $route, string $date, int $run, StopType $type, StopStatus $status, ?int $delaySeconds, int $plannedAfter = 0): void
+    private function stop(Route $route, string $date, int $run, StopType $type, StopStatus $status, ?int $delaySeconds, int $plannedAfter = 0, ?string $location = null): void
     {
         $serviceDate = new \DateTimeImmutable($date);
         $planned = $serviceDate->setTime(7, 0)->modify(\sprintf('+%d seconds', $plannedAfter));
@@ -480,7 +549,7 @@ final class PunctualityCalculatorTest extends KernelTestCase
             plannedTime: $planned,
             actualTime: null === $delaySeconds ? null : $planned->modify(\sprintf('%+d seconds', $delaySeconds)),
             plannedSolo: null,
-            locationName: null,
+            locationName: $location,
         );
         $this->entityManager->persist(new StopRow($row, 'default', $route, $this->batch()));
     }

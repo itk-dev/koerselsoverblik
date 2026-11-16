@@ -28,6 +28,7 @@ final readonly class DrivingDataImporter
         private StopRowReplacer $replacer,
         private RouteBuilder $routeBuilder,
         private RouteDayTotalsBuilder $totalsBuilder,
+        private LocationDayTotalsBuilder $locationTotalsBuilder,
         private MonthCitizensBuilder $monthCitizens,
         private StopRowRepository $stopRows,
         private EntityManagerInterface $entityManager,
@@ -96,6 +97,7 @@ final readonly class DrivingDataImporter
             $this->routeBuilder->rebuild($range);
             // The totals read the route runs, so they come after them.
             $this->totalsBuilder->rebuild($range);
+            $this->locationTotalsBuilder->rebuild($range);
             $this->monthCitizens->rebuild(DateRangeDto::create($range->firstDate, $range->lastDate));
 
             return $batch;

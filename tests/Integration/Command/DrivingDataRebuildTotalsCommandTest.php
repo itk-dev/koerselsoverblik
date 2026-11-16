@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Command;
 
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\LocationDayTotals;
 use App\Entity\MonthCitizens;
 use App\Entity\Route;
 use App\Entity\RouteDayTotals;
@@ -13,6 +14,7 @@ use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
 use App\Report\DayTotalsDto;
+use App\Report\PunctualityCountDto;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -29,7 +31,7 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
 
     /**
      * A row with another tolerance, and a row of a date with no stop rows, are replaced. The base
-     * scenario has three routes on one date.
+     * scenario has three routes on one date, and measured stops at two locations.
      */
     public function testAllDatesAreBuiltAgain(): void
     {
@@ -38,16 +40,20 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
         $route = $entityManager->getRepository(Route::class)->findOneBy([]);
         self::assertInstanceOf(Route::class, $route);
         $entityManager->createQuery('UPDATE '.RouteDayTotals::class.' totals SET totals.toleranceMinutes = 10')->execute();
+        $entityManager->createQuery('UPDATE '.LocationDayTotals::class.' totals SET totals.toleranceMinutes = 10')->execute();
         $entityManager->persist(new RouteDayTotals($route, new \DateTimeImmutable('2025-06-01'), 10, DayTotalsDto::empty()));
+        $entityManager->persist(new LocationDayTotals($route, new \DateTimeImmutable('2025-06-01'), 'Skole 1', 10, new PunctualityCountDto(1, 1)));
         $entityManager->flush();
 
         $tester = $this->execute();
 
         self::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        self::assertStringContainsString('Built 3 totals of a route and a day, and the citizens of each month.', $tester->getDisplay());
+        self::assertStringContainsString('Built 3 totals of a route and a day, 2 totals of a location and a day, and the citizens of each month.', self::display($tester));
         $entityManager->clear();
         $rows = $entityManager->getRepository(RouteDayTotals::class)->findAll();
         self::assertSame([5, 5, 5], array_map(static fn (RouteDayTotals $row): int => $row->getToleranceMinutes(), $rows));
+        $locations = $entityManager->getRepository(LocationDayTotals::class)->findAll();
+        self::assertSame([5, 5], array_map(static fn (LocationDayTotals $row): int => $row->getToleranceMinutes(), $locations));
         self::assertSame(1, $entityManager->getRepository(MonthCitizens::class)->count());
     }
 
@@ -63,7 +69,7 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
 
         $tester = $this->execute();
 
-        self::assertStringContainsString('Built 2 totals of a route and a day, and the citizens of each month.', $tester->getDisplay());
+        self::assertStringContainsString('Built 2 totals of a route and a day, 0 totals of a location and a day, and the citizens of each month.', self::display($tester));
         $entityManager->clear();
         $rows = $entityManager->getRepository(RouteDayTotals::class)->findBy([], ['serviceDate' => 'ASC']);
         self::assertSame(['2026-01-05', '2026-01-20'], array_map(static fn (RouteDayTotals $row): string => $row->getServiceDate()->format('Y-m-d'), $rows));
@@ -82,7 +88,7 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
         $tester = $this->execute();
 
         self::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        self::assertStringContainsString('Built 0 totals of a route and a day', $tester->getDisplay());
+        self::assertStringContainsString('Built 0 totals of a route and a day, 0 totals of a location and a day', self::display($tester));
         self::assertSame(0, $entityManager->getRepository(MonthCitizens::class)->count());
     }
 
@@ -92,6 +98,14 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
         $tester->execute([]);
 
         return $tester;
+    }
+
+    /**
+     * Gives the output on one line, because the success box breaks a long message into lines.
+     */
+    private static function display(CommandTester $tester): string
+    {
+        return (string) preg_replace('/\s+/', ' ', $tester->getDisplay());
     }
 
     private function entityManager(): EntityManagerInterface

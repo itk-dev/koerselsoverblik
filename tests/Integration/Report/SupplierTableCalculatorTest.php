@@ -228,7 +228,7 @@ final class SupplierTableCalculatorTest extends KernelTestCase
 
         $rows = $calculator->calculate(
             DateRangeDto::create(new \DateTimeImmutable('2026-02-01'), new \DateTimeImmutable('2026-02-28')),
-            new PunctualityReportDto(PunctualityFiguresDto::empty(), [], []),
+            new PunctualityReportDto(PunctualityFiguresDto::empty(), [], [], []),
         );
 
         self::assertSame([], $rows);
@@ -252,7 +252,7 @@ final class SupplierTableCalculatorTest extends KernelTestCase
 
         return $calculator->calculate(
             DateRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31')),
-            new PunctualityReportDto(PunctualityFiguresDto::empty(), $suppliers, []),
+            new PunctualityReportDto(PunctualityFiguresDto::empty(), $suppliers, [], []),
         );
     }
 

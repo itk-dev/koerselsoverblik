@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Report;
 
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\LocationDayTotals;
 use App\Entity\Route;
 use App\Entity\RouteDayTotals;
 use App\Import\DrivingDataImporter;
@@ -17,6 +18,7 @@ use App\Report\PeriodSelectionDto;
 use App\Report\PunctualityCalculator;
 use App\Report\PunctualityCountDto;
 use App\Report\PunctualityPageBuilder;
+use App\Repository\LocationDayTotalsRepository;
 use App\Repository\RouteDayTotalsRepository;
 use App\Repository\RouteRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -83,11 +85,13 @@ final class PunctualityPageBuilderTest extends KernelTestCase
         self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
         $totals = $entityManager->getRepository(RouteDayTotals::class);
         self::assertInstanceOf(RouteDayTotalsRepository::class, $totals);
+        $locationTotals = $entityManager->getRepository(LocationDayTotals::class);
+        self::assertInstanceOf(LocationDayTotalsRepository::class, $locationTotals);
         $routes = $entityManager->getRepository(Route::class);
         self::assertInstanceOf(RouteRepository::class, $routes);
 
         // The container removes a private service that no other service uses yet.
-        return new PunctualityPageBuilder(new PunctualityCalculator($totals, $routes), 90);
+        return new PunctualityPageBuilder(new PunctualityCalculator($totals, $locationTotals, $routes), 90);
     }
 
     private function importBase(): void
