@@ -34,7 +34,13 @@
             sparkClass="series-coral"
             :note="'punctuality.late_runs_note'|trans({count: figures.dropOffPerRun.measured})"
             test="late-runs"
-        />
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-late-runs" :title="'punctuality.late_runs_help.title'|trans">
+                    <p>{{ 'punctuality.late_runs_help.body'|trans({minutes: tolerance_minutes}) }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
         {% set over30 = page.over30 %}
         <twig:Tile
             :label="'punctuality.over_30'|trans"
@@ -47,7 +53,13 @@
             sparkClass="series-danger"
             :note="'punctuality.over_30_note'|trans"
             test="over-30"
-        />
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-over-30" :title="'punctuality.over_30_help.title'|trans">
+                    <p>{{ 'punctuality.over_30_help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
     </div>
 
     {{ include('punctuality/_trend.html.twig', {
@@ -89,7 +101,7 @@
         </twig:Panel>
     </div>
 
-    <twig:Panel :title="'punctuality.suppliers.title'|trans" :subtitle="'punctuality.suppliers.subtitle'|trans">
+    <twig:Panel :title="'punctuality.suppliers.title'|trans" :subtitle="'punctuality.suppliers.subtitle'|trans" data-test="suppliers">
         {% if report.suppliers is empty %}
             <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>
         {% else %}
@@ -103,8 +115,9 @@
                             {% for key in ['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] %}
                                 <th scope="col" class="num">{{ ('punctuality.measure.' ~ key)|trans }}</th>
                             {% endfor %}
-                            <th scope="col" class="num">{{ 'punctuality.severity.up_to_30'|trans }}</th>
-                            <th scope="col" class="num">{{ 'punctuality.severity.over_30'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.band.up_to_15'|trans({minutes: tolerance_minutes}) }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.band.up_to_30'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.band.over_30'|trans }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -117,6 +130,7 @@
                                     {% set tone = punctuality_tone(count.percent) %}
                                     <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
                                 {% endfor %}
+                                <td class="num">{{ row.bands.upTo15|number_format }}</td>
                                 <td class="num">{{ row.bands.upTo30|number_format }}</td>
                                 <td class="num {{ row.bands.over30 > 0 ? 't-danger' : 't-ok' }}">{{ row.bands.over30|number_format }}</td>
                             </tr>
@@ -125,7 +139,12 @@
                 </table>
             </div>
         {% endif %}
-        <twig:block name="foot">{{ 'punctuality.source'|trans }}</twig:block>
+        <twig:block name="foot">
+            {% if report.suppliers is not empty %}
+                <span data-test="suppliers-note">{{ 'punctuality.suppliers.note'|trans }}</span>
+            {% endif %}
+            {{ 'punctuality.source'|trans }}
+        </twig:block>
     </twig:Panel>
 
     {% set locations = report.worstLocations %}
@@ -185,8 +204,8 @@
                             <th scope="col">{{ 'punctuality.routes.route'|trans }}</th>
                             <th scope="col">{{ 'punctuality.routes.supplier'|trans }}</th>
                             <th scope="col" class="num">{{ 'punctuality.routes.runs'|trans }}</th>
-                            <th scope="col" class="num">{{ 'punctuality.routes.punctuality'|trans }}</th>
                             <th scope="col" class="num">{{ 'punctuality.routes.late'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.routes.punctuality'|trans }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -197,8 +216,8 @@
                                 <th scope="row">{{ route.route }}</th>
                                 <td>{{ route.supplier ?? 'punctuality.suppliers.unknown'|trans }}</td>
                                 <td class="num">{{ count.measured|number_format }}</td>
-                                <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
                                 <td class="num">{{ (count.measured - count.onTime)|number_format }}</td>
+                                <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

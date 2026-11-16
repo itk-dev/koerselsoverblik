@@ -361,3 +361,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   measured stops in the period to be ranked. The "?" help of the panel gives the rule and the
   minimum, and the panel foot gives the number of left-out locations. A panel can have a "?"
   help next to its title.
+- [#86](https://github.com/itk-dev/koerselsoverblik/issues/86)
+  Make the late drop-offs clear on the punctuality page. The supplier table has three delay
+  columns with the labels of the split bar. The new column is the band from the tolerance to
+  15 minutes. A note under the table tells what the delay columns count. In the worst routes,
+  "Rettidighed" is the last column. The tiles "Forsinkede afsætninger" and "Over 30 minutter"
+  have a "?" help.
