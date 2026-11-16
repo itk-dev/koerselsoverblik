@@ -92,6 +92,19 @@ final class PunctualityPageTest extends WebTestCase
             [['R-01', 'Ukendt', '2', '50 %', '1'], ['BOOKED', 'Ukendt', '1', '100 %', '0'], ['R-02', 'Ukendt', '1', '100 %', '0']],
             self::rows($crawler, 'worst-route-row'),
         );
+        // The location, the measured stops, the late stops and the punctuality, the worst first.
+        self::assertSame(
+            [['Skole A', '3', '1', '67 %'], ['Skole B', '3', '0', '100 %']],
+            self::rows($crawler, 'worst-location-row'),
+        );
+        self::assertStringContainsString('t-danger', (string) $crawler->filter('[data-test="worst-location-row"]')->first()->filter('td')->last()->attr('class'));
+        // The locations are after the suppliers and before the worst routes.
+        self::assertSame(
+            ['supplier-row', 'worst-location-row', 'worst-route-row'],
+            array_values(array_unique($crawler->filter('[data-test="supplier-row"], [data-test="worst-location-row"], [data-test="worst-route-row"]')->each(
+                static fn (Crawler $row): string => (string) $row->attr('data-test'),
+            ))),
+        );
 
         // Each chart has a hidden data table.
         self::assertCount(2, $crawler->filter('figure.chart .sr-only table'));
@@ -115,7 +128,9 @@ final class PunctualityPageTest extends WebTestCase
         self::assertSame('tile__value', $crawler->filter('[data-test="over-30-value"]')->attr('class'));
         self::assertSame([], self::rows($crawler, 'supplier-row'));
         self::assertSame([], self::rows($crawler, 'worst-route-row'));
-        self::assertCount(2, $crawler->filter('[data-test="no-data"]'));
+        self::assertSame([], self::rows($crawler, 'worst-location-row'));
+        self::assertSame(['Ingen data i perioden.'], $crawler->filter('[data-test="worst-locations"] [data-test="no-data"]')->each(static fn (Crawler $text): string => $text->text()));
+        self::assertCount(3, $crawler->filter('[data-test="no-data"]'));
     }
 
     /**

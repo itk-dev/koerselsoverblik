@@ -171,6 +171,15 @@ punctuality:
     supplier: Leverandør
     runs: Vognløb
     unknown: Ukendt
+  locations:
+    title: De ti lokationer med lavest rettidighed
+    subtitle: Institutionen, turen går til eller fra. Afhentninger og afsætninger pr. borger tæller sammen.
+    caption: De ti lokationer med lavest rettidighed ved afhentning og afsætning
+    location: Lokation
+    stops: Afhentninger og afsætninger
+    late: Forsinkede
+    punctuality: Rettidighed
+    foot: Lokationen er institutionen, ikke borgerens adresse. Kun gennemførte stop med en tid tæller.
   routes:
     title: De ti vognløb med lavest rettidighed
     subtitle: Klageproceduren beder om mønstre på tværs af vognløb. Her er indgangen til dem.
