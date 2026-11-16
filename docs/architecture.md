@@ -993,6 +993,14 @@ value shows as "–".
   location with more measured stops is first, and then the name decides. A stop with no location
   name is not counted. The panel is after the supplier table and before the worst routes. It
   shows a location only as a group of stops, never with a person id. The supplier filter applies.
+  - A location needs at least `APP_PUNCTUALITY_LOCATION_MIN_STOPS` measured stops in the period
+    to be ranked. Otherwise a location with one late stop (0 %) is above a location with many
+    late stops. `WorstLocationsDto` gives the ranked locations, the number of left-out locations
+    and the minimum.
+  - The "?" help of the panel gives the rule and the minimum. The panel foot gives the number of
+    left-out locations. If all locations are left out, the panel says that no location has the
+    minimum, not that the period has no data.
+  - The minimum applies when the page reads the totals, so a change needs no rebuild.
 - **Tone:** `PunctualityTone` is ok at or above `APP_PUNCTUALITY_TARGET`, warn at or above 70 %,
   and danger below.
 

@@ -91,7 +91,7 @@ final class PunctualityPageBuilderTest extends KernelTestCase
         self::assertInstanceOf(RouteRepository::class, $routes);
 
         // The container removes a private service that no other service uses yet.
-        return new PunctualityPageBuilder(new PunctualityCalculator($totals, $locationTotals, $routes), 90);
+        return new PunctualityPageBuilder(new PunctualityCalculator($totals, $locationTotals, $routes, 1), 90);
     }
 
     private function importBase(): void

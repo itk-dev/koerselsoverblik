@@ -14,7 +14,8 @@
 # - driven_km: the sum of the distances to the next stop.
 # - empty_km: the distances after a stop with no passengers (4.0 + 2.5 + 3.5).
 # - locations: the institution of a stop. The drop-offs of R-01 are at "Skole A".
-#   The stops of R-02 are at "Skole B", except P-005's pickup. BOOKED has no location.
+#   The stops of R-02 are at "Skole B", except P-005's pickup. The drop-off of BOOKED is at
+#   "Skole C", the only stop there. BOOKED's pickup has no location.
 date: 2026-01-05
 routes:
   R-01:
@@ -135,6 +136,7 @@ routes:
           actual: "13:30"
           passengers_after: 0
           solo: true
+          location: Skole C
 expected:
   stop_rows: 14
   rejected_rows: 0
@@ -157,8 +159,10 @@ expected:
     pickup_per_run: [4, 4]
     drop_off_per_run: [3, 4]
     bands: [3, 1, 0, 0]
-  # The measured stops of each location as [on time, measured], worst first. P-003 is dropped
-  # off 11 minutes late at "Skole A". The cancelled stops of P-006 are not measured.
+  # The measured stops of each location as [on time, measured], worst first, with no minimum
+  # number of stops. P-003 is dropped off 11 minutes late at "Skole A". The cancelled stops of
+  # P-006 are not measured. "Skole C" has fewer stops than "Skole B", so it is last.
   locations:
     Skole A: [2, 3]
     Skole B: [3, 3]
+    Skole C: [1, 1]

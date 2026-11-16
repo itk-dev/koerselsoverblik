@@ -31,7 +31,7 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
 
     /**
      * A row with another tolerance, and a row of a date with no stop rows, are replaced. The base
-     * scenario has three routes on one date, and measured stops at two locations.
+     * scenario has three routes on one date, and measured stops at three locations.
      */
     public function testAllDatesAreBuiltAgain(): void
     {
@@ -48,12 +48,12 @@ final class DrivingDataRebuildTotalsCommandTest extends KernelTestCase
         $tester = $this->execute();
 
         self::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        self::assertStringContainsString('Built 3 totals of a route and a day, 2 totals of a location and a day, and the citizens of each month.', self::display($tester));
+        self::assertStringContainsString('Built 3 totals of a route and a day, 3 totals of a location and a day, and the citizens of each month.', self::display($tester));
         $entityManager->clear();
         $rows = $entityManager->getRepository(RouteDayTotals::class)->findAll();
         self::assertSame([5, 5, 5], array_map(static fn (RouteDayTotals $row): int => $row->getToleranceMinutes(), $rows));
         $locations = $entityManager->getRepository(LocationDayTotals::class)->findAll();
-        self::assertSame([5, 5], array_map(static fn (LocationDayTotals $row): int => $row->getToleranceMinutes(), $locations));
+        self::assertSame([5, 5, 5], array_map(static fn (LocationDayTotals $row): int => $row->getToleranceMinutes(), $locations));
         self::assertSame(1, $entityManager->getRepository(MonthCitizens::class)->count());
     }
 

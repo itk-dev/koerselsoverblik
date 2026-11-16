@@ -357,3 +357,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the stop rows. `app:driving-data:rebuild-totals` also builds the locations. Run it after the
   deploy. The supplier filter and the ignored sub-agreements apply. A test scenario stop can have
   a `location`.
+  After the review: a location needs at least `APP_PUNCTUALITY_LOCATION_MIN_STOPS` (default 10)
+  measured stops in the period to be ranked. The "?" help of the panel gives the rule and the
+  minimum, and the panel foot gives the number of left-out locations. A panel can have a "?"
+  help next to its title.

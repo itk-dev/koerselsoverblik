@@ -214,7 +214,7 @@ final class DrivingDataImporterTest extends KernelTestCase
 
     /**
      * The import builds the measured stops of each location, route and day of the range. The
-     * base scenario has measured stops at two locations, on two routes.
+     * base scenario has measured stops at three locations, on three routes.
      */
     public function testImportBuildsTheTotalsOfEachLocation(): void
     {
@@ -223,7 +223,7 @@ final class DrivingDataImporterTest extends KernelTestCase
         $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
         $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
 
-        self::assertSame(2, $this->entityManager->getRepository(LocationDayTotals::class)->count());
+        self::assertSame(3, $this->entityManager->getRepository(LocationDayTotals::class)->count());
     }
 
     /**

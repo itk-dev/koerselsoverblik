@@ -1,7 +1,14 @@
 {% props title, subtitle = null %}
 <section{{ attributes.defaults({class: 'panel'}) }}>
     <header class="panel__head">
-        <h2 class="panel__title">{{ title }}</h2>
+        {% if block('help') is defined %}
+            <div class="panel__heading">
+                <h2 class="panel__title">{{ title }}</h2>
+                {{ block('help') }}
+            </div>
+        {% else %}
+            <h2 class="panel__title">{{ title }}</h2>
+        {% endif %}
         {% if subtitle %}
             <p class="panel__sub">{{ subtitle }}</p>
         {% endif %}

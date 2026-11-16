@@ -7,6 +7,7 @@ namespace App\Report;
 use App\Repository\LocationDayTotalsRepository;
 use App\Repository\RouteDayTotalsRepository;
 use App\Repository\RouteRepository;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Calculates the punctuality figures of a period: the four measures, the delay bands of the last
@@ -22,10 +23,15 @@ final readonly class PunctualityCalculator
 
     private const int WORST_LOCATIONS = 10;
 
+    /**
+     * @param int $locationMinStops the value of APP_PUNCTUALITY_LOCATION_MIN_STOPS
+     */
     public function __construct(
         private RouteDayTotalsRepository $totals,
         private LocationDayTotalsRepository $locationTotals,
         private RouteRepository $routes,
+        #[Autowire(param: 'app.punctuality_location_min_stops')]
+        private int $locationMinStops,
     ) {
     }
 
@@ -59,7 +65,7 @@ final readonly class PunctualityCalculator
             $total,
             self::suppliers($bySupplier),
             self::worstRoutes($byRoute),
-            self::worstLocations($this->locationTotals->sumOfEachLocation($range, $supplierId)),
+            $this->worstLocations($this->locationTotals->sumOfEachLocation($range, $supplierId)),
         );
     }
 
@@ -133,17 +139,22 @@ final readonly class PunctualityCalculator
     /**
      * Gives the locations with the lowest punctuality of the pickups and the drop-offs together.
      * On the same punctuality, the location with more measured stops is first, and then the name
-     * decides. Each location has measured stops, because the import counts only measured stops.
+     * decides. A location with fewer measured stops than the minimum is not ranked, because a few
+     * stops do not show a pattern.
      *
      * @param list<LocationPunctualityDto> $locations
-     *
-     * @return list<LocationPunctualityDto>
      */
-    private static function worstLocations(array $locations): array
+    private function worstLocations(array $locations): WorstLocationsDto
     {
-        usort($locations, static fn (LocationPunctualityDto $a, LocationPunctualityDto $b): int => [$a->stops->percent(), $b->stops->measured, $a->location]
+        // usort() gives a list, so the keys of the filter do not stay.
+        $ranked = array_filter($locations, fn (LocationPunctualityDto $location): bool => $location->stops->measured >= $this->locationMinStops);
+        usort($ranked, static fn (LocationPunctualityDto $a, LocationPunctualityDto $b): int => [$a->stops->percent(), $b->stops->measured, $a->location]
             <=> [$b->stops->percent(), $a->stops->measured, $b->location]);
 
-        return \array_slice($locations, 0, self::WORST_LOCATIONS);
+        return new WorstLocationsDto(
+            \array_slice($ranked, 0, self::WORST_LOCATIONS),
+            \count($locations) - \count($ranked),
+            $this->locationMinStops,
+        );
     }
 }

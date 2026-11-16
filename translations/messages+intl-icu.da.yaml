@@ -180,6 +180,11 @@ punctuality:
     late: Forsinkede
     punctuality: Rettidighed
     foot: Lokationen er institutionen, ikke borgerens adresse. Kun gennemførte stop med en tid tæller.
+    too_few: "Ingen lokation har mindst {count, number} målte stop i perioden."
+    left_out: "{left, plural, one {# lokation} other {# lokationer}} med færre end {count, number} målte stop indgår ikke."
+    help:
+      title: Lokationer med lavest rettidighed
+      body: "Lokationen er institutionen, som turen går til eller fra. Rettidigheden er andelen af afhentninger og afsætninger, der var højst {minutes} minutter efter det planlagte tidspunkt. Afhentninger og afsætninger tæller sammen, som i målingerne pr. borger. Aflyste stop og stop uden indtastning indgår ikke. En lokation skal have mindst {count, number} målte stop i perioden for at komme på listen. Få stop viser ikke et mønster."
   routes:
     title: De ti vognløb med lavest rettidighed
     subtitle: Klageproceduren beder om mønstre på tværs af vognløb. Her er indgangen til dem.

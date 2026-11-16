@@ -11,6 +11,7 @@ use App\Report\PunctualityCountDto;
 use App\Report\PunctualityFiguresDto;
 use App\Report\PunctualityPageDto;
 use App\Report\PunctualityReportDto;
+use App\Report\WorstLocationsDto;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -176,7 +177,7 @@ final class PunctualityPageDtoTest extends TestCase
 
     private static function report(PunctualityFiguresDto $total): PunctualityReportDto
     {
-        return new PunctualityReportDto($total, [], [], []);
+        return new PunctualityReportDto($total, [], [], new WorstLocationsDto([], 0, 10));
     }
 
     /**

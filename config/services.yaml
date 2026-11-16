@@ -19,6 +19,7 @@ parameters:
     # The punctuality rules. See "Configuration" in the README.
     app.punctuality_tolerance_minutes: '%env(int:APP_PUNCTUALITY_TOLERANCE_MINUTES)%'
     app.punctuality_target: '%env(int:APP_PUNCTUALITY_TARGET)%'
+    app.punctuality_location_min_stops: '%env(int:APP_PUNCTUALITY_LOCATION_MIN_STOPS)%'
 
 services:
     # default configuration for services in *this* file

@@ -30,6 +30,7 @@ use App\Report\SoloCountDto;
 use App\Report\SupplierPunctualityDto;
 use App\Report\SupplierRowDto;
 use App\Report\SupplierTableCalculator;
+use App\Report\WorstLocationsDto;
 use App\Repository\RouteDayTotalsRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -228,7 +229,7 @@ final class SupplierTableCalculatorTest extends KernelTestCase
 
         $rows = $calculator->calculate(
             DateRangeDto::create(new \DateTimeImmutable('2026-02-01'), new \DateTimeImmutable('2026-02-28')),
-            new PunctualityReportDto(PunctualityFiguresDto::empty(), [], [], []),
+            new PunctualityReportDto(PunctualityFiguresDto::empty(), [], [], new WorstLocationsDto([], 0, 10)),
         );
 
         self::assertSame([], $rows);
@@ -252,7 +253,7 @@ final class SupplierTableCalculatorTest extends KernelTestCase
 
         return $calculator->calculate(
             DateRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31')),
-            new PunctualityReportDto(PunctualityFiguresDto::empty(), $suppliers, [], []),
+            new PunctualityReportDto(PunctualityFiguresDto::empty(), $suppliers, [], new WorstLocationsDto([], 0, 10)),
         );
     }
 
