@@ -37,7 +37,7 @@ final class ScenarioLoaderTest extends TestCase
               R-01:
                 runs:
                   2:
-                    - { trip: 1, person: P-001, type: pickup, planned: '07:10', actual: '07:12', passengers_after: 1, km: 3.2, min: 8, solo: true }
+                    - { trip: 1, person: P-001, type: pickup, planned: '07:10', actual: '07:12', passengers_after: 1, km: 3.2, min: 8, solo: true, location: Skole 1 }
             expected: { stop_rows: 1 }
             YAML);
 
@@ -56,6 +56,7 @@ final class ScenarioLoaderTest extends TestCase
         self::assertSame(3.2, $values['next_distance_km']);
         self::assertSame(8.0, $values['next_duration_min']);
         self::assertTrue($values['planned_solo']);
+        self::assertSame('Skole 1', $values['location_name']);
         self::assertNull($scenario->rows[0]->rowId);
         self::assertSame([], $scenario->rows[0]->raw);
         self::assertSame([], $scenario->omittedFields);
@@ -81,6 +82,23 @@ final class ScenarioLoaderTest extends TestCase
         self::assertNull($values['passengers_after']);
         self::assertNull($values['next_distance_km']);
         self::assertNull($values['next_duration_min']);
+        self::assertNull($values['location_name']);
+    }
+
+    public function testLocationThatIsNotTextIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains('"location" must be text.');
+
+        $this->load(<<<'YAML'
+            date: 2026-01-05
+            routes:
+              R-01:
+                runs:
+                  1:
+                    - { person: P-001, type: pickup, planned: '07:10', location: [1, 2] }
+            expected: { stop_rows: 1 }
+            YAML);
     }
 
     public function testTimeAfterMidnightKeepsTheServiceDate(): void

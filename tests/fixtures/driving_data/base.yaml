@@ -13,6 +13,8 @@
 #   late, R-01 run 2 is 11 minutes late, R-02 is 3 minutes late, BOOKED is on time.
 # - driven_km: the sum of the distances to the next stop.
 # - empty_km: the distances after a stop with no passengers (4.0 + 2.5 + 3.5).
+# - locations: the institution of a stop. The drop-offs of R-01 are at "Skole A".
+#   The stops of R-02 are at "Skole B", except P-005's pickup. BOOKED has no location.
 date: 2026-01-05
 routes:
   R-01:
@@ -39,6 +41,7 @@ routes:
           passengers_after: 1
           km: 1.5
           min: 4
+          location: Skole A
         - person: P-002
           type: drop_off
           planned: "07:35"
@@ -46,6 +49,7 @@ routes:
           passengers_after: 0
           km: 4.0
           min: 10
+          location: Skole A
       2:
         - person: P-003
           type: pickup
@@ -63,6 +67,7 @@ routes:
           km: 2.5
           min: 6
           solo: true
+          location: Skole A
   # A run that ends after midnight, with a cancelled trip (P-006) and a pickup
   # with no registration from the driver (P-005).
   R-02:
@@ -75,6 +80,7 @@ routes:
           passengers_after: 1
           km: 6.0
           min: 14
+          location: Skole B
         - person: P-005
           type: pickup
           status: pending
@@ -87,6 +93,7 @@ routes:
           status: cancelled
           planned: "24:05"
           passengers_after: 2
+          location: Skole B
         - person: P-004
           type: drop_off
           planned: "24:20"
@@ -94,11 +101,13 @@ routes:
           passengers_after: 1
           km: 1.0
           min: 3
+          location: Skole B
         - person: P-006
           type: drop_off
           status: cancelled
           planned: "24:25"
           passengers_after: 1
+          location: Skole B
         - person: P-005
           type: drop_off
           planned: "24:30"
@@ -106,6 +115,7 @@ routes:
           passengers_after: 0
           km: 3.5
           min: 9
+          location: Skole B
   # A trip that is booked outside the fixed routes. The last stop has no
   # distance and no duration.
   BOOKED:
@@ -147,3 +157,8 @@ expected:
     pickup_per_run: [4, 4]
     drop_off_per_run: [3, 4]
     bands: [3, 1, 0, 0]
+  # The measured stops of each location as [on time, measured], worst first. P-003 is dropped
+  # off 11 minutes late at "Skole A". The cancelled stops of P-006 are not measured.
+  locations:
+    Skole A: [2, 3]
+    Skole B: [3, 3]
