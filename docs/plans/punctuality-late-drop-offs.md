@@ -13,3 +13,14 @@ See the [rules for plans](README.md#rules).
   uses them.
 - `SupplierPunctualityDto::$figures->bands` has `upTo15` already. No change to the calculation
   is necessary.
+- Give the tiles "Forsinkede afsætninger" (`late-runs`) and "Over 30 minutter" (`over-30`) a
+  help popover, as in the prototype. Use the `help` block of `twig:Tile` and `twig:HelpPopover`,
+  as in `templates/punctuality/_goal.html.twig`.
+  - Add the texts as `punctuality.late_runs_help.title|body` and
+    `punctuality.over_30_help.title|body` in `translations/messages+intl-icu.da.yaml`. Use
+    `{minutes}` for the tolerance.
+  - Tell that a late run is a run with its last drop-off more than `{minutes}` minutes after the
+    planned time. This is the same measure as "Afsætning pr. vognløb". Cancelled runs are not
+    included.
+  - The functional test asserts the title of each popover by its text or a `data-test`
+    attribute, not by the markup.
