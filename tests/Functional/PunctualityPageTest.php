@@ -84,13 +84,24 @@ final class PunctualityPageTest extends WebTestCase
         self::assertSame('1', self::value($crawler, 'late-runs'));
         self::assertSame('0', self::value($crawler, 'over-30'));
         self::assertSame('4 vognløb', $crawler->filter('[data-test="bands"] .dist__total')->text());
+        // Each count tile has a "?" with the tolerance.
+        self::assertStringContainsString('mere end 5 minutter', $crawler->filter('[data-test="late-runs"]')->text());
+        self::assertStringContainsString('mere end 30 minutter', $crawler->filter('[data-test="over-30"]')->text());
 
+        // The delay columns have the labels of the split bar.
         self::assertSame(
-            [['Ukendt', '4', '100 %', '83 %', '100 %', '75 %', '0', '0']],
+            ['5–15 min. forsinket', '15–30 min. forsinket', 'Over 30 min. forsinket'],
+            \array_slice($crawler->filter('[data-test="suppliers"] thead th')->each(static fn (Crawler $cell): string => $cell->text()), -3),
+        );
+        // The runs are the runs on time and the three delay columns: 4 = 3 + 1 + 0 + 0.
+        self::assertSame(
+            [['Ukendt', '4', '100 %', '83 %', '100 %', '75 %', '1', '0', '0']],
             self::rows($crawler, 'supplier-row'),
         );
+        self::assertStringContainsString('sidste afsætning', $crawler->filter('[data-test="suppliers-note"]')->text());
+        // The punctuality is the last column, because it comes from the counts.
         self::assertSame(
-            [['R-01', 'Ukendt', '2', '50 %', '1'], ['BOOKED', 'Ukendt', '1', '100 %', '0'], ['R-02', 'Ukendt', '1', '100 %', '0']],
+            [['R-01', 'Ukendt', '2', '1', '50 %'], ['BOOKED', 'Ukendt', '1', '0', '100 %'], ['R-02', 'Ukendt', '1', '0', '100 %']],
             self::rows($crawler, 'worst-route-row'),
         );
         // The location, the measured stops, the late stops and the punctuality, the worst first.

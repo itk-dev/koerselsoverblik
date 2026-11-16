@@ -141,8 +141,14 @@ punctuality:
       body: Andelen af vognløb, hvor den sidste borger i bilen blev sat af højst {minutes} minutter efter det planlagte tidspunkt. Den sidste afsætning er afsætningen med det seneste planlagte tidspunkt, som ikke er aflyst. Forsinkelser tidligere i vognløbet tæller ikke med her. Dem viser rettidigheden pr. borger.
   late_runs: Forsinkede afsætninger
   late_runs_note: af {count} vognløb
+  late_runs_help:
+    title: Forsinkede afsætninger
+    body: Antallet af vognløb, hvor den sidste borger i bilen blev sat af mere end {minutes} minutter efter det planlagte tidspunkt. Det er de vognløb, der trækker rettidigheden ved afsætning pr. vognløb ned. Den sidste afsætning er afsætningen med det seneste planlagte tidspunkt, som ikke er aflyst. Har den ingen indtastning, tæller vognløbet ikke med.
   over_30: Over 30 minutter
   over_30_note: Den halve time hvor en pårørende ringer
+  over_30_help:
+    title: Over 30 minutter
+    body: Antallet af vognløb, hvor den sidste borger i bilen blev sat af mere end 30 minutter efter det planlagte tidspunkt. Vognløbene er en del af de forsinkede afsætninger og måles på samme måde.
   trend:
     title: Rettidighed måned for måned
     subtitle: Afhentning og afsætning, pr. borger og pr. vognløb, mod servicemålet. Stiplet er pr. vognløb.
@@ -171,6 +177,7 @@ punctuality:
     supplier: Leverandør
     runs: Vognløb
     unknown: Ukendt
+    note: De tre forsinkelser fordeler vognløbene efter forsinkelsen ved den sidste afsætning, som i fordelingen for den valgte periode. De øvrige vognløb er til tiden.
   locations:
     title: De ti lokationer med lavest rettidighed
     subtitle: Institutionen, turen går til eller fra. Afhentninger og afsætninger pr. borger tæller sammen.
