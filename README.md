@@ -40,7 +40,9 @@ The user interface is in Danish.
   - Each measure has its tone, the change from the previous month, the distance to the target
     and a 12-month sparkline.
   - A 12-month chart of the four measures, and the late last drop-offs in delay bands.
-  - The figures for each supplier, and the ten routes with the lowest punctuality.
+  - The figures for each supplier, the ten locations with the lowest punctuality, and the ten
+    routes with the lowest punctuality. A location is the institution of a trip. Its punctuality
+    counts the pickups and the drop-offs for each citizen together.
   - Links to the previous and the next month.
 - **Filters:** a filter bar at the top of the overview and the punctuality page.
   - period: week, month, quarter or half year, with previous/next navigation. The data starts
@@ -714,12 +716,13 @@ itkdev-docker-compose-server exec phpfpm bin/console doctrine:migrations:migrate
 itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 ```
 
-Each import builds the totals of each route and day of its range, and the citizens of its months.
-Build them for all dates again in these cases:
+Each import builds the totals of each route and day of its range, the totals of each location
+and day, and the citizens of its months. Build them for all dates again in these cases:
 
-- After the first deploy of the totals (#136) and of the citizens of each month (#138). Until
-  then, the pages show no figures for the dates that were imported before, and the citizens
-  sparkline shows no values.
+- After the first deploy of the totals (#136), of the citizens of each month (#138) and of the
+  totals of each location (#87). Until then, the pages show no figures for the dates that were
+  imported before, the citizens sparkline shows no values, and the punctuality page shows no
+  locations.
 - After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
   message that tells to run the command.
 

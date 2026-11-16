@@ -161,7 +161,7 @@ flowchart TB
         parser["StopRowParser"]
         replacer["StopRowReplacer<br/>StopRowRangeDeleter"]
         builder["RouteBuilder"]
-        aggregator["RouteDayTotalsBuilder"]
+        aggregator["RouteDayTotalsBuilder<br/>LocationDayTotalsBuilder"]
         clearer["DrivingDataClearer"]
     end
 
@@ -378,6 +378,7 @@ erDiagram
 | `SourceRow` | The copy of one row of the extract, for one `StopRow` or one `RejectedStopRow`. See [Keep a copy of each imported row](#keep-a-copy-of-each-imported-row) |
 | `RouteRun` | Derived: one route run with its first pickup and its last drop-off, each with the planned time, the actual time and the delay, and the peak passengers. A later feature adds the distances and the durations. See [open decisions](#open-decisions) |
 | `RouteDayTotals` | Derived: the counters for one route and date that the driving figures are summed from, and the tolerance of the build. It has all routes, also the routes of an ignored sub-agreement. It has no citizens and no person ids |
+| `LocationDayTotals` | Derived: the measured pickups and drop-offs, and those of them that are on time, for one location, route and date, and the tolerance of the build. It has all routes, also the routes of an ignored sub-agreement. It has no person ids |
 | `MonthCitizens` | Derived: the number of citizens in one calendar month, for all suppliers (no supplier) or for one supplier. It has no person ids |
 | `DailyCount` | Manually entered mails, complaints and phone calls for one date |
 
@@ -403,16 +404,20 @@ the request can become old when the flag changes. With all suppliers, the list h
 routes. This is sufficient for some hundreds of routes. Check it again if the routes become
 thousands.
 
-**Derived tables are always rebuildable.** `RouteRun` and `RouteDayTotals` are rebuilt from
-`StopRow` for the dates an import touched, and `MonthCitizens` for the full months of those
-dates. The derived tables hold no information that can't be recalculated.
+**Derived tables are always rebuildable.** `RouteRun`, `RouteDayTotals` and `LocationDayTotals`
+are rebuilt from `StopRow` for the dates an import touched, and `MonthCitizens` for the full
+months of those dates. The derived tables hold no information that can't be recalculated.
 
 - A change of the supplier or the ignored flag of a sub-agreement needs no rebuild of
-  `RouteDayTotals`, because the queries apply them with `CountedRouteFilter`.
-- The counts on time of `RouteDayTotals` depend on `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Each row
-  stores the tolerance of its build. A sum fails with `OtherToleranceException` if a row has
-  another tolerance. Then run `app:driving-data:rebuild-totals --no-debug`. It builds all dates
-  of both tables again in one transaction.
+  `RouteDayTotals` and `LocationDayTotals`, because the queries apply them with
+  `CountedRouteFilter`.
+- The counts on time of `RouteDayTotals` and `LocationDayTotals` depend on
+  `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Each row stores the tolerance of its build. A sum fails
+  with `OtherToleranceException` if a row has another tolerance. Then run
+  `app:driving-data:rebuild-totals --no-debug`. It builds all dates of the three derived tables
+  of the figures again in one transaction.
+- `LocationDayTotals` keeps the location name of the stop rows, because the figures group by it.
+  It has no person id, so a location is only a group of stops.
 - The citizens are distinct person ids, so the citizens of two days or two months cannot be
   added. `MonthCitizens` holds the count of each calendar month, for all suppliers and for each
   supplier, with no person ids. A period that is not a calendar month is counted on `StopRow`.
@@ -480,6 +485,7 @@ sequenceDiagram
     B->>DB: replace RouteRun rows in the range
     C->>A: rebuild(range)
     A->>DB: replace RouteDayTotals rows in the range
+    C->>DB: replace LocationDayTotals rows in the range
     C->>DB: replace MonthCitizens rows of the months of the range
     C->>DB: update ImportBatch counts, commit
     C->>C: delete the file
@@ -740,6 +746,9 @@ would only delete data. The batch has no user. The command does not delete the f
      runs, the delay bands and the solo runs. They have the rules of the figures. They count all
      routes, so they do not use `CountedRouteFilter`.
    - It saves the rows in groups of 500, as the replacer does.
+   - `LocationDayTotalsBuilder` then replaces the `LocationDayTotals` rows for the range, one per
+     location, route and date. `StopRowRepository::countLocationDayTotals()` counts the
+     completed pickups and drop-offs with a delay and a location name. It also counts all routes.
    - `MonthCitizensBuilder` then replaces the `MonthCitizens` rows of the full months of the
      range: from the first day of the month of the first date to the last day of the month of the
      last date. It counts each month with `StopRowRepository::countCitizensByMonth()`, for all
@@ -794,8 +803,8 @@ upload.
 
 1. The user selects **Clear** for a date.
 2. The user confirms.
-3. `DrivingDataClearer` deletes `StopRow`, `RouteRun` and `RouteDayTotals` for the date in one
-   transaction. `DailyCount` does not change.
+3. `DrivingDataClearer` deletes `StopRow`, `RouteRun`, `RouteDayTotals` and `LocationDayTotals`
+   for the date in one transaction. `DailyCount` does not change.
 4. The application logs who cleared which date, and the deleted counts. The log has no field
    values.
 
@@ -923,28 +932,29 @@ config file.
 ### Punctuality
 
 `PunctualityCalculator` gives the figures of the "Rettidighed" page for a `DateRangeDto`. It adds
-the rows of `RouteDayTotals` with `RouteDayTotalsRepository`. The import counts the rows (see
+the rows of `RouteDayTotals` with `RouteDayTotalsRepository`, and the rows of
+`LocationDayTotals` with `LocationDayTotalsRepository`. The import counts the rows (see
 "Pipeline").
 
 The page is `/punctuality` (`PunctualityController`, `ROLE_VIEW_OVERVIEW`). The filter bar gives
 the period and the comparison (see "Periods" above). `PunctualityPageBuilder` calculates the
 selected period, the comparison period and the 12 months up to the period, for the sparklines
 and the charts. `PunctualityPageDto` gives the change of each measure from the comparison
-period. The page does not show the driver changes, the no-shows and the locations of the
-prototype, because the import does not read their columns.
+period. The page does not show the driver changes and the no-shows of the prototype, because the
+import does not read their columns.
 
 **Cost:** the months and the comparison period only need the total. Only the selected period
-needs the figures of each supplier and route.
+needs the figures of each supplier, route and location.
 
 - `PunctualityCalculator::totalsByMonth()` gives the totals of the 12 months with one query,
   grouped by month.
-- `PunctualityCalculator::calculate()` gives the figures of each route, only for the selected
-  period.
+- `PunctualityCalculator::calculate()` gives the figures of each route and each location, only
+  for the selected period.
 - `PunctualityCalculator::total()` gives the comparison period. A comparison period that has
   the dates of a month of the history uses the total of that month.
 
-Each sum query also reads the ids of the counted routes (see "Data model"). Thus a request runs 5
-to 7 queries. With more than one year of data, the page takes less than 0.5 seconds. Before #136,
+Each sum query also reads the ids of the counted routes (see "Data model"). Thus a request runs 7
+to 9 queries. With more than one year of data, the page takes less than 0.5 seconds. Before #136,
 it read the stop rows and the route runs, and took approximately 1 to 3 seconds. Before #134, it
 took approximately 6 to 11 seconds.
 
@@ -965,7 +975,8 @@ value shows as "–".
 - **On time:** a delay of at most `APP_PUNCTUALITY_TOLERANCE_MINUTES` × 60 seconds. An early stop
   is on time. Each measure is on time ÷ measured × 100. No measured rows give no value, not 0 %.
 - **No delay in SQL:** the import calculates `delay_seconds` in PHP ([Times](#times)). The queries
-  of `RouteDayTotalsBuilder` only compare it with the limits, and count.
+  of `RouteDayTotalsBuilder` and `LocationDayTotalsBuilder` only compare it with the limits, and
+  count.
 - **Ignored sub-agreements:** the queries do not count the stops and the runs of the routes of an
   ignored sub-agreement.
 - **Delay bands** of the measured last drop-offs: on time, more than the tolerance to 15 minutes,
@@ -977,6 +988,11 @@ value shows as "–".
 - **Worst routes:** the 10 routes with the lowest punctuality at the last drop-off. On the same
   punctuality, the route with more measured runs is first. A route with no measured last drop-off
   is not in the list.
+- **Worst locations:** the 10 locations with the lowest punctuality of the pickups and the
+  drop-offs together, with the rule of the measures "pr. borger". On the same punctuality, the
+  location with more measured stops is first, and then the name decides. A stop with no location
+  name is not counted. The panel is after the supplier table and before the worst routes. It
+  shows a location only as a group of stops, never with a person id. The supplier filter applies.
 - **Tone:** `PunctualityTone` is ok at or above `APP_PUNCTUALITY_TARGET`, warn at or above 70 %,
   and danger below.
 
