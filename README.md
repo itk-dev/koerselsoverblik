@@ -332,6 +332,7 @@ required, because each stop row needs them:
 | `planned_time` | `time` or `datetime` | Yes |
 | `actual_time` | `time` or `datetime` | Optional |
 | `planned_solo` | `bool` | Optional |
+| `location_name` | `string` | Optional |
 
 A mapping with a `time` field must have a `service_date` with the type `date`.
 
@@ -364,6 +365,7 @@ fields:
   planned_time:      { column: <COLUMN_NAME>, type: time, required: true }
   actual_time:       { column: <COLUMN_NAME>, type: datetime, format: excel }
   planned_solo:      { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
+  location_name:     { column: <COLUMN_NAME>, type: string }
 ```
 
 The parser reads the rows of an extract through the mapping. It rejects a row with a value that
@@ -397,9 +399,9 @@ The command changes no data. It shows:
   to `keep_columns` or to `exclude_columns`. An excluded column that is not in the file can have
   a new name
 - a preview of the first stop rows as the application reads them. `--rows` sets the number of
-  rows (default 5). The times are wall-clock times, as in the file. The person id shows as
-  `(hidden)`. The row key also shows as `(hidden)` when a `row_id` column is the `person_id`
-  column
+  rows (default 5). The times are wall-clock times, as in the file. The person id and the
+  location name show as `(hidden)`. The row key also shows as `(hidden)` when a `row_id` column
+  is the `person_id` column
 
 The command does not check a date range. An upload checks the dates against the range that the
 user selects.

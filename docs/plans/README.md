@@ -71,7 +71,7 @@ feature that has an issue or an issue text.
 | --- | --- | --- | --- | --- |
 | Filter the pages by period, comparison and supplier (parent issue) | In progress | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | #122 | [filters.md](filters.md) |
 | Make the late drop-offs clear | Ready | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | – | [punctuality-late-drop-offs.md](punctuality-late-drop-offs.md) |
-| Show the ten locations with the lowest punctuality | Blocked | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | #75 | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
+| Show the ten locations with the lowest punctuality | Ready | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | – | [punctuality-worst-locations.md](punctuality-worst-locations.md) |
 | Rank the worst routes by the number of late runs | Ready | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | – | – |
 | Compare the delays of the months as shares | Ready | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – | – |
 | Fix the month chooser, the chart labels and the number format | Ready | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | – | [punctuality-layout.md](punctuality-layout.md) |
@@ -83,7 +83,6 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Read the remaining prototype fields from the extract | In progress | [#75](https://github.com/itk-dev/koerselsoverblik/issues/75) | – | [prototype-fields.md](prototype-fields.md) |
 | Show the uploaded dates and clear the driving data of a date | Ready | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – | [clear-dates.md](clear-dates.md) |
 | Show the imported stop rows and rejected rows of a date range | Ready | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – | [driving-data-view.md](driving-data-view.md) |
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
@@ -160,3 +159,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Calculate the figures from the totals of each route and day | [#136](https://github.com/itk-dev/koerselsoverblik/issues/136) | [#137](https://github.com/itk-dev/koerselsoverblik/pull/137) |
 | Store the citizens of each month | [#138](https://github.com/itk-dev/koerselsoverblik/issues/138) | [#139](https://github.com/itk-dev/koerselsoverblik/pull/139) |
 | Decrease the memory use of the test suite, and test the development dataset outside the default run | [#131](https://github.com/itk-dev/koerselsoverblik/issues/131) | [#141](https://github.com/itk-dev/koerselsoverblik/pull/141) |
+| Read the location name from the extract | [#75](https://github.com/itk-dev/koerselsoverblik/issues/75) | [#130](https://github.com/itk-dev/koerselsoverblik/pull/130) |

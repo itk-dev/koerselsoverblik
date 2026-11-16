@@ -171,12 +171,13 @@ final class DevDatasetGeneratorTest extends TestCase
     }
 
     /**
-     * The columns of #75 are kept columns. The institution end of a trip has a place name.
+     * The rows have the location name and the kept columns of the prototype. The institution end
+     * of a trip has a location name. Only a cancelled stop has a cancellation notice.
      */
-    public function testRowsHaveTheKeptColumnsOfThePrototype(): void
+    public function testRowsHaveTheLocationNameAndTheKeptColumnsOfThePrototype(): void
     {
         $rows = self::generate(self::SCHOOL_WEEK);
-        $places = array_filter($rows, static fn (ExtractRow $row): bool => null !== ($row->kept['Placename'] ?? null));
+        $places = array_filter($rows, static fn (ExtractRow $row): bool => null !== $row->values['location_name']);
 
         self::assertGreaterThan(0.3 * \count($rows), \count($places));
         self::assertLessThan(0.7 * \count($rows), \count($places));
@@ -184,6 +185,11 @@ final class DevDatasetGeneratorTest extends TestCase
             self::assertIsInt($row->kept['passengers']);
             self::assertIsFloat($row->kept['prisprminut']);
             self::assertContains($row->kept['RettidigAflysningsvarsel'], ['yes', 'no']);
+            $cancelled = 'cancelled' === $row->values['stop_status'];
+            self::assertSame($cancelled, \is_float($row->kept['aflysningsvarsel']));
+            if (!$cancelled) {
+                self::assertSame('no', $row->kept['RettidigAflysningsvarsel']);
+            }
         }
     }
 

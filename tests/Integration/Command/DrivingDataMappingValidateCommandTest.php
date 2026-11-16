@@ -133,6 +133,23 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     }
 
     /**
+     * The preview hides the location name.
+     */
+    public function testPreviewHidesTheLocationName(): void
+    {
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        $values['location_name'] = 'Skole 7';
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
+
+        $result = $this->validate();
+
+        self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
+        $display = $result->getDisplay();
+        self::assertMatchesRegularExpression('/no\s+\(hidden\)\s*$/m', $display);
+        self::assertStringNotContainsString('Skole 7', $display);
+    }
+
+    /**
      * A row id column can be the person id column. Then the row key has the person id, and the
      * preview hides the row key.
      */

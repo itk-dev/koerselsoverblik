@@ -21,6 +21,7 @@ enum FieldName: string
     case PlannedTime = 'planned_time';
     case ActualTime = 'actual_time';
     case PlannedSolo = 'planned_solo';
+    case LocationName = 'location_name';
 
     /**
      * Gives the types that a mapping can give this field. The parser gives one PHP type for each
@@ -31,7 +32,7 @@ enum FieldName: string
     public function allowedTypes(): array
     {
         return match ($this) {
-            self::Route, self::PersonId, self::StopType, self::StopStatus => [FieldType::String],
+            self::Route, self::PersonId, self::StopType, self::StopStatus, self::LocationName => [FieldType::String],
             self::ServiceDate => [FieldType::Date, FieldType::DateTime],
             self::Run, self::PassengersAfter => [FieldType::Int],
             self::NextDistanceKm, self::NextDurationMin => [FieldType::Float],

@@ -45,7 +45,6 @@ keep_columns:
     - rutestartet
     - blokstart
     - blokslut
-    - Placename
     - StartTidspunkt
     - SlutTidspunkt
     - tidspunkt
@@ -87,3 +86,6 @@ fields:
         type: bool
         true_values: [Solo]
         false_values: [Samkørsel]
+    # The institution of the trip. Never show it with a person id, or write it to a log or to the
+    # output of a command.
+    location_name: { column: Placename, type: string }

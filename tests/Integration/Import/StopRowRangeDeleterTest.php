@@ -115,6 +115,7 @@ final class StopRowRangeDeleterTest extends KernelTestCase
             plannedTime: $date->setTime(7, 10),
             actualTime: null,
             plannedSolo: null,
+            locationName: null,
             sourceValues: ['name' => 'stop row '.$date->format('Y-m-d')],
         );
     }

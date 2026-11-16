@@ -119,6 +119,7 @@ final class SourceRowRepositoryTest extends KernelTestCase
             plannedTime: $date->setTime(7, 10),
             actualTime: null,
             plannedSolo: null,
+            locationName: null,
             sourceValues: ['RouteName' => 'R-01'],
         );
     }

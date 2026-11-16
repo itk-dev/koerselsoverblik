@@ -22,7 +22,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Reads a sample file through an import mapping, and shows the result. It changes no data.
  *
- * The output never has a person id (ADR 004) or a value of a rejected row.
+ * The output never has a person id (ADR 004), a location name or a value of a rejected row.
  */
 #[AsCommand(name: 'app:driving-data:mapping:validate', description: 'Validate an import mapping against a sample file')]
 final readonly class DrivingDataMappingValidateCommand
@@ -160,6 +160,7 @@ final readonly class DrivingDataMappingValidateCommand
                 false => 'no',
                 null => null,
             },
+            null === $row->locationName ? null : self::HIDDEN,
         ];
     }
 }

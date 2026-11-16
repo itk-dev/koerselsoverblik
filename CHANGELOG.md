@@ -343,3 +343,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the test log keeps at most 50 records in memory, and the dataset tests keep less data in
   memory. The peak memory of `task test` is 91 MB, not 226 MB. New tests cover the production
   lines that only the fixture tests covered.
+- [#75](https://github.com/itk-dev/koerselsoverblik/issues/75)
+  Read the location name from the extract: the optional field `location_name`. `StopRow` stores
+  it in a new column. The `default` mapping reads `Placename` as the field, and no longer has it
+  in `keep_columns`. The validate command shows the location name as `(hidden)`. No feature uses
+  `passengers`, `prisprminut`, `aflysningsvarsel` and `RettidigAflysningsvarsel` yet, so they
+  stay kept columns.

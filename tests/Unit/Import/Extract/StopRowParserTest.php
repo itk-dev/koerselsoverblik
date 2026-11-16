@@ -52,12 +52,12 @@ final class StopRowParserTest extends TestCase
     /**
      * The columns of the simple mapping, in the order of the fields.
      */
-    private const array HEADER = ['Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo'];
+    private const array HEADER = ['Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Place'];
 
     /**
      * One row for the simple mapping. The dates and times are Excel serial numbers of 5 January 2026.
      */
-    private const array ROW = ['R-01', 'P-001', 46027, 1, 'P', 'C', 1, 2.5, 5, 46027.3, 46027.31, 'Y'];
+    private const array ROW = ['R-01', 'P-001', 46027, 1, 'P', 'C', 1, 2.5, 5, 46027.3, 46027.31, 'Y', 'Skole 1'];
 
     private string $path = '';
 
@@ -235,6 +235,7 @@ final class StopRowParserTest extends TestCase
                 'Planned' => 46027.3,
                 'Actual' => 46027.31,
                 'Solo' => 'Y',
+                'Place' => 'Skole 1',
                 // A kept column that is not in the file is not an error.
                 'Note' => ' first ',
             ],
@@ -253,7 +254,7 @@ final class StopRowParserTest extends TestCase
 
         self::assertSame('S-1', $rows[0]->sourceValues['Id']);
         self::assertSame(1, $rows[0]->sourceValues['Run']);
-        self::assertCount(13, $rows[0]->sourceValues);
+        self::assertCount(14, $rows[0]->sourceValues);
     }
 
     public function testRejectedRowHasACopyAndTheServiceDate(): void
@@ -317,7 +318,8 @@ final class StopRowParserTest extends TestCase
         $mapping = self::defaultMapping();
         [$rows] = $this->parse($mapping, self::range($scenario));
 
-        $columns = array_keys($rows[0]->sourceValues);
+        // The copy has no empty cells, so a copy can have fewer columns than the file.
+        $columns = $this->parser()->header($this->path, $mapping);
         // The file needs a number format, so that the reader gives a duration or a date again.
         $styles = [DateIntervalCell::class => new Style(format: '[hh]:mm:ss'), DateTimeCell::class => new Style(format: 'yyyy-mm-dd hh:mm:ss')];
         $copies = [];
@@ -544,6 +546,31 @@ final class StopRowParserTest extends TestCase
 
         self::assertNull($rows[0]->actualTime);
         self::assertNull($rows[0]->plannedSolo);
+        self::assertNull($rows[0]->locationName);
+    }
+
+    public function testRowGivesTheLocationName(): void
+    {
+        $this->writeRows([self::HEADER, self::ROW]);
+
+        [$rows] = $this->parse(self::simpleMapping());
+
+        self::assertSame('Skole 1', $rows[0]->locationName);
+    }
+
+    /**
+     * The location name is optional. A bad value gives an empty value and a warning, and the row
+     * is imported.
+     */
+    public function testBadLocationNameGivesAWarning(): void
+    {
+        $this->writeRows([self::HEADER, [...\array_slice(self::ROW, 0, 12), 1.5]]);
+
+        [$rows, $rejected] = $this->parse(self::simpleMapping());
+
+        self::assertSame([], $rejected);
+        self::assertNull($rows[0]->locationName);
+        self::assertSame([[2, FieldName::LocationName, RejectionReason::NotText]], self::warnings($rows));
     }
 
     public function testMissingSheetRejectsTheFile(): void
@@ -768,6 +795,7 @@ final class StopRowParserTest extends TestCase
                 'planned_time' => self::simpleField(FieldName::PlannedTime, FieldType::DateTime, true),
                 'actual_time' => self::simpleField(FieldName::ActualTime, FieldType::DateTime, $isRequired(FieldName::ActualTime)),
                 'planned_solo' => self::simpleField(FieldName::PlannedSolo, FieldType::Bool, $isRequired(FieldName::PlannedSolo), [], ['Y'], ['N']),
+                'location_name' => self::simpleField(FieldName::LocationName, FieldType::String, $isRequired(FieldName::LocationName)),
             ],
             keepColumns: $keepColumns,
         );

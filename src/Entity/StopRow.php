@@ -70,6 +70,9 @@ class StopRow
     private ?bool $plannedSolo;
 
     #[ORM\Column(length: 255, nullable: true)]
+    private ?string $locationName;
+
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $personId;
 
     /**
@@ -103,6 +106,7 @@ class StopRow
         $this->actualTime = $row->actualTime;
         $this->delaySeconds = $row->delaySeconds;
         $this->plannedSolo = $row->plannedSolo;
+        $this->locationName = $row->locationName;
         $this->personId = $row->personId;
         $this->sourceRow = new SourceRow($row->sourceValues);
     }
@@ -180,6 +184,11 @@ class StopRow
     public function getPlannedSolo(): ?bool
     {
         return $this->plannedSolo;
+    }
+
+    public function getLocationName(): ?string
+    {
+        return $this->locationName;
     }
 
     public function getPersonId(): ?string

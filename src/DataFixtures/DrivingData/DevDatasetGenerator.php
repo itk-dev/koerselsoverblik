@@ -244,13 +244,13 @@ final readonly class DevDatasetGenerator
                         'planned_time' => new \DateInterval(\sprintf('PT%dH%dM', intdiv($minutes, 60), $minutes % 60)),
                         'actual_time' => 'completed' === $status ? $day->modify(\sprintf('%+d seconds', $minutes * 60 + $delay)) : null,
                         'planned_solo' => $solo,
+                        'location_name' => ('drop_off' === $type) === $toSchool ? $place : null,
                     ],
                     kept: [
                         'passengers' => $planned,
                         'prisprminut' => $price,
                         'aflysningsvarsel' => $cancelled ? $trip['notice'] : null,
                         'RettidigAflysningsvarsel' => $cancelled ? $trip['in time'] : 'no',
-                        'Placename' => ('drop_off' === $type) === $toSchool ? $place : null,
                     ],
                 );
                 $minutes += 'pickup' === $type ? $random->getInt(4, 14) : $random->getInt(2, 8);

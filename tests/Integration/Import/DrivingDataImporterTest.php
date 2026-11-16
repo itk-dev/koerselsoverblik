@@ -168,6 +168,20 @@ final class DrivingDataImporterTest extends KernelTestCase
     }
 
     /**
+     * The import stores the location name in its own column.
+     */
+    public function testImportStoresTheLocationName(): void
+    {
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        $values['location_name'] = 'Skole 7';
+        new ExtractWriter()->write($this->path, $this->mapping(), [new ExtractRow($values)]);
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'location.xlsx');
+
+        self::assertSame('Skole 7', $this->entityManager->getConnection()->fetchOne('SELECT location_name FROM stop_row'));
+    }
+
+    /**
      * The import builds the route runs of the range in the same transaction. A second import of
      * the same range builds them again.
      */

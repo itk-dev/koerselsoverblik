@@ -276,6 +276,7 @@ final class StopRowTripCountTest extends KernelTestCase
             plannedTime: $serviceDate->setTime(7, 0),
             actualTime: null,
             plannedSolo: null,
+            locationName: null,
         );
         $this->entityManager->persist(new StopRow($row, 'default', $route, $this->batch()));
     }

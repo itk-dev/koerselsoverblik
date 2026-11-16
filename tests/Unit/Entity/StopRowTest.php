@@ -38,6 +38,7 @@ final class StopRowTest extends TestCase
             plannedTime: new \DateTimeImmutable('2026-01-05 07:10'),
             actualTime: new \DateTimeImmutable('2026-01-05 07:12'),
             plannedSolo: false,
+            locationName: 'Skole 1',
             sourceValues: ['RouteName' => 'R-01', 'Note' => 'x'],
         );
 
@@ -58,6 +59,7 @@ final class StopRowTest extends TestCase
         self::assertSame($row->actualTime, $stopRow->getActualTime());
         self::assertSame(120, $stopRow->getDelaySeconds());
         self::assertFalse($stopRow->getPlannedSolo());
+        self::assertSame('Skole 1', $stopRow->getLocationName());
         self::assertSame('P-001', $stopRow->getPersonId());
         self::assertSame(['RouteName' => 'R-01', 'Note' => 'x'], $stopRow->getSourceRow()->getValues());
         self::assertSame($batch, $stopRow->getImportBatch());
