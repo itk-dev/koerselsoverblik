@@ -40,6 +40,7 @@ The user interface is in Danish.
   - Each measure has its tone, the change from the previous month, the distance to the target
     and a 12-month sparkline.
   - A 12-month chart of the four measures, and the late last drop-offs in delay bands.
+  - A note that names the ignored sub-agreements, because the figures do not include them.
   - The figures for each supplier, the ten locations with the lowest punctuality, and the ten
     routes with the most late runs at the last drop-off. A location is the institution of a trip.
     Its punctuality counts the pickups and the drop-offs for each citizen together. A location

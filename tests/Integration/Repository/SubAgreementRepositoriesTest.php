@@ -51,6 +51,25 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
         self::assertSame(['C-NONE', 'D-NONE', 'A-SUPPLIER', 'B-IGNORED', 'E-SUPPLIER', 'F-IGNORED'], $references);
     }
 
+    /**
+     * The punctuality page names the ignored sub-agreements, sorted by the reference. An ignored
+     * sub-agreement can have a supplier or no supplier.
+     */
+    public function testIgnoredReferences(): void
+    {
+        $supplier = new Supplier()->setName('Vognmand A');
+        $this->entityManager->persist($supplier);
+        $this->subAgreement('TEST', $supplier, true);
+        $this->subAgreement('A-SUPPLIER', $supplier);
+        $this->subAgreement('BOOKED', null, true);
+        $this->entityManager->flush();
+
+        $repository = self::getContainer()->get(SubAgreementRepository::class);
+        self::assertInstanceOf(SubAgreementRepository::class, $repository);
+
+        self::assertSame(['BOOKED', 'TEST'], $repository->findIgnoredReferences());
+    }
+
     private function subAgreement(string $reference, ?Supplier $supplier, bool $ignored = false): void
     {
         $this->entityManager->persist(new SubAgreement()->setReference($reference)->setSupplier($supplier)->setIgnored($ignored));

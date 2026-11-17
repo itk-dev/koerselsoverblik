@@ -39,4 +39,23 @@ class SubAgreementRepository extends ServiceEntityRepository
 
         return $subAgreements;
     }
+
+    /**
+     * Gives the references of the ignored sub-agreements, sorted by the reference. The figures do
+     * not include their routes.
+     *
+     * @return list<string>
+     */
+    public function findIgnoredReferences(): array
+    {
+        /** @var list<string> $references */
+        $references = $this->createQueryBuilder('subAgreement')
+            ->select('subAgreement.reference')
+            ->where('subAgreement.ignored = true')
+            ->orderBy('subAgreement.reference', 'ASC')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return $references;
+    }
 }

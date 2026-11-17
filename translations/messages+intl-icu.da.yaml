@@ -113,6 +113,7 @@ month:
 punctuality:
   title: Rettidighed
   lede: "{period} sammenlignet med {comparison}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb."
+  ignored_note: "{count, plural, one {# delaftale er ignoreret i tallene} other {# delaftaler er ignoreret i tallene}}: {references}"
   goal:
     label: Servicemål
     rule: Højst {minutes} minutter for sent · {target} % rettidighed
