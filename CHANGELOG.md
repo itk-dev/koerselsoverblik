@@ -388,6 +388,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#105](https://github.com/itk-dev/koerselsoverblik/issues/105)
   Fix the chart labels and the number format on the punctuality page. The chart of the delays is
   in a panel of half the width, so its viewBox has half the width (`Scale::HALF_WIDTH`). Its axis
-  labels now have the same size on screen as those of the trend chart. `ColumnChart` has the prop
-  `width`. The total of the split bar has a thousands separator. The month chooser needs no fix,
-  because the filter bar of #116 replaced it, and the filter bar is not in the page head.
+  labels now have about the same size on screen as those of the trend chart. `ColumnChart` has the
+  prop `width`. The total of the split bar has a thousands separator. The month chooser needs no
+  fix, because the filter bar of #116 replaced it, and the filter bar is not in the page head.
+  After the review: when the panels are in one column, the CSS keeps the chart of the delays at
+  half the width (`chart--half`, `max-width: 50cqi`), so its labels do not become twice as large.
+  A chart width other than `Scale::WIDTH` or `Scale::HALF_WIDTH` gives an error. The line chart
+  has no width parameter, because no line chart has half the width.

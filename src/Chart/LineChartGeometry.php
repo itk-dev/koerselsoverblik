@@ -33,10 +33,12 @@ final readonly class LineChartGeometry
      * @param list<ChartSeriesDto> $series
      * @param ?float               $max    the top of the scale, or null for a nice maximum above the values
      * @param ?float               $target the value of the target line, or null for no target line
-     * @param int                  $width  the width of the viewBox, see Scale
      */
-    public static function build(array $labels, array $series, ?float $max = null, ?float $target = null, int $width = Scale::WIDTH): self
+    public static function build(array $labels, array $series, ?float $max = null, ?float $target = null): self
     {
+        // A line chart has the full width. Add a width, as in ColumnChartGeometry, when a panel of
+        // half the width needs a line chart.
+        $width = Scale::WIDTH;
         $values = array_filter(array_merge(...array_map(static fn (ChartSeriesDto $item): array => $item->values, $series)), static fn (?float $value): bool => null !== $value);
         $top = $max ?? Scale::niceMax(([] === $values ? 0.0 : max($values)) * Scale::HEADROOM);
         $step = \count($labels) > 1 ? Scale::plotWidth($width) / (\count($labels) - 1) : 0;

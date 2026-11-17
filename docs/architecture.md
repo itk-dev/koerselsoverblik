@@ -974,8 +974,15 @@ drop-offs, not as counts.
 
 **Chart width:** the SVG of a chart scales to the width of its panel, and its text scales too.
 The chart of the delays is in a panel of half the width, so its viewBox has half the width
-(`Scale::HALF_WIDTH`, the `width` prop of `ColumnChart`). Then its axis labels have the same
-size on screen as those of the trend chart. The margins and the height stay the same.
+(`Scale::HALF_WIDTH`, the `width` prop of `ColumnChart`). Then its axis labels have about the
+same size on screen as those of the trend chart. The gap and the padding make the panel a little
+narrower than half, so the labels are a few percent smaller. The margins and the height stay the
+same. Only `Scale::WIDTH` and `Scale::HALF_WIDTH` are valid widths.
+
+On a narrow screen, and in print, `.grid-2` shows its panels in one column. Then the panel of the
+delays has the full width. `.grid-2` is a CSS size container, and the class `chart--half` keeps
+the SVG at 50 % of the grid width (`max-width: 50cqi`). Thus the labels keep about the same size
+in both layouts. In two columns this limit has no effect.
 
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No

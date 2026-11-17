@@ -46,7 +46,8 @@ final class ColumnChart
     public string $countLabel = '';
 
     /**
-     * The width of the viewBox. Use Scale::HALF_WIDTH for a chart in a panel of half the width.
+     * The width of the viewBox: Scale::WIDTH, or Scale::HALF_WIDTH for a chart in a panel of half
+     * the width. Other values are not valid.
      */
     public int $width = Scale::WIDTH;
 

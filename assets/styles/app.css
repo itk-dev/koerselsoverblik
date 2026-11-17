@@ -826,11 +826,13 @@ body {
   font-weight: 600;
 }
 
+/* The grid is a size container, so that a chart in it can use the width of the grid (cqi). */
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   align-items: start;
   gap: var(--itkaarhus-space-5);
+  container-type: inline-size;
 }
 
 .muted {
@@ -854,6 +856,12 @@ body {
   height: auto;
   display: block;
   overflow: visible;
+}
+/* A chart of half the width (Scale::HALF_WIDTH) has a viewBox of half the width. In two columns,
+   its panel is narrower than half the grid, so this limit has no effect. In one column, the limit
+   keeps the text at about the same size as in a chart of the full width. */
+.chart--half .chart__svg {
+  max-width: 50cqi;
 }
 .ch-grid {
   stroke: var(--itkaarhus-gray-200);
