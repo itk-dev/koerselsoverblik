@@ -21,9 +21,13 @@ final readonly class PeriodSelector
     ) {
     }
 
-    public function select(?string $type, ?string $date, ?string $comparison, ?string $supplier): PeriodSelectionDto
+    /**
+     * @param mixed   $measures  the value of "m" in the query, see PeriodFilter::fromQuery()
+     * @param ?string $threshold the threshold of the conclusion
+     */
+    public function select(?string $type, ?string $date, ?string $comparison, ?string $supplier, mixed $measures = null, ?string $threshold = null): PeriodSelectionDto
     {
-        $filter = PeriodFilter::fromQuery($type, $date, $comparison, $supplier, $this->calendar->today());
+        $filter = PeriodFilter::fromQuery($type, $date, $comparison, $supplier, $this->calendar->today(), $measures, $threshold);
         // One query gives the suppliers of the filter bar and checks the selected supplier.
         $suppliers = $this->suppliers->findBy([], ['name' => 'ASC']);
         $ids = array_map(static fn (Supplier $item): ?int => $item->getId(), $suppliers);

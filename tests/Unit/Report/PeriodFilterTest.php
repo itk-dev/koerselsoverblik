@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Report;
 
 use App\Report\Comparison;
+use App\Report\ConclusionMeasure;
+use App\Report\ConclusionThreshold;
 use App\Report\PeriodFilter;
 use App\Report\PeriodType;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -164,6 +166,8 @@ final class PeriodFilterTest extends TestCase
             self::value($query, 'c'),
             self::value($query, 's'),
             new \DateTimeImmutable(self::TODAY),
+            self::measuresOf($query),
+            self::value($query, 't'),
         );
 
         self::assertSame($canonical, $filter->isCanonical($query));
@@ -184,13 +188,100 @@ final class PeriodFilterTest extends TestCase
         yield 'invalid date' => [['d' => 'abc'], false];
         yield 'date as a list' => [['d' => ['2026-02-02']], false];
         yield 'unknown parameter' => [['month' => '2026-06'], false];
+        yield 'conclusion settings' => [['m' => 'punctuality,solo', 't' => '0'], true];
+        yield 'measures in another order' => [['m' => 'solo,punctuality'], false];
+        // The checkboxes of the form send a list. The page redirects it to the list with commas.
+        yield 'measures from the form' => [['m' => ['solo']], false];
+        yield 'default measure' => [['m' => 'punctuality'], false];
+        yield 'default threshold' => [['t' => '1'], false];
     }
 
     public function testWithoutSupplierKeepsTheOtherFilters(): void
     {
-        $filter = self::filter(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year', 's' => '2']);
+        $filter = self::filter(['p' => 'week', 'd' => '2026-02-03', 'c' => 'last_year', 's' => '2', 'm' => 'solo', 't' => '0']);
 
-        self::assertSame(['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year'], $filter->withoutSupplier()->query());
+        self::assertSame(['p' => 'week', 'd' => '2026-02-02', 'c' => 'last_year', 'm' => 'solo', 't' => '0'], $filter->withoutSupplier()->query());
+    }
+
+    /**
+     * The conclusion of the overview uses the punctuality and a threshold of 1 %.
+     */
+    public function testConclusionDefaults(): void
+    {
+        $filter = self::filter([]);
+
+        self::assertSame([ConclusionMeasure::Punctuality], $filter->measures);
+        self::assertSame(ConclusionThreshold::One, $filter->threshold);
+    }
+
+    /**
+     * The measures are always in the order of the enum, and each measure is in the list one time.
+     *
+     * @param list<ConclusionMeasure> $expected
+     */
+    #[DataProvider('measures')]
+    public function testConclusionMeasures(mixed $measures, array $expected): void
+    {
+        self::assertSame($expected, self::filter(['m' => $measures])->measures);
+    }
+
+    /**
+     * @return iterable<string, array{mixed, list<ConclusionMeasure>}>
+     */
+    public static function measures(): iterable
+    {
+        // The controller gives the value of the query with no check of its type.
+        yield 'not a text or a list' => [5, [ConclusionMeasure::Punctuality]];
+        yield 'one' => ['solo', [ConclusionMeasure::RealSolo]];
+        yield 'all' => ['punctuality,solo,cancelled', [ConclusionMeasure::Punctuality, ConclusionMeasure::RealSolo, ConclusionMeasure::Cancelled]];
+        yield 'other order' => ['cancelled,punctuality', [ConclusionMeasure::Punctuality, ConclusionMeasure::Cancelled]];
+        yield 'twice' => ['solo,solo', [ConclusionMeasure::RealSolo]];
+        // The checkboxes of the form send a list.
+        yield 'list of the form' => [['cancelled', 'solo'], [ConclusionMeasure::RealSolo, ConclusionMeasure::Cancelled]];
+        yield 'unknown measure' => ['solo,complaints', [ConclusionMeasure::RealSolo]];
+        yield 'value in a list that is not text' => [['solo', ['cancelled']], [ConclusionMeasure::RealSolo]];
+        // At least one measure must be in the conclusion.
+        yield 'only unknown measures' => ['complaints', [ConclusionMeasure::Punctuality]];
+        yield 'empty' => ['', [ConclusionMeasure::Punctuality]];
+        yield 'empty list' => [[], [ConclusionMeasure::Punctuality]];
+    }
+
+    #[DataProvider('thresholds')]
+    public function testConclusionThreshold(string $threshold, ConclusionThreshold $expected): void
+    {
+        self::assertSame($expected, self::filter(['t' => $threshold])->threshold);
+    }
+
+    /**
+     * @return iterable<string, array{string, ConclusionThreshold}>
+     */
+    public static function thresholds(): iterable
+    {
+        yield 'any change' => ['0', ConclusionThreshold::Any];
+        yield 'half' => ['0.5', ConclusionThreshold::Half];
+        yield 'five' => ['5', ConclusionThreshold::Five];
+        yield 'not an option' => ['3', ConclusionThreshold::One];
+        yield 'not a number' => ['abc', ConclusionThreshold::One];
+        yield 'other format' => ['0,5', ConclusionThreshold::One];
+    }
+
+    /**
+     * The query has the measures as a list with commas, and leaves out the defaults.
+     */
+    public function testQueryHasTheConclusionSettings(): void
+    {
+        self::assertSame(['m' => 'punctuality,cancelled', 't' => '0.5'], self::filter(['m' => ['cancelled', 'punctuality'], 't' => '0.5'])->query());
+        self::assertSame([], self::filter(['m' => 'punctuality', 't' => '1'])->query());
+    }
+
+    /**
+     * A link of the filter bar keeps the settings of the conclusion.
+     */
+    public function testWithKeepsTheConclusionSettings(): void
+    {
+        $filter = self::filter(['m' => 'solo', 't' => '2']);
+
+        self::assertSame(['p' => 'week', 'm' => 'solo', 't' => '2'], $filter->with(type: PeriodType::Week)->query());
     }
 
     /**
@@ -204,10 +295,20 @@ final class PeriodFilterTest extends TestCase
     }
 
     /**
-     * @param array<string, string> $query
+     * Gives the measures as the controller does: the value of the query, of any type.
+     *
+     * @param array<string, mixed> $query
+     */
+    private static function measuresOf(array $query): mixed
+    {
+        return $query['m'] ?? null;
+    }
+
+    /**
+     * @param array<string, mixed> $query
      */
     private static function filter(array $query): PeriodFilter
     {
-        return PeriodFilter::fromQuery($query['p'] ?? null, $query['d'] ?? null, $query['c'] ?? null, $query['s'] ?? null, new \DateTimeImmutable(self::TODAY));
+        return PeriodFilter::fromQuery(self::value($query, 'p'), self::value($query, 'd'), self::value($query, 'c'), self::value($query, 's'), new \DateTimeImmutable(self::TODAY), self::measuresOf($query), self::value($query, 't'));
     }
 }

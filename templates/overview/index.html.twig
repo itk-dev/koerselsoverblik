@@ -18,6 +18,8 @@
         </div>
     </header>
 
+    {{ include('overview/_conclusion.html.twig', {conclusion: conclusion, selection: selection}, with_context: false) }}
+
     {# A change of the volume is neither good nor bad, so the change has the tone "neutral".
        A month with no trips has no data, so the trips have no note. #}
     <div class="tiles tiles--4">
