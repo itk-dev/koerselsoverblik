@@ -279,6 +279,7 @@ upload:
     date: Dato
     stop_rows: Stoprækker
     route_runs: Vognløb
+    rejected_rows: Afviste rækker
     file: Seneste fil
     by: Uploadet af
     uploaded_at: Tidspunkt
@@ -287,7 +288,7 @@ upload:
   clear:
     open: Ryd
     title: "Ryd kørselsdata for {date}"
-    text: "Det sletter {stopRows, plural, one {# stoprække} other {# stoprækker}} og {routeRuns, plural, other {# vognløb}} for datoen, de afviste rækker for datoen og de tal, der er beregnet ud fra dem. Det kan ikke fortrydes."
+    text: "Det sletter {stopRows, plural, one {# stoprække} other {# stoprækker}}, {routeRuns, plural, other {# vognløb}} og {rejectedRows, plural, one {# afvist række} other {# afviste rækker}} for datoen og de tal, der er beregnet ud fra dem. Det kan ikke fortrydes."
     confirm: Ryd datoen
   cleared: "Kørselsdata for {day}. {month} {year} er ryddet. {stopRows, plural, one {# stoprække} other {# stoprækker}}, {routeRuns, plural, other {# vognløb}} og {rejectedRows, plural, one {# afvist række} other {# afviste rækker}} er slettet."
   result_title: Kørselsdata er importeret

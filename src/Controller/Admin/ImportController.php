@@ -19,6 +19,7 @@ use App\Import\Upload\UploadDto;
 use App\Import\Upload\UploadStore;
 use App\Import\UploadedDates;
 use App\Report\MonthDto;
+use App\Repository\ImportBatchRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -51,6 +52,7 @@ final class ImportController extends AbstractController
         private readonly ManagerRegistry $doctrine,
         private readonly LoggerInterface $logger,
         private readonly UploadedDates $uploadedDates,
+        private readonly ImportBatchRepository $batches,
         private readonly LocalCalendar $calendar,
         #[Autowire(param: 'app.driving_data_max_days')]
         private readonly int $maxDays,
@@ -79,11 +81,14 @@ final class ImportController extends AbstractController
 
         $today = $this->calendar->today();
         $shown = MonthDto::fromQuery($month, $today);
+        $firstDate = $this->batches->firstDate();
 
         return $this->render('admin/import/index.html.twig', [
             'form' => $form,
             'month' => $shown,
             'isCurrentMonth' => !$shown->isBefore(MonthDto::of($today)),
+            // No driving data is before the first batch, so the month before it has no link.
+            'isFirstMonth' => null === $firstDate || !MonthDto::of($firstDate)->isBefore($shown),
             'dates' => $this->uploadedDates->forMonth($shown),
         ]);
     }

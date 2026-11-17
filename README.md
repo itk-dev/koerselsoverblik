@@ -263,16 +263,21 @@ because the import would only delete data. The command does not delete the file.
 
 1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`).
 2. Find the date in the list of uploaded dates. Use the previous and next month links.
-3. Check the number of stop rows and route runs for the date.
-4. Select **Clear**, and confirm.
+3. Check the number of stop rows, route runs and rejected rows for the date.
+4. Select **Ryd**, and then **Ryd datoen**.
 
 This deletes the stop rows, the route runs and the rejected rows of the date, and the figures
 that are calculated from them. The records of the uploads and the daily counts of mails,
 complaints and phone calls do not change. You cannot undo this. The
 [driving data log](#driving-data-log) records each clear.
 
-A rejected row with no date is deleted only when the clear includes the whole range of its
-upload, because the date of the row is not known.
+The list has the dates with stop rows or rejected rows. A rejected row with no date is deleted
+only when the clear includes the whole range of its upload, because the date of the row is not
+known. The page clears one date, so to delete such a row of an upload of more than one date, clear
+the range of the upload from the command line.
+
+The confirmation shows the counts from the time when the page was loaded. The message after the
+clear shows the deleted counts.
 
 To clear a date range, use the command line:
 

@@ -424,3 +424,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   batches stay. The command `app:driving-data:clear` uses the same service. Each clear is written
   to the new `driving_data_audit` log, which has its own file. `IsoDate` reads a date for the
   commands and the route. The plans list #82 as done, because all its sub-issues are done.
+  After the review: the list also has the dates with only rejected rows, and a column with the
+  rejected rows. The counts of a clear come from the deletes. The clear needs a signed-in user, so
+  that the log never shows a web clear as a console clear. The focus goes to "Annullér" in the
+  popover. The month links stop at the month of the first batch. The components diagram keeps the
+  `DailyCount` controller and the `DailyCountWeek` form, because the docs describe the daily counts
+  as a planned feature.

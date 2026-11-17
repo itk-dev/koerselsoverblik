@@ -18,6 +18,7 @@ final readonly class UploadedDateDto
         public \DateTimeImmutable $date,
         public int $stopRows,
         public int $routeRuns,
+        public int $rejectedRows,
         public ?ImportBatch $lastUpload,
     ) {
     }

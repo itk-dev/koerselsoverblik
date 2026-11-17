@@ -7,6 +7,7 @@ namespace App\Import;
 use App\Entity\ImportBatch;
 use App\Report\MonthDto;
 use App\Repository\ImportBatchRepository;
+use App\Repository\RejectedStopRowRepository;
 use App\Repository\RouteRunRepository;
 use App\Repository\StopRowRepository;
 
@@ -18,24 +19,36 @@ final readonly class UploadedDates
     public function __construct(
         private StopRowRepository $stopRows,
         private RouteRunRepository $routeRuns,
+        private RejectedStopRowRepository $rejectedRows,
         private ImportBatchRepository $batches,
     ) {
     }
 
     /**
-     * Gives the dates of the month with stop rows, in the order of the date. Three queries give
-     * all the dates.
+     * Gives the dates of the month with stop rows or rejected rows, in the order of the date. A
+     * date with only rejected rows is in the list, so that the page can clear its rows. Four
+     * queries give all the dates.
      *
      * @return list<UploadedDateDto>
      */
     public function forMonth(MonthDto $month): array
     {
         $range = $month->range();
+        $stopRows = $this->stopRows->countByDate($range);
         $routeRuns = $this->routeRuns->countByDate($range);
+        $rejectedRows = $this->rejectedRows->countByDate($range);
         $batches = $this->batches->findOverlapping($range);
+        $keys = array_keys($stopRows + $rejectedRows);
+        sort($keys);
         $dates = [];
-        foreach ($this->stopRows->countByDate($range) as $date => $stopRows) {
-            $dates[] = new UploadedDateDto(new \DateTimeImmutable($date), $stopRows, $routeRuns[$date] ?? 0, self::lastUpload($batches, $date));
+        foreach ($keys as $date) {
+            $dates[] = new UploadedDateDto(
+                new \DateTimeImmutable($date),
+                $stopRows[$date] ?? 0,
+                $routeRuns[$date] ?? 0,
+                $rejectedRows[$date] ?? 0,
+                self::lastUpload($batches, $date),
+            );
         }
 
         return $dates;
@@ -43,7 +56,7 @@ final readonly class UploadedDates
 
     /**
      * An import replaces all dates of its range, so the newest batch whose range has the date
-     * stored the stop rows of the date.
+     * stored the rows of the date.
      *
      * @param list<ImportBatch> $batches the batches, newest first
      * @param string            $date    the date as Y-m-d

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Clock\IsoDate;
+use App\Entity\User;
 use App\Import\DrivingDataClearer;
 use App\Import\ImportRangeDto;
 use App\Report\MonthDto;
@@ -13,6 +14,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Translation\TranslatableMessage;
 
@@ -34,8 +36,13 @@ final class ClearDrivingDataController extends AbstractController
     }
 
     #[Route('/admin/import/clear/{date}', name: 'admin_import_clear', requirements: ['date' => '\d{4}-\d{2}-\d{2}'], methods: ['POST'])]
-    public function __invoke(Request $request, string $date): Response
-    {
+    public function __invoke(
+        Request $request,
+        string $date,
+        // A request with no user fails, so that the log never shows a web clear as a console clear.
+        #[CurrentUser]
+        User $user,
+    ): Response {
         $day = IsoDate::parse($date);
         if (null === $day) {
             throw $this->createNotFoundException('The date is not valid.');
@@ -45,7 +52,7 @@ final class ClearDrivingDataController extends AbstractController
             throw $this->createAccessDeniedException('The CSRF token is not valid.');
         }
 
-        $cleared = $this->clearer->clear(ImportRangeDto::create($day, $day, $this->maxDays), $this->getUser()?->getUserIdentifier());
+        $cleared = $this->clearer->clear(ImportRangeDto::create($day, $day, $this->maxDays), $user->getUserIdentifier());
 
         $this->addFlash('success', new TranslatableMessage('upload.cleared', [
             'day' => $day->format('j'),

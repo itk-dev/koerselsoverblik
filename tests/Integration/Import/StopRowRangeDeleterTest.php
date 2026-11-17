@@ -10,6 +10,7 @@ use App\Entity\Route;
 use App\Entity\SourceRow;
 use App\Entity\StopRow;
 use App\Entity\SubAgreement;
+use App\Import\DeletedRowsDto;
 use App\Import\Extract\RejectedRowDto;
 use App\Import\Extract\RejectionReason;
 use App\Import\Extract\StopRowDto;
@@ -44,7 +45,8 @@ final class StopRowRangeDeleterTest extends KernelTestCase
 
         $deleted = $this->deleter()->deleteRange(self::range('2026-01-05'));
 
-        self::assertSame(1, $deleted);
+        // The rejected row of the date, and the rejected row with no date of the batch of the date.
+        self::assertEquals(new DeletedRowsDto(1, 2), $deleted);
         $kept = array_map(
             static fn (SourceRow $sourceRow): mixed => $sourceRow->getValues()['name'],
             $this->entityManager->getRepository(SourceRow::class)->findBy([], ['id' => 'ASC']),
@@ -58,7 +60,7 @@ final class StopRowRangeDeleterTest extends KernelTestCase
     {
         $this->storeRows();
 
-        self::assertSame(0, $this->deleter()->deleteRange(self::range('2026-01-07')));
+        self::assertEquals(new DeletedRowsDto(0, 0), $this->deleter()->deleteRange(self::range('2026-01-07')));
         self::assertSame(5, $this->entityManager->getRepository(SourceRow::class)->count([]));
     }
 

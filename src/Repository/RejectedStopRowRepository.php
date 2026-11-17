@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\ImportBatch;
 use App\Entity\RejectedStopRow;
 use App\Import\ImportRangeDto;
+use App\Report\DateRangeDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\QueryBuilder;
@@ -49,11 +50,43 @@ class RejectedStopRowRepository extends ServiceEntityRepository
     }
 
     /**
-     * Deletes the rejected rows in the range. A DQL delete does not delete the copies.
+     * Gives the number of rejected rows of each date in the range. A row with no date is not in
+     * the result, because it has no date to show.
+     *
+     * @return array<string, int> the counts in the order of the date, keyed by the date as Y-m-d
      */
-    public function deleteInRange(ImportRangeDto $range): void
+    public function countByDate(DateRangeDto $range): array
     {
-        $this->inRange($this->createQueryBuilder('rejected')->delete(), $range)->getQuery()->execute();
+        /** @var list<array{serviceDate: \DateTimeImmutable, count: int|string}> $rows */
+        $rows = $this->createQueryBuilder('rejected')
+            ->select('rejected.serviceDate AS serviceDate', 'COUNT(rejected.id) AS count')
+            ->where('rejected.serviceDate BETWEEN :first AND :last')
+            ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
+            ->groupBy('rejected.serviceDate')
+            ->orderBy('rejected.serviceDate')
+            ->getQuery()
+            ->getArrayResult();
+        $counts = [];
+        foreach ($rows as $row) {
+            // MariaDB can give a count as text.
+            $counts[$row['serviceDate']->format('Y-m-d')] = (int) $row['count'];
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Deletes the rejected rows in the range. A DQL delete does not delete the copies.
+     *
+     * @return int the number of deleted rows
+     */
+    public function deleteInRange(ImportRangeDto $range): int
+    {
+        /** @var int $deleted a DQL delete gives the number of deleted rows */
+        $deleted = $this->inRange($this->createQueryBuilder('rejected')->delete(), $range)->getQuery()->execute();
+
+        return $deleted;
     }
 
     /**

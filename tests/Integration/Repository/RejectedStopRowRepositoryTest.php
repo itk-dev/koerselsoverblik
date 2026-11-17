@@ -9,6 +9,7 @@ use App\Entity\RejectedStopRow;
 use App\Import\Extract\RejectedRowDto;
 use App\Import\Extract\RejectionReason;
 use App\Import\ImportRangeDto;
+use App\Report\DateRangeDto;
 use App\Repository\RejectedStopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -38,8 +39,9 @@ final class RejectedStopRowRepositoryTest extends KernelTestCase
     {
         $this->storeRows();
 
-        $this->repository()->deleteInRange(self::range());
+        $deleted = $this->repository()->deleteInRange(self::range());
 
+        self::assertSame(3, $deleted);
         $kept = array_map(
             static fn (RejectedStopRow $row): mixed => $row->getSourceRow()->getValues()['name'],
             $this->repository()->findBy([], ['id' => 'ASC']),
@@ -70,9 +72,28 @@ final class RejectedStopRowRepositoryTest extends KernelTestCase
     {
         $this->storeRows();
 
-        $this->repository()->deleteInRange(ImportRangeDto::create(new \DateTimeImmutable('2026-01-10'), new \DateTimeImmutable('2026-01-11'), 31));
+        $deleted = $this->repository()->deleteInRange(ImportRangeDto::create(new \DateTimeImmutable('2026-01-10'), new \DateTimeImmutable('2026-01-11'), 31));
 
+        self::assertSame(0, $deleted);
         self::assertSame(6, $this->repository()->count([]));
+    }
+
+    /**
+     * The upload page lists a date that has only rejected rows. A row with no date has no date to
+     * list.
+     */
+    public function testCountByDateGivesTheRowsWithADateInTheRange(): void
+    {
+        $this->storeRows();
+
+        $counts = $this->repository()->countByDate(DateRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-07')));
+
+        self::assertSame(['2026-01-05' => 1, '2026-01-06' => 1, '2026-01-07' => 1], $counts);
+    }
+
+    public function testCountByDateWithNoRowsIsEmpty(): void
+    {
+        self::assertSame([], $this->repository()->countByDate(DateRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-07'))));
     }
 
     /**

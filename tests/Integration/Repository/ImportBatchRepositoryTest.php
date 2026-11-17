@@ -54,6 +54,26 @@ final class ImportBatchRepositoryTest extends KernelTestCase
         self::assertSame([], $this->repository()->findOverlapping(DateRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-01-31'))));
     }
 
+    /**
+     * The batches stay after a clear, so the first date of the batches is the first date that can
+     * have driving data.
+     */
+    public function testFirstDateGivesTheFirstDateOfTheBatches(): void
+    {
+        $entityManager = $this->entityManager();
+        foreach ([['2026-01-05', '2026-01-06'], ['2025-12-30', '2026-01-02'], ['2026-02-01', '2026-02-03']] as [$firstDate, $lastDate]) {
+            $entityManager->persist(new ImportBatch('default', 'extract.xlsx', null, new \DateTimeImmutable(), ImportRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate), 31)));
+        }
+        $entityManager->flush();
+
+        self::assertEquals(new \DateTimeImmutable('2025-12-30'), $this->repository()->firstDate());
+    }
+
+    public function testFirstDateWithNoBatchesIsNull(): void
+    {
+        self::assertNull($this->repository()->firstDate());
+    }
+
     private function entityManager(): EntityManagerInterface
     {
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);

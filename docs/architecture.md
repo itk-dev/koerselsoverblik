@@ -796,9 +796,11 @@ file for the same range, or clear the dates.
 
 ### Clearing driving data
 
-The upload page lists the dates with stop rows, one month at a time (`?month=YYYY-MM`). A month
-that is not valid or that is after the current month gives the current month. `UploadedDates`
-reads each list in three queries: the stop rows and the route runs of each date, and the batches
+The upload page lists the dates with stop rows or rejected rows, one month at a time
+(`?month=YYYY-MM`). A month that is not valid or that is after the current month gives the current
+month. The month links stop at the current month and at the month of the first `ImportBatch`. A
+clear keeps the batches, so no driving data is before that month. `UploadedDates` reads each list
+in four queries: the stop rows, the route runs and the rejected rows of each date, and the batches
 that overlap the month. Each date shows the counts and the last upload (file name, who, when). The
 last upload is the newest batch whose range has the date, because an import replaces all dates of
 its range. A batch with no user shows "konsol": a console upload, or an upload of a deleted user.
@@ -809,11 +811,12 @@ wrong upload.
 1. The user selects **Ryd** for a date. A native popover shows the counts and the form, so no
    script is necessary.
 2. The user confirms. The form is a POST with a CSRF token for the date.
-3. `DrivingDataClearer` runs these steps in one transaction:
-   - It counts the rows to delete.
+3. `DrivingDataClearer` runs these steps in one transaction. The counts come from the deletes, so
+   they are exact also when another change runs at the same time.
    - `StopRowRangeDeleter` deletes the `StopRow` and `RejectedStopRow` rows of the date, and their
      `SourceRow` copies. A rejected row with no date belongs to the range when the whole range of
-     its batch is in the range, as for an import.
+     its batch is in the range, as for an import. The page clears one date, so such a row of a
+     batch of more than one date needs the command.
    - It deletes the `RouteRun`, `RouteDayTotals` and `LocationDayTotals` rows of the date.
    - `MonthCitizensBuilder` builds the `MonthCitizens` rows of the month again.
 4. After the commit, the clearer writes who cleared which range, and the deleted counts, to the

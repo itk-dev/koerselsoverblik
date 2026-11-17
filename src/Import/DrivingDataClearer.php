@@ -57,15 +57,14 @@ final readonly class DrivingDataClearer
     public function clear(ImportRangeDto $range, ?string $clearedBy): ClearedRowsDto
     {
         $cleared = $this->entityManager->wrapInTransaction(function () use ($range): ClearedRowsDto {
-            // The count is in the transaction, so it is the count of the deleted rows.
-            $cleared = $this->count($range);
-            $this->deleter->deleteRange($range);
-            $this->routeRuns->deleteInRange($range);
+            // The counts come from the deletes, so they are exact also when another change runs.
+            $deleted = $this->deleter->deleteRange($range);
+            $routeRuns = $this->routeRuns->deleteInRange($range);
             $this->routeTotals->deleteInRange($range);
             $this->locationTotals->deleteInRange($range);
             $this->monthCitizens->rebuild(DateRangeDto::create($range->firstDate, $range->lastDate));
 
-            return $cleared;
+            return new ClearedRowsDto($deleted->stopRows, $routeRuns, $deleted->rejectedRows);
         });
 
         $user = $clearedBy ?? 'console';

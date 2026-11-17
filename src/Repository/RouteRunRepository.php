@@ -74,10 +74,15 @@ class RouteRunRepository extends ServiceEntityRepository
 
     /**
      * Deletes the route runs in the range.
+     *
+     * @return int the number of deleted runs
      */
-    public function deleteInRange(ImportRangeDto $range): void
+    public function deleteInRange(ImportRangeDto $range): int
     {
-        $this->inRange($this->createQueryBuilder('run')->delete(), $range)->getQuery()->execute();
+        /** @var int $deleted a DQL delete gives the number of deleted rows */
+        $deleted = $this->inRange($this->createQueryBuilder('run')->delete(), $range)->getQuery()->execute();
+
+        return $deleted;
     }
 
     /**

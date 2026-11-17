@@ -43,4 +43,19 @@ class ImportBatchRepository extends ServiceEntityRepository
 
         return $batches;
     }
+
+    /**
+     * Gives the first date of all batches, or null if there are no batches. A clear keeps the
+     * batches, so no driving data is before this date.
+     */
+    public function firstDate(): ?\DateTimeImmutable
+    {
+        /** @var ?string $first */
+        $first = $this->createQueryBuilder('batch')
+            ->select('MIN(batch.firstDate)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return null === $first ? null : new \DateTimeImmutable($first);
+    }
 }

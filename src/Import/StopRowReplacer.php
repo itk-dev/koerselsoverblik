@@ -49,7 +49,7 @@ final readonly class StopRowReplacer
      */
     public function replace(ImportRangeDto $range, MappingDto $mapping, iterable $rows, ImportBatch $batch): ImportResultDto
     {
-        $deletedRows = $this->deleter->deleteRange($range);
+        $deletedRows = $this->deleter->deleteRange($range)->stopRows;
 
         $rejections = new RejectionGroups();
         $warnings = new RejectionGroups();

@@ -26,19 +26,19 @@ final readonly class StopRowRangeDeleter
      * the rows, and deletes the copies after the rows. The delete of the copies uses their ids, so
      * it does not read the copies of other dates.
      *
-     * @return int the number of deleted stop rows
+     * The counts come from the deletes, so they are the rows that the delete deleted.
      */
-    public function deleteRange(ImportRangeDto $range): int
+    public function deleteRange(ImportRangeDto $range): DeletedRowsDto
     {
         $copies = [
             ...$this->rejectedRows->sourceRowIdsInRange($range),
             ...$this->stopRows->sourceRowIdsInRange($range),
         ];
 
-        $this->rejectedRows->deleteInRange($range);
-        $deleted = $this->stopRows->deleteInRange($range);
+        $rejectedRows = $this->rejectedRows->deleteInRange($range);
+        $stopRows = $this->stopRows->deleteInRange($range);
         $this->sourceRows->deleteByIds($copies);
 
-        return $deleted;
+        return new DeletedRowsDto($stopRows, $rejectedRows);
     }
 }

@@ -49,8 +49,8 @@ final class UploadedDatesPageTest extends WebTestCase
         self::assertSame('januar 2026', $crawler->filter('[data-test="month"]')->text());
         self::assertSame(
             [
-                ['5. januar 2026', '14', '4', '2026-01-05.xlsx', 'admin@example.com', '20. januar 2026 kl. 10:15'],
-                ['6. januar 2026', '14', '4', '2026-01-06.xlsx', 'konsol', '20. januar 2026 kl. 10:15'],
+                ['5. januar 2026', '14', '4', '0', '2026-01-05.xlsx', 'admin@example.com', '20. januar 2026 kl. 10:15'],
+                ['6. januar 2026', '14', '4', '0', '2026-01-06.xlsx', 'konsol', '20. januar 2026 kl. 10:15'],
             ],
             $crawler->filter('[data-test="uploaded-date"]')->each(static fn (Crawler $row): array => $row->filter('td:not(.actions)')->each(static fn (Crawler $cell): string => $cell->text())),
         );
@@ -59,16 +59,31 @@ final class UploadedDatesPageTest extends WebTestCase
     }
 
     /**
-     * The next month is after the current month, so it has no link.
+     * The next month is after the current month, so it has no link. The batches stay after a
+     * clear, so a month before the first batch has no driving data, and it has no link.
      */
-    public function testPreviousMonthHasALinkAndTheNextMonthHasNone(): void
+    public function testMonthLinksStopAtTheCurrentMonthAndAtTheFirstBatch(): void
     {
         $this->loginAs($this->client, 'admin');
+        $this->importBaseOn('2025-12-05');
 
         $crawler = $this->client->request('GET', '/admin/import');
 
         self::assertSame('/admin/import?month=2025-12', $crawler->filter('[data-test="previous-month"]')->attr('href'));
         self::assertCount(0, $crawler->filter('[data-test="next-month"]'));
+
+        $crawler = $this->client->request('GET', '/admin/import?month=2025-12');
+
+        self::assertCount(0, $crawler->filter('[data-test="previous-month"]'));
+    }
+
+    public function testNoBatchesGivesNoPreviousMonth(): void
+    {
+        $this->loginAs($this->client, 'admin');
+
+        $crawler = $this->client->request('GET', '/admin/import');
+
+        self::assertCount(0, $crawler->filter('[data-test="previous-month"]'));
     }
 
     public function testMonthQueryShowsTheDatesOfThatMonth(): void
@@ -81,7 +96,6 @@ final class UploadedDatesPageTest extends WebTestCase
 
         self::assertSame('december 2025', $crawler->filter('[data-test="month"]')->text());
         self::assertSame(['5. december 2025'], $crawler->filter('[data-test="uploaded-date"] td:first-child')->each(static fn (Crawler $cell): string => $cell->text()));
-        self::assertSame('/admin/import?month=2025-11', $crawler->filter('[data-test="previous-month"]')->attr('href'));
         self::assertSame('/admin/import?month=2026-01', $crawler->filter('[data-test="next-month"]')->attr('href'));
     }
 
@@ -127,9 +141,12 @@ final class UploadedDatesPageTest extends WebTestCase
         self::assertSame('clear-2026-01-05', $popover->attr('id'));
         self::assertSame('', $popover->attr('popover'));
         self::assertSame('Ryd kørselsdata for 5. januar 2026', $popover->filter('[data-test="clear-title"]')->text());
-        self::assertSame('Det sletter 14 stoprækker og 4 vognløb for datoen, de afviste rækker for datoen og de tal, der er beregnet ud fra dem. Det kan ikke fortrydes.', $popover->filter('[data-test="clear-text"]')->text());
-        self::assertSame('clear-2026-01-05', $popover->filter('[data-test="clear-cancel"]')->attr('popovertarget'));
-        self::assertSame('hide', $popover->filter('[data-test="clear-cancel"]')->attr('popovertargetaction'));
+        self::assertSame('Det sletter 14 stoprækker, 4 vognløb og 0 afviste rækker for datoen og de tal, der er beregnet ud fra dem. Det kan ikke fortrydes.', $popover->filter('[data-test="clear-text"]')->text());
+        $cancel = $popover->filter('[data-test="clear-cancel"]');
+        self::assertSame('clear-2026-01-05', $cancel->attr('popovertarget'));
+        self::assertSame('hide', $cancel->attr('popovertargetaction'));
+        // The focus goes into the popover, on the button that changes no data.
+        self::assertSame('', $cancel->attr('autofocus'));
     }
 
     public function testClearDeletesTheDrivingDataOfTheDate(): void

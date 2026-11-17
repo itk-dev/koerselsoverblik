@@ -26,6 +26,16 @@ final class RouteRunRepositoryTest extends KernelTestCase
         self::assertSame(3, $this->repository()->countInRange(ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-06'), 31)));
     }
 
+    public function testDeleteInRangeGivesTheNumberOfDeletedRuns(): void
+    {
+        $this->storeRuns();
+
+        $deleted = $this->repository()->deleteInRange(ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-06'), 31));
+
+        self::assertSame(3, $deleted);
+        self::assertSame(2, $this->repository()->count([]));
+    }
+
     public function testCountInRangeWithNoRunsIsZero(): void
     {
         self::assertSame(0, $this->repository()->countInRange(ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-06'), 31)));

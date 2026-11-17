@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Import;
 
 use App\Entity\ImportBatch;
+use App\Entity\RejectedStopRow;
 use App\Entity\Route;
 use App\Entity\RouteRun;
 use App\Entity\StopRow;
 use App\Entity\SubAgreement;
 use App\Entity\User;
+use App\Import\Extract\RejectedRowDto;
+use App\Import\Extract\RejectionReason;
 use App\Import\Extract\StopRowDto;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\StopStatus;
@@ -19,6 +22,7 @@ use App\Import\UploadedDateDto;
 use App\Import\UploadedDates;
 use App\Report\MonthDto;
 use App\Repository\ImportBatchRepository;
+use App\Repository\RejectedStopRowRepository;
 use App\Repository\RouteRunRepository;
 use App\Repository\StopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,9 +36,10 @@ final class UploadedDatesTest extends KernelTestCase
 {
     /**
      * The last upload of a date is the newest batch whose range has the date. A date with stop rows
-     * and no route runs has 0 runs. A date outside the month is not in the result.
+     * and no route runs has 0 runs. A date with only rejected rows is in the result, so that the
+     * page can clear it. A date outside the month is not in the result.
      */
-    public function testForMonthGivesTheDatesWithStopRowsAndTheirLastUpload(): void
+    public function testForMonthGivesTheDatesWithDrivingDataAndTheirLastUpload(): void
     {
         $this->store();
 
@@ -42,12 +47,13 @@ final class UploadedDatesTest extends KernelTestCase
 
         self::assertSame(
             [
-                ['2026-01-05', 2, 1, 'older.xlsx'],
-                ['2026-01-06', 1, 1, 'newer.xlsx'],
-                ['2026-01-07', 1, 0, 'newer.xlsx'],
-                ['2026-01-20', 1, 0, null],
+                ['2026-01-05', 2, 1, 1, 'older.xlsx'],
+                ['2026-01-06', 1, 1, 0, 'newer.xlsx'],
+                ['2026-01-07', 1, 0, 0, 'newer.xlsx'],
+                ['2026-01-08', 0, 0, 2, 'newer.xlsx'],
+                ['2026-01-20', 1, 0, 0, null],
             ],
-            array_map(static fn (UploadedDateDto $date): array => [$date->date->format('Y-m-d'), $date->stopRows, $date->routeRuns, $date->lastUpload?->getFileName()], $dates),
+            array_map(static fn (UploadedDateDto $date): array => [$date->date->format('Y-m-d'), $date->stopRows, $date->routeRuns, $date->rejectedRows, $date->lastUpload?->getFileName()], $dates),
         );
         self::assertSame('admin@example.com', $dates[0]->lastUpload?->getUploadedBy()?->getUserIdentifier());
         self::assertNull($dates[1]->lastUpload?->getUploadedBy());
@@ -62,14 +68,15 @@ final class UploadedDatesTest extends KernelTestCase
 
     /**
      * Stores two batches that overlap on 6 January, stop rows on 5, 6, 7 and 20 January and on 1
-     * February, and route runs on 5 and 6 January. No batch has 20 January in its range.
+     * February, route runs on 5 and 6 January, and rejected rows on 5 and 8 January and with no
+     * date. No batch has 20 January in its range.
      */
     private function store(): void
     {
         $entityManager = $this->entityManager();
         $user = new User('admin@example.com');
         $older = new ImportBatch('default', 'older.xlsx', $user, new \DateTimeImmutable('2026-01-08 10:00'), self::range('2026-01-05', '2026-01-06'));
-        $newer = new ImportBatch('default', 'newer.xlsx', null, new \DateTimeImmutable('2026-01-08 11:00'), self::range('2026-01-06', '2026-01-07'));
+        $newer = new ImportBatch('default', 'newer.xlsx', null, new \DateTimeImmutable('2026-01-08 11:00'), self::range('2026-01-06', '2026-01-08'));
         $later = new ImportBatch('default', 'later.xlsx', null, new \DateTimeImmutable('2026-02-02 11:00'), self::range('2026-02-01', '2026-02-01'));
         $subAgreement = new SubAgreement()->setReference('R');
         $route = new Route('R-01', $subAgreement);
@@ -79,6 +86,9 @@ final class UploadedDatesTest extends KernelTestCase
         }
         foreach (['2026-01-05', '2026-01-06'] as $date) {
             $entities[] = new RouteRun($route, new \DateTimeImmutable($date), 1, new RouteRunDto(null, null, null, null, null, null, false, null));
+        }
+        foreach ([['2026-01-05', $older], ['2026-01-08', $newer], ['2026-01-08', $newer], [null, $newer]] as [$date, $batch]) {
+            $entities[] = new RejectedStopRow(new RejectedRowDto(5, RejectionReason::InvalidRowId, null, null === $date ? null : new \DateTimeImmutable($date), []), $batch);
         }
         foreach ($entities as $entity) {
             $entityManager->persist($entity);
@@ -122,10 +132,12 @@ final class UploadedDatesTest extends KernelTestCase
         self::assertInstanceOf(StopRowRepository::class, $stopRows);
         $routeRuns = self::getContainer()->get(RouteRunRepository::class);
         self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
+        $rejectedRows = self::getContainer()->get(RejectedStopRowRepository::class);
+        self::assertInstanceOf(RejectedStopRowRepository::class, $rejectedRows);
         $batches = self::getContainer()->get(ImportBatchRepository::class);
         self::assertInstanceOf(ImportBatchRepository::class, $batches);
 
-        return new UploadedDates($stopRows, $routeRuns, $batches);
+        return new UploadedDates($stopRows, $routeRuns, $rejectedRows, $batches);
     }
 
     private function entityManager(): EntityManagerInterface
