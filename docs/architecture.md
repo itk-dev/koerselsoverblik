@@ -943,6 +943,14 @@ and the charts. `PunctualityPageDto` gives the change of each measure from the c
 period. The page does not show the driver changes and the no-shows of the prototype, because the
 import does not read their columns.
 
+The figures do not include the routes of an ignored sub-agreement (see "Data model"). Thus a
+note below the lede names the ignored sub-agreements.
+`PunctualityController` gets their references from
+`SubAgreementRepository::findIgnoredReferences()`. The flag has no dates, so the note applies to
+all months of the page. With a supplier filter, the figures only have the routes of the
+sub-agreements of that supplier. Thus the note then names only the ignored sub-agreements of that
+supplier. The overview uses `PunctualityPageBuilder`, but it does not run this query.
+
 **Cost:** the months and the comparison period only need the total. Only the selected period
 needs the figures of each supplier, route and location.
 
@@ -953,10 +961,10 @@ needs the figures of each supplier, route and location.
 - `PunctualityCalculator::total()` gives the comparison period. A comparison period that has
   the dates of a month of the history uses the total of that month.
 
-Each sum query also reads the ids of the counted routes (see "Data model"). Thus a request runs 7
-to 9 queries. With more than one year of data, the page takes less than 0.5 seconds. Before #136,
-it read the stop rows and the route runs, and took approximately 1 to 3 seconds. Before #134, it
-took approximately 6 to 11 seconds.
+Each sum query also reads the ids of the counted routes (see "Data model"). With the query of
+the ignored sub-agreements, a request runs 8 to 10 queries. With more than one year of data, the
+page takes less than 0.5 seconds. Before #136, it read the stop rows and the route runs, and took
+approximately 1 to 3 seconds. Before #134, it took approximately 6 to 11 seconds.
 
 A period with no measured last drop-off has no data. The tiles of the late runs then show "–",
 not 0, and the sparklines have a gap.

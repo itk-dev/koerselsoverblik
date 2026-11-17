@@ -395,3 +395,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   half the width (`chart--half`, `max-width: 50cqi`), so its labels do not become twice as large.
   A chart width other than `Scale::WIDTH` or `Scale::HALF_WIDTH` gives an error. The line chart
   has no width parameter, because no line chart has half the width.
+- [#99](https://github.com/itk-dev/koerselsoverblik/issues/99)
+  Show the ignored sub-agreements on the punctuality page. The figures do not include their
+  routes, so a note below the lede gives their number and references, for example "2 delaftaler
+  er ignoreret i tallene: BOOKED, TEST". `SubAgreementRepository::findIgnoredReferences()` adds
+  one query to the page. The overview does not run this query. After the review: with a supplier
+  filter, the note names only the ignored sub-agreements of that supplier, because the figures of
+  the supplier have no others.

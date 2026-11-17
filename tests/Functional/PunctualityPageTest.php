@@ -7,9 +7,12 @@ namespace App\Tests\Functional;
 use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\SubAgreement;
+use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -140,6 +143,45 @@ final class PunctualityPageTest extends WebTestCase
 
         // Each chart has a hidden data table.
         self::assertCount(2, $crawler->filter('figure.chart .sr-only table'));
+
+        // No sub-agreement is ignored, so the page has no note about it.
+        self::assertCount(0, $crawler->filter('[data-test="ignored-note"]'));
+    }
+
+    /**
+     * The figures do not include the routes of an ignored sub-agreement, so the page names the
+     * ignored sub-agreements, sorted by the reference.
+     */
+    public function testPageNamesTheIgnoredSubAgreements(): void
+    {
+        $client = $this->client('viewer');
+        $this->subAgreement('TEST', true);
+        $this->subAgreement('OTHER', false);
+
+        self::assertSame('1 delaftale er ignoreret i tallene: TEST', $client->request('GET', '/punctuality')->filter('[data-test="ignored-note"]')->text());
+
+        $this->subAgreement('BOOKED', true);
+
+        self::assertSame('2 delaftaler er ignoreret i tallene: BOOKED, TEST', $client->request('GET', '/punctuality')->filter('[data-test="ignored-note"]')->text());
+    }
+
+    /**
+     * The figures of a supplier only have the routes of its sub-agreements. Thus with a supplier
+     * filter, the note names only the ignored sub-agreements of that supplier.
+     */
+    public function testNoteWithASupplierFilterNamesOnlyThatSupplier(): void
+    {
+        $client = $this->client('viewer');
+        $supplier = $this->supplier('Vognmand A');
+        $other = $this->supplier('Vognmand B');
+        $this->subAgreement('OTHER', true, $other);
+        $this->subAgreement('BOOKED', true);
+
+        self::assertCount(0, $client->request('GET', '/punctuality?s='.$supplier->getId())->filter('[data-test="ignored-note"]'));
+
+        $this->subAgreement('TEST', true, $supplier);
+
+        self::assertSame('1 delaftale er ignoreret i tallene: TEST', $client->request('GET', '/punctuality?s='.$supplier->getId())->filter('[data-test="ignored-note"]')->text());
     }
 
     /**
@@ -308,6 +350,27 @@ final class PunctualityPageTest extends WebTestCase
         self::assertInstanceOf(DrivingDataImporter::class, $importer);
         $importer->import($path, ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31), $provider->default(), null, 'base.xlsx');
         unlink($path);
+    }
+
+    private function subAgreement(string $reference, bool $ignored, ?Supplier $supplier = null): void
+    {
+        $this->persist(new SubAgreement()->setReference($reference)->setIgnored($ignored)->setSupplier($supplier));
+    }
+
+    private function supplier(string $name): Supplier
+    {
+        $supplier = new Supplier()->setName($name);
+        $this->persist($supplier);
+
+        return $supplier;
+    }
+
+    private function persist(object $entity): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
+        $entityManager->persist($entity);
+        $entityManager->flush();
     }
 
     private static function value(Crawler $crawler, string $test): string
