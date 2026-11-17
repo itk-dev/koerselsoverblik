@@ -10,7 +10,7 @@ use App\Chart\ChartSeriesDto;
  * Makes the series of a chart from the arrays of a template. A template cannot create an object,
  * and the names of the series are translated texts.
  *
- * @phpstan-type SeriesArray array{name: string, cssClass: string, values: list<float|int|null>, dashed?: bool}
+ * @phpstan-type SeriesArray array{name: string, cssClass: string, values: list<float|int|null>, dashed?: bool, counts?: list<int|null>}
  */
 final class ChartSeries
 {
@@ -26,6 +26,7 @@ final class ChartSeries
             $item['cssClass'],
             array_map(static fn (float|int|null $value): ?float => null === $value ? null : (float) $value, $item['values']),
             $item['dashed'] ?? false,
+            $item['counts'] ?? [],
         ), $series);
     }
 }

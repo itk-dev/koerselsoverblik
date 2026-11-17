@@ -140,12 +140,11 @@ punctuality:
       title: Rettidig afsætning pr. vognløb
       body: Andelen af vognløb, hvor den sidste borger i bilen blev sat af højst {minutes} minutter efter det planlagte tidspunkt. Den sidste afsætning er afsætningen med det seneste planlagte tidspunkt, som ikke er aflyst. Forsinkelser tidligere i vognløbet tæller ikke med her. Dem viser rettidigheden pr. borger.
   late_runs: Forsinkede afsætninger
-  late_runs_note: af {count} vognløb
+  late_share_note: "{share} af {runs, number} vognløb"
   late_runs_help:
     title: Forsinkede afsætninger
     body: Antallet af vognløb, hvor den sidste borger i bilen blev sat af mere end {minutes} minutter efter det planlagte tidspunkt. Det er de vognløb, der trækker rettidigheden ved afsætning pr. vognløb ned. Den sidste afsætning er afsætningen med det seneste planlagte tidspunkt, som ikke er aflyst. Har den ingen indtastning, tæller vognløbet ikke med.
   over_30: Over 30 minutter
-  over_30_note: Den halve time hvor en pårørende ringer
   over_30_help:
     title: Over 30 minutter
     body: Antallet af vognløb, hvor den sidste borger i bilen blev sat af mere end 30 minutter efter det planlagte tidspunkt. Vognløbene er en del af de forsinkede afsætninger og måles på samme måde.
@@ -166,7 +165,8 @@ punctuality:
   severity:
     title: Forsinkelser fordelt på intervaller
     subtitle: De store forsinkelser er ikke bare flere minutter. Det er en anden slags hændelse.
-    caption: Forsinkede afsætninger fordelt på interval pr. måned
+    caption: Andel af vognløbene med forsinket sidste afsætning, fordelt på interval pr. måned
+    runs: vognløb
     up_to_15: "{minutes}–15 min"
     up_to_30: 15–30 min
     over_30: Over 30 min
@@ -294,6 +294,8 @@ upload:
 chart:
   period: Periode
   no_comparison: ingen sammenligning
+  share_with_count: "{share} ({count, number} {noun})"
+  share_with_bare_count: "{share} ({count, number})"
 
 help:
   how: Sådan er {title} regnet ud

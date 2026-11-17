@@ -41,6 +41,55 @@ final class PunctualityExtensionTest extends TestCase
     }
 
     /**
+     * A share with no target: one decimal below 10 %, so that a small share does not show as 0 %,
+     * and a whole percent from 10 %.
+     */
+    #[DataProvider('shares')]
+    public function testShare(?float $value, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->share($value));
+    }
+
+    /**
+     * @return iterable<string, array{?float, string}>
+     */
+    public static function shares(): iterable
+    {
+        yield 'no value' => [null, '–'];
+        yield 'none' => [0.0, '0 %'];
+        yield 'very small, not 0' => [0.04, '< 0,1 %'];
+        yield 'smallest that rounds to 0,1' => [0.05, '0,1 %'];
+        yield 'small' => [0.44, '0,4 %'];
+        yield 'below 10, whole' => [5.0, '5 %'];
+        yield 'below 10, rounds up' => [9.96, '10 %'];
+        yield 'from 10' => [10.0, '10 %'];
+        yield 'from 10, rounds' => [44.444, '44 %'];
+    }
+
+    /**
+     * A grid value of a percent axis shows exactly, with no more decimals than it needs. A nice
+     * maximum of 5 gives grid lines at 1,25 % and 3,75 %.
+     */
+    #[DataProvider('axisValues')]
+    public function testAxisPercent(float $value, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->axisPercent($value));
+    }
+
+    /**
+     * @return iterable<string, array{float, string}>
+     */
+    public static function axisValues(): iterable
+    {
+        yield 'zero' => [0.0, '0 %'];
+        yield 'whole' => [25.0, '25 %'];
+        yield 'one decimal' => [12.5, '12,5 %'];
+        yield 'two decimals' => [1.25, '1,25 %'];
+        yield 'two decimals, above 1' => [3.75, '3,75 %'];
+        yield 'thousands' => [1000.0, '1.000 %'];
+    }
+
+    /**
      * The change from the previous month, in percentage points. The minus sign is U+2212.
      */
     #[DataProvider('changes')]

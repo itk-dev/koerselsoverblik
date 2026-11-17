@@ -961,9 +961,24 @@ took approximately 6 to 11 seconds.
 A period with no measured last drop-off has no data. The tiles of the late runs then show "–",
 not 0, and the sparklines have a gap.
 
+**Late runs as shares:** the months have very different volumes, for example a holiday month or a
+month that has not ended. Thus the page compares the late runs as shares of the measured last
+drop-offs, not as counts.
+
+- The tiles "Forsinkede afsætninger" and "Over 30 minutter" show the count. The change, the
+  sparkline and the note are of the share. The change is in percentage points, as the measures.
+  `PunctualityPageDto::lateRuns()` and `over30()` give a `LateTrendDto`.
+- The chart "Forsinkelser fordelt på intervaller" shows the share of each late band in each
+  month, on a percent axis (`lateBandShares()`). The title of each bar also gives the count
+  (`lateBandCounts()`). A month with no measured runs has no bar.
+
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
-value shows as "–".
+value shows as "–". A share with no target (`share_percent`) shows one decimal below 10 %, so
+that a small share does not show as "0 %". A share above 0 that rounds to 0 shows as
+"< 0,1 %". The grid values of a percent axis (`axis_percent`) show exactly, with up to two
+decimals, for example "1,25 %". The hidden data table of a chart of shares gives the share and
+the count, as the bar titles do.
 
 | Measure (Danish label) | Measured rows |
 | --- | --- |

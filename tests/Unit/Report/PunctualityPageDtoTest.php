@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Checks the figures of the punctuality page: the four measures of the month with the change from
- * the previous month and the history, and the late last drop-offs.
+ * the previous month and the history, and the late last drop-offs as counts and shares.
  */
 final class PunctualityPageDtoTest extends TestCase
 {
@@ -76,6 +76,10 @@ final class PunctualityPageDtoTest extends TestCase
         self::assertSame(90, $page->target);
     }
 
+    /**
+     * The tiles show the count, and the change of the share of the measured runs in percentage
+     * points. The share of 4 of 9 is 44.4 %, and the share of 2 of 5 is 40 %.
+     */
     public function testLateLastDropOffs(): void
     {
         $page = self::page([
@@ -83,18 +87,55 @@ final class PunctualityPageDtoTest extends TestCase
             self::figures([0, 0], [0, 0], [0, 0], [5, 9], [5, 1, 2, 1]),
         ]);
 
-        self::assertSame(4, $page->lateRuns()->current);
-        self::assertSame(2, $page->lateRuns()->change);
-        self::assertSame([2.0, 4.0], $page->lateRuns()->history);
-        self::assertSame(1, $page->over30()->current);
-        self::assertSame(0, $page->over30()->change);
-        self::assertSame([1.0, 1.0], $page->over30()->history);
-        self::assertSame([[1.0, 1.0], [0.0, 2.0], [1.0, 1.0]], $page->lateBandHistory());
+        $late = $page->lateRuns();
+        self::assertSame(4, $late->count);
+        self::assertSame(9, $late->runs);
+        self::assertEqualsWithDelta(44.444, $late->share, 0.001);
+        self::assertEqualsWithDelta(4.444, $late->change, 0.001);
+        self::assertEqualsWithDelta([40.0, 44.444], $late->history, 0.001);
+        $over30 = $page->over30();
+        self::assertSame(1, $over30->count);
+        self::assertSame(9, $over30->runs);
+        self::assertEqualsWithDelta(11.111, $over30->share, 0.001);
+        self::assertEqualsWithDelta(-8.889, $over30->change, 0.001);
+        self::assertEqualsWithDelta([20.0, 11.111], $over30->history, 0.001);
         self::assertEquals(new DelayBandsDto(5, 1, 2, 1), $page->current()->total->bands);
     }
 
     /**
-     * The previous month has no measured last drop-offs, so the counts have no change.
+     * The chart shows the share of each late band in each month. The title of a bar keeps the
+     * count.
+     */
+    public function testLateBandsOfEachMonth(): void
+    {
+        $page = self::page([
+            self::figures([0, 0], [0, 0], [0, 0], [3, 5], [3, 1, 0, 1]),
+            PunctualityFiguresDto::empty(),
+            self::figures([0, 0], [0, 0], [0, 0], [5, 9], [5, 1, 2, 1]),
+        ]);
+
+        self::assertEqualsWithDelta([[20.0, null, 11.111], [0.0, null, 22.222], [20.0, null, 11.111]], $page->lateBandShares(), 0.001);
+        self::assertSame([[1, null, 1], [0, null, 2], [1, null, 1]], $page->lateBandCounts());
+    }
+
+    /**
+     * Two months with the same shares and other volumes have no change, also if the counts differ.
+     */
+    public function testSameSharesWithOtherVolumesHaveNoChange(): void
+    {
+        $page = self::page([
+            self::figures([0, 0], [0, 0], [0, 0], [8, 10], [8, 1, 0, 1]),
+            self::figures([0, 0], [0, 0], [0, 0], [16, 20], [16, 2, 0, 2]),
+        ]);
+
+        self::assertSame(4, $page->lateRuns()->count);
+        self::assertSame(0.0, $page->lateRuns()->change);
+        self::assertSame(2, $page->over30()->count);
+        self::assertSame(0.0, $page->over30()->change);
+    }
+
+    /**
+     * The previous month has no measured last drop-offs, so the shares have no change.
      */
     public function testLateLastDropOffsWithNoPreviousMonth(): void
     {
@@ -118,11 +159,14 @@ final class PunctualityPageDtoTest extends TestCase
             PunctualityFiguresDto::empty(),
         ]);
 
-        self::assertNull($page->lateRuns()->current);
+        self::assertNull($page->lateRuns()->count);
+        self::assertNull($page->lateRuns()->share);
+        self::assertSame(0, $page->lateRuns()->runs);
         self::assertNull($page->lateRuns()->change);
-        self::assertSame([2.0, null], $page->lateRuns()->history);
-        self::assertNull($page->over30()->current);
-        self::assertSame([1.0, null], $page->over30()->history);
+        self::assertSame([40.0, null], $page->lateRuns()->history);
+        self::assertNull($page->over30()->count);
+        self::assertNull($page->over30()->share);
+        self::assertSame([20.0, null], $page->over30()->history);
     }
 
     public function testPageOfOneMonthHasNoPreviousMonth(): void
@@ -157,9 +201,10 @@ final class PunctualityPageDtoTest extends TestCase
         self::assertSame([90.0, 80.0], $pickup->history);
         self::assertEqualsWithDelta(50.0, $dropOff->change, 0.001);
         self::assertEqualsWithDelta(100.0, $pickupPerRun->change, 0.001);
-        self::assertSame(1, $page->lateRuns()->current);
-        self::assertSame(1, $page->lateRuns()->change);
-        self::assertSame([1.0, 3.0], $page->lateRuns()->history);
+        // 1 of 2 runs is late (50 %), and 0 of 2 in the comparison period (0 %).
+        self::assertSame(1, $page->lateRuns()->count);
+        self::assertSame(50.0, $page->lateRuns()->change);
+        self::assertSame([25.0, 75.0], $page->lateRuns()->history);
         self::assertEquals(new DelayBandsDto(1, 1, 0, 0), $page->current()->total->bands);
     }
 

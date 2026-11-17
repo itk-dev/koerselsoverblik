@@ -49,6 +49,33 @@ final readonly class PunctualityExtension
     }
 
     /**
+     * Gives a share with no target: one decimal below 10 %, so that a small share does not show
+     * as 0 %, and a whole percent from 10 %. A share above 0 that rounds to 0 shows as "< 0,1 %".
+     */
+    #[AsTwigFilter('share_percent')]
+    public function share(?float $value): string
+    {
+        if (null === $value) {
+            return self::NO_VALUE;
+        }
+        if ($value > 0 && round($value, 1) <= 0) {
+            return '< 0,1 %';
+        }
+
+        return self::number($value < self::LARGE_CHANGE ? round($value, 1) : round($value)).' %';
+    }
+
+    /**
+     * Gives a grid value of a percent axis exactly, with at most two decimals and no zeros at the
+     * end. A nice maximum of 5 % gives grid lines at 1,25 % and 3,75 %.
+     */
+    #[AsTwigFilter('axis_percent')]
+    public function axisPercent(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2, ',', '.'), '0'), ',').' %';
+    }
+
+    /**
      * Gives a change in percentage points with its sign: no decimal from 10 points, else one.
      */
     #[AsTwigFilter('percentage_points')]

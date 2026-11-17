@@ -114,7 +114,7 @@ final class ChartGeometryTest extends TestCase
     public function testStackedColumnChart(): void
     {
         $geometry = ColumnChartGeometry::build(['a', 'b'], [
-            new ChartSeriesDto('5–15', 'series-warning', [2.0, 0.0]),
+            new ChartSeriesDto('5–15', 'series-warning', [2.0, 0.0], counts: [4, 0]),
             new ChartSeriesDto('15–30', 'series-coral', [1.0, 3.0]),
         ]);
 
@@ -133,6 +133,9 @@ final class ChartGeometryTest extends TestCase
         self::assertSame('a', $first->label);
         self::assertSame('5–15', $first->name);
         self::assertSame(2.0, $first->value);
+        // A bar has the count of its series, or no count if the series has none.
+        self::assertSame(4, $first->count);
+        self::assertNull($second->count);
         // The second series is on top of the first.
         self::assertEqualsWithDelta(107.2, $second->y, 0.001);
         self::assertEqualsWithDelta(45.6, $second->height, 0.001);
