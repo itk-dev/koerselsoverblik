@@ -48,6 +48,21 @@ final class RejectedStopRowRepositoryTest extends KernelTestCase
     }
 
     /**
+     * The count uses the same rule as the delete. The clear shows the count before the delete.
+     */
+    public function testCountInRangeCountsTheRowsThatTheDeleteDeletes(): void
+    {
+        $this->storeRows();
+
+        self::assertSame(3, $this->repository()->countInRange(self::range()));
+    }
+
+    public function testCountInRangeWithNoRowsIsZero(): void
+    {
+        self::assertSame(0, $this->repository()->countInRange(self::range()));
+    }
+
+    /**
      * A range after all rows and after the ranges of all batches holds no row, also no row with no
      * date.
      */

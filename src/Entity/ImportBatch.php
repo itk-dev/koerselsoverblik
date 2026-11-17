@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Import\Extract\RejectionCountDto;
 use App\Import\ImportRangeDto;
 use App\Import\ImportResultDto;
+use App\Repository\ImportBatchRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -17,7 +18,7 @@ use Doctrine\ORM\Mapping as ORM;
  *
  * @phpstan-type GroupData array{field: ?string, reason: string, count: int, row_numbers: list<int>}
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: ImportBatchRepository::class)]
 class ImportBatch
 {
     #[ORM\Id]

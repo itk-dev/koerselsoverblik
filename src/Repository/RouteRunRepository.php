@@ -6,9 +6,11 @@ namespace App\Repository;
 
 use App\Entity\RouteRun;
 use App\Import\ImportRangeDto;
+use App\Report\DateRangeDto;
 use App\Report\DayTotalsDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -37,17 +39,57 @@ class RouteRunRepository extends ServiceEntityRepository
     }
 
     /**
+     * Gives the number of route runs in the range. The clear shows it before the delete.
+     */
+    public function countInRange(ImportRangeDto $range): int
+    {
+        $builder = $this->createQueryBuilder('run')->select('COUNT(run.id)');
+
+        return (int) $this->inRange($builder, $range)->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Gives the number of route runs of each date in the range. A date with no runs is not in the
+     * result.
+     *
+     * @return array<string, int> the counts in the order of the date, keyed by the date as Y-m-d
+     */
+    public function countByDate(DateRangeDto $range): array
+    {
+        $builder = $this->createQueryBuilder('run')
+            ->select('run.serviceDate AS serviceDate', 'COUNT(run.id) AS count')
+            ->groupBy('run.serviceDate')
+            ->orderBy('run.serviceDate');
+
+        /** @var list<array{serviceDate: \DateTimeImmutable, count: int|string}> $rows */
+        $rows = $this->inRange($builder, $range)->getQuery()->getArrayResult();
+        $counts = [];
+        foreach ($rows as $row) {
+            // MariaDB can give a count as text.
+            $counts[$row['serviceDate']->format('Y-m-d')] = (int) $row['count'];
+        }
+
+        return $counts;
+    }
+
+    /**
      * Deletes the route runs in the range.
      */
     public function deleteInRange(ImportRangeDto $range): void
     {
-        $this->createQueryBuilder('run')
-            ->delete()
+        $this->inRange($this->createQueryBuilder('run')->delete(), $range)->getQuery()->execute();
+    }
+
+    /**
+     * Limits the query to the route runs in the range. The counts and the delete use the same
+     * condition, so they cannot differ.
+     */
+    private function inRange(QueryBuilder $builder, ImportRangeDto|DateRangeDto $range): QueryBuilder
+    {
+        return $builder
             ->where('run.serviceDate BETWEEN :first AND :last')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
-            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
-            ->getQuery()
-            ->execute();
+            ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE);
     }
 
     /**

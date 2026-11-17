@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Clock\LocalCalendar;
 use App\Entity\ImportBatch;
 use App\Entity\User;
 use App\Form\ImportType;
@@ -16,6 +17,8 @@ use App\Import\RowIdConflictException;
 use App\Import\Upload\PendingUploadDto;
 use App\Import\Upload\UploadDto;
 use App\Import\Upload\UploadStore;
+use App\Import\UploadedDates;
+use App\Report\MonthDto;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,6 +26,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Translation\TranslatableMessage;
@@ -46,14 +50,23 @@ final class ImportController extends AbstractController
         private readonly MappingProvider $mappings,
         private readonly ManagerRegistry $doctrine,
         private readonly LoggerInterface $logger,
+        private readonly UploadedDates $uploadedDates,
+        private readonly LocalCalendar $calendar,
         #[Autowire(param: 'app.driving_data_max_days')]
         private readonly int $maxDays,
     ) {
     }
 
+    /**
+     * The form, and the uploaded dates of one month. A month that is not valid or that is after the
+     * current month gives the current month.
+     */
     #[Route('', name: 'admin_import', methods: ['GET', 'POST'])]
-    public function index(Request $request): Response
-    {
+    public function index(
+        Request $request,
+        #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
+        ?string $month = null,
+    ): Response {
         $upload = new UploadDto();
         $form = $this->createForm(ImportType::class, $upload);
         $form->handleRequest($request);
@@ -64,7 +77,15 @@ final class ImportController extends AbstractController
             return $this->redirectToRoute('admin_import_preview', ['token' => $pending->token]);
         }
 
-        return $this->render('admin/import/index.html.twig', ['form' => $form]);
+        $today = $this->calendar->today();
+        $shown = MonthDto::fromQuery($month, $today);
+
+        return $this->render('admin/import/index.html.twig', [
+            'form' => $form,
+            'month' => $shown,
+            'isCurrentMonth' => !$shown->isBefore(MonthDto::of($today)),
+            'dates' => $this->uploadedDates->forMonth($shown),
+        ]);
     }
 
     #[Route('/preview/{token}', name: 'admin_import_preview', requirements: ['token' => self::TOKEN], methods: ['GET'])]

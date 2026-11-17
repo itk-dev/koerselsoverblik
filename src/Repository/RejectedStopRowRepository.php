@@ -39,6 +39,16 @@ class RejectedStopRowRepository extends ServiceEntityRepository
     }
 
     /**
+     * Gives the number of rejected rows in the range. The clear shows it before the delete.
+     */
+    public function countInRange(ImportRangeDto $range): int
+    {
+        $builder = $this->createQueryBuilder('rejected')->select('COUNT(rejected.id)');
+
+        return (int) $this->inRange($builder, $range)->getQuery()->getSingleScalarResult();
+    }
+
+    /**
      * Deletes the rejected rows in the range. A DQL delete does not delete the copies.
      */
     public function deleteInRange(ImportRangeDto $range): void

@@ -12,6 +12,7 @@ use App\Import\Extract\StopRowDto;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\StopStatus;
 use App\Import\Mapping\StopType;
+use App\Report\DateRangeDto;
 use App\Repository\StopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -56,11 +57,31 @@ final class StopRowRepositoryTest extends KernelTestCase
     }
 
     /**
+     * The upload page shows the number of stop rows of each date in a month. A date with no stop
+     * rows is not in the result.
+     */
+    public function testCountByDateGivesTheDatesInTheRangeInTheOrderOfTheDate(): void
+    {
+        $this->storeRows(['2026-01-06']);
+
+        $counts = $this->repository()->countByDate(DateRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-06')));
+
+        self::assertSame(['2026-01-05' => 1, '2026-01-06' => 2], $counts);
+    }
+
+    public function testCountByDateWithNoRowsIsEmpty(): void
+    {
+        self::assertSame([], $this->repository()->countByDate(DateRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-06'))));
+    }
+
+    /**
      * Stores one stop row on each date from the day before the range to the day after the range.
+     *
+     * @param list<string> $extraDates the dates of more stop rows, as Y-m-d
      *
      * @return array<string, int> the ids of the copies, keyed by the date of the row as Y-m-d
      */
-    private function storeRows(): array
+    private function storeRows(array $extraDates = []): array
     {
         $entityManager = $this->entityManager();
         $batch = new ImportBatch('default', 'extract.xlsx', null, new \DateTimeImmutable(), ImportRangeDto::create(new \DateTimeImmutable('2026-01-04'), new \DateTimeImmutable('2026-01-07'), 31));
@@ -70,7 +91,11 @@ final class StopRowRepositoryTest extends KernelTestCase
         foreach (['2026-01-04', '2026-01-05', '2026-01-06', '2026-01-07'] as $date) {
             $rows[$date] = new StopRow(self::stopRowDto(new \DateTimeImmutable($date)), 'default', $route, $batch);
         }
-        foreach ([$batch, $subAgreement, $route, ...array_values($rows)] as $entity) {
+        $extraRows = [];
+        foreach ($extraDates as $index => $date) {
+            $extraRows[] = new StopRow(self::stopRowDto(new \DateTimeImmutable($date), 'E'.$index), 'default', $route, $batch);
+        }
+        foreach ([$batch, $subAgreement, $route, ...array_values($rows), ...$extraRows] as $entity) {
             $entityManager->persist($entity);
         }
         $entityManager->flush();
@@ -80,11 +105,11 @@ final class StopRowRepositoryTest extends KernelTestCase
         return $copies;
     }
 
-    private static function stopRowDto(\DateTimeImmutable $date): StopRowDto
+    private static function stopRowDto(\DateTimeImmutable $date, string $suffix = ''): StopRowDto
     {
         return new StopRowDto(
             rowNumber: 4,
-            rowKey: 'S-'.$date->format('Ymd'),
+            rowKey: 'S-'.$date->format('Ymd').$suffix,
             route: 'R-01',
             personId: null,
             serviceDate: $date,

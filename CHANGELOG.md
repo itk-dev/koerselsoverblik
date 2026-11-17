@@ -415,3 +415,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   After the review: the change is rounded to one decimal before the comparison, as on the tiles,
   so that a change of exactly the threshold from counts is not unchanged. `PeriodFilter` checks the
   type of `m`, not the controller. The CSS classes are `conclusion-settings__*`.
+- [#81](https://github.com/itk-dev/koerselsoverblik/issues/81)
+  Show the uploaded dates and clear the driving data of a date. The upload page lists the dates
+  of one month (`?month=YYYY-MM`) with the stop rows, the route runs and the last upload. "Ryd"
+  opens a native popover with the counts and a POST form with a CSRF token for the date.
+  `DrivingDataClearer` deletes the stop rows, the rejected rows, their copies, the route runs and
+  the totals of the range, and builds the citizens of the months again, in one transaction. The
+  batches stay. The command `app:driving-data:clear` uses the same service. Each clear is written
+  to the new `driving_data_audit` log, which has its own file. `IsoDate` reads a date for the
+  commands and the route. The plans list #82 as done, because all its sub-issues are done.
