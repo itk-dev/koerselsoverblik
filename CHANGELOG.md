@@ -385,3 +385,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   After the review: the percent axis shows up to two decimals (`axis_percent`), so that 1,25 %
   does not show as "1,3 %". A share above 0 that rounds to 0 shows as "< 0,1 %". The hidden data
   table gives the count next to the share. A bar title with no `countLabel` shows the bare count.
+- [#105](https://github.com/itk-dev/koerselsoverblik/issues/105)
+  Fix the chart labels and the number format on the punctuality page. The chart of the delays is
+  in a panel of half the width, so its viewBox has half the width (`Scale::HALF_WIDTH`). Its axis
+  labels now have the same size on screen as those of the trend chart. `ColumnChart` has the prop
+  `width`. The total of the split bar has a thousands separator. The month chooser needs no fix,
+  because the filter bar of #116 replaced it, and the filter bar is not in the page head.

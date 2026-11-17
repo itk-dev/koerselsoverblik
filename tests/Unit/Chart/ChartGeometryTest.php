@@ -76,6 +76,22 @@ final class ChartGeometryTest extends TestCase
         self::assertSame('M62.0,221.2 M824.0,175.6', $second->path);
         self::assertTrue($second->dashed);
         self::assertCount(2, $second->points);
+        // The default width is the full width.
+        self::assertSame(840, $geometry->width);
+        self::assertSame(824, $geometry->right);
+    }
+
+    /**
+     * A narrower chart has a narrower plot area, but the same margins. Thus its text has the same
+     * size on screen in a narrower panel.
+     */
+    public function testLineChartWithAWidth(): void
+    {
+        $geometry = LineChartGeometry::build(['a', 'b'], [new ChartSeriesDto('S', 'series-info', [10.0, 20.0])], width: 420);
+
+        self::assertSame(420, $geometry->width);
+        self::assertSame(404, $geometry->right);
+        self::assertEquals([new AxisLabelDto('a', 62.0), new AxisLabelDto('b', 404.0)], $geometry->xLabels);
     }
 
     /**
@@ -142,6 +158,25 @@ final class ChartGeometryTest extends TestCase
         self::assertEqualsWithDelta(515.39, $third->x, 0.001);
         self::assertEqualsWithDelta(107.2, $third->y, 0.001);
         self::assertEqualsWithDelta(136.8, $third->height, 0.001);
+        // The default width is the full width.
+        self::assertSame(840, $geometry->width);
+        self::assertSame(824, $geometry->right);
+    }
+
+    /**
+     * A chart of half the width has a plot area from 62 to 404. Each of 2 labels has 171 units,
+     * and a column fills 62 % of it.
+     */
+    public function testColumnChartWithAWidth(): void
+    {
+        $geometry = ColumnChartGeometry::build(['a', 'b'], [new ChartSeriesDto('S', 'series-warning', [1.0, 2.0])], 420);
+
+        self::assertSame(420, $geometry->width);
+        self::assertSame(404, $geometry->right);
+        self::assertEqualsWithDelta(147.5, $geometry->xLabels[0]->x, 0.001);
+        self::assertEqualsWithDelta(318.5, $geometry->xLabels[1]->x, 0.001);
+        self::assertEqualsWithDelta(106.02, $geometry->bars[0]->width, 0.001);
+        self::assertEqualsWithDelta(94.49, $geometry->bars[0]->x, 0.001);
     }
 
     public function testColumnChartWithNoValues(): void

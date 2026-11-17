@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Twig\Components;
 
 use App\Chart\ColumnChartGeometry;
+use App\Chart\Scale;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
@@ -44,8 +45,13 @@ final class ColumnChart
      */
     public string $countLabel = '';
 
+    /**
+     * The width of the viewBox. Use Scale::HALF_WIDTH for a chart in a panel of half the width.
+     */
+    public int $width = Scale::WIDTH;
+
     public function geometry(): ColumnChartGeometry
     {
-        return ColumnChartGeometry::build($this->labels, ChartSeries::fromArrays($this->series));
+        return ColumnChartGeometry::build($this->labels, ChartSeries::fromArrays($this->series), $this->width);
     }
 }

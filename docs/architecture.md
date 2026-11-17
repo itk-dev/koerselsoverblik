@@ -972,6 +972,11 @@ drop-offs, not as counts.
   month, on a percent axis (`lateBandShares()`). The title of each bar also gives the count
   (`lateBandCounts()`). A month with no measured runs has no bar.
 
+**Chart width:** the SVG of a chart scales to the width of its panel, and its text scales too.
+The chart of the delays is in a panel of half the width, so its viewBox has half the width
+(`Scale::HALF_WIDTH`, the `width` prop of `ColumnChart`). Then its axis labels have the same
+size on screen as those of the trend chart. The margins and the height stay the same.
+
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
 value shows as "–". A share with no target (`share_percent`) shows one decimal below 10 %, so

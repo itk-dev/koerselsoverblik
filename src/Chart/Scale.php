@@ -7,16 +7,31 @@ namespace App\Chart;
 /**
  * The plot area and the vertical scale of the line chart and the column chart. The sizes are the
  * sizes of the prototype (`js/chart.js`).
+ *
+ * The SVG of a chart scales to the width of its panel, and its text scales too. Thus a chart in a
+ * panel of half the width has half the width of the viewBox, so that its text has the same size on
+ * screen. The margins and the height stay the same.
  */
 final class Scale
 {
+    /**
+     * The width of the viewBox of a chart in a panel of the full width.
+     */
     public const int WIDTH = 840;
+
+    /**
+     * The width of the viewBox of a chart in a panel of half the width.
+     */
+    public const int HALF_WIDTH = 420;
 
     public const int HEIGHT = 280;
 
     public const int LEFT = 62;
 
-    public const int RIGHT = 824;
+    /**
+     * The space to the right of the plot area.
+     */
+    private const int RIGHT_MARGIN = 16;
 
     public const int TOP = 16;
 
@@ -99,8 +114,16 @@ final class Scale
         return $lines;
     }
 
-    public static function plotWidth(): int
+    /**
+     * Gives the right edge of the plot area of a chart with the width of the viewBox.
+     */
+    public static function right(int $width): int
     {
-        return self::RIGHT - self::LEFT;
+        return $width - self::RIGHT_MARGIN;
+    }
+
+    public static function plotWidth(int $width): int
+    {
+        return self::right($width) - self::LEFT;
     }
 }

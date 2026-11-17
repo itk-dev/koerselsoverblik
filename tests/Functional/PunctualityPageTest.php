@@ -133,6 +133,11 @@ final class PunctualityPageTest extends WebTestCase
             ))),
         );
 
+        // The chart of the delays is in a panel of half the width, so its viewBox has half the width.
+        // Then its axis labels have the same size on screen as those of the trend chart.
+        self::assertSame('0 0 840 280', $crawler->filter('#trend svg')->attr('viewBox'));
+        self::assertSame('0 0 420 280', $crawler->filter('#severity svg')->attr('viewBox'));
+
         // Each chart has a hidden data table.
         self::assertCount(2, $crawler->filter('figure.chart .sr-only table'));
     }

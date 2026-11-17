@@ -15,12 +15,16 @@ final readonly class LineChartGeometry
      * @param list<AxisLabelDto> $xLabels
      * @param list<LineDto>      $lines
      * @param ?float             $targetY   the vertical position of the target line, or null for no target
+     * @param int                $width     the width of the viewBox
+     * @param int                $right     the right edge of the plot area
      */
     private function __construct(
         public array $gridLines,
         public array $xLabels,
         public array $lines,
         public ?float $targetY,
+        public int $width,
+        public int $right,
     ) {
     }
 
@@ -29,12 +33,13 @@ final readonly class LineChartGeometry
      * @param list<ChartSeriesDto> $series
      * @param ?float               $max    the top of the scale, or null for a nice maximum above the values
      * @param ?float               $target the value of the target line, or null for no target line
+     * @param int                  $width  the width of the viewBox, see Scale
      */
-    public static function build(array $labels, array $series, ?float $max = null, ?float $target = null): self
+    public static function build(array $labels, array $series, ?float $max = null, ?float $target = null, int $width = Scale::WIDTH): self
     {
         $values = array_filter(array_merge(...array_map(static fn (ChartSeriesDto $item): array => $item->values, $series)), static fn (?float $value): bool => null !== $value);
         $top = $max ?? Scale::niceMax(([] === $values ? 0.0 : max($values)) * Scale::HEADROOM);
-        $step = \count($labels) > 1 ? Scale::plotWidth() / (\count($labels) - 1) : 0;
+        $step = \count($labels) > 1 ? Scale::plotWidth($width) / (\count($labels) - 1) : 0;
 
         $xLabels = [];
         foreach ($labels as $index => $label) {
@@ -59,6 +64,6 @@ final readonly class LineChartGeometry
             $lines[] = new LineDto($item->name, $item->cssClass, $item->dashed, implode(' ', $path), $points);
         }
 
-        return new self(Scale::gridLines($top), $xLabels, $lines, null === $target ? null : Scale::y($target, $top));
+        return new self(Scale::gridLines($top), $xLabels, $lines, null === $target ? null : Scale::y($target, $top), $width, Scale::right($width));
     }
 }
