@@ -375,3 +375,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   count.
   After the review: a route with no late run is not in the list. If no run is late, the panel
   tells this, and not "no data".
+- [#104](https://github.com/itk-dev/koerselsoverblik/issues/104)
+  Compare the delays of the months as shares of the measured runs, so that the volume of a month
+  does not decide the figures. The tiles "Forsinkede afsætninger" and "Over 30 minutter" keep the
+  count. Their change, sparkline and note are of the share. The change is in percentage points.
+  The chart "Forsinkelser fordelt på intervaller" shows the shares on a percent axis, and the
+  title of each bar also gives the count. The new filter `share_percent` shows one decimal below
+  10 %. The column chart has the props `unit` and `countLabel`.

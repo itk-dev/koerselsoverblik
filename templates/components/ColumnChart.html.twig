@@ -1,11 +1,13 @@
 {% set geometry = this.geometry %}
-{% set unit = 'count' %}
 <figure class="chart" id="{{ id }}" role="group" aria-labelledby="{{ id }}-caption">
     <figcaption id="{{ id }}-caption" class="sr-only">{{ caption }}</figcaption>
     <svg class="chart__svg" viewBox="0 0 {{ constant('App\\Chart\\Scale::WIDTH') }} {{ constant('App\\Chart\\Scale::HEIGHT') }}" aria-hidden="true" focusable="false">
         {{ include('components/_axes.html.twig') }}
         {% for bar in geometry.bars %}
-            <rect class="ch-bar {{ bar.cssClass }}" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.width }}" height="{{ bar.height }}"><title>{{ bar.label }} · {{ bar.name }}: {{ bar.value|number_format }}</title></rect>
+            {% set value = unit == 'share'
+                ? (bar.count is null ? bar.value|share_percent : 'chart.share_with_count'|trans({share: bar.value|share_percent, count: bar.count, noun: countLabel}))
+                : bar.value|number_format %}
+            <rect class="ch-bar {{ bar.cssClass }}" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.width }}" height="{{ bar.height }}"><title>{{ bar.label }} · {{ bar.name }}: {{ value }}</title></rect>
         {% endfor %}
         {{ include('components/_x_labels.html.twig') }}
     </svg>

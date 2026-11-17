@@ -49,6 +49,20 @@ final readonly class PunctualityExtension
     }
 
     /**
+     * Gives a share with no target: one decimal below 10 %, so that a small share does not show
+     * as 0 %, and a whole percent from 10 %.
+     */
+    #[AsTwigFilter('share_percent')]
+    public function share(?float $value): string
+    {
+        if (null === $value) {
+            return self::NO_VALUE;
+        }
+
+        return self::number($value < self::LARGE_CHANGE ? round($value, 1) : round($value)).' %';
+    }
+
+    /**
      * Gives a change in percentage points with its sign: no decimal from 10 points, else one.
      */
     #[AsTwigFilter('percentage_points')]

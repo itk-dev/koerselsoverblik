@@ -22,17 +22,19 @@
 
     {{ include('punctuality/_goal.html.twig', {page: page, tolerance_minutes: tolerance_minutes}, with_context: false) }}
 
+    {# The tiles show the count. The change, the sparkline and the note are of the share of the
+       measured runs, so that months with different volumes can be compared. #}
     <div class="tiles tiles--2">
         {% set late = page.lateRuns %}
         <twig:Tile
             :label="'punctuality.late_runs'|trans"
-            :value="late.current is null ? '–' : late.current|number_format"
-            :change="late.change is null ? null : late.change|signed_number"
+            :value="late.count is null ? '–' : late.count|number_format"
+            :change="late.change is null ? null : 'punctuality.points'|trans({change: late.change|percentage_points})"
             :changeTone="trend_tone(late.change, false)"
             :changeIcon="trend_icon(late.change)"
             :spark="late.history"
             sparkClass="series-coral"
-            :note="'punctuality.late_runs_note'|trans({count: figures.dropOffPerRun.measured})"
+            :note="late.share is null ? null : 'punctuality.late_share_note'|trans({share: late.share|share_percent, runs: late.runs})"
             test="late-runs"
         >
             <twig:block name="help">
@@ -44,14 +46,14 @@
         {% set over30 = page.over30 %}
         <twig:Tile
             :label="'punctuality.over_30'|trans"
-            :value="over30.current is null ? '–' : over30.current|number_format"
-            :tone="over30.current is null ? null : (over30.current == 0 ? 'ok' : 'danger')"
-            :change="over30.change is null ? null : over30.change|signed_number"
+            :value="over30.count is null ? '–' : over30.count|number_format"
+            :tone="over30.count is null ? null : (over30.count == 0 ? 'ok' : 'danger')"
+            :change="over30.change is null ? null : 'punctuality.points'|trans({change: over30.change|percentage_points})"
             :changeTone="trend_tone(over30.change, false)"
             :changeIcon="trend_icon(over30.change)"
             :spark="over30.history"
             sparkClass="series-danger"
-            :note="'punctuality.over_30_note'|trans"
+            :note="over30.share is null ? null : 'punctuality.late_share_note'|trans({share: over30.share|share_percent, runs: over30.runs})"
             test="over-30"
         >
             <twig:block name="help">
@@ -86,16 +88,19 @@
             <twig:block name="foot"><span class="muted">{{ 'punctuality.split.foot'|trans({minutes: tolerance_minutes}) }}</span></twig:block>
         </twig:Panel>
 
-        {% set bands = page.lateBandHistory %}
+        {% set shares = page.lateBandShares %}
+        {% set counts = page.lateBandCounts %}
         <twig:Panel :title="'punctuality.severity.title'|trans" :subtitle="'punctuality.severity.subtitle'|trans">
             <twig:ColumnChart
                 id="severity"
                 :caption="'punctuality.severity.caption'|trans"
                 :labels="labels"
+                unit="share"
+                :countLabel="'punctuality.severity.runs'|trans"
                 :series="[
-                    {name: 'punctuality.severity.up_to_15'|trans({minutes: tolerance_minutes}), cssClass: 'series-warning', values: bands[0]},
-                    {name: 'punctuality.severity.up_to_30'|trans, cssClass: 'series-coral', values: bands[1]},
-                    {name: 'punctuality.severity.over_30'|trans, cssClass: 'series-danger', values: bands[2]},
+                    {name: 'punctuality.severity.up_to_15'|trans({minutes: tolerance_minutes}), cssClass: 'series-warning', values: shares[0], counts: counts[0]},
+                    {name: 'punctuality.severity.up_to_30'|trans, cssClass: 'series-coral', values: shares[1], counts: counts[1]},
+                    {name: 'punctuality.severity.over_30'|trans, cssClass: 'series-danger', values: shares[2], counts: counts[2]},
                 ]"
             />
         </twig:Panel>

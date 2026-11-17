@@ -79,34 +79,82 @@ final readonly class PunctualityPageDto
     /**
      * Gives the measured last drop-offs that are later than the tolerance.
      */
-    public function lateRuns(): CountTrendDto
+    public function lateRuns(): LateTrendDto
     {
-        return $this->countTrend(static fn (DelayBandsDto $bands): int => $bands->upTo15 + $bands->upTo30 + $bands->over30);
+        return $this->lateTrend(static fn (DelayBandsDto $bands): int => $bands->upTo15 + $bands->upTo30 + $bands->over30);
     }
 
     /**
      * Gives the measured last drop-offs that are more than 30 minutes late.
      */
-    public function over30(): CountTrendDto
+    public function over30(): LateTrendDto
     {
-        return $this->countTrend(static fn (DelayBandsDto $bands): int => $bands->over30);
+        return $this->lateTrend(static fn (DelayBandsDto $bands): int => $bands->over30);
     }
 
     /**
-     * Gives the three late bands of each month: more than the tolerance to 15, more than 15 to 30,
-     * and more than 30 minutes.
+     * Gives the share of the three late bands in each month, in percent of the measured runs of
+     * the month: more than the tolerance to 15, more than 15 to 30, and more than 30 minutes. A
+     * month with no measured runs has no share.
      *
-     * @return array{list<float>, list<float>, list<float>}
+     * @return array{list<float|null>, list<float|null>, list<float|null>}
      */
-    public function lateBandHistory(): array
+    public function lateBandShares(): array
     {
-        $bands = array_map(static fn (PunctualityFiguresDto $figures): DelayBandsDto => $figures->bands, $this->history);
+        [$upTo15, $upTo30, $over30] = self::lateBands();
 
+        return [$this->bandShares($upTo15), $this->bandShares($upTo30), $this->bandShares($over30)];
+    }
+
+    /**
+     * Gives the count of the three late bands in each month, in the order of lateBandShares(). A
+     * month with no measured runs has no count.
+     *
+     * @return array{list<int|null>, list<int|null>, list<int|null>}
+     */
+    public function lateBandCounts(): array
+    {
+        [$upTo15, $upTo30, $over30] = self::lateBands();
+
+        return [$this->bandCounts($upTo15), $this->bandCounts($upTo30), $this->bandCounts($over30)];
+    }
+
+    /**
+     * Gives the three late bands: more than the tolerance to 15, more than 15 to 30, and more than
+     * 30 minutes.
+     *
+     * @return array{\Closure(DelayBandsDto): int, \Closure(DelayBandsDto): int, \Closure(DelayBandsDto): int}
+     */
+    private static function lateBands(): array
+    {
         return [
-            array_map(static fn (DelayBandsDto $band): float => $band->upTo15, $bands),
-            array_map(static fn (DelayBandsDto $band): float => $band->upTo30, $bands),
-            array_map(static fn (DelayBandsDto $band): float => $band->over30, $bands),
+            static fn (DelayBandsDto $bands): int => $bands->upTo15,
+            static fn (DelayBandsDto $bands): int => $bands->upTo30,
+            static fn (DelayBandsDto $bands): int => $bands->over30,
         ];
+    }
+
+    /**
+     * @param \Closure(DelayBandsDto): int $band
+     *
+     * @return list<float|null>
+     */
+    private function bandShares(\Closure $band): array
+    {
+        return array_map(static fn (PunctualityFiguresDto $figures): ?float => self::share($band($figures->bands), $figures), $this->history);
+    }
+
+    /**
+     * @param \Closure(DelayBandsDto): int $band
+     *
+     * @return list<int|null>
+     */
+    private function bandCounts(\Closure $band): array
+    {
+        return array_map(
+            static fn (PunctualityFiguresDto $figures): ?int => 0 === $figures->dropOffPerRun->measured ? null : $band($figures->bands),
+            $this->history,
+        );
     }
 
     /**
@@ -128,22 +176,33 @@ final readonly class PunctualityPageDto
     }
 
     /**
-     * A period with no measured last drop-offs has no data, so its count is null, not 0.
+     * A period with no measured last drop-offs has no data, so its count and share are null, not
+     * 0. The change is of the share, so that periods with different volumes can be compared.
      *
      * @param \Closure(DelayBandsDto): int $count
      */
-    private function countTrend(\Closure $count): CountTrendDto
+    private function lateTrend(\Closure $count): LateTrendDto
     {
-        $countOf = static fn (?PunctualityFiguresDto $figures): ?int => null === $figures || 0 === $figures->dropOffPerRun->measured
-            ? null
-            : $count($figures->bands);
-        $current = $countOf($this->selected->total);
-        $before = $countOf($this->comparison);
+        $total = $this->selected->total;
+        $current = self::share($count($total->bands), $total);
+        $before = null === $this->comparison ? null : self::share($count($this->comparison->bands), $this->comparison);
 
-        return new CountTrendDto(
+        return new LateTrendDto(
+            null === $current ? null : $count($total->bands),
             $current,
+            $total->dropOffPerRun->measured,
             null === $current || null === $before ? null : $current - $before,
-            array_map(static fn (PunctualityFiguresDto $figures): ?float => null === ($value = $countOf($figures)) ? null : (float) $value, $this->history),
+            array_map(static fn (PunctualityFiguresDto $figures): ?float => self::share($count($figures->bands), $figures), $this->history),
         );
+    }
+
+    /**
+     * Gives a count in percent of the measured last drop-offs, or null if none is measured.
+     */
+    private static function share(int $count, PunctualityFiguresDto $figures): ?float
+    {
+        $runs = $figures->dropOffPerRun->measured;
+
+        return 0 === $runs ? null : $count / $runs * 100;
     }
 }

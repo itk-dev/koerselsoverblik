@@ -17,7 +17,7 @@
                     <th scope="row">{{ label }}</th>
                     {% for item in series %}
                         {% set value = item.values[index] %}
-                        <td>{{ unit == 'percent' ? value|punctuality_percent : (value is null ? '–' : value|number_format) }}</td>
+                        <td>{{ unit == 'percent' ? value|punctuality_percent : (unit == 'share' ? value|share_percent : (value is null ? '–' : value|number_format)) }}</td>
                     {% endfor %}
                 </tr>
             {% endfor %}

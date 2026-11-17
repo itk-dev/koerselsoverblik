@@ -1,7 +1,8 @@
-{# The grid lines with the values of the vertical axis. The sizes come from App\Chart\Scale. #}
+{# The grid lines with the values of the vertical axis. The sizes come from App\Chart\Scale.
+   A share shows the exact grid value, for example 12,5 %, not a rounded value. #}
 {% set left = constant('App\\Chart\\Scale::LEFT') %}
 {% set right = constant('App\\Chart\\Scale::RIGHT') %}
 {% for line in geometry.gridLines %}
     <line class="ch-grid" x1="{{ left }}" x2="{{ right }}" y1="{{ line.y }}" y2="{{ line.y }}"/>
-    <text class="ch-ytick" x="{{ constant('App\\Chart\\Scale::TICK_X') }}" y="{{ line.y + constant('App\\Chart\\Scale::TICK_Y_OFFSET') }}">{{ line.value|number_format }}{{ unit == 'percent' ? ' %' }}</text>
+    <text class="ch-ytick" x="{{ constant('App\\Chart\\Scale::TICK_X') }}" y="{{ line.y + constant('App\\Chart\\Scale::TICK_Y_OFFSET') }}">{{ unit == 'share' ? line.value|number_format(line.value == line.value|round ? 0 : 1, ',', '.') ~ ' %' : line.value|number_format ~ (unit == 'percent' ? ' %') }}</text>
 {% endfor %}

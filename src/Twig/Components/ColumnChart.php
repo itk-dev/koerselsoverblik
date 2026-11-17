@@ -8,8 +8,8 @@ use App\Chart\ColumnChartGeometry;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
- * A stacked column chart of counts for some months, with a hidden data table for screen readers.
- * The template only draws the geometry.
+ * A stacked column chart of counts or shares for some months, with a hidden data table for screen
+ * readers. The template only draws the geometry.
  *
  * @phpstan-import-type SeriesArray from ChartSeries
  */
@@ -32,6 +32,17 @@ final class ColumnChart
      * @var list<SeriesArray> the first series is at the bottom of each column
      */
     public array $series = [];
+
+    /**
+     * "count" or "share". It gives the format of the values. A share is in percent.
+     */
+    public string $unit = 'count';
+
+    /**
+     * The noun of the counts of a chart of shares, for example "vognløb". The title of a bar
+     * shows the share and the count.
+     */
+    public string $countLabel = '';
 
     public function geometry(): ColumnChartGeometry
     {

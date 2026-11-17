@@ -6,7 +6,7 @@ namespace App\Chart;
 
 /**
  * One bar of a column chart, with its position. The chart shows the label, the name of the series
- * and the value as a tooltip.
+ * and the value as a tooltip. A bar of a share also has the count behind the share.
  */
 final readonly class BarDto
 {
@@ -19,6 +19,7 @@ final readonly class BarDto
         public string $name,
         public string $label,
         public float $value,
+        public ?int $count = null,
     ) {
     }
 }

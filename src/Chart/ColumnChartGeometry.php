@@ -56,7 +56,7 @@ final readonly class ColumnChartGeometry
                 }
                 $height = Scale::BOTTOM - Scale::y($value, $top);
                 $stacked += $height;
-                $bars[] = new BarDto($left + ($slot - $width) / 2, Scale::BOTTOM - $stacked, $width, $height, $item->cssClass, $item->name, $label, $value);
+                $bars[] = new BarDto($left + ($slot - $width) / 2, Scale::BOTTOM - $stacked, $width, $height, $item->cssClass, $item->name, $label, $value, $item->counts[$index] ?? null);
             }
         }
 

@@ -41,6 +41,30 @@ final class PunctualityExtensionTest extends TestCase
     }
 
     /**
+     * A share with no target: one decimal below 10 %, so that a small share does not show as 0 %,
+     * and a whole percent from 10 %.
+     */
+    #[DataProvider('shares')]
+    public function testShare(?float $value, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->share($value));
+    }
+
+    /**
+     * @return iterable<string, array{?float, string}>
+     */
+    public static function shares(): iterable
+    {
+        yield 'no value' => [null, '–'];
+        yield 'none' => [0.0, '0 %'];
+        yield 'small' => [0.44, '0,4 %'];
+        yield 'below 10, whole' => [5.0, '5 %'];
+        yield 'below 10, rounds up' => [9.96, '10 %'];
+        yield 'from 10' => [10.0, '10 %'];
+        yield 'from 10, rounds' => [44.444, '44 %'];
+    }
+
+    /**
      * The change from the previous month, in percentage points. The minus sign is U+2212.
      */
     #[DataProvider('changes')]

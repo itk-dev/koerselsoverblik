@@ -83,6 +83,13 @@ final class PunctualityPageTest extends WebTestCase
         self::assertSame('ingen sammenligning', $crawler->filter('[data-test="measure-pickup_per_citizen-change"]')->text());
         self::assertSame('1', self::value($crawler, 'late-runs'));
         self::assertSame('0', self::value($crawler, 'over-30'));
+        // The note gives the share of the measured runs. The change is of the share.
+        self::assertSame('25 % af 4 vognløb', $crawler->filter('[data-test="late-runs"] .tile__note')->text());
+        self::assertSame('0 % af 4 vognløb', $crawler->filter('[data-test="over-30"] .tile__note')->text());
+        self::assertSame('ingen sammenligning', $crawler->filter('[data-test="late-runs-change"]')->text());
+        // The chart of the delays shows the share of the measured runs, and the bar title keeps the count.
+        self::assertContains('jan · 5–15 min: 25 % (1 vognløb)', $crawler->filter('#severity title')->each(static fn (Crawler $title): string => $title->text()));
+        self::assertContains('25 %', $crawler->filter('#severity table td')->each(static fn (Crawler $cell): string => $cell->text()));
         self::assertSame('4 vognløb', $crawler->filter('[data-test="bands"] .dist__total')->text());
         // Each count tile has a "?". The late runs use the tolerance, and the runs over 30 minutes a fixed limit.
         self::assertStringContainsString('mere end 5 minutter', $crawler->filter('[data-test="late-runs"] #help-late-runs')->text());
@@ -142,6 +149,8 @@ final class PunctualityPageTest extends WebTestCase
         self::assertSame('–', self::value($crawler, 'late-runs'));
         self::assertSame('–', self::value($crawler, 'over-30'));
         self::assertSame('tile__value', $crawler->filter('[data-test="over-30-value"]')->attr('class'));
+        // No month has measured runs, so the chart of the delays has no bar.
+        self::assertCount(0, $crawler->filter('#severity title'));
         self::assertSame([], self::rows($crawler, 'supplier-row'));
         // With no columns, the note about the delay columns is not shown.
         self::assertCount(0, $crawler->filter('[data-test="suppliers-note"]'));
