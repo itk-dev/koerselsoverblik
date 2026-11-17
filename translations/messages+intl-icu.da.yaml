@@ -295,6 +295,7 @@ chart:
   period: Periode
   no_comparison: ingen sammenligning
   share_with_count: "{share} ({count, number} {noun})"
+  share_with_bare_count: "{share} ({count, number})"
 
 help:
   how: Sådan er {title} regnet ud

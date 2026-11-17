@@ -975,7 +975,10 @@ drop-offs, not as counts.
 **Format:** `PunctualityExtension` shows a whole percent. A value below the target that rounds
 to the target shows one decimal, truncated, so that 89.6 % shows as "89,6 %", not "90 %". No
 value shows as "–". A share with no target (`share_percent`) shows one decimal below 10 %, so
-that a small share does not show as "0 %".
+that a small share does not show as "0 %". A share above 0 that rounds to 0 shows as
+"< 0,1 %". The grid values of a percent axis (`axis_percent`) show exactly, with up to two
+decimals, for example "1,25 %". The hidden data table of a chart of shares gives the share and
+the count, as the bar titles do.
 
 | Measure (Danish label) | Measured rows |
 | --- | --- |

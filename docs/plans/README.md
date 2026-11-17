@@ -159,4 +159,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Show the ten locations with the lowest punctuality | [#87](https://github.com/itk-dev/koerselsoverblik/issues/87) | – |
 | Make the late drop-offs clear on the punctuality page | [#86](https://github.com/itk-dev/koerselsoverblik/issues/86) | [#143](https://github.com/itk-dev/koerselsoverblik/pull/143) |
 | Rank the worst routes by the number of late runs | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | [#144](https://github.com/itk-dev/koerselsoverblik/pull/144) |
-| Compare the delays of the months as shares | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | – |
+| Compare the delays of the months as shares | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | [#145](https://github.com/itk-dev/koerselsoverblik/pull/145) |

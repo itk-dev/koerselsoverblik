@@ -382,3 +382,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   The chart "Forsinkelser fordelt på intervaller" shows the shares on a percent axis, and the
   title of each bar also gives the count. The new filter `share_percent` shows one decimal below
   10 %. The column chart has the props `unit` and `countLabel`.
+  After the review: the percent axis shows up to two decimals (`axis_percent`), so that 1,25 %
+  does not show as "1,3 %". A share above 0 that rounds to 0 shows as "< 0,1 %". The hidden data
+  table gives the count next to the share. A bar title with no `countLabel` shows the bare count.

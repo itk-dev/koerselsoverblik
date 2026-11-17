@@ -89,7 +89,11 @@ final class PunctualityPageTest extends WebTestCase
         self::assertSame('ingen sammenligning', $crawler->filter('[data-test="late-runs-change"]')->text());
         // The chart of the delays shows the share of the measured runs, and the bar title keeps the count.
         self::assertContains('jan · 5–15 min: 25 % (1 vognløb)', $crawler->filter('#severity title')->each(static fn (Crawler $title): string => $title->text()));
-        self::assertContains('25 %', $crawler->filter('#severity table td')->each(static fn (Crawler $cell): string => $cell->text()));
+        // The hidden data table gives the share and the count of each band, as the bar titles do.
+        self::assertSame(
+            ['jan', '25 % (1)', '0 % (0)', '0 % (0)'],
+            $crawler->filter('#severity table tbody tr')->last()->filter('th, td')->each(static fn (Crawler $cell): string => $cell->text()),
+        );
         self::assertSame('4 vognløb', $crawler->filter('[data-test="bands"] .dist__total')->text());
         // Each count tile has a "?". The late runs use the tolerance, and the runs over 30 minutes a fixed limit.
         self::assertStringContainsString('mere end 5 minutter', $crawler->filter('[data-test="late-runs"] #help-late-runs')->text());

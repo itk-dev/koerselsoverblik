@@ -5,7 +5,7 @@
         {{ include('components/_axes.html.twig') }}
         {% for bar in geometry.bars %}
             {% set value = unit == 'share'
-                ? (bar.count is null ? bar.value|share_percent : 'chart.share_with_count'|trans({share: bar.value|share_percent, count: bar.count, noun: countLabel}))
+                ? (bar.count is null ? bar.value|share_percent : (countLabel ? 'chart.share_with_count'|trans({share: bar.value|share_percent, count: bar.count, noun: countLabel}) : 'chart.share_with_bare_count'|trans({share: bar.value|share_percent, count: bar.count})))
                 : bar.value|number_format %}
             <rect class="ch-bar {{ bar.cssClass }}" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.width }}" height="{{ bar.height }}"><title>{{ bar.label }} · {{ bar.name }}: {{ value }}</title></rect>
         {% endfor %}

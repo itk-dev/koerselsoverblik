@@ -1,4 +1,5 @@
-{# The values of a chart as a table for screen readers. The chart itself is hidden from them. #}
+{# The values of a chart as a table for screen readers. The chart itself is hidden from them.
+   A share with a count shows both, as the title of a bar does. #}
 <div class="sr-only">
     <table>
         <caption>{{ caption }}</caption>
@@ -17,7 +18,12 @@
                     <th scope="row">{{ label }}</th>
                     {% for item in series %}
                         {% set value = item.values[index] %}
-                        <td>{{ unit == 'percent' ? value|punctuality_percent : (unit == 'share' ? value|share_percent : (value is null ? '–' : value|number_format)) }}</td>
+                        {% set count = item.counts[index] ?? null %}
+                        {% if unit == 'share' %}
+                            <td>{{ count is null ? value|share_percent : 'chart.share_with_bare_count'|trans({share: value|share_percent, count: count}) }}</td>
+                        {% else %}
+                            <td>{{ unit == 'percent' ? value|punctuality_percent : (value is null ? '–' : value|number_format) }}</td>
+                        {% endif %}
                     {% endfor %}
                 </tr>
             {% endfor %}
