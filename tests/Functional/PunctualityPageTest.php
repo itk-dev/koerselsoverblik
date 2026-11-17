@@ -8,6 +8,7 @@ use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\SubAgreement;
+use App\Entity\Supplier;
 use App\Import\DrivingDataImporter;
 use App\Import\ImportRangeDto;
 use App\Import\Mapping\MappingProvider;
@@ -162,6 +163,25 @@ final class PunctualityPageTest extends WebTestCase
         $this->subAgreement('BOOKED', true);
 
         self::assertSame('2 delaftaler er ignoreret i tallene: BOOKED, TEST', $client->request('GET', '/punctuality')->filter('[data-test="ignored-note"]')->text());
+    }
+
+    /**
+     * The figures of a supplier only have the routes of its sub-agreements. Thus with a supplier
+     * filter, the note names only the ignored sub-agreements of that supplier.
+     */
+    public function testNoteWithASupplierFilterNamesOnlyThatSupplier(): void
+    {
+        $client = $this->client('viewer');
+        $supplier = $this->supplier('Vognmand A');
+        $other = $this->supplier('Vognmand B');
+        $this->subAgreement('OTHER', true, $other);
+        $this->subAgreement('BOOKED', true);
+
+        self::assertCount(0, $client->request('GET', '/punctuality?s='.$supplier->getId())->filter('[data-test="ignored-note"]'));
+
+        $this->subAgreement('TEST', true, $supplier);
+
+        self::assertSame('1 delaftale er ignoreret i tallene: TEST', $client->request('GET', '/punctuality?s='.$supplier->getId())->filter('[data-test="ignored-note"]')->text());
     }
 
     /**
@@ -332,11 +352,24 @@ final class PunctualityPageTest extends WebTestCase
         unlink($path);
     }
 
-    private function subAgreement(string $reference, bool $ignored): void
+    private function subAgreement(string $reference, bool $ignored, ?Supplier $supplier = null): void
+    {
+        $this->persist(new SubAgreement()->setReference($reference)->setIgnored($ignored)->setSupplier($supplier));
+    }
+
+    private function supplier(string $name): Supplier
+    {
+        $supplier = new Supplier()->setName($name);
+        $this->persist($supplier);
+
+        return $supplier;
+    }
+
+    private function persist(object $entity): void
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
-        $entityManager->persist(new SubAgreement()->setReference($reference)->setIgnored($ignored));
+        $entityManager->persist($entity);
         $entityManager->flush();
     }
 

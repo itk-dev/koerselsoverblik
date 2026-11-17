@@ -398,6 +398,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#99](https://github.com/itk-dev/koerselsoverblik/issues/99)
   Show the ignored sub-agreements on the punctuality page. The figures do not include their
   routes, so a note below the lede gives their number and references, for example "2 delaftaler
-  er ignoreret i tallene: BOOKED, TEST". The note shows all ignored sub-agreements, also with a
-  supplier filter. `SubAgreementRepository::findIgnoredReferences()` adds one query to the page.
-  The overview does not run this query.
+  er ignoreret i tallene: BOOKED, TEST". `SubAgreementRepository::findIgnoredReferences()` adds
+  one query to the page. The overview does not run this query. After the review: with a supplier
+  filter, the note names only the ignored sub-agreements of that supplier, because the figures of
+  the supplier have no others.

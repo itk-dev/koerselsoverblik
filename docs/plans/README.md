@@ -159,4 +159,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Rank the worst routes by the number of late runs | [#103](https://github.com/itk-dev/koerselsoverblik/issues/103) | [#144](https://github.com/itk-dev/koerselsoverblik/pull/144) |
 | Compare the delays of the months as shares | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | [#145](https://github.com/itk-dev/koerselsoverblik/pull/145) |
 | Fix the month chooser, the chart labels and the number format | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | [#146](https://github.com/itk-dev/koerselsoverblik/pull/146) |
-| Show the ignored sub-agreements on the punctuality page | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | – |
+| Show the ignored sub-agreements on the punctuality page | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | [#147](https://github.com/itk-dev/koerselsoverblik/pull/147) |

@@ -947,8 +947,9 @@ The figures do not include the routes of an ignored sub-agreement (see "Data mod
 note below the lede names the ignored sub-agreements.
 `PunctualityController` gets their references from
 `SubAgreementRepository::findIgnoredReferences()`. The flag has no dates, so the note applies to
-all months of the page. The note also shows with a supplier filter. The overview uses
-`PunctualityPageBuilder`, but it does not run this query.
+all months of the page. With a supplier filter, the figures only have the routes of the
+sub-agreements of that supplier. Thus the note then names only the ignored sub-agreements of that
+supplier. The overview uses `PunctualityPageBuilder`, but it does not run this query.
 
 **Cost:** the months and the comparison period only need the total. Only the selected period
 needs the figures of each supplier, route and location.

@@ -53,21 +53,27 @@ final class SubAgreementRepositoriesTest extends KernelTestCase
 
     /**
      * The punctuality page names the ignored sub-agreements, sorted by the reference. An ignored
-     * sub-agreement can have a supplier or no supplier.
+     * sub-agreement can have a supplier or no supplier. With a supplier, only the ignored
+     * sub-agreements of that supplier count, because the figures of the supplier have no others.
      */
     public function testIgnoredReferences(): void
     {
         $supplier = new Supplier()->setName('Vognmand A');
+        $other = new Supplier()->setName('Vognmand B');
         $this->entityManager->persist($supplier);
+        $this->entityManager->persist($other);
         $this->subAgreement('TEST', $supplier, true);
         $this->subAgreement('A-SUPPLIER', $supplier);
         $this->subAgreement('BOOKED', null, true);
+        $this->subAgreement('OTHER', $other, true);
+        $this->subAgreement('C-SUPPLIER', $supplier, true);
         $this->entityManager->flush();
 
         $repository = self::getContainer()->get(SubAgreementRepository::class);
         self::assertInstanceOf(SubAgreementRepository::class, $repository);
 
-        self::assertSame(['BOOKED', 'TEST'], $repository->findIgnoredReferences());
+        self::assertSame(['BOOKED', 'C-SUPPLIER', 'OTHER', 'TEST'], $repository->findIgnoredReferences());
+        self::assertSame(['C-SUPPLIER', 'TEST'], $repository->findIgnoredReferences($supplier->getId()));
     }
 
     private function subAgreement(string $reference, ?Supplier $supplier, bool $ignored = false): void

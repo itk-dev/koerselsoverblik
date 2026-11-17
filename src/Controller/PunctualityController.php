@@ -53,7 +53,7 @@ final class PunctualityController extends AbstractController
             'page' => $builder->build($selection),
             'tolerance_minutes' => $toleranceMinutes,
             // The figures do not include these sub-agreements, so the page names them.
-            'ignored_sub_agreements' => $subAgreements->findIgnoredReferences(),
+            'ignored_sub_agreements' => $subAgreements->findIgnoredReferences($selection->filter->supplier),
         ]);
     }
 }
