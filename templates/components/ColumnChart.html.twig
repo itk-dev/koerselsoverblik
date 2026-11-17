@@ -1,7 +1,8 @@
 {% set geometry = this.geometry %}
-<figure class="chart" id="{{ id }}" role="group" aria-labelledby="{{ id }}-caption">
+{# chart--half keeps a chart of half the width at half the width when the panels are in one column. #}
+<figure class="chart{{ geometry.width == constant('App\\Chart\\Scale::HALF_WIDTH') ? ' chart--half' }}" id="{{ id }}" role="group" aria-labelledby="{{ id }}-caption">
     <figcaption id="{{ id }}-caption" class="sr-only">{{ caption }}</figcaption>
-    <svg class="chart__svg" viewBox="0 0 {{ constant('App\\Chart\\Scale::WIDTH') }} {{ constant('App\\Chart\\Scale::HEIGHT') }}" aria-hidden="true" focusable="false">
+    <svg class="chart__svg" viewBox="0 0 {{ geometry.width }} {{ constant('App\\Chart\\Scale::HEIGHT') }}" aria-hidden="true" focusable="false">
         {{ include('components/_axes.html.twig') }}
         {% for bar in geometry.bars %}
             {% set value = unit == 'share'

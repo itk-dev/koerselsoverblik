@@ -1,11 +1,11 @@
 {% set geometry = this.geometry %}
 <figure class="chart" id="{{ id }}" role="group" aria-labelledby="{{ id }}-caption">
     <figcaption id="{{ id }}-caption" class="sr-only">{{ caption }}</figcaption>
-    <svg class="chart__svg" viewBox="0 0 {{ constant('App\\Chart\\Scale::WIDTH') }} {{ constant('App\\Chart\\Scale::HEIGHT') }}" aria-hidden="true" focusable="false">
+    <svg class="chart__svg" viewBox="0 0 {{ geometry.width }} {{ constant('App\\Chart\\Scale::HEIGHT') }}" aria-hidden="true" focusable="false">
         {{ include('components/_axes.html.twig') }}
         {% if geometry.targetY is not null %}
-            <line class="ch-target" x1="{{ constant('App\\Chart\\Scale::LEFT') }}" x2="{{ constant('App\\Chart\\Scale::RIGHT') }}" y1="{{ geometry.targetY }}" y2="{{ geometry.targetY }}"/>
-            <text class="ch-target-label" x="{{ constant('App\\Chart\\Scale::RIGHT') }}" y="{{ geometry.targetY - constant('App\\Chart\\Scale::TARGET_LABEL_GAP') }}">{{ targetLabel }}</text>
+            <line class="ch-target" x1="{{ constant('App\\Chart\\Scale::LEFT') }}" x2="{{ geometry.right }}" y1="{{ geometry.targetY }}" y2="{{ geometry.targetY }}"/>
+            <text class="ch-target-label" x="{{ geometry.right }}" y="{{ geometry.targetY - constant('App\\Chart\\Scale::TARGET_LABEL_GAP') }}">{{ targetLabel }}</text>
         {% endif %}
         {% for line in geometry.lines %}
             <path class="ch-line {{ line.cssClass }}{{ line.dashed ? ' ch-line--dashed' }}" d="{{ line.path }}"/>

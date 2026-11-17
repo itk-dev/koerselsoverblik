@@ -76,6 +76,9 @@ final class ChartGeometryTest extends TestCase
         self::assertSame('M62.0,221.2 M824.0,175.6', $second->path);
         self::assertTrue($second->dashed);
         self::assertCount(2, $second->points);
+        // A line chart has the full width.
+        self::assertSame(840, $geometry->width);
+        self::assertSame(824, $geometry->right);
     }
 
     /**
@@ -142,6 +145,36 @@ final class ChartGeometryTest extends TestCase
         self::assertEqualsWithDelta(515.39, $third->x, 0.001);
         self::assertEqualsWithDelta(107.2, $third->y, 0.001);
         self::assertEqualsWithDelta(136.8, $third->height, 0.001);
+        // The default width is the full width.
+        self::assertSame(840, $geometry->width);
+        self::assertSame(824, $geometry->right);
+    }
+
+    /**
+     * A chart of half the width has a plot area from 62 to 404. Each of 2 labels has 171 units,
+     * and a column fills 62 % of it. The margins stay the same, so the text has about the same
+     * size on screen in a panel of half the width.
+     */
+    public function testColumnChartWithAWidth(): void
+    {
+        $geometry = ColumnChartGeometry::build(['a', 'b'], [new ChartSeriesDto('S', 'series-warning', [1.0, 2.0])], 420);
+
+        self::assertSame(420, $geometry->width);
+        self::assertSame(404, $geometry->right);
+        self::assertEqualsWithDelta(147.5, $geometry->xLabels[0]->x, 0.001);
+        self::assertEqualsWithDelta(318.5, $geometry->xLabels[1]->x, 0.001);
+        self::assertEqualsWithDelta(106.02, $geometry->bars[0]->width, 0.001);
+        self::assertEqualsWithDelta(94.49, $geometry->bars[0]->x, 0.001);
+    }
+
+    /**
+     * Only the full width and half the width are valid. The CSS of a chart knows only these two.
+     */
+    public function testColumnChartWithAnOtherWidth(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        ColumnChartGeometry::build(['a'], [new ChartSeriesDto('S', 'series-warning', [1.0])], 300);
     }
 
     public function testColumnChartWithNoValues(): void

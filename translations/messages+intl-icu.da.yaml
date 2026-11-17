@@ -155,7 +155,7 @@ punctuality:
   split:
     title: Den valgte periode
     caption: Sidste afsætning pr. vognløb i perioden
-    total: "{count} vognløb"
+    total: "{count, number} vognløb"
     foot: Afsætninger inden for {minutes} minutter tælles som til tiden og udgør den grønne andel.
   band:
     on_time: Til tiden (inden for {minutes} min.)

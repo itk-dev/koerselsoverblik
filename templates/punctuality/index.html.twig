@@ -93,6 +93,7 @@
         <twig:Panel :title="'punctuality.severity.title'|trans" :subtitle="'punctuality.severity.subtitle'|trans">
             <twig:ColumnChart
                 id="severity"
+                :width="constant('App\\Chart\\Scale::HALF_WIDTH')"
                 :caption="'punctuality.severity.caption'|trans"
                 :labels="labels"
                 unit="share"

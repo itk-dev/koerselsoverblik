@@ -19,11 +19,15 @@ final readonly class ColumnChartGeometry
      * @param list<GridLineDto>  $gridLines
      * @param list<AxisLabelDto> $xLabels
      * @param list<BarDto>       $bars
+     * @param int                $width     the width of the viewBox
+     * @param int                $right     the right edge of the plot area
      */
     private function __construct(
         public array $gridLines,
         public array $xLabels,
         public array $bars,
+        public int $width,
+        public int $right,
     ) {
     }
 
@@ -32,16 +36,17 @@ final readonly class ColumnChartGeometry
      *
      * @param list<string>         $labels the labels of the horizontal axis
      * @param list<ChartSeriesDto> $series
+     * @param int                  $width  the width of the viewBox, see Scale
      */
-    public static function build(array $labels, array $series): self
+    public static function build(array $labels, array $series, int $width = Scale::WIDTH): self
     {
         $totals = [];
         foreach ($labels as $index => $label) {
             $totals[] = array_sum(array_map(static fn (ChartSeriesDto $item): float => $item->values[$index] ?? 0.0, $series));
         }
         $top = Scale::niceMax(max([1.0, ...$totals]) * Scale::HEADROOM);
-        $slot = Scale::plotWidth() / max(1, \count($labels));
-        $width = $slot * self::COLUMN_SHARE;
+        $slot = Scale::plotWidth($width) / max(1, \count($labels));
+        $columnWidth = $slot * self::COLUMN_SHARE;
 
         $xLabels = [];
         $bars = [];
@@ -56,10 +61,10 @@ final readonly class ColumnChartGeometry
                 }
                 $height = Scale::BOTTOM - Scale::y($value, $top);
                 $stacked += $height;
-                $bars[] = new BarDto($left + ($slot - $width) / 2, Scale::BOTTOM - $stacked, $width, $height, $item->cssClass, $item->name, $label, $value, $item->counts[$index] ?? null);
+                $bars[] = new BarDto($left + ($slot - $columnWidth) / 2, Scale::BOTTOM - $stacked, $columnWidth, $height, $item->cssClass, $item->name, $label, $value, $item->counts[$index] ?? null);
             }
         }
 
-        return new self(Scale::gridLines($top), $xLabels, $bars);
+        return new self(Scale::gridLines($top), $xLabels, $bars, $width, Scale::right($width));
     }
 }
