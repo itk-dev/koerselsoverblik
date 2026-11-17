@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Report;
 
 use App\Entity\Supplier;
+use App\Report\ConclusionMeasure;
+use App\Report\ConclusionThreshold;
 use App\Report\PeriodSelector;
 use App\Report\PeriodType;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,12 +26,14 @@ final class PeriodSelectorTest extends KernelTestCase
         self::mockTime('2026-09-18 10:00:00');
         $supplier = $this->supplier();
 
-        $selection = $this->selector()->select('quarter', '2026-05-05', 'last_year', (string) $supplier->getId());
+        $selection = $this->selector()->select('quarter', '2026-05-05', 'last_year', (string) $supplier->getId(), ['solo'], '0');
 
         self::assertSame(PeriodType::Quarter, $selection->filter->type);
         self::assertSame('2026-04-01', $selection->selectedRange->firstDate->format('Y-m-d'));
         self::assertSame($supplier->getId(), $selection->filter->supplier);
         self::assertSame([$supplier], $selection->suppliers);
+        self::assertSame([ConclusionMeasure::RealSolo], $selection->filter->measures);
+        self::assertSame(ConclusionThreshold::Any, $selection->filter->threshold);
     }
 
     /**

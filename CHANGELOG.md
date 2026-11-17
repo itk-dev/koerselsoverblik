@@ -402,3 +402,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   one query to the page. The overview does not run this query. After the review: with a supplier
   filter, the note names only the ignored sub-agreements of that supplier, because the figures of
   the supplier have no others.
+- [#122](https://github.com/itk-dev/koerselsoverblik/issues/122)
+  Show the conclusion on the overview. A callout under the heading gives a headline ("Servicen er
+  blevet bedre.", "Servicen er blevet dårligere.", "Blandet billede.", "Stort set uændret." or
+  "Ingen sammenligning for denne periode.") and one sentence with the values of each measure. The
+  measures are the punctuality, the real solo runs and the cancelled trips. A measure counts as
+  better or worse only if its change is at least the threshold. The threshold is in percentage
+  points, not relative to the value as in the issue, because the tiles show the changes in points
+  too. "Tilpas konklusion" is a
+  `<details>` form with no script. The settings are in the query string (`m`, `t`), and the filter
+  bar keeps them. `ConclusionCalculator` uses the figures of the page, so it adds no query.

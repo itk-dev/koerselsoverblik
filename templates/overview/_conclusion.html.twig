@@ -1,0 +1,61 @@
+{# The conclusion of the overview: a headline and one sentence with a clause for each selected
+   measure. Needs conclusion and selection. The translations are trusted, and each value is
+   escaped before it goes into a translation, so the sentence can have <strong>. #}
+{% set filter = selection.filter %}
+{% set tone = conclusion.tone %}
+<div class="itkaarhus-callout itkaarhus-callout--{{ tone.callout }} conclusion" data-test="conclusion">
+    <span><strong data-test="conclusion-head">{{ ('overview.conclusion.head.' ~ tone.value)|trans }}</strong>
+    {% if tone.value == 'no_comparison' %}
+        <span class="ca-body" data-test="conclusion-text">{{ 'overview.conclusion.no_comparison'|trans }}</span>
+    {% else %}
+        {% set clauses = conclusion.readings|map(reading => ('overview.conclusion.clause.' ~ reading.measure.value)|trans({
+            now: '<strong>' ~ (reading.measure.value == 'punctuality' ? reading.now|punctuality_percent : reading.now|share_percent)|e ~ '</strong>',
+            before: (reading.measure.value == 'punctuality' ? reading.before|punctuality_percent : reading.before|share_percent)|e,
+        })) %}
+        {# Each clause is a main clause, so Danish has a comma before "og". #}
+        {% set sentence = clauses|length > 1 ? clauses|slice(0, -1)|join(', ') ~ ', ' ~ 'overview.conclusion.and'|trans ~ ' ' ~ clauses|last : clauses|first %}
+        <span class="ca-body" data-test="conclusion-text">{{ 'overview.conclusion.sentence'|trans({
+            period: period_phrase(selection)|e,
+            comparison: comparison_phrase(selection)|e,
+            clauses: sentence,
+        })|raw }}</span>
+    {% endif %}
+    </span>
+</div>
+
+{# The settings are in the query string, so the form needs no script. A details element opens and
+   closes the panel. The summary also has the note of the threshold, because a closed details
+   element shows only its summary. The form sends the filters of the filter bar with the settings. #}
+<details class="verdict" data-test="conclusion-settings">
+    <summary class="verdict__summary">
+        <span class="tool-btn">{{ ux_icon('lucide:sliders-horizontal', {class: 'icon icon--xs', 'aria-hidden': 'true'}) }}<span data-test="conclusion-settings-label">{{ 'overview.conclusion.settings'|trans }}</span></span>
+        <span class="muted" data-test="conclusion-threshold">{{ filter.threshold.value == '0'
+            ? 'overview.conclusion.any_change_note'|trans
+            : 'overview.conclusion.threshold_note'|trans({threshold: filter.threshold.points}) }}</span>
+    </summary>
+    <form class="verdict__panel" method="get" action="{{ path('overview') }}">
+        {% for name, value in filter.query|filter((value, name) => name not in ['m', 't']) %}
+            <input type="hidden" name="{{ name }}" value="{{ value }}">
+        {% endfor %}
+        <fieldset class="verdict__set">
+            <legend>{{ 'overview.conclusion.measures'|trans }}</legend>
+            <div class="verdict__boxes">
+                {% for measure in enum_cases('App\\Report\\ConclusionMeasure') %}
+                    <label class="check"><input type="checkbox" name="m[]" value="{{ measure.value }}"{{ measure in filter.measures ? ' checked' }}><span>{{ ('overview.conclusion.measure.' ~ measure.value)|trans }}</span></label>
+                {% endfor %}
+            </div>
+            <p class="verdict__hint">{{ 'overview.conclusion.at_least_one'|trans }}</p>
+        </fieldset>
+        <div class="ctl">
+            <label class="ctl__label" for="ctl-threshold">{{ 'overview.conclusion.threshold'|trans }}</label>
+            <select class="ctl__select" id="ctl-threshold" name="t">
+                {% for threshold in enum_cases('App\\Report\\ConclusionThreshold') %}
+                    <option value="{{ threshold.value }}"{{ threshold == filter.threshold ? ' selected' }}>{{ threshold.value == '0'
+                        ? 'overview.conclusion.any_change'|trans
+                        : 'overview.conclusion.at_least'|trans({threshold: threshold.points}) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="itkaarhus-btn itkaarhus-btn--secondary itkaarhus-btn--sm" type="submit">{{ 'filter.show'|trans }}</button>
+    </form>
+</details>

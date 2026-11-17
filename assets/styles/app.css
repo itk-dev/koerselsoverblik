@@ -439,6 +439,100 @@ body {
   font-size: var(--itkaarhus-text-md);
 }
 
+/* ------------------------------------------------------------ conclusion */
+
+/* The design system shows a strong element in a callout as a block heading. In the sentence,
+   the values must stay in the line. */
+.conclusion .ca-body strong {
+  display: inline;
+  font-size: inherit;
+  margin: 0;
+}
+/* The settings are close to the conclusion, so the gap of the content is smaller here. */
+.verdict {
+  margin-top: calc(var(--itkaarhus-space-3) * -1);
+}
+.verdict__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--itkaarhus-space-3);
+  font-size: var(--itkaarhus-text-sm);
+  cursor: pointer;
+  list-style: none;
+}
+.verdict__summary::-webkit-details-marker {
+  display: none;
+}
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-2);
+  padding: 5px var(--itkaarhus-space-3);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+  color: var(--itkaarhus-gray-700);
+}
+.verdict__summary:hover .tool-btn {
+  background: var(--itkaarhus-gray-50);
+  color: var(--itkaarhus-gray-900);
+}
+.verdict[open] .tool-btn {
+  border-color: var(--itkaarhus-primary);
+  color: var(--itkaarhus-primary);
+}
+.verdict__panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--itkaarhus-space-5);
+  margin-top: var(--itkaarhus-space-3);
+  padding: var(--itkaarhus-space-4) var(--itkaarhus-space-5);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+}
+.verdict__set {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.verdict__set legend {
+  padding: 0;
+  font-size: var(--itkaarhus-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--itkaarhus-gray-500);
+}
+.verdict__boxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-2) var(--itkaarhus-space-4);
+  margin-top: var(--itkaarhus-space-2);
+}
+.verdict__hint {
+  margin: var(--itkaarhus-space-2) 0 0;
+  font-size: var(--itkaarhus-text-xs);
+  color: var(--itkaarhus-gray-500);
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-2);
+  font-size: var(--itkaarhus-text-sm);
+  color: var(--itkaarhus-gray-800);
+  cursor: pointer;
+}
+.check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--itkaarhus-primary);
+  cursor: pointer;
+}
+
 /* ------------------------------------------------------------ filter bar */
 
 .controls {

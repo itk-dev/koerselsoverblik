@@ -1079,6 +1079,37 @@ period before `KpiCalculator` above exists. It has the same filter bar as the pu
 - The page compares a period that has not ended with the same number of days of the comparison
   period (see "Periods" above).
 
+**Conclusion:** a callout under the heading tells if the service is better or worse than in the
+comparison period. `ConclusionCalculator` calculates it from the figures that the page already
+has, so it adds no query.
+
+- The measures (`ConclusionMeasure`) are the punctuality (the drop-off per route run, higher is
+  better), the share of the real solo runs and the share of the cancelled trips (lower is
+  better). The share of the cancelled trips is of all trips, as in the supplier table. The default
+  is the punctuality only.
+- A measure is better or worse only if its change from the comparison period is at least the
+  threshold (`ConclusionThreshold`: 0, 0.5, 1, 2 or 5 percentage points, the default 1). A smaller
+  change is noise, so it counts as unchanged. The rules use the values that are not rounded.
+- The threshold is in percentage points, not relative to the value as in the issue and the
+  prototype. All measures are shares in percent, and the tiles show their changes in points. A
+  relative threshold of 1 % of a share of 45 % is only 0.45 points, so the headline said "worse"
+  when the tile showed a change of +0,9 pct.point. On a small share, for example 10 % cancelled
+  trips, it is even more sensitive.
+- The headline (`ConclusionTone`): only better measures give "Servicen er blevet bedre.", only
+  worse measures give "Servicen er blevet dårligere.", both give "Blandet billede.", and none give
+  "Stort set uændret.". A selected measure with no value in one of the two periods gives "Ingen
+  sammenligning for denne periode.".
+- The sentence has the two periods and one clause for each measure. The values are escaped before
+  they go into the translation, so the translation can put the value of the period in bold.
+- "Tilpas konklusion" is a `<details>` element with a GET form, so it needs no script. The
+  settings are in the query string: `m` is a list of measures with commas, for example
+  `m=punctuality,cancelled`, and `t` is the threshold. `PeriodFilter` reads them, so the links and
+  the form of the filter bar keep them. The checkboxes send `m[]`, and the page redirects to the
+  list with commas, as for other values that are not canonical. An unknown measure is left out.
+  No valid measure, or an invalid threshold, gives the default.
+- The punctuality page does not read `m` and `t`. It redirects a query with them to the query
+  with no settings.
+
 **Cost:** `RouteDayTotalsRepository::sumByMonth()` gives the trips and the solo runs of the 12
 months, and `MonthCitizensRepository::byMonth()` gives the citizens. The citizens of a month are
 the citizens who were driven in that month. A selected period or a comparison period that has the

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\RouteDayTotals;
@@ -134,6 +135,96 @@ final class OverviewPageTest extends WebTestCase
         $rows = $crawler->filter('[data-test="punctuality-trend"] .sr-only tbody tr');
         self::assertCount(12, $rows);
         self::assertSame(['–', '–', '–', '–'], $rows->last()->filter('td')->each(static fn (Crawler $cell): string => $cell->text()));
+    }
+
+    /**
+     * December 2025 has no data, so the conclusion has no comparison and no sentence.
+     */
+    public function testConclusionWithNoComparison(): void
+    {
+        $crawler = $this->page('viewer', importBase: true);
+
+        self::assertSame('Ingen sammenligning for denne periode.', $crawler->filter('[data-test="conclusion-head"]')->text());
+        self::assertSame('Vælg en anden periode eller et andet sammenligningsgrundlag for at se en retning.', $crawler->filter('[data-test="conclusion-text"]')->text());
+    }
+
+    /**
+     * The default conclusion uses the punctuality: 75 % in January against 67 % in December.
+     */
+    public function testConclusionOfThePunctuality(): void
+    {
+        $crawler = $this->clientWithAComparison()->request('GET', '/');
+
+        self::assertSame('Servicen er blevet bedre.', $crawler->filter('[data-test="conclusion-head"]')->text());
+        self::assertSame(
+            'I 1.–20. januar 2026 (til og med i dag) mod 1.–20. december 2025: 75 % af vognløbene blev afsluttet til tiden mod 67 %.',
+            $crawler->filter('[data-test="conclusion-text"]')->text(),
+        );
+        self::assertStringContainsString('itkaarhus-callout--success', (string) $crawler->filter('[data-test="conclusion"]')->attr('class'));
+        self::assertSame('Ændringer under 1 pct.point tæller som uændret.', $crawler->filter('[data-test="conclusion-threshold"]')->text());
+    }
+
+    /**
+     * The punctuality and the cancelled trips are better, but the real solo runs are worse.
+     */
+    public function testConclusionOfAllMeasures(): void
+    {
+        $crawler = $this->clientWithAComparison()->request('GET', '/?m=punctuality,solo,cancelled&t=0');
+
+        self::assertSame('Blandet billede.', $crawler->filter('[data-test="conclusion-head"]')->text());
+        self::assertSame(
+            'I 1.–20. januar 2026 (til og med i dag) mod 1.–20. december 2025: 75 % af vognløbene blev afsluttet til tiden mod 67 %, 50 % af vognløbene kørte med én borger mod 33 %, og 14 % af turene blev aflyst mod 17 %.',
+            $crawler->filter('[data-test="conclusion-text"]')->text(),
+        );
+        self::assertStringContainsString('itkaarhus-callout--info', (string) $crawler->filter('[data-test="conclusion"]')->attr('class'));
+        self::assertSame('Enhver ændring tæller med.', $crawler->filter('[data-test="conclusion-threshold"]')->text());
+        // The value of the selected period is in bold.
+        self::assertSame(['75 %', '50 %', '14 %'], $crawler->filter('[data-test="conclusion-text"] strong')->each(static fn (Crawler $value): string => $value->text()));
+    }
+
+    /**
+     * The form of "Tilpas konklusion" shows the settings, and sends the filters with them.
+     */
+    public function testConclusionSettings(): void
+    {
+        $crawler = $this->page('viewer', '?p=week&d=2026-01-05&c=last_year&m=solo,cancelled&t=0.5');
+        $form = $crawler->filter('[data-test="conclusion-settings"] form');
+
+        self::assertSame('Tilpas konklusion', $crawler->filter('[data-test="conclusion-settings"] summary [data-test="conclusion-settings-label"]')->text());
+        self::assertSame(
+            ['p' => 'week', 'd' => '2026-01-05', 'c' => 'last_year'],
+            array_combine(
+                $form->filter('input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('name')),
+                $form->filter('input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')),
+            ),
+        );
+        self::assertSame(
+            ['Rettidighed' => false, 'Reelt solo' => true, 'Aflyste ture' => true],
+            array_combine(
+                $form->filter('label.check')->each(static fn (Crawler $label): string => $label->text()),
+                $form->filter('input[name="m[]"]')->each(static fn (Crawler $input): bool => null !== $input->attr('checked')),
+            ),
+        );
+        self::assertSame(['Enhver ændring', 'Mindst 0,5 pct.point', 'Mindst 1 pct.point', 'Mindst 2 pct.point', 'Mindst 5 pct.point'], $form->filter('select[name="t"] option')->each(static fn (Crawler $option): string => $option->text()));
+        self::assertSame('0.5', $form->filter('select[name="t"] option[selected]')->attr('value'));
+        self::assertSame('Ændringer under 0,5 pct.point tæller som uændret.', $crawler->filter('[data-test="conclusion-threshold"]')->text());
+    }
+
+    /**
+     * The links and the form of the filter bar keep the settings of the conclusion.
+     */
+    public function testFilterBarKeepsTheConclusionSettings(): void
+    {
+        $crawler = $this->page('viewer', '?m=solo&t=0');
+
+        self::assertSame('/?p=week&m=solo&t=0', $crawler->filter('[data-test="period-week"]')->attr('href'));
+        self::assertSame(
+            ['m' => 'solo', 't' => '0'],
+            array_combine(
+                $crawler->filter('[data-filter-form] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('name')),
+                $crawler->filter('[data-filter-form] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')),
+            ),
+        );
     }
 
     /**
@@ -271,6 +362,11 @@ final class OverviewPageTest extends WebTestCase
         yield 'date in the period' => ['?p=week&d=2026-01-07', '/?p=week&d=2026-01-05'];
         yield 'date of the current period' => ['?d=2026-01-20', '/'];
         yield 'unknown parameter' => ['?month=2025-06', '/'];
+        // The checkboxes of the form send a list. The link has a list with commas.
+        yield 'measures from the form' => ['?m[]=solo&m[]=punctuality&t=2', '/?m=punctuality,solo&t=2'];
+        yield 'default settings of the conclusion' => ['?m=punctuality&t=1', '/'];
+        yield 'unknown measure' => ['?m=complaints', '/'];
+        yield 'threshold that is not an option' => ['?t=3', '/'];
     }
 
     public function testNoTextNamesThePlanningSystem(): void
@@ -335,17 +431,49 @@ final class OverviewPageTest extends WebTestCase
         return $client;
     }
 
-    private function importBase(): void
+    /**
+     * @param int     $daysBefore the number of days to move the dates back, for data in a comparison period
+     * @param ?string $leaveOut   a route to leave out, so that the figures are not the same
+     */
+    private function importBase(int $daysBefore = 0, ?string $leaveOut = null): void
     {
-        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml');
+        $rows = [];
+        foreach (new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows as $row) {
+            if ($leaveOut === $row->values['route']) {
+                continue;
+            }
+            $values = $row->values;
+            foreach (['service_date', 'actual_time'] as $field) {
+                if ($values[$field] instanceof \DateTimeImmutable) {
+                    $values[$field] = $values[$field]->modify(\sprintf('-%d days', $daysBefore));
+                }
+            }
+            // A row id is stored on one date only, so the moved rows need their own ids.
+            $rowId = 0 === $daysBefore ? $row->rowId : \sprintf('before-%d-%d', $daysBefore, \count($rows));
+            $rows[] = new ExtractRow($values, $rowId, $row->raw, $row->kept);
+        }
+        $date = new \DateTimeImmutable('2026-01-05')->modify(\sprintf('-%d days', $daysBefore));
         $path = sys_get_temp_dir().'/'.uniqid('extract_', true).'.xlsx';
         $provider = self::getContainer()->get(MappingProvider::class);
         self::assertInstanceOf(MappingProvider::class, $provider);
-        new ExtractWriter()->write($path, $provider->default(), $scenario->rows);
+        new ExtractWriter()->write($path, $provider->default(), $rows);
         $importer = self::getContainer()->get(DrivingDataImporter::class);
         self::assertInstanceOf(DrivingDataImporter::class, $importer);
-        $importer->import($path, ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31), $provider->default(), null, 'base.xlsx');
+        $importer->import($path, ImportRangeDto::create($date, $date, 31), $provider->default(), null, 'base.xlsx');
         unlink($path);
+    }
+
+    /**
+     * Imports the base scenario on 5 January 2026, and the base scenario with no route BOOKED on
+     * 5 December 2025. December has 6 trips, 2 of 3 runs on time, 1 of 3 real solo runs and 1 of 6
+     * trips cancelled. January has 75 %, 50 % and 1 of 7 trips cancelled.
+     */
+    private function clientWithAComparison(): KernelBrowser
+    {
+        $client = $this->client('viewer', importBase: true);
+        $this->importBase(31, 'BOOKED');
+
+        return $client;
     }
 
     private static function value(Crawler $crawler, string $test): string

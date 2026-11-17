@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Report\ConclusionCalculator;
 use App\Report\OverviewPageBuilder;
 use App\Report\PeriodSelector;
 use App\Report\PunctualityPageBuilder;
@@ -32,6 +33,7 @@ final class OverviewController extends AbstractController
         OverviewPageBuilder $builder,
         PunctualityPageBuilder $punctualityBuilder,
         SupplierTableCalculator $supplierTable,
+        ConclusionCalculator $conclusion,
         PeriodSelector $periods,
         #[Autowire(param: 'app.punctuality_tolerance_minutes')]
         int $toleranceMinutes,
@@ -43,17 +45,24 @@ final class OverviewController extends AbstractController
         ?string $c = null,
         #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
         ?string $s = null,
+        #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
+        ?string $t = null,
     ): Response {
-        $selection = $periods->select($p, $d, $c, $s);
+        // The measures of the conclusion are a list with commas in a link, and a list from the
+        // checkboxes of the form.
+        $m = $request->query->all()['m'] ?? null;
+        $selection = $periods->select($p, $d, $c, $s, \is_string($m) || \is_array($m) ? $m : null, $t);
         if (!$selection->filter->isCanonical($request->query->all())) {
             return $this->redirectToRoute('overview', $selection->filter->query());
         }
+        $page = $builder->build($selection);
         $punctuality = $punctualityBuilder->build($selection);
 
         return $this->render('overview/index.html.twig', [
             'selection' => $selection,
-            'page' => $builder->build($selection),
+            'page' => $page,
             'punctuality' => $punctuality,
+            'conclusion' => $conclusion->calculate($selection->filter, $page, $punctuality),
             'suppliers' => $supplierTable->calculate($selection->selectedRange, $punctuality->current()),
             'tolerance_minutes' => $toleranceMinutes,
         ]);

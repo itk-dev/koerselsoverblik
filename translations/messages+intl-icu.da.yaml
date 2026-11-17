@@ -23,6 +23,32 @@ overview:
   title: Overblik
   heading: Bliver borgerkørslen bedre eller værre?
   lede: "{period} sammenlignet med {comparison}."
+  conclusion:
+    head:
+      better: Servicen er blevet bedre.
+      worse: Servicen er blevet dårligere.
+      mixed: Blandet billede.
+      unchanged: Stort set uændret.
+      no_comparison: Ingen sammenligning for denne periode.
+    no_comparison: Vælg en anden periode eller et andet sammenligningsgrundlag for at se en retning.
+    sentence: "I {period} mod {comparison}: {clauses}."
+    clause:
+      punctuality: "{now} af vognløbene blev afsluttet til tiden mod {before}"
+      solo: "{now} af vognløbene kørte med én borger mod {before}"
+      cancelled: "{now} af turene blev aflyst mod {before}"
+    and: og
+    settings: Tilpas konklusion
+    measures: Mål der indgår i konklusionen
+    measure:
+      punctuality: Rettidighed
+      solo: Reelt solo
+      cancelled: Aflyste ture
+    at_least_one: Mindst ét mål skal indgå.
+    threshold: Mindste ændring der tæller
+    any_change: Enhver ændring
+    at_least: "Mindst {threshold, number} pct.point"
+    any_change_note: Enhver ændring tæller med.
+    threshold_note: "Ændringer under {threshold, number} pct.point tæller som uændret."
   trips:
     label: Personture
     note: "{completed, number} gennemført · {cancelled, number} aflyst{pending, plural, =0 {} other { · # uden registrering}}"

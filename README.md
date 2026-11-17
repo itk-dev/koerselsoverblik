@@ -27,6 +27,11 @@ The user interface is in Danish.
 
 - **Overview:** eight key figures for a chosen period, each with the change from a comparison
   period and a 12-month trend.
+  - A conclusion under the heading: one headline ("Servicen er blevet bedre.", "Servicen er
+    blevet dårligere.", "Blandet billede." or "Stort set uændret.") and one sentence with the
+    values of each measure. The measures are the punctuality, the real solo runs and the cancelled
+    trips. Under "Tilpas konklusion", the user selects the measures and the smallest change that
+    counts. The settings are in the URL, so a link keeps them.
   - The trips ("Personture"), with the completed and the cancelled trips, and the trips with no
     registration. The distinct citizens who were driven ("Unikke borgere"). Each figure has a
     help text.
