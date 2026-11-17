@@ -201,7 +201,7 @@ final class OverviewPageTest extends WebTestCase
         self::assertSame(
             ['Rettidighed' => false, 'Reelt solo' => true, 'Aflyste ture' => true],
             array_combine(
-                $form->filter('label.check')->each(static fn (Crawler $label): string => $label->text()),
+                $form->filter('fieldset label')->each(static fn (Crawler $label): string => $label->text()),
                 $form->filter('input[name="m[]"]')->each(static fn (Crawler $input): bool => null !== $input->attr('checked')),
             ),
         );

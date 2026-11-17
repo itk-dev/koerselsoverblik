@@ -217,20 +217,21 @@ final class PeriodFilterTest extends TestCase
     /**
      * The measures are always in the order of the enum, and each measure is in the list one time.
      *
-     * @param array<mixed>|string     $measures
      * @param list<ConclusionMeasure> $expected
      */
     #[DataProvider('measures')]
-    public function testConclusionMeasures(array|string $measures, array $expected): void
+    public function testConclusionMeasures(mixed $measures, array $expected): void
     {
         self::assertSame($expected, self::filter(['m' => $measures])->measures);
     }
 
     /**
-     * @return iterable<string, array{array<mixed>|string, list<ConclusionMeasure>}>
+     * @return iterable<string, array{mixed, list<ConclusionMeasure>}>
      */
     public static function measures(): iterable
     {
+        // The controller gives the value of the query with no check of its type.
+        yield 'not a text or a list' => [5, [ConclusionMeasure::Punctuality]];
         yield 'one' => ['solo', [ConclusionMeasure::RealSolo]];
         yield 'all' => ['punctuality,solo,cancelled', [ConclusionMeasure::Punctuality, ConclusionMeasure::RealSolo, ConclusionMeasure::Cancelled]];
         yield 'other order' => ['cancelled,punctuality', [ConclusionMeasure::Punctuality, ConclusionMeasure::Cancelled]];
@@ -294,17 +295,13 @@ final class PeriodFilterTest extends TestCase
     }
 
     /**
-     * Gives the measures as the controller does: a text or a list from the form.
+     * Gives the measures as the controller does: the value of the query, of any type.
      *
      * @param array<string, mixed> $query
-     *
-     * @return array<mixed>|string|null
      */
-    private static function measuresOf(array $query): array|string|null
+    private static function measuresOf(array $query): mixed
     {
-        $measures = $query['m'] ?? null;
-
-        return \is_string($measures) || \is_array($measures) ? $measures : null;
+        return $query['m'] ?? null;
     }
 
     /**

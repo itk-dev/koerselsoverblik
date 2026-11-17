@@ -35,12 +35,12 @@ final readonly class PeriodFilter
 
     /**
      * Reads the query string. An invalid value gives its default, so that a link always works:
-     * the month of today, the previous period, all suppliers, the punctuality and 1 %. A date after
-     * today gives today.
+     * the month of today, the previous period, all suppliers, the punctuality and 1 percentage
+     * point. A date after today gives today.
      *
-     * @param array<mixed>|string|null $measures the measures as a list with commas, or as the list of the checkboxes of the form
+     * @param mixed $measures the value of "m" in the query: a list with commas in a link, or the list of the checkboxes of the form. Another type gives the default
      */
-    public static function fromQuery(?string $type, ?string $date, ?string $comparison, ?string $supplier, \DateTimeImmutable $today, array|string|null $measures = null, ?string $threshold = null): self
+    public static function fromQuery(?string $type, ?string $date, ?string $comparison, ?string $supplier, \DateTimeImmutable $today, mixed $measures = null, ?string $threshold = null): self
     {
         $today = new \DateTimeImmutable($today->format(self::DATE));
         $anchor = null === $date ? false : \DateTimeImmutable::createFromFormat('!'.self::DATE, $date);
@@ -117,13 +117,15 @@ final readonly class PeriodFilter
      * Gives the valid measures in the order of the enum. Each measure is in the list one time. An
      * unknown value is left out. With no valid measure, the list has the default measure.
      *
-     * @param array<mixed>|string|null $measures
-     *
      * @return list<ConclusionMeasure>
      */
-    private static function measures(array|string|null $measures): array
+    private static function measures(mixed $measures): array
     {
-        $values = \is_string($measures) ? explode(',', $measures) : $measures ?? [];
+        $values = match (true) {
+            \is_string($measures) => explode(',', $measures),
+            \is_array($measures) => $measures,
+            default => [],
+        };
         $selected = array_values(array_filter(ConclusionMeasure::cases(), static fn (ConclusionMeasure $measure): bool => \in_array($measure->value, $values, true)));
 
         return [] === $selected ? self::DEFAULT_MEASURES : $selected;

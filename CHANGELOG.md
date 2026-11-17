@@ -412,3 +412,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   too. "Tilpas konklusion" is a
   `<details>` form with no script. The settings are in the query string (`m`, `t`), and the filter
   bar keeps them. `ConclusionCalculator` uses the figures of the page, so it adds no query.
+  After the review: the change is rounded to one decimal before the comparison, as on the tiles,
+  so that a change of exactly the threshold from counts is not unchanged. `PeriodFilter` checks the
+  type of `m`, not the controller. The CSS classes are `conclusion-settings__*`.

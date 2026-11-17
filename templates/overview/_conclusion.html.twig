@@ -26,25 +26,25 @@
 {# The settings are in the query string, so the form needs no script. A details element opens and
    closes the panel. The summary also has the note of the threshold, because a closed details
    element shows only its summary. The form sends the filters of the filter bar with the settings. #}
-<details class="verdict" data-test="conclusion-settings">
-    <summary class="verdict__summary">
-        <span class="tool-btn">{{ ux_icon('lucide:sliders-horizontal', {class: 'icon icon--xs', 'aria-hidden': 'true'}) }}<span data-test="conclusion-settings-label">{{ 'overview.conclusion.settings'|trans }}</span></span>
+<details class="conclusion-settings" data-test="conclusion-settings">
+    <summary class="conclusion-settings__summary">
+        <span class="conclusion-settings__button">{{ ux_icon('lucide:sliders-horizontal', {class: 'icon icon--xs', 'aria-hidden': 'true'}) }}<span data-test="conclusion-settings-label">{{ 'overview.conclusion.settings'|trans }}</span></span>
         <span class="muted" data-test="conclusion-threshold">{{ filter.threshold.value == '0'
             ? 'overview.conclusion.any_change_note'|trans
             : 'overview.conclusion.threshold_note'|trans({threshold: filter.threshold.points}) }}</span>
     </summary>
-    <form class="verdict__panel" method="get" action="{{ path('overview') }}">
+    <form class="conclusion-settings__panel" method="get" action="{{ path('overview') }}">
         {% for name, value in filter.query|filter((value, name) => name not in ['m', 't']) %}
             <input type="hidden" name="{{ name }}" value="{{ value }}">
         {% endfor %}
-        <fieldset class="verdict__set">
+        <fieldset class="conclusion-settings__set">
             <legend>{{ 'overview.conclusion.measures'|trans }}</legend>
-            <div class="verdict__boxes">
+            <div class="conclusion-settings__boxes">
                 {% for measure in enum_cases('App\\Report\\ConclusionMeasure') %}
-                    <label class="check"><input type="checkbox" name="m[]" value="{{ measure.value }}"{{ measure in filter.measures ? ' checked' }}><span>{{ ('overview.conclusion.measure.' ~ measure.value)|trans }}</span></label>
+                    <label class="conclusion-settings__check"><input type="checkbox" name="m[]" value="{{ measure.value }}"{{ measure in filter.measures ? ' checked' }}><span>{{ ('overview.conclusion.measure.' ~ measure.value)|trans }}</span></label>
                 {% endfor %}
             </div>
-            <p class="verdict__hint">{{ 'overview.conclusion.at_least_one'|trans }}</p>
+            <p class="conclusion-settings__hint">{{ 'overview.conclusion.at_least_one'|trans }}</p>
         </fieldset>
         <div class="ctl">
             <label class="ctl__label" for="ctl-threshold">{{ 'overview.conclusion.threshold'|trans }}</label>

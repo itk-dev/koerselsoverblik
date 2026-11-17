@@ -156,7 +156,14 @@ final class ConclusionCalculatorTest extends TestCase
         yield 'one point of a share of 45 %' => [$solo, 46.25, 45.25, ConclusionThreshold::One, ConclusionTone::Worse];
         // 0.875 percentage points is about 2 % of 45 %, but it is below a threshold of 1 point.
         yield 'points, not a relative change' => [$solo, 46.25, 45.375, ConclusionThreshold::One, ConclusionTone::Unchanged];
-        yield 'any change' => [$punctuality, 50.01, 50.0, ConclusionThreshold::Any, ConclusionTone::Better];
+        // The values come from counts, so a change of exactly one point can be 0.9999999999999991.
+        yield 'one point from counts' => [$solo, 8 / 100 * 100, 7 / 100 * 100, ConclusionThreshold::One, ConclusionTone::Worse];
+        // The change is rounded to one decimal, as on the tiles. The tile shows +1,0 for 0.96.
+        yield 'rounds to the threshold' => [$punctuality, 50.96, 50.0, ConclusionThreshold::One, ConclusionTone::Better];
+        yield 'rounds to below the threshold' => [$punctuality, 50.94, 50.0, ConclusionThreshold::One, ConclusionTone::Unchanged];
+        yield 'any change' => [$punctuality, 50.1, 50.0, ConclusionThreshold::Any, ConclusionTone::Better];
+        // The tile shows ±0 for a change below 0.05, so the conclusion does too.
+        yield 'change that the tile does not show' => [$punctuality, 50.03, 50.0, ConclusionThreshold::Any, ConclusionTone::Unchanged];
         yield 'no change with any change' => [$punctuality, 50.0, 50.0, ConclusionThreshold::Any, ConclusionTone::Unchanged];
         yield 'from 0' => [$cancelled, 5.0, 0.0, ConclusionThreshold::Five, ConclusionTone::Worse];
         yield '0 and 0' => [$cancelled, 0.0, 0.0, ConclusionThreshold::Any, ConclusionTone::Unchanged];

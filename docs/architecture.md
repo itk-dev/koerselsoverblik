@@ -1089,7 +1089,11 @@ has, so it adds no query.
   is the punctuality only.
 - A measure is better or worse only if its change from the comparison period is at least the
   threshold (`ConclusionThreshold`: 0, 0.5, 1, 2 or 5 percentage points, the default 1). A smaller
-  change is noise, so it counts as unchanged. The rules use the values that are not rounded.
+  change is noise, so it counts as unchanged.
+- The change is rounded to one decimal before the comparison, as the tiles show it. Thus a change
+  that the tile shows as +1,0 counts at a threshold of 1, and a change that the tile shows as ±0
+  counts as unchanged, also at "Enhver ændring". The values come from counts, so a change of
+  exactly one point can be 0.9999999999999991 before the rounding.
 - The threshold is in percentage points, not relative to the value as in the issue and the
   prototype. All measures are shares in percent, and the tiles show their changes in points. A
   relative threshold of 1 % of a share of 45 % is only 0.45 points, so the headline said "worse"
@@ -1106,7 +1110,13 @@ has, so it adds no query.
   `m=punctuality,cancelled`, and `t` is the threshold. `PeriodFilter` reads them, so the links and
   the form of the filter bar keep them. The checkboxes send `m[]`, and the page redirects to the
   list with commas, as for other values that are not canonical. An unknown measure is left out.
-  No valid measure, or an invalid threshold, gives the default.
+  No valid measure, or an invalid threshold, gives the default. A form with no selected measure
+  thus gives the punctuality, and the hint "Mindst ét mål skal indgå." tells the user this rule.
+  The value of `m` can be a text or a list, so `MapQueryParameter` cannot read it. The controller
+  gives the value to `PeriodFilter::fromQuery()`, which checks its type.
+- A selected measure with no value gives no sentence, also when the other measures have values.
+  This is the rule of the issue and the prototype: the headline must not hide a measure that the
+  user selected.
 - The punctuality page does not read `m` and `t`. It redirects a query with them to the query
   with no settings.
 

@@ -39,10 +39,13 @@ final readonly class ConclusionCalculator
     /**
      * Gives better, worse or unchanged for the values of a measure in percent. The change is in
      * percentage points, the unit of the changes on the tiles.
+     *
+     * The change is rounded to one decimal, as the tiles show it. Thus the conclusion agrees with
+     * the tiles, and a change of exactly one point from counts (0.9999999999999991) is one point.
      */
     public static function compare(ConclusionMeasure $measure, float $now, float $before, ConclusionThreshold $threshold): ConclusionTone
     {
-        $change = $now - $before;
+        $change = round($now - $before, 1);
         if (0.0 === $change || abs($change) < $threshold->points()) {
             return ConclusionTone::Unchanged;
         }

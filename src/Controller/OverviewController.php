@@ -48,10 +48,9 @@ final class OverviewController extends AbstractController
         #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
         ?string $t = null,
     ): Response {
-        // The measures of the conclusion are a list with commas in a link, and a list from the
-        // checkboxes of the form.
-        $m = $request->query->all()['m'] ?? null;
-        $selection = $periods->select($p, $d, $c, $s, \is_string($m) || \is_array($m) ? $m : null, $t);
+        // The measures of the conclusion are a text in a link, and a list from the form, so
+        // MapQueryParameter cannot read them. The filter checks the value.
+        $selection = $periods->select($p, $d, $c, $s, $request->query->all()['m'] ?? null, $t);
         if (!$selection->filter->isCanonical($request->query->all())) {
             return $this->redirectToRoute('overview', $selection->filter->query());
         }
