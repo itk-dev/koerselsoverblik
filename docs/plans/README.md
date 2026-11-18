@@ -63,7 +63,6 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Filter the pages by period, comparison and supplier (parent issue) | In progress | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | – | [filters.md](filters.md) |
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
 
@@ -71,7 +70,6 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the uploaded dates and clear the driving data of a date | Ready | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – | [clear-dates.md](clear-dates.md) |
 | Show the imported stop rows and rejected rows of a date range | Ready | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – | [driving-data-view.md](driving-data-view.md) |
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
@@ -154,4 +152,6 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Compare the delays of the months as shares | [#104](https://github.com/itk-dev/koerselsoverblik/issues/104) | [#145](https://github.com/itk-dev/koerselsoverblik/pull/145) |
 | Fix the month chooser, the chart labels and the number format | [#105](https://github.com/itk-dev/koerselsoverblik/issues/105) | [#146](https://github.com/itk-dev/koerselsoverblik/pull/146) |
 | Show the ignored sub-agreements on the punctuality page | [#99](https://github.com/itk-dev/koerselsoverblik/issues/99) | [#147](https://github.com/itk-dev/koerselsoverblik/pull/147) |
-| Show the conclusion on the overview | [#122](https://github.com/itk-dev/koerselsoverblik/issues/122) | – |
+| Show the conclusion on the overview | [#122](https://github.com/itk-dev/koerselsoverblik/issues/122) | [#148](https://github.com/itk-dev/koerselsoverblik/pull/148) |
+| Filter the pages by period, comparison and supplier (parent issue) | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | – |
+| Show the uploaded dates and clear the driving data of a date | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – |

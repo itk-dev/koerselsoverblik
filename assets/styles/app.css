@@ -393,6 +393,49 @@ body {
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
+/* The uploaded dates of one month, below the upload form. */
+.uploaded-dates {
+  margin-top: var(--itkaarhus-space-7);
+}
+.uploaded-dates__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itkaarhus-space-3);
+  margin-bottom: var(--itkaarhus-space-4);
+}
+.uploaded-dates__head h2 {
+  margin: 0;
+}
+/* The confirmation of a clear: the native popover opens it in the middle of the top layer. */
+.clear-pop {
+  width: min(420px, calc(100vw - 2 * var(--itkaarhus-space-4)));
+  padding: var(--itkaarhus-space-5);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-3);
+  box-shadow: var(--itkaarhus-shadow-3);
+  background: var(--surface);
+  color: var(--itkaarhus-gray-900);
+  text-align: left;
+  white-space: normal;
+}
+.clear-pop::backdrop {
+  background: color-mix(in srgb, var(--itkaarhus-gray-900) 45%, transparent);
+}
+.clear-pop__title {
+  margin: 0 0 var(--itkaarhus-space-3);
+  font-size: var(--itkaarhus-text-lg);
+}
+.clear-pop p {
+  margin: 0 0 var(--itkaarhus-space-5);
+  color: var(--itkaarhus-gray-700);
+}
+.clear-pop__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--itkaarhus-space-2);
+}
 
 /*
  * -- Figures and charts ----------------------------------------
@@ -1111,6 +1154,8 @@ body {
 
 .table-wrap {
   overflow-x: auto;
+  /* An absolute child, for example an .sr-only label, then stays in the scroll box. */
+  position: relative;
 }
 .data-table {
   min-width: 560px;

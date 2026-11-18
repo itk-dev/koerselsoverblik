@@ -30,7 +30,7 @@ changes of the driving data never overlap.
   changes no data, so it takes no lock.
 - When the lock is taken, stop at once with a clear message. Do not wait. The upload page shows
   the message in Danish, and the console command shows it in English.
-- Let the clear of a date (#81) take the same lock, if #81 is merged first.
+- Let the clear of the driving data (`DrivingDataClearer`, #81) take the same lock.
 - Let `app:driving-data:rebuild-totals` (#136) take the same lock. The command deletes and builds
   all totals in one transaction. An import at the same time can break the unique index of the
   totals, or wait for a lock of the database.

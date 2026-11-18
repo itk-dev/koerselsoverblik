@@ -84,10 +84,34 @@ class StopRowRepository extends ServiceEntityRepository
     }
 
     /**
+     * Gives the number of stop rows of each date in the range, from all mappings. A date with no
+     * stop rows is not in the result.
+     *
+     * @return array<string, int> the counts in the order of the date, keyed by the date as Y-m-d
+     */
+    public function countByDate(DateRangeDto $range): array
+    {
+        $builder = $this->createQueryBuilder('row')
+            ->select('row.serviceDate AS serviceDate', 'COUNT(row.id) AS count')
+            ->groupBy('row.serviceDate')
+            ->orderBy('row.serviceDate');
+
+        /** @var list<array{serviceDate: \DateTimeImmutable, count: int|string}> $rows */
+        $rows = $this->inRange($builder, $range)->getQuery()->getArrayResult();
+        $counts = [];
+        foreach ($rows as $row) {
+            // MariaDB can give a count as text.
+            $counts[$row['serviceDate']->format('Y-m-d')] = (int) $row['count'];
+        }
+
+        return $counts;
+    }
+
+    /**
      * Limits the query to the stop rows in the range. The count, the ids, the delete and the
      * counters use the same condition, so they cannot differ.
      */
-    private function inRange(QueryBuilder $builder, ImportRangeDto $range): QueryBuilder
+    private function inRange(QueryBuilder $builder, ImportRangeDto|DateRangeDto $range): QueryBuilder
     {
         return $builder
             ->where('row.serviceDate BETWEEN :first AND :last')

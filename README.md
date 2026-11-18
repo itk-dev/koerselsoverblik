@@ -263,17 +263,31 @@ because the import would only delete data. The command does not delete the file.
 
 1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`).
 2. Find the date in the list of uploaded dates. Use the previous and next month links.
-3. Check the number of stop rows and route runs for the date.
-4. Select **Clear**, and confirm.
+3. Check the number of stop rows, route runs and rejected rows for the date.
+4. Select **Ryd**, and then **Ryd datoen**.
 
-This deletes the uploaded driving data and the calculated figures for the date. The daily
-counts of mails, complaints and phone calls do not change. You cannot undo this.
+This deletes the stop rows, the route runs and the rejected rows of the date, and the figures
+that are calculated from them. The records of the uploads and the daily counts of mails,
+complaints and phone calls do not change. You cannot undo this. The
+[driving data log](#driving-data-log) records each clear.
+
+The list has the dates with stop rows or rejected rows. A rejected row with no date is deleted
+only when the clear includes the whole range of its upload, because the date of the row is not
+known. The page clears one date, so to delete such a row of an upload of more than one date, clear
+the range of the upload from the command line.
+
+The confirmation shows the counts from the time when the page was loaded. The message after the
+clear shows the deleted counts.
 
 To clear a date range, use the command line:
 
 ```shell
 task console -- app:driving-data:clear <FROM_DATE> <TO_DATE>
 ```
+
+The command shows the counts, and asks for confirmation unless `--no-interaction` is given. The
+default answer is no. The dates have the format `YYYY-MM-DD`. The range has a maximum of
+`APP_DRIVING_DATA_MAX_DAYS` days.
 
 ### Import mappings
 
@@ -486,6 +500,20 @@ Each login is written to `var/log/openid_connect_audit.<APP_ENV>.log`, for examp
 
 The log holds personal data (emails and IP addresses). Its retention follows the staff data
 decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
+
+### Driving data log
+
+Each [clear of driving data](#clear-driving-data) is written to
+`var/log/driving_data_audit.<APP_ENV>.log`, with the user, the date range and the deleted counts.
+For example:
+
+```text
+admin@example.com cleared the driving data from 2026-01-05 to 2026-01-05: 14 stop rows, 4 route runs and 0 rejected rows
+```
+
+A clear from the command line has the user `console`. The log has no values from the extract.
+It holds the emails of the staff, so its retention follows the same decision as the
+authentication log.
 
 ## Data and privacy
 

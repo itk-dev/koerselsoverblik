@@ -1,0 +1,76 @@
+{% import 'admin/import/_macros.html.twig' as upload_macros %}
+{# The dates of one month with driving data. Each date has a native popover with the clear form, so no script is necessary. #}
+<section class="uploaded-dates" aria-labelledby="uploaded-dates-title">
+    <div class="uploaded-dates__head">
+        <h2 id="uploaded-dates-title">{{ 'upload.dates.title'|trans }}</h2>
+        <div class="stepper">
+            {% if isFirstMonth %}
+                <span class="stepper__btn is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
+            {% else %}
+                <a class="stepper__btn" href="{{ path('admin_import', {month: month.previous.query}) }}" aria-label="{{ 'upload.dates.previous'|trans }}" data-test="previous-month">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+            {% endif %}
+            {# The year is text, so that ICU does not format it as a number. #}
+            <span class="stepper__label" data-test="month">{{ 'period.month'|trans({month: ('month.long.' ~ month.number)|trans, year: month.year ~ ''}) }}</span>
+            {% if isCurrentMonth %}
+                <span class="stepper__btn is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
+            {% else %}
+                <a class="stepper__btn" href="{{ path('admin_import', {month: month.next.query}) }}" aria-label="{{ 'upload.dates.next'|trans }}" data-test="next-month">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if dates is empty %}
+        <p data-test="no-dates">{{ 'upload.dates.none'|trans }}</p>
+    {% else %}
+        <div class="table-wrap">
+            <table class="itkaarhus-table data-table" data-test="uploaded-dates">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ 'upload.dates.date'|trans }}</th>
+                        <th scope="col" class="num">{{ 'upload.dates.stop_rows'|trans }}</th>
+                        <th scope="col" class="num">{{ 'upload.dates.route_runs'|trans }}</th>
+                        <th scope="col" class="num">{{ 'upload.dates.rejected_rows'|trans }}</th>
+                        <th scope="col">{{ 'upload.dates.file'|trans }}</th>
+                        <th scope="col">{{ 'upload.dates.by'|trans }}</th>
+                        <th scope="col">{{ 'upload.dates.uploaded_at'|trans }}</th>
+                        <th scope="col"><span class="sr-only">{{ 'common.actions'|trans }}</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for date in dates %}
+                        {% set key = date.date|date('Y-m-d') %}
+                        {% set label = upload_macros.date(date.date) %}
+                        {% set upload = date.lastUpload %}
+                        <tr data-test="uploaded-date">
+                            <td>{{ label }}</td>
+                            <td class="num">{{ date.stopRows|number_format }}</td>
+                            <td class="num">{{ date.routeRuns|number_format }}</td>
+                            <td class="num">{{ date.rejectedRows|number_format }}</td>
+                            {% if upload %}
+                                <td>{{ upload.fileName }}</td>
+                                {# A console upload has no user. So has an upload of a deleted user. #}
+                                <td>{{ upload.uploadedBy ? upload.uploadedBy.userIdentifier : 'upload.dates.console'|trans }}</td>
+                                <td>{{ upload_macros.date(upload.uploadedAt) }} {{ 'upload.dates.at'|trans }} {{ upload.uploadedAt|date('H:i') }}</td>
+                            {% else %}
+                                <td colspan="3">–</td>
+                            {% endif %}
+                            <td class="actions">
+                                <button type="button" class="itkaarhus-btn itkaarhus-btn--danger itkaarhus-btn--sm" popovertarget="clear-{{ key }}" aria-label="{{ 'upload.clear.title'|trans({date: label}) }}" data-test="clear-open">{{ 'upload.clear.open'|trans }}</button>
+                                <div id="clear-{{ key }}" class="clear-pop" popover role="dialog" aria-labelledby="clear-{{ key }}-title">
+                                    <h3 id="clear-{{ key }}-title" class="clear-pop__title" data-test="clear-title">{{ 'upload.clear.title'|trans({date: label}) }}</h3>
+                                    {# The counts are from the load of the page. The message after the clear has the deleted counts. #}
+                                    <p data-test="clear-text">{{ 'upload.clear.text'|trans({stopRows: date.stopRows, routeRuns: date.routeRuns, rejectedRows: date.rejectedRows}) }}</p>
+                                    <form class="clear-pop__buttons" method="post" action="{{ path('admin_import_clear', {date: key}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('clear-' ~ key) }}">
+                                        <button type="button" class="itkaarhus-btn itkaarhus-btn--secondary itkaarhus-btn--sm" popovertarget="clear-{{ key }}" popovertargetaction="hide" autofocus data-test="clear-cancel">{{ 'common.cancel'|trans }}</button>
+                                        <button type="submit" class="itkaarhus-btn itkaarhus-btn--danger itkaarhus-btn--sm" data-test="clear-confirm">{{ 'upload.clear.confirm'|trans }}</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</section>

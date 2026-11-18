@@ -796,19 +796,38 @@ file for the same range, or clear the dates.
 
 ### Clearing driving data
 
-The upload page lists the uploaded dates, one month at a time. Each date shows the number of stop
-rows and route runs, and the last upload (file name, who, when). Users with
-`ROLE_MANAGE_DRIVING_DATA` can delete the driving data for a date, for example after a wrong
-upload.
+The upload page lists the dates with stop rows or rejected rows, one month at a time
+(`?month=YYYY-MM`). A month that is not valid or that is after the current month gives the current
+month. The month links stop at the current month and at the month of the first `ImportBatch`. A
+clear keeps the batches, so no driving data is before that month. `UploadedDates` reads each list
+in four queries: the stop rows, the route runs and the rejected rows of each date, and the batches
+that overlap the month. Each date shows the counts and the last upload (file name, who, when). The
+last upload is the newest batch whose range has the date, because an import replaces all dates of
+its range. A batch with no user shows "konsol": a console upload, or an upload of a deleted user.
 
-1. The user selects **Clear** for a date.
-2. The user confirms.
-3. `DrivingDataClearer` deletes `StopRow`, `RouteRun`, `RouteDayTotals` and `LocationDayTotals`
-   for the date in one transaction. `DailyCount` does not change.
-4. The application logs who cleared which date, and the deleted counts. The log has no field
-   values.
+Users with `ROLE_MANAGE_DRIVING_DATA` can delete the driving data for a date, for example after a
+wrong upload.
 
-`app:driving-data:clear <FROM> <TO>` uses the same service to clear a date range.
+1. The user selects **Ryd** for a date. A native popover shows the counts and the form, so no
+   script is necessary.
+2. The user confirms. The form is a POST with a CSRF token for the date.
+3. `DrivingDataClearer` runs these steps in one transaction. The counts come from the deletes, so
+   they are exact also when another change runs at the same time.
+   - `StopRowRangeDeleter` deletes the `StopRow` and `RejectedStopRow` rows of the date, and their
+     `SourceRow` copies. A rejected row with no date belongs to the range when the whole range of
+     its batch is in the range, as for an import. The page clears one date, so such a row of a
+     batch of more than one date needs the command.
+   - It deletes the `RouteRun`, `RouteDayTotals` and `LocationDayTotals` rows of the date.
+   - `MonthCitizensBuilder` builds the `MonthCitizens` rows of the month again.
+4. After the commit, the clearer writes who cleared which range, and the deleted counts, to the
+   `driving_data_audit` log channel. The channel has its own file, so the error threshold of the
+   other handlers does not discard it. The log has no field values.
+
+The `ImportBatch` rows stay, so the history of the uploads stays complete. `DailyCount` does not
+change. A failure partway leaves the data as it was.
+
+`app:driving-data:clear <FROM> <TO>` uses the same service to clear a date range. It shows the
+counts, and asks for confirmation. The range has a maximum of `APP_DRIVING_DATA_MAX_DAYS` days.
 
 ## Calculating the figures
 

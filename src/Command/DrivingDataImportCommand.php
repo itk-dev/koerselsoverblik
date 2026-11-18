@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Clock\IsoDate;
 use App\Import\DrivingDataImporter;
 use App\Import\Extract\InvalidExtractException;
 use App\Import\Extract\MissingColumnsException;
@@ -51,13 +52,13 @@ final readonly class DrivingDataImportCommand
         #[Option('The name of the import mapping. The default is the value of APP_DRIVING_DATA_MAPPING')]
         ?string $mapping = null,
     ): int {
-        $firstDate = self::date($fromDate);
+        $firstDate = IsoDate::parse($fromDate);
         if (null === $firstDate) {
             $io->error('The first date must be a valid date as YYYY-MM-DD.');
 
             return Command::INVALID;
         }
-        $lastDate = self::date($toDate);
+        $lastDate = IsoDate::parse($toDate);
         if (null === $lastDate) {
             $io->error('The last date must be a valid date as YYYY-MM-DD.');
 
@@ -135,15 +136,5 @@ final readonly class DrivingDataImportCommand
         RejectionGroupsTable::show($io, 'Rejected rows', $preview->summary->rejections);
         // A bad value in an optional field. The field is empty, and the row is imported.
         RejectionGroupsTable::show($io, 'Warnings', $preview->summary->warnings);
-    }
-
-    /**
-     * Reads a date as YYYY-MM-DD. A date that does not exist, for example 2026-02-30, is not valid.
-     */
-    private static function date(string $value): ?\DateTimeImmutable
-    {
-        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-
-        return false !== $date && $date->format('Y-m-d') === $value ? $date : null;
     }
 }
