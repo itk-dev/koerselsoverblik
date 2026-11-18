@@ -55,4 +55,4 @@ jobs:
 
       - run: |
           task composer -- install
-          task test:mutation:full
+          task test:mutation:full -- --show-mutations=max
