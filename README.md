@@ -729,7 +729,16 @@ To make a release:
    Every push to the release branch deploys to staging and runs the full mutation test.
 2. Fix any problems found in testing on the release branch.
 3. Open a pull request from the release branch to `main`, and merge it once the checks pass.
-4. Create a GitHub release `<VERSION>` on `main`. This deploys to production.
+4. Push the tag `<VERSION>` on `main`. The workflow `build_release.yml` makes the GitHub release
+   with the release archive. The release deploys to production.
+
+   ```shell
+   git switch main
+   git pull
+   git tag <VERSION>
+   git push origin <VERSION>
+   ```
+
 5. Merge `main` back into `develop`.
 
 Hotfixes branch from `main` as `hotfix/<VERSION>` and follow steps 3–5.
@@ -743,14 +752,29 @@ Deployment runs on [Woodpecker](https://woodpecker.itkdev.dk):
 | `.woodpecker/stg.yml` | Push to a `release/*` or `hotfix/*` branch | Staging |
 | `.woodpecker/prod.yml` | A GitHub release | Production |
 
-Each pipeline updates the code on the server and runs:
+The staging pipeline updates the `git` checkout on the server and runs:
 
 ```shell
 itkdev-docker-compose-server up -d --force-recreate
 itkdev-docker-compose-server exec phpfpm composer install --no-dev -o --classmap-authoritative
 itkdev-docker-compose-server exec phpfpm bin/console doctrine:migrations:migrate --no-interaction
+itkdev-docker-compose-server exec phpfpm bin/console asset-map:compile
 itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 ```
+
+The production pipeline uses the `release` playbook. The playbook installs the release archive
+from the GitHub release. `.github/workflows/build_release.yml` makes this archive with the
+Composer packages (no dev) and the compiled assets. Before the containers start, the pipeline runs
+the Doctrine migrations and `cache:clear`.
+
+[Supercronic](https://github.com/itk-dev/documentation/blob/main/docs/web/server/supercronic.md)
+runs the cron jobs in `crontab` in the phpfpm container:
+
+- `app:driving-data:purge-uploads` every 15 minutes. It deletes the upload files that nobody
+  confirmed.
+- `app:driving-data:delete-orphan-copies` each night. It deletes the copies of the imported rows
+  that have no row. Two imports of the same dates that overlap can leave such copies, and they
+  hold personal data.
 
 Each import builds the totals of each route and day of its range, the totals of each location
 and day, and the citizens of its months. Build them for all dates again in these cases:
@@ -791,20 +815,7 @@ To set up a new server:
    back, and no data changed. Then raise `PHP_MAX_EXECUTION_TIME` and `PHP_MEMORY_LIMIT` in
    `docker-compose.server.override.yml`.
 1. Deploy.
-1. Add a cron job that deletes the upload files that nobody confirmed. Run it every 15 minutes:
-
-   ```shell
-   */15 * * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:purge-uploads --quiet
-   ```
-
-1. Add a cron job that deletes the copies of the imported rows that have no row. Two imports of
-   the same dates that overlap can leave such copies, and they hold personal data. Run it each
-   night:
-
-   ```shell
-   30 2 * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:delete-orphan-copies --quiet
-   ```
-
+1. Tell DevOps to collect the Supercronic metrics from `https://<SITE>/cron-metrics`.
 1. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
 1. Make sure that the administrator can sign in.
 

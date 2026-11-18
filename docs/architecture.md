@@ -1409,16 +1409,20 @@ The tests and the local site use generated extracts. No real extract is committe
 **Pipelines:** Woodpecker deploys with `itkdev/ansible-plugin`:
 
 - a push to `release/*` or `hotfix/*` deploys to staging
-- a GitHub release on `main` deploys to production
+- a tag on `main` makes a GitHub release with a release archive, and the release deploys to
+  production
 
-**Deploy steps:** each deploy updates the code and runs `composer install --no-dev`, the
-Doctrine migrations and `cache:clear` in the server's phpfpm container.
+**Deploy steps:** staging updates the `git` checkout and runs `composer install --no-dev`, the
+Doctrine migrations, `asset-map:compile` and `cache:clear` in the server's phpfpm container.
+Production installs the release archive, which has the Composer packages and the compiled assets,
+and runs the Doctrine migrations and `cache:clear`.
 
 **Configuration:** server configuration lives in `.env.local` on the server. Woodpecker secrets
 hold the connection details.
 
-**Cron:** a cron job on the server runs `app:driving-data:purge-uploads` every 15 minutes in the
-phpfpm container. A second cron job runs `app:driving-data:delete-orphan-copies` each night.
+**Cron:** Supercronic runs the jobs in `crontab` in the phpfpm container.
+`app:driving-data:purge-uploads` runs every 15 minutes, and `app:driving-data:delete-orphan-copies`
+runs each night.
 
 **CI:** GitHub Actions runs coding standards, PHPStan, Rector and the tests with no coverage on every
 pull request. A separate job runs the `fixtures` group. The release and hotfix branches also run the

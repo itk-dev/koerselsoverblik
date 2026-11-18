@@ -432,6 +432,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   popover. The month links stop at the month of the first batch. The components diagram keeps the
   `DailyCount` controller and the `DailyCountWeek` form, because the docs describe the daily counts
   as a planned feature.
+- Deployment: Woodpecker pipelines for staging and production, a workflow that makes the release
+  archive from a tag, and a `crontab` for Supercronic. One migration replaces all migrations.
 
 [Unreleased]: https://github.com/itk-dev/koerselsoverblik/compare/0.1.0...HEAD
 [0.1.0]: https://github.com/itk-dev/koerselsoverblik/releases/tag/0.1.0
