@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-18
+
 - [#5](https://github.com/itk-dev/koerselsoverblik/issues/5)
   M1-01 Project skeleton: Symfony 8 on the ITK Dev `symfony-8` template, Doctrine ORM with
   MariaDB, Taskfile tasks, coding standards and PHPStan.
@@ -430,3 +432,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   popover. The month links stop at the month of the first batch. The components diagram keeps the
   `DailyCount` controller and the `DailyCountWeek` form, because the docs describe the daily counts
   as a planned feature.
+
+[Unreleased]: https://github.com/itk-dev/koerselsoverblik/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/itk-dev/koerselsoverblik/releases/tag/0.1.0
