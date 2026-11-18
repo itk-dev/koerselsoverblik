@@ -749,7 +749,7 @@ Deployment runs on [Woodpecker](https://woodpecker.itkdev.dk):
 
 | Pipeline | Trigger | Target |
 | --- | --- | --- |
-| `.woodpecker/stg.yml` | Push to a `release/*` or `hotfix/*` branch | Staging |
+| `.woodpecker/stg.yml` | Push to a `release/*` branch | Staging |
 | `.woodpecker/prod.yml` | A GitHub release | Production |
 
 The staging pipeline updates the `git` checkout on the server and runs:

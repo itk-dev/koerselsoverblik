@@ -1408,7 +1408,7 @@ The tests and the local site use generated extracts. No real extract is committe
 
 **Pipelines:** Woodpecker deploys with `itkdev/ansible-plugin`:
 
-- a push to `release/*` or `hotfix/*` deploys to staging
+- a push to `release/*` deploys to staging
 - a tag on `main` makes a GitHub release with a release archive, and the release deploys to
   production
 

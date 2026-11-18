@@ -1,8 +1,6 @@
 when:
   - branch: release/*
     event: push
-  - branch: hotfix/*
-    event: push
 
 skip_clone: true
 
