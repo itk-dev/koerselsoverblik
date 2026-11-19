@@ -1183,8 +1183,10 @@ flowchart TD
 - An anonymous user is sent to the bundle's login route under `/openidconnect`, and from there
   to the identity provider. After the login, the
   identity provider sends the user back to the callback route, `/openid-connect/generic`.
-- At each login, `OidcRoleMapper` reads the role claim (`OIDC_ROLE_CLAIM`). It keeps the values
-  that are `ROLE_ADMIN` or a permission role, and ignores the rest. The `User` is created or
+- At each login, `OidcRoleMapper` reads the role claim (`OIDC_ROLE_CLAIM`). The role map
+  (`OIDC_ROLE_MAP`) changes each app role value of Entra ID to a role, for example `admin` to
+  `ROLE_ADMIN`. The mapper keeps the roles that are `ROLE_ADMIN` or a permission role. It ignores
+  the rest, and logs the ignored values as a warning. The `User` is created or
   updated with these roles.
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
@@ -1199,7 +1201,7 @@ flowchart TD
   IP address and the reason. A login that fails in the identity provider does not come back to
   the application, so it is not in this log. `OidcLogin` adds a record with the email and the
   roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
-  `var/log/openid_connect_audit.<APP_ENV>.log`.
+  stderr. The application writes no log files.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**

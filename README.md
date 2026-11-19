@@ -125,8 +125,17 @@ Each part of the application has its own permission role:
 permission roles let us give narrower access later without code changes.
 
 The identity provider gives the roles. It sends them in a claim (`OIDC_ROLE_CLAIM`), and the
-application copies them to the user at each login. Values that are not `ROLE_ADMIN` or a
-permission role are ignored. A user with no known role can sign in, but cannot open any page.
+application copies them to the user at each login. The role map (`OIDC_ROLE_MAP`) changes the
+app role values of Entra ID to roles:
+
+| Entra ID app role | Value | Role |
+| --- | --- | --- |
+| Superadministrator | `admin` | `ROLE_ADMIN` |
+| Slutbruger | `user` | `ROLE_VIEW_OVERVIEW` |
+
+Values that are not `ROLE_ADMIN` or a permission role after the map are ignored, and logged as a
+warning in the authentication log. A user with no known role can sign in, but cannot open any
+page.
 
 Every page requires a permission role. Anonymous users are sent to the identity provider.
 
@@ -193,6 +202,7 @@ Set these in `.env.local`:
 | `OIDC_CLIENT_SECRET_EXPIRES_AT` | The date the client secret expires, for example `2027-01-31`. A login logs a warning 30 days before, and a critical error after the date. Empty means not monitored, and each login logs an error | Empty |
 | `OIDC_REDIRECT_URI` | The callback URL of the application, `https://<HOST>/openid-connect/generic`, registered in the identity provider | The local callback URL |
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
+| `OIDC_ROLE_MAP` | A JSON object that changes a value in the role claim to a role. A value that is not in the map stays as it is | `{"admin": "ROLE_ADMIN", "user": "ROLE_VIEW_OVERVIEW"}` |
 | `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |
 | `TRUSTED_PROXIES` | The proxies whose `X-Forwarded-*` headers are trusted, so that URLs use https behind Traefik | `127.0.0.1,REMOTE_ADDR` |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time. After a change, run `app:driving-data:rebuild-totals` (see [Deployment](#deployment)) | `5` |
@@ -489,8 +499,8 @@ A user is created in the application at the first login. The application has no 
 
 ### Authentication log
 
-Each login is written to `var/log/openid_connect_audit.<APP_ENV>.log`, for example
-`var/log/openid_connect_audit.prod.log`:
+Each login is written to stderr, in the `openid_connect_audit` channel. Read it in the log of the
+`phpfpm` container, for example with `docker compose logs phpfpm`:
 
 - A successful login, with the email, the roles and the time. For example:
   `user foobar@example.com logged in with roles [ROLE_ADMIN] at 2026-10-28T12:00:00+01:00`.
@@ -503,8 +513,8 @@ decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
 
 ### Driving data log
 
-Each [clear of driving data](#clear-driving-data) is written to
-`var/log/driving_data_audit.<APP_ENV>.log`, with the user, the date range and the deleted counts.
+Each [clear of driving data](#clear-driving-data) is written to stderr, in the
+`driving_data_audit` channel, with the user, the date range and the deleted counts.
 For example:
 
 ```text
