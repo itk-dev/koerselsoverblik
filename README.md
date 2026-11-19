@@ -283,6 +283,9 @@ enter a range. Empty dates before the first or after the last date with rows do 
 - The files are imported in the order of the list. If two files have the same dates, the last
   file replaces the data of the first file.
 - A file that fails does not stop the other files.
+- A file with no data rows, for example a file of 0 bytes, gets "Sprunget over" (skipped). A file
+  with data rows that are all rejected gets "Fejlet" (failed). To see the reasons, upload it on the
+  tab **Én fil**.
 
 ### Clear driving data
 

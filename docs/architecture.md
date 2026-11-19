@@ -768,8 +768,9 @@ so that a reload never uploads or imports again:
 
 1. `POST /admin/import`: `ImportType` checks the file (`.xlsx`, `APP_DRIVING_DATA_MAX_FILE_SIZE`)
    and the date range (`ValidImportRange`). `UploadStore` saves the file with a random name in
-   `var/uploads/driving_data/`, and keeps a `PendingUploadDto` in the session under a random
-   token. The page redirects to the preview.
+   `var/uploads/<APP_ENV>/driving_data/`, and keeps a `PendingUploadDto` in the session under a
+   random token. Each environment has its own folder, so that the tests do not delete the uploads
+   of dev. The page redirects to the preview.
 2. `GET /admin/import/preview/{token}`: the preview. A file with no stop rows in the range has no
    confirm button. `DrivingDataImporter::import()` also refuses such a file with
    `NoStopRowsException`, and rolls back the delete of the range. Thus a direct POST to the
