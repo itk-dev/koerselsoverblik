@@ -112,6 +112,8 @@ final class ConclusionCalculatorTest extends TestCase
     public static function noComparisons(): iterable
     {
         yield 'no comparison period' => ['punctuality', self::SAME, null];
+        yield 'no comparison period of the real solo runs' => ['solo', self::SAME, null];
+        yield 'no comparison period of the cancelled trips' => ['cancelled', self::SAME, null];
         yield 'no measured runs before' => ['punctuality', self::SAME, ['punctuality' => [0, 0]] + self::SAME];
         yield 'no solo runs before' => ['solo', self::SAME, ['solo' => [0, 0]] + self::SAME];
         yield 'no trips before' => ['cancelled', self::SAME, ['cancelled' => [0, 0]] + self::SAME];

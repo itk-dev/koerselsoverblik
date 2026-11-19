@@ -114,6 +114,8 @@ final class PeriodRangeFactoryTest extends TestCase
         // The cut counts from the first date of the period. 1–10 June compares with 1–10 May, which is before the data.
         yield 'cut comparison before the data' => [[], '2026-05-18/2026-05-31', null, false, '2026-06-10', self::DATA_START];
         // 1–25 June compares with 1–25 May. Only 18–25 May has data.
+        // 1–18 June compares with 1–18 May. Only 18 May has data.
+        yield 'cut comparison of one day' => [[], '2026-05-18/2026-05-31', '2026-05-18/2026-05-18', true, '2026-06-18', self::DATA_START];
         yield 'cut comparison after the start of the data' => [[], '2026-05-18/2026-05-31', '2026-05-18/2026-05-25', true, '2026-06-25', self::DATA_START];
     }
 
@@ -125,16 +127,16 @@ final class PeriodRangeFactoryTest extends TestCase
      * @param array<string, string> $query
      */
     #[DataProvider('steps')]
-    public function testPreviousAndNextPeriod(array $query, ?string $previous, ?string $next, string $start = ''): void
+    public function testPreviousAndNextPeriod(array $query, ?string $previous, ?string $next, string $start = '', string $today = self::TODAY): void
     {
-        $selection = self::select($query, self::TODAY, $start);
+        $selection = self::select($query, $today, $start);
 
         self::assertSame($previous, $selection->previousAnchor?->format('Y-m-d'));
         self::assertSame($next, $selection->nextAnchor?->format('Y-m-d'));
     }
 
     /**
-     * @return iterable<string, array{0: array<string, string>, 1: ?string, 2: ?string, 3?: string}>
+     * @return iterable<string, array{0: array<string, string>, 1: ?string, 2: ?string, 3?: string, 4?: string}>
      */
     public static function steps(): iterable
     {
@@ -150,6 +152,8 @@ final class PeriodRangeFactoryTest extends TestCase
         yield 'first month of the data' => [['d' => '2026-05-25'], null, '2026-06-01', self::DATA_START];
         yield 'month after the first month' => [['d' => '2026-06-10'], '2026-05-01', '2026-07-01', self::DATA_START];
         yield 'first week of the data' => [['p' => 'week', 'd' => '2026-05-20'], null, '2026-05-25', self::DATA_START];
+        // The next period starts today, so it has a link.
+        yield 'next month starts today' => [['d' => '2026-08-20'], '2026-07-01', '2026-09-01', '', '2026-09-01'];
     }
 
     /**
