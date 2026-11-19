@@ -69,7 +69,7 @@ final readonly class RouteDayTotalsBuilder
             $this->routeRuns->countDayTotals($range, $onTimeSeconds, self::UP_TO_15_SECONDS, self::UP_TO_30_SECONDS),
         );
         foreach ($parts as $part) {
-            $key = $part['route'].'|'.$part['serviceDate']->format('Y-m-d');
+            $key = implode('|', [$part['route'], $part['serviceDate']->format('Y-m-d')]);
             // A route and date has one part from the stops and one from the runs.
             $days[$key] = [
                 'route' => $part['route'],
@@ -78,31 +78,27 @@ final readonly class RouteDayTotalsBuilder
             ];
         }
 
-        /** @var list<RouteDayTotals> $written the rows since the last flush */
-        $written = [];
-        foreach ($days as $day) {
-            /** @var Route $route a stop row or a route run refers to the route, so the route exists */
-            $route = $this->entityManager->getReference(Route::class, $day['route']);
-            $written[] = new RouteDayTotals($route, $day['serviceDate'], $this->toleranceMinutes, $day['totals']);
-            if (\count($written) >= self::GROUP_SIZE) {
-                $this->write($written);
-                $written = [];
-            }
+        foreach (array_chunk($days, self::GROUP_SIZE) as $group) {
+            $this->write($group);
         }
-        $this->write($written);
 
         return \count($days);
     }
 
     /**
-     * Saves the rows, and then the entity manager forgets them. The routes stay managed.
+     * Saves the rows of a group, and then the entity manager forgets them. The routes stay managed.
      *
-     * @param list<RouteDayTotals> $rows
+     * @param list<array{route: int, serviceDate: \DateTimeImmutable, totals: DayTotalsDto}> $days
      */
-    private function write(array $rows): void
+    private function write(array $days): void
     {
-        foreach ($rows as $row) {
+        $rows = [];
+        foreach ($days as $day) {
+            /** @var Route $route a stop row or a route run refers to the route, so the route exists */
+            $route = $this->entityManager->getReference(Route::class, $day['route']);
+            $row = new RouteDayTotals($route, $day['serviceDate'], $this->toleranceMinutes, $day['totals']);
             $this->entityManager->persist($row);
+            $rows[] = $row;
         }
         $this->entityManager->flush();
         foreach ($rows as $row) {

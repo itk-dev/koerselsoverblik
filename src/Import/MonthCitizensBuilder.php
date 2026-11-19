@@ -32,17 +32,15 @@ final readonly class MonthCitizensBuilder
 
     /**
      * Builds the full months of the range: from the first day of the month of the first date to
-     * the last day of the month of the last date.
-     *
-     * @param ?list<?int> $scopes the supplier ids to build, with null for all suppliers, or null to build all scopes
+     * the last day of the month of the last date. It builds all scopes.
      */
-    public function rebuild(DateRangeDto $range, ?array $scopes = null): void
+    public function rebuild(DateRangeDto $range): void
     {
         $months = DateRangeDto::create(
             $range->firstDate->modify('first day of this month'),
             $range->lastDate->modify('last day of this month'),
         );
-        foreach ($scopes ?? $this->allScopes() as $supplierId) {
+        foreach ($this->allScopes() as $supplierId) {
             $this->months->deleteMonths($months, $supplierId);
             $this->write($months, $supplierId);
         }
@@ -73,19 +71,14 @@ final readonly class MonthCitizensBuilder
      */
     public function rebuildAfterSubAgreementChange(bool $ignoredChanged, ?int $oldSupplierId, ?int $newSupplierId): void
     {
-        $suppliers = [];
-        if ($ignoredChanged) {
-            $suppliers[] = $newSupplierId;
-        }
-        if ($oldSupplierId !== $newSupplierId) {
-            $suppliers[] = $oldSupplierId;
-            $suppliers[] = $newSupplierId;
-        }
+        // Each supplier is in the list one time, so that no scope is built two times.
+        $suppliers = match (true) {
+            $oldSupplierId !== $newSupplierId => [$oldSupplierId, $newSupplierId],
+            $ignoredChanged => [$newSupplierId],
+            default => [],
+        };
         // A sub-agreement with no supplier has no scope of its own. Null is the scope of all suppliers.
-        $scopes = array_values(array_unique(array_filter($suppliers, static fn (?int $id): bool => null !== $id)));
-        if ($ignoredChanged) {
-            array_unshift($scopes, null);
-        }
+        $scopes = [...($ignoredChanged ? [null] : []), ...array_filter($suppliers, static fn (?int $id): bool => null !== $id)];
         if ([] !== $scopes) {
             $this->rebuildAll($scopes);
         }
@@ -96,7 +89,8 @@ final readonly class MonthCitizensBuilder
         /** @var ?Supplier $supplier the supplier exists, because its id came from the suppliers */
         $supplier = null === $supplierId ? null : $this->entityManager->getReference(Supplier::class, $supplierId);
         foreach ($this->stopRows->countCitizensByMonth($months, $supplierId) as $month => $citizens) {
-            $this->entityManager->persist(new MonthCitizens(new \DateTimeImmutable($month.'-01'), $supplier, $citizens));
+            // PHP reads a month as YYYY-MM as the first day of the month at 00:00.
+            $this->entityManager->persist(new MonthCitizens(new \DateTimeImmutable($month), $supplier, $citizens));
         }
         $this->entityManager->flush();
     }
@@ -106,6 +100,7 @@ final readonly class MonthCitizensBuilder
      */
     private function allScopes(): array
     {
-        return [null, ...array_map(static fn (Supplier $supplier): int => (int) $supplier->getId(), $this->suppliers->findAll())];
+        // A stored supplier always has an id.
+        return [null, ...array_map(static fn (Supplier $supplier): ?int => $supplier->getId(), $this->suppliers->findAll())];
     }
 }
