@@ -155,4 +155,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Show the conclusion on the overview | [#122](https://github.com/itk-dev/koerselsoverblik/issues/122) | [#148](https://github.com/itk-dev/koerselsoverblik/pull/148) |
 | Filter the pages by period, comparison and supplier (parent issue) | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | – |
 | Show the uploaded dates and clear the driving data of a date | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – |
-| Upload many extracts with drag and drop | [#153](https://github.com/itk-dev/koerselsoverblik/issues/153) | – |
+| Upload many extracts with drag and drop | [#153](https://github.com/itk-dev/koerselsoverblik/issues/153) | [#154](https://github.com/itk-dev/koerselsoverblik/pull/154) |
