@@ -30,12 +30,6 @@ final readonly class MenuLink
      */
     public function isActive(?string $currentRoute): bool
     {
-        foreach ([] === $this->sections ? [$this->route] : $this->sections as $section) {
-            if ($currentRoute === $section || str_starts_with((string) $currentRoute, $section.'_')) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any([] === $this->sections ? [$this->route] : $this->sections, fn ($section) => $currentRoute === $section || str_starts_with((string) $currentRoute, $section.'_'));
     }
 }
