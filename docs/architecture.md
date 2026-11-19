@@ -768,8 +768,9 @@ so that a reload never uploads or imports again:
 
 1. `POST /admin/import`: `ImportType` checks the file (`.xlsx`, `APP_DRIVING_DATA_MAX_FILE_SIZE`)
    and the date range (`ValidImportRange`). `UploadStore` saves the file with a random name in
-   `var/uploads/driving_data/`, and keeps a `PendingUploadDto` in the session under a random
-   token. The page redirects to the preview.
+   `var/uploads/<APP_ENV>/driving_data/`, and keeps a `PendingUploadDto` in the session under a
+   random token. Each environment has its own folder, so that the tests do not delete the uploads
+   of dev. The page redirects to the preview.
 2. `GET /admin/import/preview/{token}`: the preview. A file with no stop rows in the range has no
    confirm button. `DrivingDataImporter::import()` also refuses such a file with
    `NoStopRowsException`, and rolls back the delete of the range. Thus a direct POST to the
@@ -786,6 +787,24 @@ error deletes the file, logs a warning with no value, and shows the problem in D
 `InvalidExtractException` has an `ExtractProblem` code for the translation. The English message
 stays for the command and the logs. After a failed import, Doctrine has closed the entity
 manager, so the controller resets it.
+
+**The bulk upload** (`Admin\BulkImportController`, `ROLE_MANAGE_DRIVING_DATA`) takes many files.
+UX Dropzone (`BulkImportType`, `multiple`) takes the drop. The form is not submitted. The
+`bulk-upload` Stimulus controller sends each file in its own request, one request at a time, so
+that the request limit applies to each file:
+
+1. `POST /admin/import/bulk/check` (CSRF in the `X-CSRF-Token` header): the file is checked with
+   the constraint of `ImportType`. `DrivingDataImporter::rangeOf()` reads the first and the last
+   date with stop rows. The range has the same limit as a typed range. The preview counts the rows,
+   and `UploadStore` keeps the file under a token.
+2. `POST /admin/import/bulk/{token}` (CSRF): `UploadStore::take()`, and the same import as the
+   single upload, with its own `ImportBatch`.
+
+Each response is the HTML of the row of the file (`_bulk_row.html.twig`), with the status 200 or
+422. The controller puts the row in the list. Thus the dates, the numbers and the errors use the
+same Twig macros and translations as the single upload. `UploadFailure` gives the Danish message
+of a failure for both controllers. The import button imports the checked rows in the order of the
+list. A failed file does not stop the others.
 
 **Whole days and the date range:** a file that holds only part of a day removes the other rows of
 that day. A range that is longer than the export empties the extra dates. Users must upload whole
@@ -1306,6 +1325,8 @@ issue adds the header.
 **Rendering:**
 
 - Server-rendered Twig with AssetMapper. There is no Node build step.
+- StimulusBundle runs the Stimulus controllers in `assets/controllers/`. `assets/controllers.json`
+  enables the UX Dropzone controller and its stylesheet.
 - Styling comes from the itkaarhus design system, mapped in AssetMapper as `itkaarhus-ds`, plus
   the prototype's stylesheet ported to `assets/styles/app.css`.
 - Charts are Twig components that render inline SVG on the server. Each chart includes a hidden

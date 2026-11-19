@@ -8,10 +8,10 @@ use App\Import\Upload\UploadDto;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
-use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\File;
+use Symfony\UX\Dropzone\Form\DropzoneType;
 
 /**
  * The upload of an extract with the date range of the export.
@@ -52,18 +52,11 @@ final class ImportType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('file', FileType::class, [
+            ->add('file', DropzoneType::class, [
                 'label' => 'upload.file',
-                'help' => 'upload.file_help',
+                'placeholder' => 'upload.drop',
                 'attr' => ['accept' => '.xlsx'],
-                'constraints' => [
-                    new File(
-                        maxSize: $this->maxFileSize,
-                        extensions: ['xlsx' => self::XLSX_MIME_TYPES],
-                        extensionsMessage: 'upload.not_xlsx',
-                        maxSizeMessage: 'upload.too_large',
-                    ),
-                ],
+                'constraints' => [self::fileConstraint($this->maxFileSize)],
             ])
             ->add('firstDate', DateType::class, [
                 'label' => 'upload.first_date',
@@ -75,6 +68,21 @@ final class ImportType extends AbstractType
                 'widget' => 'single_text',
                 'input' => 'datetime_immutable',
             ]);
+    }
+
+    /**
+     * The size and the type of an extract. The bulk upload checks each file with it.
+     *
+     * @param positive-int $maxFileSize the value of APP_DRIVING_DATA_MAX_FILE_SIZE
+     */
+    public static function fileConstraint(int $maxFileSize): File
+    {
+        return new File(
+            maxSize: $maxFileSize,
+            extensions: ['xlsx' => self::XLSX_MIME_TYPES],
+            extensionsMessage: 'upload.not_xlsx',
+            maxSizeMessage: 'upload.too_large',
+        );
     }
 
     public function configureOptions(OptionsResolver $resolver): void

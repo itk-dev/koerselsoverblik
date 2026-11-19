@@ -369,6 +369,12 @@ body {
   display: grid;
   gap: var(--itkaarhus-space-4);
 }
+/* Fields side by side, for example the first and the last date of an upload. */
+.admin-form__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-4);
+}
 .admin-form__buttons,
 .actions {
   display: flex;
@@ -407,6 +413,153 @@ body {
 }
 .uploaded-dates__head h2 {
   margin: 0;
+}
+/* The bulk upload: one row for each file. The list of the controller replaces the Dropzone list. */
+.bulk-upload .dropzone-preview-list {
+  display: none;
+}
+/* The drop area of the two upload pages: large, and as wide as the form. The design system gives
+   a field a maximum width of 320px. The selectors are more specific than the Dropzone stylesheet,
+   which loads after this file. */
+.itkaarhus-field:has(> .dropzone-container) {
+  max-width: none;
+}
+.itkaarhus-field > .dropzone-container {
+  width: 100%;
+  min-height: 160px;
+  justify-content: center;
+  border-color: var(--itkaarhus-gray-500);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+}
+.dropzone-container .dropzone-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--itkaarhus-gray-700);
+}
+.bulk-upload .admin-form {
+  margin-bottom: var(--itkaarhus-space-5);
+}
+/* The counters and the import button stay below the topbar while the user scrolls the list. */
+.bulk-upload__bar {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itkaarhus-space-3);
+  margin: var(--itkaarhus-space-5) 0 var(--itkaarhus-space-3);
+  padding: var(--itkaarhus-space-3) 0;
+  border-bottom: var(--hairline);
+  background: var(--canvas);
+}
+/* The drop area takes no files during the import. The text comes from the controller. */
+.itkaarhus-field > .dropzone-container.is-busy {
+  border-style: solid;
+  border-color: var(--itkaarhus-gray-200);
+  background: var(--itkaarhus-gray-50);
+  cursor: not-allowed;
+}
+.dropzone-container.is-busy .dropzone-input {
+  cursor: not-allowed;
+}
+.dropzone-container.is-busy .dropzone-placeholder {
+  display: none;
+}
+.dropzone-container.is-busy::after {
+  content: attr(data-busy-text);
+  align-self: center;
+  color: var(--itkaarhus-gray-500);
+}
+/* The dialog at the end of the import. It uses the style of the "Om tallene" dialog. */
+.bulk-upload__done {
+  max-width: 360px;
+}
+.bulk-upload__done .bulk-upload__counts {
+  margin-bottom: var(--itkaarhus-space-4);
+}
+/* The number of files in each state, as pills on one line. */
+.bulk-upload__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+/* The rows share the columns of the list (subgrid): name, state, range and counts. */
+.bulk-upload__list {
+  display: grid;
+  grid-template-columns: max-content max-content max-content 1fr;
+  gap: var(--itkaarhus-space-2);
+  margin: 0 0 var(--itkaarhus-space-5);
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.bulk-upload__file {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  column-gap: var(--itkaarhus-space-4);
+  padding: var(--itkaarhus-space-2) var(--itkaarhus-space-3);
+  border: var(--hairline);
+  border-left: 4px solid var(--itkaarhus-gray-200);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+  /* The scroll of the import keeps the row below the topbar and the sticky bar, and about one row
+     above the bottom of the window. */
+  scroll-margin-top: calc(var(--topbar-h) + 4rem);
+  scroll-margin-bottom: 4rem;
+}
+/* The file name is the heading of the row. The other columns are smaller and lighter. */
+.bulk-upload__name {
+  font-weight: 600;
+  color: var(--itkaarhus-gray-900);
+}
+.bulk-upload__detail {
+  color: var(--itkaarhus-gray-600);
+  font-size: 0.8125rem;
+}
+.bulk-upload__detail strong {
+  font-weight: 600;
+  color: var(--itkaarhus-gray-900);
+}
+/* A message takes the range and the counts columns. */
+.bulk-upload__message {
+  grid-column: 3 / -1;
+}
+.bulk-upload__file[data-state="checked"] {
+  border-left-color: var(--itkaarhus-blue-700);
+}
+.bulk-upload__file[data-state="imported"] {
+  border-left-color: var(--itkaarhus-success-500);
+}
+.bulk-upload__file[data-state="skipped"] {
+  border-left-color: var(--itkaarhus-warning-500);
+}
+.bulk-upload__file[data-state="failed"] {
+  border-left-color: var(--itkaarhus-danger-700);
+}
+.bulk-upload__file[data-state="failed"] .bulk-upload__message {
+  color: var(--itkaarhus-danger-700);
+}
+/* On a small screen, each row wraps its columns. */
+@media (max-width: 767px) {
+  .bulk-upload__list {
+    grid-template-columns: 1fr;
+  }
+  .bulk-upload__file {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--itkaarhus-space-1) var(--itkaarhus-space-3);
+  }
 }
 /* The confirmation of a clear: the native popover opens it in the middle of the top layer. */
 .clear-pop {

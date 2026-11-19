@@ -13,6 +13,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ROLE_USER` automatically. The mock identity provider has the same app roles.
 - All logs go to stderr in the prod environment, also the authentication log and the driving data
   log. In prod, the application writes no log files.
+- [#153](https://github.com/itk-dev/koerselsoverblik/issues/153)
+  Upload many extracts with drag and drop: the page `/admin/import/bulk` takes many files in a UX
+  Dropzone field. A Stimulus controller sends each file in its own request, one at a time. The
+  date range of each file is the first to the last date with stop rows. Each file is checked, and
+  then imported with its own batch, in the order of the list. A failed file does not stop the
+  others. The page shows the limit of `APP_DRIVING_DATA_MAX_DAYS`. StimulusBundle and UX Dropzone
+  are added. `UploadFailure` gives the Danish message of a failed upload for both upload pages.
+  The upload of one file has the same layout: a drop area, then the info box. Tabs switch between
+  the two pages. The menu marks its item on each page of a section, also on a tab or a sub-page.
 
 ## [0.1.0] - 2026-11-18
 
