@@ -24,21 +24,12 @@ final class UserTest extends TestCase
         new User(' ');
     }
 
-    public function testANewUserHasOnlyRoleUser(): void
+    public function testANewUserHasNoRole(): void
     {
         $user = new User('foobar@example.com');
 
-        self::assertSame(['ROLE_USER'], $user->getRoles());
+        self::assertSame([], $user->getRoles());
         self::assertNull($user->getLastLoginAt());
-    }
-
-    public function testEveryUserAlsoHasRoleUser(): void
-    {
-        $user = new User('foobar@example.com');
-
-        $user->setRoles(['ROLE_ADMIN', 'ROLE_USER']);
-
-        self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $user->getRoles());
     }
 
     public function testSetRolesReplacesTheRoles(): void
@@ -48,7 +39,7 @@ final class UserTest extends TestCase
 
         $user->setRoles(['ROLE_VIEW_OVERVIEW']);
 
-        self::assertSame(['ROLE_VIEW_OVERVIEW', 'ROLE_USER'], $user->getRoles());
+        self::assertSame(['ROLE_VIEW_OVERVIEW'], $user->getRoles());
     }
 
     public function testTheLastLoginTime(): void

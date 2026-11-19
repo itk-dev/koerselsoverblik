@@ -121,12 +121,20 @@ Each part of the application has its own permission role:
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the supplier of each sub-agreement |
 
-`ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
-permission roles let us give narrower access later without code changes.
+The identity provider gives the roles. It sends them in a claim (`OIDC_ROLE_CLAIM`). At each
+login, each value becomes `ROLE_` and the value in upper case. The role hierarchy in
+`config/packages/security.yaml` gives the permission roles:
 
-The identity provider gives the roles. It sends them in a claim (`OIDC_ROLE_CLAIM`), and the
-application copies them to the user at each login. Values that are not `ROLE_ADMIN` or a
-permission role are ignored. A user with no known role can sign in, but cannot open any page.
+| Entra ID app role | Value | Role | Permission roles |
+| --- | --- | --- | --- |
+| Slutbruger | `bruger` | `ROLE_USER` | All the permission roles above |
+| Superadministrator | `admin` | `ROLE_ADMIN` | `ROLE_USER`, and thus all the permission roles above |
+
+At this time, the two app roles give the same access. `ROLE_ADMIN` is for features that only
+administrators will get.
+
+The authentication log shows the roles of each login. A user with no role, or with only an
+unknown role, can sign in, but cannot open any page.
 
 Every page requires a permission role. Anonymous users are sent to the identity provider.
 
@@ -523,8 +531,9 @@ A user is created in the application at the first login. The application has no 
 
 ### Authentication log
 
-Each login is written to `var/log/openid_connect_audit.<APP_ENV>.log`, for example
-`var/log/openid_connect_audit.prod.log`:
+Each login is written to the `openid_connect_audit` channel. On a server, it goes to stderr. Read
+it in the log of the `phpfpm` container, for example with `docker compose logs phpfpm`. In local
+development, it goes to `var/log/dev.log`:
 
 - A successful login, with the email, the roles and the time. For example:
   `user foobar@example.com logged in with roles [ROLE_ADMIN] at 2026-10-28T12:00:00+01:00`.
@@ -537,8 +546,9 @@ decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
 
 ### Driving data log
 
-Each [clear of driving data](#clear-driving-data) is written to
-`var/log/driving_data_audit.<APP_ENV>.log`, with the user, the date range and the deleted counts.
+Each [clear of driving data](#clear-driving-data) is written to the `driving_data_audit` channel,
+with the user, the date range and the deleted counts. Like the authentication log, it goes to
+stderr on a server and to `var/log/dev.log` in local development.
 For example:
 
 ```text
@@ -763,7 +773,16 @@ To make a release:
    Every push to the release branch deploys to staging and runs the full mutation test.
 2. Fix any problems found in testing on the release branch.
 3. Open a pull request from the release branch to `main`, and merge it once the checks pass.
-4. Create a GitHub release `<VERSION>` on `main`. This deploys to production.
+4. Push the tag `<VERSION>` on `main`. The workflow `build_release.yml` makes the GitHub release
+   with the release archive. The release deploys to production.
+
+   ```shell
+   git switch main
+   git pull
+   git tag <VERSION>
+   git push origin <VERSION>
+   ```
+
 5. Merge `main` back into `develop`.
 
 Hotfixes branch from `main` as `hotfix/<VERSION>` and follow steps 3–5.
@@ -774,17 +793,32 @@ Deployment runs on [Woodpecker](https://woodpecker.itkdev.dk):
 
 | Pipeline | Trigger | Target |
 | --- | --- | --- |
-| `.woodpecker/stg.yml` | Push to a `release/*` or `hotfix/*` branch | Staging |
+| `.woodpecker/stg.yml` | Push to a `release/*` branch | Staging |
 | `.woodpecker/prod.yml` | A GitHub release | Production |
 
-Each pipeline updates the code on the server and runs:
+The staging pipeline updates the `git` checkout on the server and runs:
 
 ```shell
 itkdev-docker-compose-server up -d --force-recreate
 itkdev-docker-compose-server exec phpfpm composer install --no-dev -o --classmap-authoritative
 itkdev-docker-compose-server exec phpfpm bin/console doctrine:migrations:migrate --no-interaction
+itkdev-docker-compose-server exec phpfpm bin/console asset-map:compile
 itkdev-docker-compose-server exec phpfpm bin/console cache:clear
 ```
+
+The production pipeline uses the `release` playbook. The playbook installs the release archive
+from the GitHub release. `.github/workflows/build_release.yml` makes this archive with the
+Composer packages (no dev) and the compiled assets. Before the containers start, the pipeline runs
+the Doctrine migrations and `cache:clear`.
+
+[Supercronic](https://github.com/itk-dev/documentation/blob/main/docs/web/server/supercronic.md)
+runs the cron jobs in `crontab` in the phpfpm container:
+
+- `app:driving-data:purge-uploads` every 15 minutes. It deletes the upload files that nobody
+  confirmed.
+- `app:driving-data:delete-orphan-copies` each night. It deletes the copies of the imported rows
+  that have no row. Two imports of the same dates that overlap can leave such copies, and they
+  hold personal data.
 
 Each import builds the totals of each route and day of its range, the totals of each location
 and day, and the citizens of its months. Build them for all dates again in these cases:
@@ -825,20 +859,7 @@ To set up a new server:
    back, and no data changed. Then raise `PHP_MAX_EXECUTION_TIME` and `PHP_MEMORY_LIMIT` in
    `docker-compose.server.override.yml`.
 1. Deploy.
-1. Add a cron job that deletes the upload files that nobody confirmed. Run it every 15 minutes:
-
-   ```shell
-   */15 * * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:purge-uploads --quiet
-   ```
-
-1. Add a cron job that deletes the copies of the imported rows that have no row. Two imports of
-   the same dates that overlap can leave such copies, and they hold personal data. Run it each
-   night:
-
-   ```shell
-   30 2 * * * cd <PATH_TO_SITE> && itkdev-docker-compose-server exec -T phpfpm bin/console app:driving-data:delete-orphan-copies --quiet
-   ```
-
+1. Tell DevOps to collect the Supercronic metrics from `https://<SITE>/cron-metrics`.
 1. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
 1. Make sure that the administrator can sign in.
 

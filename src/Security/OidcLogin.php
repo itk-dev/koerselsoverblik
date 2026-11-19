@@ -16,14 +16,22 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * Creates or updates the user from the claims of a validated OIDC login.
  *
  * The user is identified by the upn claim. The roles from the role claim replace the stored
- * roles, and the login is written to the authentication log.
+ * roles, and the login is written to the authentication log. The log shows the roles, so it also
+ * shows a value of the role claim that gives no permission role.
  */
 final readonly class OidcLogin
 {
+    /**
+     * The app role values of Entra ID that have another Symfony role name. The app role
+     * "Slutbruger" has the value "bruger". It is the Symfony convention ROLE_USER.
+     */
+    private const array ROLE_NAMES = ['BRUGER' => 'USER'];
+
     public function __construct(
         private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
-        private OidcRoleMapper $roleMapper,
+        #[Autowire(env: 'OIDC_ROLE_CLAIM')]
+        private string $roleClaim,
         private ClockInterface $clock,
         #[Autowire(service: 'monolog.logger.openid_connect_audit')]
         private LoggerInterface $auditLogger,
@@ -47,7 +55,14 @@ final readonly class OidcLogin
             $this->entityManager->persist($user);
         }
 
-        $roles = $this->roleMapper->map($claims);
+        // Each app role of Entra ID becomes a role, for example "admin" becomes ROLE_ADMIN. The role
+        // hierarchy in config/packages/security.yaml gives the permission roles.
+        $values = array_filter((array) ($claims[$this->roleClaim] ?? []), is_string(...));
+        $roles = array_values(array_unique(array_map(static function (string $value): string {
+            $role = strtoupper($value);
+
+            return 'ROLE_'.(self::ROLE_NAMES[$role] ?? $role);
+        }, $values)));
         $now = $this->clock->now();
         $user->setRoles($roles);
         $user->setLastLoginAt($now);

@@ -1,8 +1,14 @@
 security:
-    # ROLE_ADMIN gives all permission roles. Controllers check only the permission roles.
-    # See "Security" in docs/architecture.md.
+    # The keys are the app roles of Entra ID: "admin" (Superadministrator) and "bruger" (Slutbruger)
+    # become ROLE_ADMIN and ROLE_USER at login (see OidcLogin). At this time, both give all
+    # permission roles.
+    # ROLE_ADMIN is for features that only administrators will get. Controllers check only the
+    # permission roles, the roles at the end of the hierarchy. See "Security" in
+    # docs/architecture.md.
     role_hierarchy:
         ROLE_ADMIN:
+            - ROLE_USER
+        ROLE_USER:
             - ROLE_VIEW_OVERVIEW
             - ROLE_MANAGE_DRIVING_DATA
             - ROLE_EDIT_DAILY_COUNTS
@@ -36,4 +42,4 @@ security:
         - { path: ^/openidconnect/, roles: PUBLIC_ACCESS }
         - { path: ^/openid-connect/generic$, roles: PUBLIC_ACCESS }
         - { path: ^/assets/, roles: PUBLIC_ACCESS }
-        - { path: ^/, roles: ROLE_USER }
+        - { path: ^/, roles: IS_AUTHENTICATED }
