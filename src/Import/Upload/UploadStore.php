@@ -31,7 +31,8 @@ final readonly class UploadStore
     public function __construct(
         private RequestStack $requestStack,
         private ClockInterface $clock,
-        #[Autowire('%kernel.project_dir%/var/uploads/driving_data')]
+        // One folder for each environment, so that the tests never delete the uploads of dev.
+        #[Autowire('%kernel.project_dir%/var/uploads/%kernel.environment%/driving_data')]
         private string $directory,
     ) {
     }

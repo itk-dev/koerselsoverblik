@@ -15,10 +15,12 @@ use App\Entity\RouteRun;
 use App\Entity\SourceRow;
 use App\Entity\StopRow;
 use App\Entity\User;
+use App\Import\AllRowsRejectedException;
 use App\Import\DrivingDataImporter;
 use App\Import\Extract\MissingColumnsException;
 use App\Import\Extract\StopRowParser;
 use App\Import\ImportRangeDto;
+use App\Import\InvalidImportRangeException;
 use App\Import\LocationDayTotalsBuilder;
 use App\Import\Mapping\FieldName;
 use App\Import\Mapping\MappingDto;
@@ -37,6 +39,7 @@ use App\Repository\SourceRowRepository;
 use App\Repository\StopRowRepository;
 use App\Repository\SubAgreementRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -66,6 +69,84 @@ final class DrivingDataImporterTest extends KernelTestCase
             unlink($this->path);
         }
         parent::tearDown();
+    }
+
+    /**
+     * The range of a file is the first to the last date with stop rows. The bulk upload uses it.
+     */
+    #[DataProvider('fileRangeProvider')]
+    public function testRangeOfAFileIsTheFirstToTheLastDateWithStopRows(string $scenario, string $firstDate, string $lastDate): void
+    {
+        $this->writeScenario($scenario);
+
+        [$range] = $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+
+        self::assertEquals(self::range($firstDate, $lastDate), $range);
+    }
+
+    /**
+     * The bulk upload parses a file once. Its preview is the same as the preview of its range,
+     * because no row is outside the range of its own dates.
+     */
+    public function testThePreviewOfAFileIsThePreviewOfItsRange(): void
+    {
+        $this->writeScenario('base');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $this->writeScenario('range_edges');
+
+        [$range, $preview] = $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+
+        self::assertEquals($this->importer()->preview($this->path, $range, $this->mapping(), 0), $preview);
+        self::assertSame(14, $preview->rowsToDelete);
+        self::assertSame(['2026-01-06'], $preview->emptyDates);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function fileRangeProvider(): iterable
+    {
+        yield 'one date' => ['base', '2026-01-05', '2026-01-05'];
+        // The file has no rows on 2026-01-06, and a row on 2026-01-08 after its export range.
+        yield 'dates with a gap' => ['range_edges', '2026-01-05', '2026-01-08'];
+    }
+
+    public function testRangeOfAFileWithMoreDaysThanTheLimitIsNotValid(): void
+    {
+        $this->writeScenario('range_edges');
+
+        $this->expectException(InvalidImportRangeException::class);
+
+        $this->importer()->rangeAndPreview($this->path, $this->mapping(), 3);
+    }
+
+    public function testRangeOfAFileWithNoDataRowsIsNotValid(): void
+    {
+        new ExtractWriter()->write($this->path, $this->mapping(), []);
+
+        $this->expectException(NoStopRowsException::class);
+
+        $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+    }
+
+    /**
+     * A file with data rows that are all rejected is broken, not empty.
+     */
+    public function testRangeOfAFileWithOnlyRejectedRowsIsNotValid(): void
+    {
+        $rows = array_map(
+            static fn (ExtractRow $row): ExtractRow => new ExtractRow($row->values, $row->rowId, ['service_date' => 'not a date'] + $row->raw, $row->kept),
+            new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows,
+        );
+        new ExtractWriter()->write($this->path, $this->mapping(), $rows);
+
+        try {
+            $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+            self::fail('The file was accepted.');
+        } catch (AllRowsRejectedException $exception) {
+            // The message goes to the log of a failed upload, so it must tell the reason.
+            self::assertSame('The file has data rows, but all rows are rejected.', $exception->getMessage());
+        }
     }
 
     /**

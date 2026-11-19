@@ -150,7 +150,7 @@ flowchart TB
     end
 
     subgraph security["Security"]
-        authenticators["OidcAuthenticator<br/>OidcRoleMapper"]
+        authenticators["OidcAuthenticator<br/>OidcLogin"]
         guards["Role guards<br/>#[IsGranted], access_control"]
     end
 
@@ -768,8 +768,9 @@ so that a reload never uploads or imports again:
 
 1. `POST /admin/import`: `ImportType` checks the file (`.xlsx`, `APP_DRIVING_DATA_MAX_FILE_SIZE`)
    and the date range (`ValidImportRange`). `UploadStore` saves the file with a random name in
-   `var/uploads/driving_data/`, and keeps a `PendingUploadDto` in the session under a random
-   token. The page redirects to the preview.
+   `var/uploads/<APP_ENV>/driving_data/`, and keeps a `PendingUploadDto` in the session under a
+   random token. Each environment has its own folder, so that the tests do not delete the uploads
+   of dev. The page redirects to the preview.
 2. `GET /admin/import/preview/{token}`: the preview. A file with no stop rows in the range has no
    confirm button. `DrivingDataImporter::import()` also refuses such a file with
    `NoStopRowsException`, and rolls back the delete of the range. Thus a direct POST to the
@@ -786,6 +787,28 @@ error deletes the file, logs a warning with no value, and shows the problem in D
 `InvalidExtractException` has an `ExtractProblem` code for the translation. The English message
 stays for the command and the logs. After a failed import, Doctrine has closed the entity
 manager, so the controller resets it.
+
+**The bulk upload** (`Admin\BulkImportController`, `ROLE_MANAGE_DRIVING_DATA`) takes many files.
+UX Dropzone (`BulkImportType`, `multiple`) takes the drop. The form is not submitted. The
+`bulk-upload` Stimulus controller sends each file in its own request, one request at a time, so
+that the request limit applies to each file:
+
+1. `POST /admin/import/bulk/check` (CSRF in the `X-CSRF-Token` header): the file is checked with
+   the constraint of `ImportType`. `DrivingDataImporter::rangeAndPreview()` parses the file once.
+   It reads the first and the last date with stop rows, and counts the rows of that range. The
+   range has the same limit as a typed range. `UploadStore` keeps the file under a token.
+
+The parse of an xlsx file in a request needs memory. With enough memory, OpenSpout keeps the shared
+strings in memory, which is much faster than its file cache. `docker-compose.server.override.yml`
+gives PHP-FPM 256M and 60 seconds on the servers, the same memory as dev.
+2. `POST /admin/import/bulk/{token}` (CSRF): `UploadStore::take()`, and the same import as the
+   single upload, with its own `ImportBatch`.
+
+Each response is the HTML of the row of the file (`_bulk_row.html.twig`), with the status 200 or
+422. The controller puts the row in the list. Thus the dates, the numbers and the errors use the
+same Twig macros and translations as the single upload. `UploadFailure` gives the Danish message
+of a failure for both controllers. The import button imports the checked rows in the order of the
+list. A failed file does not stop the others.
 
 **Whole days and the date range:** a file that holds only part of a day removes the other rows of
 that day. A range that is longer than the export empties the extra dates. Users must upload whole
@@ -1165,8 +1188,7 @@ flowchart TD
     idp -- "login fails in the identity provider" --> idpfail["No redirect back<br/>not in the authentication log"]
     idp -- "user approved" --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
     callback -- invalid --> fail["Login failed<br/>written to the authentication log"]
-    callback -- valid --> mapper["OidcRoleMapper<br/>role claim → ROLE_ADMIN and permission roles"]
-    mapper --> user["Create or update User<br/>email, roles, last login"]
+    callback -- valid --> user["OidcLogin<br/>role claim → ROLE_ADMIN, ROLE_USER<br/>create or update User"]
     user --> log["Authentication log<br/>email, roles, time"]
     log --> guard
 
@@ -1183,9 +1205,9 @@ flowchart TD
 - An anonymous user is sent to the bundle's login route under `/openidconnect`, and from there
   to the identity provider. After the login, the
   identity provider sends the user back to the callback route, `/openid-connect/generic`.
-- At each login, `OidcRoleMapper` reads the role claim (`OIDC_ROLE_CLAIM`). It keeps the values
-  that are `ROLE_ADMIN` or a permission role, and ignores the rest. The `User` is created or
-  updated with these roles.
+- At each login, `OidcLogin` reads the role claim (`OIDC_ROLE_CLAIM`). Each app role value of
+  Entra ID becomes `ROLE_` and the value in upper case: `admin` becomes `ROLE_ADMIN`. The value `bruger`
+  (Slutbruger) is an exception: it becomes the Symfony role `ROLE_USER`. The `User` is created or updated with these roles.
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
@@ -1199,7 +1221,7 @@ flowchart TD
   IP address and the reason. A login that fails in the identity provider does not come back to
   the application, so it is not in this log. `OidcLogin` adds a record with the email and the
   roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
-  `var/log/openid_connect_audit.<APP_ENV>.log`.
+  stderr in prod, and to `var/log/dev.log` in dev.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**
@@ -1213,19 +1235,26 @@ flowchart TD
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, sub-agreements and the supplier of each sub-agreement |
 
-- `ROLE_ADMIN` gives all permission roles. At first, users get `ROLE_ADMIN` only. Narrower
-  access later needs only other values in the role claim, or a new bundle in `role_hierarchy`.
+- Entra ID has two app roles. `ROLE_USER` (Slutbruger) gives all permission roles. `ROLE_ADMIN`
+  (Superadministrator) gives `ROLE_USER`. At this time, the two roles give the same access.
+  `ROLE_ADMIN` is for features that only administrators will get. Put a permission role for such a
+  feature directly under `ROLE_ADMIN`.
 
   ```yaml
   role_hierarchy:
     ROLE_ADMIN:
+      - ROLE_USER
+    ROLE_USER:
       - ROLE_VIEW_OVERVIEW
       - ROLE_MANAGE_DRIVING_DATA
       - ROLE_EDIT_DAILY_COUNTS
       - ROLE_MANAGE_SUPPLIERS
   ```
 
-- Every signed-in user also has `ROLE_USER`. It grants nothing alone.
+- The application does not give `ROLE_USER`. A user with no app role can sign in,
+  because `access_control` requires only `IS_AUTHENTICATED`. But the user cannot open any page.
+- The permission roles are the roles at the end of the hierarchy: the roles that give no other
+  role.
 - Every controller has a class-level `#[IsGranted]` with a permission role.
 - `access_control` denies everything to anonymous users except the OIDC routes
   (`/openidconnect/*` and `/openid-connect/generic`) and the assets.
@@ -1300,6 +1329,8 @@ issue adds the header.
 **Rendering:**
 
 - Server-rendered Twig with AssetMapper. There is no Node build step.
+- StimulusBundle runs the Stimulus controllers in `assets/controllers/`. `assets/controllers.json`
+  enables the UX Dropzone controller and its stylesheet.
 - Styling comes from the itkaarhus design system, mapped in AssetMapper as `itkaarhus-ds`, plus
   the prototype's stylesheet ported to `assets/styles/app.css`.
 - Charts are Twig components that render inline SVG on the server. Each chart includes a hidden

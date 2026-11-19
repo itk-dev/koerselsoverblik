@@ -121,12 +121,20 @@ Each part of the application has its own permission role:
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the supplier of each sub-agreement |
 
-`ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
-permission roles let us give narrower access later without code changes.
+The identity provider gives the roles. It sends them in a claim (`OIDC_ROLE_CLAIM`). At each
+login, each value becomes `ROLE_` and the value in upper case. The role hierarchy in
+`config/packages/security.yaml` gives the permission roles:
 
-The identity provider gives the roles. It sends them in a claim (`OIDC_ROLE_CLAIM`), and the
-application copies them to the user at each login. Values that are not `ROLE_ADMIN` or a
-permission role are ignored. A user with no known role can sign in, but cannot open any page.
+| Entra ID app role | Value | Role | Permission roles |
+| --- | --- | --- | --- |
+| Slutbruger | `bruger` | `ROLE_USER` | All the permission roles above |
+| Superadministrator | `admin` | `ROLE_ADMIN` | `ROLE_USER`, and thus all the permission roles above |
+
+At this time, the two app roles give the same access. `ROLE_ADMIN` is for features that only
+administrators will get.
+
+The authentication log shows the roles of each login. A user with no role, or with only an
+unknown role, can sign in, but cannot open any page.
 
 Every page requires a permission role. Anonymous users are sent to the identity provider.
 
@@ -215,8 +223,9 @@ from the real identity provider.
 
 ### Upload driving data
 
-1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`).
-2. Choose a driving data extract (`.xlsx`).
+1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`). The tab
+   **Én fil** opens.
+2. Drag a driving data extract (`.xlsx`) to the drop area, or select it.
 3. Enter the first and the last date of the export, and upload the file.
 4. Check the preview. It shows:
    - the date range
@@ -258,6 +267,39 @@ The command shows the same preview, and asks for confirmation unless `--no-inter
 given. The default answer is no. The dates have the format `YYYY-MM-DD`. The default mapping is
 the value of `APP_DRIVING_DATA_MAPPING`. A file with no stop rows in the range is not imported,
 because the import would only delete data. The command does not delete the file.
+
+### Upload many files
+
+1. Go to **Administration → Upload driving data**, and select the tab **Mange filer** (requires
+   `ROLE_MANAGE_DRIVING_DATA`).
+2. Drag the extracts to the drop area, or select them. You can add many files, for example 100.
+3. Wait until each file has the state "Kontrolleret" or "Fejlet". Each row shows the date range
+   and how many rows will be inserted, deleted and rejected, or the reason of the failure.
+4. Select **Importér de kontrollerede filer**, and then **Importér** in the dialog. Keep the page
+   open until the import is done. The page sends the files, so the files that are not sent are
+   not imported if you close the tab, reload the page or go to another page. During the import,
+   the browser asks before you leave the page.
+5. Each row shows "Importeret" with a link to the result, or "Fejlet" with the reason. When all
+   files are done, a dialog shows how many files were imported, skipped and failed. Select **OK**.
+   The list stays until you add the next files. Then a new list starts.
+
+The browser sends each file in its own request, one file at a time. Thus the size limit applies
+to each file, not to all the files together.
+
+The date range of each file is the first to the last date with stop rows in the file. You do not
+enter a range. Empty dates before the first or after the last date with rows do not become empty.
+
+**CAUTION:**
+
+- A file can have stop rows on at most `APP_DRIVING_DATA_MAX_DAYS` days (7 by default). A file
+  with more days fails. Split a longer export, for example into one file for each week. The page
+  shows the limit.
+- The files are imported in the order of the list. If two files have the same dates, the last
+  file replaces the data of the first file.
+- A file that fails does not stop the other files.
+- A file with no data rows, for example a file of 0 bytes, gets "Sprunget over" (skipped). A file
+  with data rows that are all rejected gets "Fejlet" (failed). To see the reasons, upload it on the
+  tab **Én fil**.
 
 ### Clear driving data
 
@@ -489,8 +531,9 @@ A user is created in the application at the first login. The application has no 
 
 ### Authentication log
 
-Each login is written to `var/log/openid_connect_audit.<APP_ENV>.log`, for example
-`var/log/openid_connect_audit.prod.log`:
+Each login is written to the `openid_connect_audit` channel. On a server, it goes to stderr. Read
+it in the log of the `phpfpm` container, for example with `docker compose logs phpfpm`. In local
+development, it goes to `var/log/dev.log`:
 
 - A successful login, with the email, the roles and the time. For example:
   `user foobar@example.com logged in with roles [ROLE_ADMIN] at 2026-10-28T12:00:00+01:00`.
@@ -503,8 +546,9 @@ decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
 
 ### Driving data log
 
-Each [clear of driving data](#clear-driving-data) is written to
-`var/log/driving_data_audit.<APP_ENV>.log`, with the user, the date range and the deleted counts.
+Each [clear of driving data](#clear-driving-data) is written to the `driving_data_audit` channel,
+with the user, the date range and the deleted counts. Like the authentication log, it goes to
+stderr on a server and to `var/log/dev.log` in local development.
 For example:
 
 ```text

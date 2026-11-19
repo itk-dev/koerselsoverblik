@@ -7,7 +7,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-11-18
+- [#151](https://github.com/itk-dev/koerselsoverblik/issues/151)
+  Escaped mutants in `src/Import` and `src/Report`: new tests kill the mutants. The code changes
+  where no test can see a mutant. The behaviour does not change.
+
+## [0.1.0] - 2026-11-19
 
 - [#5](https://github.com/itk-dev/koerselsoverblik/issues/5)
   M1-01 Project skeleton: Symfony 8 on the ITK Dev `symfony-8` template, Doctrine ORM with
@@ -434,9 +438,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   as a planned feature.
 - Deployment: Woodpecker pipelines for staging and production, a workflow that makes the release
   archive from a tag, and a `crontab` for Supercronic. One migration replaces all migrations.
-- [#151](https://github.com/itk-dev/koerselsoverblik/issues/151)
-  Escaped mutants in `src/Import` and `src/Report`: new tests kill the mutants. The code changes
-  where no test can see a mutant. The behaviour does not change.
+- The login accepts the app role values of Entra ID. Each value becomes `ROLE_` and the value in
+  upper case. `admin` (Superadministrator) becomes `ROLE_ADMIN`, and `bruger` (Slutbruger) becomes
+  `ROLE_USER`. The role hierarchy gives both roles all permission roles. A user no longer gets
+  `ROLE_USER` automatically. The mock identity provider has the same app roles.
+- All logs go to stderr in the prod environment, also the authentication log and the driving data
+  log. In prod, the application writes no log files.
+- [#153](https://github.com/itk-dev/koerselsoverblik/issues/153)
+  Upload many extracts with drag and drop: the page `/admin/import/bulk` takes many files in a UX
+  Dropzone field. A Stimulus controller sends each file in its own request, one at a time. The
+  date range of each file is the first to the last date with stop rows. Each file is checked, and
+  then imported with its own batch, in the order of the list. A failed file does not stop the
+  others. The page shows the limit of `APP_DRIVING_DATA_MAX_DAYS`. StimulusBundle and UX Dropzone
+  are added. `UploadFailure` gives the Danish message of a failed upload for both upload pages.
+  The upload of one file has the same layout: a drop area, then the info box. Tabs switch between
+  the two pages. The menu marks its item on each page of a section, also on a tab or a sub-page.
+- The app role "Slutbruger" has the value `bruger` in Entra ID. The login maps it to the Symfony
+  role `ROLE_USER`. The check of the bulk upload parses a file once, not twice. On the servers,
+  PHP-FPM has 256M and 60 seconds, so that OpenSpout keeps the shared strings in memory.
 
 [Unreleased]: https://github.com/itk-dev/koerselsoverblik/compare/0.1.0...HEAD
 [0.1.0]: https://github.com/itk-dev/koerselsoverblik/releases/tag/0.1.0

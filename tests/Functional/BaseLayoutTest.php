@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -59,16 +60,32 @@ final class BaseLayoutTest extends WebTestCase
         self::assertSame('/', $crawler->filter('a[data-test="brand"]')->attr('href'));
     }
 
-    public function testActiveMenuItemIsMarked(): void
+    /**
+     * Each page of a section marks the menu item of the section, also a tab or a sub-page.
+     */
+    #[DataProvider('activeItemProvider')]
+    public function testActiveMenuItemIsMarked(string $user, string $url, string $label): void
     {
         $client = static::createClient();
-        $this->loginAs($client, 'viewer');
+        $this->loginAs($client, $user);
 
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', $url);
 
         $active = $crawler->filter('[data-test="menu-item"][aria-current="page"]');
         self::assertCount(1, $active);
-        self::assertSame('Overblik', trim($active->text()));
+        self::assertSame($label, trim($active->text()));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function activeItemProvider(): iterable
+    {
+        yield 'overview' => ['viewer', '/', 'Overblik'];
+        yield 'upload of one file' => ['admin', '/admin/import', 'Upload kørselsdata'];
+        yield 'bulk upload' => ['admin', '/admin/import/bulk', 'Upload kørselsdata'];
+        yield 'suppliers' => ['admin', '/admin/suppliers', 'Leverandører og delaftaler'];
+        yield 'sub-agreements' => ['admin', '/admin/sub-agreements', 'Leverandører og delaftaler'];
     }
 
     public function testUserMenuShowsTheUsername(): void

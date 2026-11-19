@@ -52,6 +52,6 @@ final readonly class MenuBuilder
             return null;
         }
 
-        return new MenuLink($item->label, $item->route, $url, $item->icon);
+        return new MenuLink($item->label, $item->route, $url, $item->icon, $item->sections);
     }
 }

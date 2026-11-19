@@ -3,20 +3,9 @@ monolog:
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
         - openid_connect_audit # The authentication log. See "Authentication log" in README.md
         - driving_data_audit # The log of the clears of driving data. See "Driving data log" in README.md
-    handlers:
-        # The audit logs have their own files in every environment, so that an error threshold on
-        # the other handlers does not discard them.
-        openid_connect_audit:
-            type: stream
-            path: '%kernel.logs_dir%/openid_connect_audit.%kernel.environment%.log'
-            level: info
-            channels: ['openid_connect_audit']
-        driving_data_audit:
-            type: stream
-            path: '%kernel.logs_dir%/driving_data_audit.%kernel.environment%.log'
-            level: info
-            channels: ['driving_data_audit']
 
+# In prod, all logs go to stderr, and the application writes no log files. In dev and test, the
+# logs go to files in var/log.
 when@dev:
     monolog:
         handlers:
@@ -30,6 +19,8 @@ when@dev:
                 process_psr_3_messages: false
                 channels: ['!event', '!doctrine', '!console']
 
+# The tests write to a file, so that the log records do not go into the output of PHPUnit and
+# Infection.
 when@test:
     monolog:
         handlers:
@@ -50,6 +41,14 @@ when@test:
 when@prod:
     monolog:
         handlers:
+            # The audit logs have their own handler, so that the error threshold of the main
+            # handler does not discard them.
+            audit:
+                type: stream
+                path: php://stderr
+                level: info
+                channels: ['openid_connect_audit', 'driving_data_audit']
+                formatter: monolog.formatter.json
             main:
                 type: fingers_crossed
                 action_level: error

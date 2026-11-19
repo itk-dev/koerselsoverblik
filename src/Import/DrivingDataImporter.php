@@ -37,6 +37,34 @@ final readonly class DrivingDataImporter
     }
 
     /**
+     * Gives the first to the last date with stop rows in the file, and the preview of that range.
+     * The bulk upload uses the range in place of a range that the user types. It parses the file
+     * once: no row is outside the range of its own dates, so the summary of all the rows is the
+     * summary of the range. It changes no data.
+     *
+     * @param int $maxDays the value of APP_DRIVING_DATA_MAX_DAYS
+     *
+     * @return array{ImportRangeDto, ImportPreviewDto}
+     *
+     * @throws MissingColumnsException     if the extract does not have all the columns of the mapping
+     * @throws InvalidExtractException     if the extract is above a limit, or is not a valid extract
+     * @throws NoStopRowsException         if the file has no data rows
+     * @throws AllRowsRejectedException    if the file has data rows, but all are rejected
+     * @throws InvalidImportRangeException if the dates span more than $maxDays days
+     */
+    public function rangeAndPreview(string $path, MappingDto $mapping, int $maxDays): array
+    {
+        $summary = ExtractSummaryDto::fromRows($this->parser->parse($path, $mapping, null), 0);
+        $dates = $summary->dates;
+        if ([] === $dates) {
+            throw $summary->rejectedRows > 0 ? new AllRowsRejectedException() : new NoStopRowsException();
+        }
+        $range = ImportRangeDto::create(new \DateTimeImmutable($dates[0]), new \DateTimeImmutable($dates[\count($dates) - 1]), $maxDays);
+
+        return [$range, $this->previewOf($summary, $range)];
+    }
+
+    /**
      * Parses the file and counts. It changes no data.
      *
      * @param int $previewSize the number of stop rows in the preview
@@ -46,8 +74,14 @@ final readonly class DrivingDataImporter
      */
     public function preview(string $path, ImportRangeDto $range, MappingDto $mapping, int $previewSize): ImportPreviewDto
     {
-        $summary = ExtractSummaryDto::fromRows($this->parser->parse($path, $mapping, $range), $previewSize);
+        return $this->previewOf(ExtractSummaryDto::fromRows($this->parser->parse($path, $mapping, $range), $previewSize), $range);
+    }
 
+    /**
+     * The changes that an import of the summary makes to the range.
+     */
+    private function previewOf(ExtractSummaryDto $summary, ImportRangeDto $range): ImportPreviewDto
+    {
         return new ImportPreviewDto(
             $summary,
             $this->stopRows->countInRange($range),

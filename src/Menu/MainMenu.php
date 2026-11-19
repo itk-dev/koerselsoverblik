@@ -21,7 +21,8 @@ final class MainMenu
             new MenuItem('menu.punctuality', 'punctuality', 'ROLE_VIEW_OVERVIEW', 'lucide:clock'),
             new MenuItem('menu.daily_counts', 'daily_counts', 'ROLE_EDIT_DAILY_COUNTS', 'lucide:calendar'),
             new MenuItem('menu.upload', 'admin_import', 'ROLE_MANAGE_DRIVING_DATA', 'lucide:upload'),
-            new MenuItem('menu.suppliers', 'admin_supplier_index', 'ROLE_MANAGE_SUPPLIERS', 'lucide:car'),
+            // The sub-agreements are a tab of the suppliers.
+            new MenuItem('menu.suppliers', 'admin_supplier_index', 'ROLE_MANAGE_SUPPLIERS', 'lucide:car', ['admin_supplier', 'admin_sub_agreement']),
         ];
     }
 }

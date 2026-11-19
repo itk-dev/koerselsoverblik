@@ -19,7 +19,9 @@ services:
   # the mock with the same name. Then the issuer in the discovery document matches the issuer in
   # the ID token.
   #
-  # Each user has the claims that OidcAuthenticator reads: upn and the role claim (roles).
+  # Each user has the claims that OidcAuthenticator reads: upn and the role claim (roles). The users
+  # match the app roles of Entra ID on staging and production: "admin" (Superadministrator), "bruger"
+  # (Slutbruger), and a user with no app role.
   idp:
     image: ghcr.io/geigerzaehler/oidc-provider-mock:latest
     container_name: idp.${COMPOSE_DOMAIN:?}
@@ -37,14 +39,8 @@ services:
       - "--port"
       - "80"
       - "--user-claims"
-      - '{"sub": "admin", "name": "Admin", "upn": "admin@example.com", "email": "admin@example.com", "roles": ["ROLE_ADMIN"]}'
+      - '{"sub": "admin", "name": "Admin", "upn": "admin@example.com", "email": "admin@example.com", "roles": ["admin"]}'
       - "--user-claims"
-      - '{"sub": "viewer", "name": "Viewer", "upn": "viewer@example.com", "email": "viewer@example.com", "roles": ["ROLE_VIEW_OVERVIEW"]}'
+      - '{"sub": "user", "name": "User", "upn": "user@example.com", "email": "user@example.com", "roles": ["bruger"]}'
       - "--user-claims"
-      - '{"sub": "driving-data-manager", "name": "Driving data manager", "upn": "driving-data-manager@example.com", "email": "driving-data-manager@example.com", "roles": ["ROLE_MANAGE_DRIVING_DATA"]}'
-      - "--user-claims"
-      - '{"sub": "counter", "name": "Counter", "upn": "counter@example.com", "email": "counter@example.com", "roles": ["ROLE_EDIT_DAILY_COUNTS"]}'
-      - "--user-claims"
-      - '{"sub": "supplier-manager", "name": "Supplier manager", "upn": "supplier-manager@example.com", "email": "supplier-manager@example.com", "roles": ["ROLE_MANAGE_SUPPLIERS"]}'
-      - "--user-claims"
-      - '{"sub": "user", "name": "User", "upn": "user@example.com", "email": "user@example.com", "roles": []}'
+      - '{"sub": "norole", "name": "No role", "upn": "norole@example.com", "email": "norole@example.com", "roles": []}'
