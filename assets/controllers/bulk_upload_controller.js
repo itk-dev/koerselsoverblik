@@ -34,11 +34,22 @@ export default class extends Controller {
     };
     window.addEventListener("dragover", this.blockDrop);
     window.addEventListener("drop", this.blockDrop);
+    // The browser asks before the user leaves the page during the import, because the files that
+    // are not sent are then not imported. The browser shows its own text.
+    this.importing = false;
+    this.warnOnLeave = (event) => {
+      if (this.importing) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", this.warnOnLeave);
   }
 
   disconnect() {
     window.removeEventListener("dragover", this.blockDrop);
     window.removeEventListener("drop", this.blockDrop);
+    window.removeEventListener("beforeunload", this.warnOnLeave);
   }
 
   /*
@@ -101,6 +112,7 @@ export default class extends Controller {
     }
     // No new files during the import. reset() makes the drop area active again.
     this.setDropzoneActive(false);
+    this.importing = true;
     for (const row of rows) {
       // A second click must not import the file again.
       row.dataset.state = "waiting";
@@ -108,7 +120,10 @@ export default class extends Controller {
     }
     // The last task of the queue tells the user that the import is done. update() has set the
     // counts of the dialog after the last file.
-    this.enqueue(() => this.doneDialogTarget.showModal());
+    this.enqueue(() => {
+      this.importing = false;
+      this.doneDialogTarget.showModal();
+    });
     this.update();
   }
 
