@@ -8,8 +8,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 - The login accepts the app role values of Entra ID. Each value becomes `ROLE_` and the value in
-  upper case. `admin` (Superadministrator) becomes `ROLE_ADMIN`, and `user` (Slutbruger) becomes
-  `ROLE_USER`. The role hierarchy gives both roles all permission roles. A user no longer gets
+  upper case. `admin` (Superadministrator) becomes `ROLE_ADMIN`, and `bruger` (Slutbruger) becomes
+  `ROLE_BRUGER`. The role hierarchy gives both roles all permission roles. A user no longer gets
   `ROLE_USER` automatically. The mock identity provider has the same app roles.
 - All logs go to stderr in the prod environment, also the authentication log and the driving data
   log. In prod, the application writes no log files.
@@ -22,6 +22,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   are added. `UploadFailure` gives the Danish message of a failed upload for both upload pages.
   The upload of one file has the same layout: a drop area, then the info box. Tabs switch between
   the two pages. The menu marks its item on each page of a section, also on a tab or a sub-page.
+- The app role "Slutbruger" has the value `bruger` in Entra ID, so the role is `ROLE_BRUGER`, not
+  `ROLE_USER`. The check of the bulk upload parses a file once, not twice. On the servers, PHP-FPM
+  has 256M and 60 seconds, so that OpenSpout keeps the shared strings in memory.
 
 ## [0.1.0] - 2026-11-18
 

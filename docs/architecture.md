@@ -794,9 +794,13 @@ UX Dropzone (`BulkImportType`, `multiple`) takes the drop. The form is not submi
 that the request limit applies to each file:
 
 1. `POST /admin/import/bulk/check` (CSRF in the `X-CSRF-Token` header): the file is checked with
-   the constraint of `ImportType`. `DrivingDataImporter::rangeOf()` reads the first and the last
-   date with stop rows. The range has the same limit as a typed range. The preview counts the rows,
-   and `UploadStore` keeps the file under a token.
+   the constraint of `ImportType`. `DrivingDataImporter::rangeAndPreview()` parses the file once.
+   It reads the first and the last date with stop rows, and counts the rows of that range. The
+   range has the same limit as a typed range. `UploadStore` keeps the file under a token.
+
+The parse of an xlsx file in a request needs memory. With enough memory, OpenSpout keeps the shared
+strings in memory, which is much faster than its file cache. `docker-compose.server.override.yml`
+gives PHP-FPM 256M and 60 seconds on the servers, the same memory as dev.
 2. `POST /admin/import/bulk/{token}` (CSRF): `UploadStore::take()`, and the same import as the
    single upload, with its own `ImportBatch`.
 
@@ -1184,7 +1188,7 @@ flowchart TD
     idp -- "login fails in the identity provider" --> idpfail["No redirect back<br/>not in the authentication log"]
     idp -- "user approved" --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
     callback -- invalid --> fail["Login failed<br/>written to the authentication log"]
-    callback -- valid --> user["OidcLogin<br/>role claim → ROLE_ADMIN, ROLE_USER<br/>create or update User"]
+    callback -- valid --> user["OidcLogin<br/>role claim → ROLE_ADMIN, ROLE_BRUGER<br/>create or update User"]
     user --> log["Authentication log<br/>email, roles, time"]
     log --> guard
 
@@ -1202,8 +1206,8 @@ flowchart TD
   to the identity provider. After the login, the
   identity provider sends the user back to the callback route, `/openid-connect/generic`.
 - At each login, `OidcLogin` reads the role claim (`OIDC_ROLE_CLAIM`). Each app role value of
-  Entra ID becomes `ROLE_` and the value in upper case: `admin` becomes `ROLE_ADMIN`, and `user`
-  becomes `ROLE_USER`. The `User` is created or updated with these roles.
+  Entra ID becomes `ROLE_` and the value in upper case: `admin` becomes `ROLE_ADMIN`, and `bruger`
+  becomes `ROLE_BRUGER`. The `User` is created or updated with these roles.
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
@@ -1231,23 +1235,23 @@ flowchart TD
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, sub-agreements and the supplier of each sub-agreement |
 
-- Entra ID has two app roles. `ROLE_USER` (Slutbruger) gives all permission roles. `ROLE_ADMIN`
-  (Superadministrator) gives `ROLE_USER`. At this time, the two roles give the same access.
+- Entra ID has two app roles. `ROLE_BRUGER` (Slutbruger) gives all permission roles. `ROLE_ADMIN`
+  (Superadministrator) gives `ROLE_BRUGER`. At this time, the two roles give the same access.
   `ROLE_ADMIN` is for features that only administrators will get. Put a permission role for such a
   feature directly under `ROLE_ADMIN`.
 
   ```yaml
   role_hierarchy:
     ROLE_ADMIN:
-      - ROLE_USER
-    ROLE_USER:
+      - ROLE_BRUGER
+    ROLE_BRUGER:
       - ROLE_VIEW_OVERVIEW
       - ROLE_MANAGE_DRIVING_DATA
       - ROLE_EDIT_DAILY_COUNTS
       - ROLE_MANAGE_SUPPLIERS
   ```
 
-- The application does not give `ROLE_USER` automatically. A user with no app role can sign in,
+- The application does not give `ROLE_USER`. A user with no app role can sign in,
   because `access_control` requires only `IS_AUTHENTICATED`. But the user cannot open any page.
 - The permission roles are the roles at the end of the hierarchy: the roles that give no other
   role.
@@ -1255,7 +1259,7 @@ flowchart TD
 - `access_control` denies everything to anonymous users except the OIDC routes
   (`/openidconnect/*` and `/openid-connect/generic`) and the assets.
 - A test walks the router. It fails if an application route has no `IsGranted`, or if it checks
-  `ROLE_ADMIN` or `ROLE_USER`.
+  `ROLE_ADMIN` or `ROLE_BRUGER`.
 
 **Data protection:**
 
