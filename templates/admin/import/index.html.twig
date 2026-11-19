@@ -4,6 +4,7 @@
 
 {% block body %}
     <h1>{{ 'upload.title'|trans }}</h1>
+    {{ include('admin/import/_tabs.html.twig', {current: 'single'}) }}
 
     <p>{{ 'upload.intro'|trans }}</p>
     <div class="itkaarhus-callout itkaarhus-callout--warn">

@@ -1,0 +1,25 @@
+{#
+ # One file of the bulk upload. The server renders it for each request, and the bulk-upload
+ # Stimulus controller puts it in the list. "state" is checked, imported or failed.
+ #}
+{% import 'admin/import/_macros.html.twig' as upload_macros %}
+<li class="bulk-upload__file" data-test="bulk-file" data-state="{{ state }}"{% if importUrl is defined %} data-import-url="{{ importUrl }}"{% endif %}>
+    <span class="bulk-upload__name" data-test="bulk-name">{{ name }}</span>
+    <span class="bulk-upload__state">{{ ('upload.bulk.state.' ~ state)|trans }}</span>
+    {% if error is defined %}
+        <span class="bulk-upload__error" data-test="bulk-error">{{ error|trans }}</span>
+    {% else %}
+        <span data-test="bulk-range">{{ upload_macros.date(firstDate) }} – {{ upload_macros.date(lastDate) }}</span>
+        <span class="bulk-upload__counts">
+            {{ (state == 'imported' ? 'upload.summary.inserted' : 'upload.summary.insert')|trans }}:
+            <span data-test="bulk-insert">{{ counts.insert|number_format }}</span>,
+            {{ (state == 'imported' ? 'upload.summary.deleted' : 'upload.summary.delete')|trans }}:
+            <span data-test="bulk-delete">{{ counts.delete|number_format }}</span>,
+            {{ 'upload.summary.reject'|trans }}:
+            <span data-test="bulk-reject">{{ counts.reject|number_format }}</span>
+        </span>
+        {% if resultUrl is defined %}
+            <a href="{{ resultUrl }}" data-test="bulk-result">{{ 'upload.bulk.result'|trans }}</a>
+        {% endif %}
+    {% endif %}
+</li>

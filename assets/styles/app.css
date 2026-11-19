@@ -408,6 +408,77 @@ body {
 .uploaded-dates__head h2 {
   margin: 0;
 }
+/* The bulk upload: one row for each file. The list of the controller replaces the Dropzone list. */
+.bulk-upload .dropzone-preview-list {
+  display: none;
+}
+/* A large drop area, as wide as the form, because the user drops many files on it. The design
+   system gives a field a maximum width of 320px. */
+.bulk-upload .itkaarhus-field {
+  max-width: none;
+}
+.bulk-upload .dropzone-container {
+  width: 100%;
+  min-height: 160px;
+  justify-content: center;
+  border-color: var(--itkaarhus-gray-500);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+}
+.bulk-upload .dropzone-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--itkaarhus-gray-700);
+}
+.bulk-upload .admin-form {
+  margin-bottom: var(--itkaarhus-space-5);
+}
+/* The number of files in each state, as pills on one line. */
+.bulk-upload__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-2);
+  margin: var(--itkaarhus-space-5) 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+.bulk-upload__list {
+  display: grid;
+  gap: var(--itkaarhus-space-2);
+  margin: 0 0 var(--itkaarhus-space-5);
+  padding: 0;
+  list-style: none;
+}
+.bulk-upload__file {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-1) var(--itkaarhus-space-4);
+  padding: var(--itkaarhus-space-2) var(--itkaarhus-space-3);
+  border: var(--hairline);
+  border-left: 4px solid var(--itkaarhus-gray-200);
+  border-radius: var(--itkaarhus-radius-2);
+  font-variant-numeric: tabular-nums;
+}
+.bulk-upload__name {
+  font-weight: 600;
+}
+.bulk-upload__state {
+  color: var(--itkaarhus-gray-600);
+}
+.bulk-upload__file[data-state="checked"] {
+  border-left-color: var(--itkaarhus-blue-700);
+}
+.bulk-upload__file[data-state="imported"] {
+  border-left-color: var(--itkaarhus-success-500);
+}
+.bulk-upload__file[data-state="failed"] {
+  border-left-color: var(--itkaarhus-danger-700);
+}
+.bulk-upload__error {
+  color: var(--itkaarhus-danger-700);
+}
 /* The confirmation of a clear: the native popover opens it in the middle of the top layer. */
 .clear-pop {
   width: min(420px, calc(100vw - 2 * var(--itkaarhus-space-4)));

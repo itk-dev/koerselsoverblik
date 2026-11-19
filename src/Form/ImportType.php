@@ -56,14 +56,7 @@ final class ImportType extends AbstractType
                 'label' => 'upload.file',
                 'help' => 'upload.file_help',
                 'attr' => ['accept' => '.xlsx'],
-                'constraints' => [
-                    new File(
-                        maxSize: $this->maxFileSize,
-                        extensions: ['xlsx' => self::XLSX_MIME_TYPES],
-                        extensionsMessage: 'upload.not_xlsx',
-                        maxSizeMessage: 'upload.too_large',
-                    ),
-                ],
+                'constraints' => [self::fileConstraint($this->maxFileSize)],
             ])
             ->add('firstDate', DateType::class, [
                 'label' => 'upload.first_date',
@@ -75,6 +68,21 @@ final class ImportType extends AbstractType
                 'widget' => 'single_text',
                 'input' => 'datetime_immutable',
             ]);
+    }
+
+    /**
+     * The size and the type of an extract. The bulk upload checks each file with it.
+     *
+     * @param positive-int $maxFileSize the value of APP_DRIVING_DATA_MAX_FILE_SIZE
+     */
+    public static function fileConstraint(int $maxFileSize): File
+    {
+        return new File(
+            maxSize: $maxFileSize,
+            extensions: ['xlsx' => self::XLSX_MIME_TYPES],
+            extensionsMessage: 'upload.not_xlsx',
+            maxSizeMessage: 'upload.too_large',
+        );
     }
 
     public function configureOptions(OptionsResolver $resolver): void
