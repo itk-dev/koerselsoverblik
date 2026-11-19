@@ -20,7 +20,7 @@ services:
   # the ID token.
   #
   # Each user has the claims that OidcAuthenticator reads: upn and the role claim (roles). The users
-  # match the app roles of Entra ID on staging and production: "admin" (Superadministrator), "user"
+  # match the app roles of Entra ID on staging and production: "admin" (Superadministrator), "bruger"
   # (Slutbruger), and a user with no app role.
   idp:
     image: ghcr.io/geigerzaehler/oidc-provider-mock:latest
@@ -41,6 +41,6 @@ services:
       - "--user-claims"
       - '{"sub": "admin", "name": "Admin", "upn": "admin@example.com", "email": "admin@example.com", "roles": ["admin"]}'
       - "--user-claims"
-      - '{"sub": "user", "name": "User", "upn": "user@example.com", "email": "user@example.com", "roles": ["user"]}'
+      - '{"sub": "user", "name": "User", "upn": "user@example.com", "email": "user@example.com", "roles": ["bruger"]}'
       - "--user-claims"
       - '{"sub": "norole", "name": "No role", "upn": "norole@example.com", "email": "norole@example.com", "roles": []}'

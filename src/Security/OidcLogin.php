@@ -21,6 +21,12 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  */
 final readonly class OidcLogin
 {
+    /**
+     * The app role values of Entra ID that have another Symfony role name. The app role
+     * "Slutbruger" has the value "bruger". It is the Symfony convention ROLE_USER.
+     */
+    private const array ROLE_NAMES = ['BRUGER' => 'USER'];
+
     public function __construct(
         private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
@@ -52,7 +58,11 @@ final readonly class OidcLogin
         // Each app role of Entra ID becomes a role, for example "admin" becomes ROLE_ADMIN. The role
         // hierarchy in config/packages/security.yaml gives the permission roles.
         $values = array_filter((array) ($claims[$this->roleClaim] ?? []), is_string(...));
-        $roles = array_values(array_unique(array_map(static fn (string $value): string => 'ROLE_'.strtoupper($value), $values)));
+        $roles = array_values(array_unique(array_map(static function (string $value): string {
+            $role = strtoupper($value);
+
+            return 'ROLE_'.(self::ROLE_NAMES[$role] ?? $role);
+        }, $values)));
         $now = $this->clock->now();
         $user->setRoles($roles);
         $user->setLastLoginAt($now);

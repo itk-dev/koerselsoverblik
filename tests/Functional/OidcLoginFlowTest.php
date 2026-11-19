@@ -206,7 +206,7 @@ final class OidcLoginFlowTest extends WebTestCase
     public function testAnEndUserSeesTheOverview(): void
     {
         // "Slutbruger" in Entra ID.
-        $this->claims = ['upn' => 'foobar@example.com', 'roles' => ['user']];
+        $this->claims = ['upn' => 'foobar@example.com', 'roles' => ['bruger']];
 
         $this->signIn();
         $this->client->request('GET', '/');

@@ -55,7 +55,7 @@ final class OidcLoginTest extends KernelTestCase
         $first = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['admin']]);
         $this->clock->sleep(3600);
 
-        $next = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['user']]);
+        $next = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['bruger']]);
 
         $this->entityManager()->clear();
         self::assertSame($first->getId(), $next->getId());
@@ -89,8 +89,10 @@ final class OidcLoginTest extends KernelTestCase
      */
     public static function roleClaimProvider(): iterable
     {
-        yield 'Entra ID app roles' => [['admin', 'user'], ['ROLE_ADMIN', 'ROLE_USER']];
+        yield 'Entra ID app roles' => [['admin', 'bruger'], ['ROLE_ADMIN', 'ROLE_USER']];
         yield 'upper case' => [['manage_driving_data'], ['ROLE_MANAGE_DRIVING_DATA']];
+        yield 'Slutbruger in any case' => [['Bruger'], ['ROLE_USER']];
+        yield 'Slutbruger and its role give one role' => [['bruger', 'user'], ['ROLE_USER']];
         yield 'a string' => ['Admin', ['ROLE_ADMIN']];
         yield 'duplicates are removed' => [['admin', 'ADMIN'], ['ROLE_ADMIN']];
         yield 'non-string values are ignored' => [[42, null, ['admin']], []];
@@ -99,7 +101,7 @@ final class OidcLoginTest extends KernelTestCase
 
     public function testALoginIsWrittenToTheAuthenticationLog(): void
     {
-        $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['admin', 'user']]);
+        $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['admin', 'bruger']]);
 
         self::assertSame([[
             'INFO',
