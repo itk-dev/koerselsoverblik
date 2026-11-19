@@ -150,7 +150,7 @@ flowchart TB
     end
 
     subgraph security["Security"]
-        authenticators["OidcAuthenticator<br/>OidcRoleMapper"]
+        authenticators["OidcAuthenticator<br/>OidcLogin"]
         guards["Role guards<br/>#[IsGranted], access_control"]
     end
 
@@ -1165,8 +1165,7 @@ flowchart TD
     idp -- "login fails in the identity provider" --> idpfail["No redirect back<br/>not in the authentication log"]
     idp -- "user approved" --> callback["Callback route<br/>OidcAuthenticator checks state and token"]
     callback -- invalid --> fail["Login failed<br/>written to the authentication log"]
-    callback -- valid --> mapper["OidcRoleMapper<br/>role claim → ROLE_ADMIN and permission roles"]
-    mapper --> user["Create or update User<br/>email, roles, last login"]
+    callback -- valid --> user["OidcLogin<br/>role claim → ROLE_ADMIN, ROLE_USER<br/>create or update User"]
     user --> log["Authentication log<br/>email, roles, time"]
     log --> guard
 
@@ -1183,9 +1182,9 @@ flowchart TD
 - An anonymous user is sent to the bundle's login route under `/openidconnect`, and from there
   to the identity provider. After the login, the
   identity provider sends the user back to the callback route, `/openid-connect/generic`.
-- At each login, `OidcRoleMapper` reads the role claim (`OIDC_ROLE_CLAIM`). It keeps the values
-  that are `ROLE_ADMIN` or a permission role, and ignores the rest. The `User` is created or
-  updated with these roles.
+- At each login, `OidcLogin` reads the role claim (`OIDC_ROLE_CLAIM`). Each app role value of
+  Entra ID becomes `ROLE_` and the value in upper case: `admin` becomes `ROLE_ADMIN`, and `user`
+  becomes `ROLE_USER`. The `User` is created or updated with these roles.
 - The application does not edit roles. A role change in the identity provider applies at the
   next login.
 - Logout ends the session in the application.
@@ -1199,7 +1198,7 @@ flowchart TD
   IP address and the reason. A login that fails in the identity provider does not come back to
   the application, so it is not in this log. `OidcLogin` adds a record with the email and the
   roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
-  `var/log/openid_connect_audit.<APP_ENV>.log`.
+  stderr in prod, and to `var/log/dev.log` in dev.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**
@@ -1213,19 +1212,26 @@ flowchart TD
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, sub-agreements and the supplier of each sub-agreement |
 
-- `ROLE_ADMIN` gives all permission roles. At first, users get `ROLE_ADMIN` only. Narrower
-  access later needs only other values in the role claim, or a new bundle in `role_hierarchy`.
+- Entra ID has two app roles. `ROLE_USER` (Slutbruger) gives all permission roles. `ROLE_ADMIN`
+  (Superadministrator) gives `ROLE_USER`. At this time, the two roles give the same access.
+  `ROLE_ADMIN` is for features that only administrators will get. Put a permission role for such a
+  feature directly under `ROLE_ADMIN`.
 
   ```yaml
   role_hierarchy:
     ROLE_ADMIN:
+      - ROLE_USER
+    ROLE_USER:
       - ROLE_VIEW_OVERVIEW
       - ROLE_MANAGE_DRIVING_DATA
       - ROLE_EDIT_DAILY_COUNTS
       - ROLE_MANAGE_SUPPLIERS
   ```
 
-- Every signed-in user also has `ROLE_USER`. It grants nothing alone.
+- The application does not give `ROLE_USER` automatically. A user with no app role can sign in,
+  because `access_control` requires only `IS_AUTHENTICATED`. But the user cannot open any page.
+- The permission roles are the roles at the end of the hierarchy: the roles that give no other
+  role.
 - Every controller has a class-level `#[IsGranted]` with a permission role.
 - `access_control` denies everything to anonymous users except the OIDC routes
   (`/openidconnect/*` and `/openid-connect/generic`) and the assets.

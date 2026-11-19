@@ -7,6 +7,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- The login accepts the app role values of Entra ID. Each value becomes `ROLE_` and the value in
+  upper case. `admin` (Superadministrator) becomes `ROLE_ADMIN`, and `user` (Slutbruger) becomes
+  `ROLE_USER`. The role hierarchy gives both roles all permission roles. A user no longer gets
+  `ROLE_USER` automatically. The mock identity provider has the same app roles.
+- All logs go to stderr in the prod environment, also the authentication log and the driving data
+  log. In prod, the application writes no log files.
+
 ## [0.1.0] - 2026-11-18
 
 - [#5](https://github.com/itk-dev/koerselsoverblik/issues/5)
