@@ -93,6 +93,11 @@ export default class extends Controller {
     // The server does not know the name of an expired upload. Keep the name of the row.
     next.querySelector('[data-test="bulk-name"]').textContent = name;
     row.replaceWith(next);
+    // During the import, the list follows the file that is done. The check does not scroll, so
+    // that the user can read the list while the files are checked.
+    if (body === null) {
+      next.scrollIntoView({ block: "nearest" });
+    }
   }
 
   copyRow(template, name) {
