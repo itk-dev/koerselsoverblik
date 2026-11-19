@@ -1,0 +1,26 @@
+# The HTTP security headers. See "Security" in docs/architecture.md.
+nelmio_security:
+    content_type:
+        nosniff: true
+
+    referrer_policy:
+        enabled: true
+        policies:
+            - 'same-origin'
+
+    csp:
+        # Do not send the obsolete X-Content-Security-Policy header.
+        compat_headers: false
+        enforce:
+            # Do not add 'unsafe-inline' next to the nonce.
+            level1_fallback: false
+            # Also for style-src. Nelmio does not send a directive that has the default-src value.
+            default-src: ["'self'"]
+            # importmap() gets the nonce from csp_nonce('script'). 'strict-dynamic' lets the
+            # import map load the modules and the data: entries for the CSS imports.
+            script-src: ["'self'", "'strict-dynamic'"]
+            img-src: ["'self'", 'data:']
+            object-src: ["'none'"]
+            base-uri: ["'self'"]
+            form-action: ["'self'"]
+            frame-ancestors: ["'none'"]

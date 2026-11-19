@@ -1,0 +1,8 @@
+{# The legend of a chart with more than one series. #}
+{% if series|length > 1 %}
+    <ul class="legend">
+        {% for item in series %}
+            <li><span class="legend__swatch {{ item.cssClass }}{{ (item.dashed ?? false) ? ' legend__swatch--dashed' }}" aria-hidden="true"></span>{{ item.name }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}

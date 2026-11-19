@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+# See also https://symfony.com/doc/current/service_container/import.html
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    # The import mappings for driving data. See "Import mappings" in the README.
+    app.driving_data_mapping_dir: '%kernel.project_dir%/config/import/driving_data'
+    # The maximum number of days in one upload. See "Configuration" in the README.
+    app.driving_data_max_days: '%env(int:APP_DRIVING_DATA_MAX_DAYS)%'
+    # The limits for one extract. See "Configuration" in the README.
+    app.driving_data_max_file_size: '%env(int:APP_DRIVING_DATA_MAX_FILE_SIZE)%'
+    app.driving_data_max_uncompressed_size: '%env(int:APP_DRIVING_DATA_MAX_UNCOMPRESSED_SIZE)%'
+    app.driving_data_max_rows: '%env(int:APP_DRIVING_DATA_MAX_ROWS)%'
+    app.driving_data_max_columns: '%env(int:APP_DRIVING_DATA_MAX_COLUMNS)%'
+    # The punctuality rules. See "Configuration" in the README.
+    app.punctuality_tolerance_minutes: '%env(int:APP_PUNCTUALITY_TOLERANCE_MINUTES)%'
+    app.punctuality_target: '%env(int:APP_PUNCTUALITY_TARGET)%'
+    app.punctuality_location_min_stops: '%env(int:APP_PUNCTUALITY_LOCATION_MIN_STOPS)%'
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones

@@ -1,0 +1,28 @@
+# The row id D-1 occurs two times. The import keeps the first row and rejects
+# the second.
+date: 2026-01-05
+routes:
+  R-01:
+    runs:
+      1:
+        - person: P-001
+          type: pickup
+          planned: "08:00"
+          actual: "08:01"
+          passengers_after: 1
+          row_id: D-1
+        - person: P-001
+          type: drop_off
+          planned: "08:20"
+          actual: "08:22"
+          passengers_after: 0
+          row_id: D-2
+        - person: P-002
+          type: pickup
+          planned: "09:00"
+          actual: "09:00"
+          passengers_after: 1
+          row_id: D-1
+expected:
+  stop_rows: 2
+  rejected_rows: 1

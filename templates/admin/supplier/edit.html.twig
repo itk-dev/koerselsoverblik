@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% set heading = supplier.id ? 'supplier.edit_title' : 'supplier.new_title' %}
+
+{% block title %}{{ heading|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ heading|trans }}</h1>
+
+    {{ form_start(form, {attr: {class: 'admin-form'}}) }}
+        {{ form_widget(form) }}
+        <div class="admin-form__buttons">
+            <button class="itkaarhus-btn itkaarhus-btn--primary" type="submit">{{ 'common.save'|trans }}</button>
+            <a class="itkaarhus-btn itkaarhus-btn--secondary" href="{{ path('admin_supplier_index') }}">{{ 'common.cancel'|trans }}</a>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

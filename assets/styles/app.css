@@ -1,0 +1,1341 @@
+/*
+ * The application layer on top of the itkaarhus design system. Colours, spacing, radii and
+ * type sizes come from the design system tokens.
+ */
+
+:root {
+  --rail-w: 244px;
+  --topbar-h: 76px;
+  --hairline: 1px solid var(--itkaarhus-gray-200);
+  --surface: var(--itkaarhus-white);
+  --canvas: var(--itkaarhus-gray-50);
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--itkaarhus-gray-900);
+  font-size: var(--itkaarhus-text-base);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip {
+  position: absolute;
+  left: var(--itkaarhus-space-4);
+  top: calc(-1 * var(--itkaarhus-space-9));
+  z-index: 40;
+  background: var(--itkaarhus-primary);
+  color: var(--itkaarhus-white);
+  padding: var(--itkaarhus-space-2) var(--itkaarhus-space-4);
+  border-radius: var(--itkaarhus-radius-2);
+  text-decoration: none;
+  transition: top 0.12s ease;
+}
+.skip:focus {
+  top: var(--itkaarhus-space-4);
+}
+
+/* The Lucide SVG files in assets/icons/ set the stroke. ux_icon() adds the class "icon". */
+.icon {
+  flex: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--itkaarhus-focus);
+}
+
+/* ----------------------------------------------------------------- shell */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--itkaarhus-space-5);
+  padding: var(--itkaarhus-space-5) var(--itkaarhus-space-4);
+  background: var(--surface);
+  border-right: var(--hairline);
+  box-sizing: border-box;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-3);
+  text-decoration: none;
+  color: inherit;
+  padding: var(--itkaarhus-space-1);
+}
+.brand__mark {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.brand__text b {
+  font-size: var(--itkaarhus-text-base);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.brand__text small {
+  font-size: var(--itkaarhus-text-xs);
+  color: var(--itkaarhus-gray-500);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-3);
+  padding: var(--itkaarhus-space-2) var(--itkaarhus-space-3);
+  border-radius: var(--itkaarhus-radius-2);
+  color: var(--itkaarhus-gray-700);
+  text-decoration: none;
+  font-size: var(--itkaarhus-text-sm);
+  font-weight: 500;
+  line-height: 1.3;
+}
+.nav__item:hover {
+  background: var(--itkaarhus-gray-50);
+  color: var(--itkaarhus-gray-900);
+}
+.nav__icon {
+  color: var(--itkaarhus-gray-400);
+}
+.nav__item.is-active {
+  background: var(--itkaarhus-blue-50);
+  color: var(--itkaarhus-blue-700);
+  font-weight: 600;
+}
+.nav__item.is-active .nav__icon {
+  color: var(--itkaarhus-primary);
+}
+
+.rail__foot {
+  border-top: var(--hairline);
+  padding-top: var(--itkaarhus-space-4);
+}
+.about-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: var(--itkaarhus-text-sm);
+  color: var(--itkaarhus-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------- topbar */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-3);
+  min-height: var(--topbar-h);
+  padding: var(--itkaarhus-space-3) var(--itkaarhus-space-6);
+  background: color-mix(in srgb, var(--itkaarhus-white) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: var(--hairline);
+  box-sizing: border-box;
+}
+
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+  color: var(--itkaarhus-gray-700);
+  cursor: pointer;
+}
+
+.topbar__controls {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-2);
+  font-size: var(--itkaarhus-text-sm);
+  color: var(--itkaarhus-gray-700);
+}
+
+/* -------------------------------------------------------------- content */
+
+.content {
+  flex: 1;
+  padding: var(--itkaarhus-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--itkaarhus-space-5);
+  max-width: 1320px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.content:focus {
+  outline: none;
+}
+
+/* --------------------------------------------------------------- dialog */
+
+.about {
+  border: none;
+  border-radius: var(--itkaarhus-radius-3);
+  padding: 0;
+  max-width: 620px;
+  width: calc(100% - var(--itkaarhus-space-6));
+  box-shadow: var(--itkaarhus-shadow-3);
+  color: var(--itkaarhus-gray-900);
+}
+.about::backdrop {
+  background: color-mix(in srgb, var(--itkaarhus-gray-900) 45%, transparent);
+}
+.about__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itkaarhus-space-4);
+  padding: var(--itkaarhus-space-4) var(--itkaarhus-space-5);
+  border-bottom: var(--hairline);
+}
+.about__head h2 {
+  margin: 0;
+  font-size: var(--itkaarhus-text-md);
+  font-weight: 600;
+}
+.about__close {
+  border: var(--hairline);
+  background: var(--surface);
+  border-radius: var(--itkaarhus-radius-2);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--itkaarhus-gray-600);
+}
+.about__close:hover {
+  background: var(--itkaarhus-gray-50);
+  color: var(--itkaarhus-gray-900);
+}
+.about__body {
+  padding: var(--itkaarhus-space-5);
+  max-height: min(64vh, 560px);
+  overflow-y: auto;
+  font-size: var(--itkaarhus-text-sm);
+  line-height: 1.6;
+}
+.about__body p {
+  margin: 0 0 var(--itkaarhus-space-4);
+}
+
+/* ----------------------------------------------------------- responsive */
+
+@media (max-width: 1023.98px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--rail-w);
+    z-index: 30;
+    transform: translateX(-100%);
+    /* A closed drawer takes no focus and screen readers skip it. The delay lets it slide out first. */
+    visibility: hidden;
+    transition:
+      transform 0.18s ease,
+      visibility 0s linear 0.18s;
+    box-shadow: var(--itkaarhus-shadow-3);
+  }
+  .shell.is-nav-open .rail {
+    transform: translateX(0);
+    visibility: visible;
+    transition:
+      transform 0.18s ease,
+      visibility 0s;
+  }
+  /* The backdrop is below the rail. A click on it closes the drawer (see app.js). */
+  .shell.is-nav-open::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    background: color-mix(in srgb, var(--itkaarhus-gray-900) 45%, transparent);
+  }
+  .nav-toggle {
+    display: inline-flex;
+  }
+  .content {
+    padding: var(--itkaarhus-space-4);
+  }
+  .topbar {
+    padding: var(--itkaarhus-space-3) var(--itkaarhus-space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .rail,
+  .topbar,
+  .skip {
+    display: none;
+  }
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  html,
+  body,
+  .shell,
+  .main,
+  .content {
+    background: var(--itkaarhus-white);
+  }
+}
+
+/* -- Admin pages ---------------------------------------------- */
+.flash {
+  margin-bottom: var(--itkaarhus-space-4);
+}
+.admin-tabs {
+  display: flex;
+  gap: var(--itkaarhus-space-2);
+  margin-bottom: var(--itkaarhus-space-5);
+  border-bottom: var(--hairline);
+}
+.admin-tabs a {
+  padding: var(--itkaarhus-space-2) var(--itkaarhus-space-3);
+  color: var(--itkaarhus-gray-700);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+.admin-tabs a[aria-current="page"] {
+  color: var(--itkaarhus-blue-700);
+  border-bottom-color: var(--itkaarhus-primary);
+  font-weight: 600;
+}
+.admin-form {
+  display: grid;
+  gap: var(--itkaarhus-space-4);
+}
+/* Fields side by side, for example the first and the last date of an upload. */
+.admin-form__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-4);
+}
+.admin-form__buttons,
+.actions {
+  display: flex;
+  gap: var(--itkaarhus-space-2);
+  align-items: center;
+}
+.actions {
+  justify-content: flex-end;
+}
+/* The summary of an upload: the labels in the first column, the values in the second. */
+.upload-summary {
+  display: grid;
+  grid-template-columns: max-content auto;
+  gap: var(--itkaarhus-space-2) var(--itkaarhus-space-5);
+  margin: 0 0 var(--itkaarhus-space-5);
+}
+.upload-summary dt {
+  font-weight: 600;
+  color: var(--itkaarhus-gray-700);
+}
+.upload-summary dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+/* The uploaded dates of one month, below the upload form. */
+.uploaded-dates {
+  margin-top: var(--itkaarhus-space-7);
+}
+.uploaded-dates__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itkaarhus-space-3);
+  margin-bottom: var(--itkaarhus-space-4);
+}
+.uploaded-dates__head h2 {
+  margin: 0;
+}
+/* The bulk upload: one row for each file. The list of the controller replaces the Dropzone list. */
+.bulk-upload .dropzone-preview-list {
+  display: none;
+}
+/* The drop area of the two upload pages: large, and as wide as the form. The design system gives
+   a field a maximum width of 320px. The selectors are more specific than the Dropzone stylesheet,
+   which loads after this file. */
+.itkaarhus-field:has(> .dropzone-container) {
+  max-width: none;
+}
+.itkaarhus-field > .dropzone-container {
+  width: 100%;
+  min-height: 160px;
+  justify-content: center;
+  border-color: var(--itkaarhus-gray-500);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+}
+.dropzone-container .dropzone-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--itkaarhus-gray-700);
+}
+.bulk-upload .admin-form {
+  margin-bottom: var(--itkaarhus-space-5);
+}
+/* The counters and the import button stay below the topbar while the user scrolls the list. */
+.bulk-upload__bar {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itkaarhus-space-3);
+  margin: var(--itkaarhus-space-5) 0 var(--itkaarhus-space-3);
+  padding: var(--itkaarhus-space-3) 0;
+  border-bottom: var(--hairline);
+  background: var(--canvas);
+}
+/* The drop area takes no files during the import. The text comes from the controller. */
+.itkaarhus-field > .dropzone-container.is-busy {
+  border-style: solid;
+  border-color: var(--itkaarhus-gray-200);
+  background: var(--itkaarhus-gray-50);
+  cursor: not-allowed;
+}
+.dropzone-container.is-busy .dropzone-input {
+  cursor: not-allowed;
+}
+.dropzone-container.is-busy .dropzone-placeholder {
+  display: none;
+}
+.dropzone-container.is-busy::after {
+  content: attr(data-busy-text);
+  align-self: center;
+  color: var(--itkaarhus-gray-500);
+}
+/* The dialog at the end of the import. It uses the style of the "Om tallene" dialog. */
+.bulk-upload__done {
+  max-width: 360px;
+}
+.bulk-upload__done .bulk-upload__counts {
+  margin-bottom: var(--itkaarhus-space-4);
+}
+/* The number of files in each state, as pills on one line. */
+.bulk-upload__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+/* The rows share the columns of the list (subgrid): name, state, range and counts. */
+.bulk-upload__list {
+  display: grid;
+  grid-template-columns: max-content max-content max-content 1fr;
+  gap: var(--itkaarhus-space-2);
+  margin: 0 0 var(--itkaarhus-space-5);
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.bulk-upload__file {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  column-gap: var(--itkaarhus-space-4);
+  padding: var(--itkaarhus-space-2) var(--itkaarhus-space-3);
+  border: var(--hairline);
+  border-left: 4px solid var(--itkaarhus-gray-200);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+  /* The scroll of the import keeps the row below the topbar and the sticky bar, and about one row
+     above the bottom of the window. */
+  scroll-margin-top: calc(var(--topbar-h) + 4rem);
+  scroll-margin-bottom: 4rem;
+}
+/* The file name is the heading of the row. The other columns are smaller and lighter. */
+.bulk-upload__name {
+  font-weight: 600;
+  color: var(--itkaarhus-gray-900);
+}
+.bulk-upload__detail {
+  color: var(--itkaarhus-gray-600);
+  font-size: 0.8125rem;
+}
+.bulk-upload__detail strong {
+  font-weight: 600;
+  color: var(--itkaarhus-gray-900);
+}
+/* A message takes the range and the counts columns. */
+.bulk-upload__message {
+  grid-column: 3 / -1;
+}
+.bulk-upload__file[data-state="checked"] {
+  border-left-color: var(--itkaarhus-blue-700);
+}
+.bulk-upload__file[data-state="imported"] {
+  border-left-color: var(--itkaarhus-success-500);
+}
+.bulk-upload__file[data-state="skipped"] {
+  border-left-color: var(--itkaarhus-warning-500);
+}
+.bulk-upload__file[data-state="failed"] {
+  border-left-color: var(--itkaarhus-danger-700);
+}
+.bulk-upload__file[data-state="failed"] .bulk-upload__message {
+  color: var(--itkaarhus-danger-700);
+}
+/* On a small screen, each row wraps its columns. */
+@media (max-width: 767px) {
+  .bulk-upload__list {
+    grid-template-columns: 1fr;
+  }
+  .bulk-upload__file {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--itkaarhus-space-1) var(--itkaarhus-space-3);
+  }
+}
+/* The confirmation of a clear: the native popover opens it in the middle of the top layer. */
+.clear-pop {
+  width: min(420px, calc(100vw - 2 * var(--itkaarhus-space-4)));
+  padding: var(--itkaarhus-space-5);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-3);
+  box-shadow: var(--itkaarhus-shadow-3);
+  background: var(--surface);
+  color: var(--itkaarhus-gray-900);
+  text-align: left;
+  white-space: normal;
+}
+.clear-pop::backdrop {
+  background: color-mix(in srgb, var(--itkaarhus-gray-900) 45%, transparent);
+}
+.clear-pop__title {
+  margin: 0 0 var(--itkaarhus-space-3);
+  font-size: var(--itkaarhus-text-lg);
+}
+.clear-pop p {
+  margin: 0 0 var(--itkaarhus-space-5);
+  color: var(--itkaarhus-gray-700);
+}
+.clear-pop__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--itkaarhus-space-2);
+}
+
+/*
+ * -- Figures and charts ----------------------------------------
+ * Ported from the prototype (prototype/css/app.css). The Content Security Policy does not allow
+ * style attributes. So a series class sets the colour, and the SVG parts use currentColor.
+ */
+
+.series-info {
+  color: var(--itkaarhus-info-500);
+}
+.series-blue {
+  color: var(--itkaarhus-blue-700);
+}
+.series-success {
+  color: var(--itkaarhus-success-500);
+}
+.series-warning {
+  color: var(--itkaarhus-warning-500);
+}
+.series-coral {
+  color: var(--itkaarhus-coral-500);
+}
+.series-danger {
+  color: var(--itkaarhus-danger-500);
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--itkaarhus-space-3);
+}
+.page-head__title {
+  margin: 0;
+  font-size: var(--itkaarhus-text-xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.page-head__lede {
+  margin: var(--itkaarhus-space-2) 0 0;
+  color: var(--itkaarhus-gray-600);
+  font-size: var(--itkaarhus-text-md);
+}
+
+/* ------------------------------------------------------------ conclusion */
+
+/* The design system shows a strong element in a callout as a block heading. In the sentence,
+   the values must stay in the line. */
+.conclusion .ca-body strong {
+  display: inline;
+  font-size: inherit;
+  margin: 0;
+}
+/* The settings are close to the conclusion, so the gap of the content is smaller here. */
+.conclusion-settings {
+  margin-top: calc(var(--itkaarhus-space-3) * -1);
+}
+.conclusion-settings__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--itkaarhus-space-3);
+  font-size: var(--itkaarhus-text-sm);
+  cursor: pointer;
+  list-style: none;
+}
+.conclusion-settings__summary::-webkit-details-marker {
+  display: none;
+}
+.conclusion-settings__button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-2);
+  padding: 5px var(--itkaarhus-space-3);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+  color: var(--itkaarhus-gray-700);
+}
+.conclusion-settings__summary:hover .conclusion-settings__button {
+  background: var(--itkaarhus-gray-50);
+  color: var(--itkaarhus-gray-900);
+}
+.conclusion-settings[open] .conclusion-settings__button {
+  border-color: var(--itkaarhus-primary);
+  color: var(--itkaarhus-primary);
+}
+.conclusion-settings__panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--itkaarhus-space-5);
+  margin-top: var(--itkaarhus-space-3);
+  padding: var(--itkaarhus-space-4) var(--itkaarhus-space-5);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+}
+.conclusion-settings__set {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.conclusion-settings__set legend {
+  padding: 0;
+  font-size: var(--itkaarhus-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--itkaarhus-gray-500);
+}
+.conclusion-settings__boxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-2) var(--itkaarhus-space-4);
+  margin-top: var(--itkaarhus-space-2);
+}
+.conclusion-settings__hint {
+  margin: var(--itkaarhus-space-2) 0 0;
+  font-size: var(--itkaarhus-text-xs);
+  color: var(--itkaarhus-gray-500);
+}
+.conclusion-settings__check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-2);
+  font-size: var(--itkaarhus-text-sm);
+  color: var(--itkaarhus-gray-800);
+  cursor: pointer;
+}
+.conclusion-settings__check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--itkaarhus-primary);
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------ filter bar */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--itkaarhus-space-4);
+}
+.ctl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itkaarhus-space-1);
+  margin: 0;
+}
+.ctl--grow {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.ctl__label {
+  font-size: var(--itkaarhus-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--itkaarhus-gray-600);
+}
+.controls__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--itkaarhus-space-4);
+  margin: 0;
+}
+/* The button class sets display, so the hidden attribute needs this rule. */
+.controls__form [hidden] {
+  display: none;
+}
+.ctl__select {
+  height: 36px;
+  padding: 0 var(--itkaarhus-space-3);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+  font: inherit;
+  font-size: var(--itkaarhus-text-sm);
+}
+.seg {
+  display: inline-flex;
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  overflow: hidden;
+}
+.seg__btn {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  padding: 0 var(--itkaarhus-space-3);
+  background: var(--surface);
+  color: var(--itkaarhus-gray-700);
+  font-size: var(--itkaarhus-text-sm);
+  text-decoration: none;
+}
+.seg__btn + .seg__btn {
+  border-left: var(--hairline);
+}
+.seg__btn:hover {
+  background: var(--itkaarhus-blue-50);
+}
+.seg__btn.is-active {
+  background: var(--itkaarhus-primary);
+  color: var(--itkaarhus-white);
+  font-weight: 600;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-2);
+  height: 36px;
+  padding: 0 var(--itkaarhus-space-1);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
+}
+.stepper__label {
+  flex: 1;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stepper__btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--itkaarhus-radius-2);
+  color: var(--itkaarhus-gray-700);
+}
+.stepper__btn:hover {
+  background: var(--itkaarhus-blue-50);
+  color: var(--itkaarhus-primary);
+}
+.stepper__btn.is-disabled {
+  color: var(--itkaarhus-gray-300);
+}
+
+/* Tiles */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--itkaarhus-space-3);
+}
+/* Four tiles: four across, or two by two. */
+.tiles--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.tiles--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.tiles--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 1199.98px) {
+  .tiles--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 719.98px) {
+  .tiles,
+  .tiles--2,
+  .tiles--3,
+  .tiles--4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tile {
+  position: relative;
+  background: var(--surface);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+}
+.tile__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itkaarhus-space-2);
+  padding: var(--itkaarhus-space-4);
+}
+.tile .help {
+  position: absolute;
+  top: var(--itkaarhus-space-3);
+  right: var(--itkaarhus-space-3);
+}
+.tile__label {
+  font-size: var(--itkaarhus-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--itkaarhus-gray-500);
+  padding-right: var(--itkaarhus-space-5);
+}
+.tile__value {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--itkaarhus-gray-900);
+}
+.tile__value.is-ok {
+  color: var(--itkaarhus-success-700);
+}
+.tile__value.is-warn {
+  color: var(--itkaarhus-warning-900);
+}
+.tile__value.is-danger {
+  color: var(--itkaarhus-danger-700);
+}
+.tile__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itkaarhus-space-2);
+  min-height: 32px;
+}
+.tile__note {
+  font-size: var(--itkaarhus-text-xs);
+  color: var(--itkaarhus-gray-500);
+  line-height: 1.4;
+}
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--itkaarhus-text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.trend__icon {
+  width: 14px;
+  height: 14px;
+}
+.trend--up {
+  color: var(--itkaarhus-success-700);
+}
+.trend--down {
+  color: var(--itkaarhus-danger-700);
+}
+.trend--neutral,
+.trend--none {
+  color: var(--itkaarhus-gray-500);
+  font-weight: 500;
+}
+
+.spark {
+  width: 84px;
+  height: 30px;
+  flex: none;
+}
+.spark path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Help popover: the native popover attribute opens it in the top layer. */
+
+.help {
+  display: inline-flex;
+  z-index: 3;
+}
+.help__btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--itkaarhus-gray-300);
+  background: var(--surface);
+  color: var(--itkaarhus-gray-500);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+.help__btn:hover {
+  border-color: var(--itkaarhus-primary);
+  color: var(--itkaarhus-primary);
+  background: var(--itkaarhus-blue-50);
+}
+.help__pop {
+  width: min(330px, 78vw);
+  flex-direction: column;
+  gap: var(--itkaarhus-space-2);
+  padding: var(--itkaarhus-space-4);
+  background: var(--surface);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  box-shadow: var(--itkaarhus-shadow-3);
+  font-size: var(--itkaarhus-text-sm);
+  line-height: 1.55;
+  color: var(--itkaarhus-gray-700);
+}
+/* A browser with no popover support hides the help text, and does not show it in the page. */
+.help__pop {
+  display: none;
+}
+.help__pop:popover-open {
+  display: flex;
+}
+.help__title {
+  font-weight: 600;
+  color: var(--itkaarhus-gray-900);
+}
+.help__body p {
+  margin: 0 0 var(--itkaarhus-space-3);
+}
+.help__body p:last-child {
+  margin-bottom: 0;
+}
+
+/* Panels */
+
+.panel {
+  background: var(--surface);
+  border: var(--hairline);
+  border-radius: var(--itkaarhus-radius-2);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.panel__head {
+  padding: var(--itkaarhus-space-4) var(--itkaarhus-space-5)
+    var(--itkaarhus-space-3);
+  border-bottom: var(--hairline);
+}
+.panel__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--itkaarhus-space-2);
+}
+.panel__title {
+  margin: 0;
+  font-size: var(--itkaarhus-text-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.panel__sub {
+  margin: 6px 0 0;
+  font-size: var(--itkaarhus-text-sm);
+  color: var(--itkaarhus-gray-600);
+  max-width: 76ch;
+}
+.panel__body {
+  padding: var(--itkaarhus-space-5);
+}
+.panel__foot {
+  padding: var(--itkaarhus-space-3) var(--itkaarhus-space-5);
+  border-top: var(--hairline);
+  background: var(--itkaarhus-gray-50);
+  font-size: var(--itkaarhus-text-xs);
+  color: var(--itkaarhus-gray-500);
+  border-radius: 0 0 var(--itkaarhus-radius-2) var(--itkaarhus-radius-2);
+}
+
+/* The service target heads its four measures. The tiles lose their frames, and hairlines drawn
+   as shadows divide them, so that the help popovers are not cut. */
+.goal-panel .panel__body {
+  padding: 0;
+}
+.goal-panel .tiles {
+  gap: 0;
+}
+.goal-panel .tile {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow:
+    -1px 0 0 var(--itkaarhus-gray-200),
+    0 -1px 0 var(--itkaarhus-gray-200);
+}
+.goal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--itkaarhus-space-2) var(--itkaarhus-space-4);
+  padding: var(--itkaarhus-space-4) var(--itkaarhus-space-5);
+  border-bottom: var(--hairline);
+  border-left: 3px solid var(--itkaarhus-success-500);
+  border-radius: var(--itkaarhus-radius-2) var(--itkaarhus-radius-2) 0 0;
+}
+.goal__text {
+  flex: 1 1 16rem;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--itkaarhus-space-2);
+}
+.goal__label {
+  font-size: var(--itkaarhus-text-md);
+  font-weight: 600;
+  color: var(--itkaarhus-gray-500);
+}
+.goal__rule {
+  font-size: var(--itkaarhus-text-md);
+  font-weight: 600;
+  color: var(--itkaarhus-gray-900);
+}
+.goal__status {
+  margin: 0;
+  font-size: var(--itkaarhus-text-sm);
+  color: var(--itkaarhus-gray-600);
+  font-variant-numeric: tabular-nums;
+}
+.goal__status.is-ok {
+  color: var(--itkaarhus-success-700);
+  font-weight: 600;
+}
+
+/* The grid is a size container, so that a chart in it can use the width of the grid (cqi). */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  align-items: start;
+  gap: var(--itkaarhus-space-5);
+  container-type: inline-size;
+}
+
+.muted {
+  color: var(--itkaarhus-gray-500);
+}
+.empty {
+  margin: 0;
+  padding: var(--itkaarhus-space-6);
+  text-align: center;
+  color: var(--itkaarhus-gray-500);
+  font-size: var(--itkaarhus-text-sm);
+}
+
+/* Charts */
+
+.chart {
+  margin: 0;
+}
+.chart__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+/* A chart of half the width (Scale::HALF_WIDTH) has a viewBox of half the width. In two columns,
+   its panel is narrower than half the grid, so this limit has no effect. In one column, the limit
+   keeps the text at about the same size as in a chart of the full width. */
+.chart--half .chart__svg {
+  max-width: 50cqi;
+}
+.ch-grid {
+  stroke: var(--itkaarhus-gray-200);
+  stroke-width: 1;
+}
+.ch-ytick,
+.ch-xtick {
+  font-family: var(--itkaarhus-font-sans);
+  font-size: 12px;
+  fill: var(--itkaarhus-gray-500);
+  font-variant-numeric: tabular-nums;
+}
+.ch-ytick {
+  text-anchor: end;
+}
+.ch-xtick {
+  text-anchor: middle;
+}
+.ch-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.ch-line--dashed {
+  stroke-dasharray: 6 5;
+}
+.ch-hit {
+  fill: currentColor;
+  opacity: 0;
+}
+.ch-hit:hover {
+  opacity: 1;
+}
+.ch-bar {
+  fill: currentColor;
+  rx: 2;
+}
+.ch-bar:hover {
+  opacity: 0.82;
+}
+.ch-target {
+  stroke: var(--itkaarhus-success-500);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+.ch-target-label {
+  font-family: var(--itkaarhus-font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--itkaarhus-success-700);
+  text-anchor: end;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-4);
+  margin: var(--itkaarhus-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--itkaarhus-text-xs);
+  color: var(--itkaarhus-gray-600);
+}
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend__swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+  background: currentColor;
+}
+/* Two 6 px dashes with a 5 px gap, as the dashed line. */
+.legend__swatch--dashed {
+  width: 17px;
+  border-radius: 0;
+  background: linear-gradient(90deg, currentColor 6px, transparent 6px);
+  background-size: 11px 100%;
+}
+
+/* Distribution bar */
+
+.dist {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--itkaarhus-space-3);
+}
+.dist__caption {
+  font-size: var(--itkaarhus-text-sm);
+  font-weight: 600;
+  color: var(--itkaarhus-gray-700);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--itkaarhus-space-3);
+}
+.dist__total {
+  font-weight: 500;
+  color: var(--itkaarhus-gray-500);
+  font-variant-numeric: tabular-nums;
+}
+.dist__bar {
+  display: block;
+  width: 100%;
+  height: 14px;
+  border-radius: var(--itkaarhus-radius-pill);
+  overflow: hidden;
+  background: var(--itkaarhus-gray-100);
+}
+.dist__bar rect {
+  fill: currentColor;
+}
+.dist__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+.dist__item {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  align-items: center;
+  gap: var(--itkaarhus-space-3);
+  font-size: var(--itkaarhus-text-sm);
+}
+.dist__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.dist__label {
+  color: var(--itkaarhus-gray-700);
+}
+.dist__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.dist__share {
+  font-variant-numeric: tabular-nums;
+  color: var(--itkaarhus-gray-500);
+  min-width: 52px;
+  text-align: right;
+}
+
+/* Tables */
+
+.table-wrap {
+  overflow-x: auto;
+  /* An absolute child, for example an .sr-only label, then stays in the scroll box. */
+  position: relative;
+}
+.data-table {
+  min-width: 560px;
+}
+.data-table th[scope="row"] {
+  font-weight: 600;
+  color: var(--itkaarhus-gray-900);
+}
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.data-table .t-ok {
+  color: var(--itkaarhus-success-700);
+  font-weight: 600;
+}
+.data-table .t-warn {
+  color: var(--itkaarhus-warning-900);
+  font-weight: 600;
+}
+.data-table .t-danger {
+  color: var(--itkaarhus-danger-700);
+  font-weight: 600;
+}
+
+@media print {
+  .panel {
+    break-inside: avoid;
+  }
+}

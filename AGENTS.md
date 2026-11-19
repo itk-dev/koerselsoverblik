@@ -1,0 +1,142 @@
+# AGENTS.md
+
+Instructions for coding agents in this project. Read them before you change code.
+
+## The project
+
+Kørselsoverblik shows key figures for citizen transport. It is a Symfony 8 application on
+PHP 8.5, with Doctrine ORM and MariaDB. It runs in Docker with the ITK Dev `symfony-8` template.
+
+Read these documents before you start a task:
+
+- [README.md](README.md): the specification. The application must do what the README says.
+- The GitHub issue: the task specification. Each task is one issue, one branch and one pull
+  request.
+- [docs/plans/](docs/plans/README.md): the features that remain, and a plan for each feature
+  with the implementation details that are not in the issue.
+- [docs/architecture.md](docs/architecture.md): the design, the diagrams and the security rules.
+- [docs/adr/](docs/adr/): the architecture decisions.
+
+## Commands
+
+Run all commands with `task`. The tasks run PHP and Composer in the `phpfpm` container. Do not
+run `php`, `composer` or `bin/console` on the host. Run `task` to see all tasks.
+
+```shell
+task setup                     # Start the stack, install dependencies, run migrations
+task console -- <COMMAND>      # Symfony console, for example `task console -- about`
+task composer -- <COMMAND>     # Composer, for example `task composer -- require <PACKAGE>`
+task db:migrate                # Run the database migrations
+task coding-standards-check    # Check all coding standards
+task coding-standards-apply    # Fix the coding standards
+task code-analysis             # PHPStan at max level
+task rector:apply              # Apply the Rector changes
+```
+
+`.env` holds defaults only. Put secrets and local values in `.env.local`. Do not commit
+`.env.local`.
+
+## Development approach
+
+The project uses test-driven development. See "Development" in [README.md](README.md#development).
+
+- Write a failing test first. Then write the minimal code that makes it pass. Then refactor.
+- Do not write production code without a test that requires it.
+- Line coverage must be 100 %. Do not use `@codeCoverageIgnore`. Only the release and hotfix
+  branches check the coverage in CI.
+- The code that makes the development dataset (`DevDatasetGenerator`, `DatasetSettings`,
+  `SchoolCalendar` and the fixture commands) is not production code. Give its tests
+  `#[Group('fixtures')]`. The coverage gate and Infection do not include it. Run its tests with
+  `task test:fixtures`. `ExtractWriter` and `ScenarioLoader` stay in the default run, because the
+  production tests build their extracts with them.
+- Infection requires a covered MSI of 100 % in `src/Report` and `src/Import`, and 80 % in the
+  remaining mutated code. Only the release and hotfix branches run Infection. Do not run it during the
+  work on an issue.
+- Put logic in plain PHP classes. Keep controllers, form types, commands and authenticators
+  thin, so that most tests are fast unit tests.
+- Functional tests assert behaviour, not markup. Use text and `data-test` attributes.
+- Use generic names in tests, for example "Vognmand A" for a supplier. Do not use the names of
+  real companies or people.
+- Tests are in `tests/Unit`, `tests/Integration` and `tests/Functional`.
+
+## Rules for the code
+
+- Every controller has a class-level `#[IsGranted]` with a permission role. Do not check
+  `ROLE_ADMIN` or `ROLE_USER` in a controller. See "Security" in
+  [docs/architecture.md](docs/architecture.md).
+- Templates have no inline scripts, no inline event handlers and no `style` attributes. The
+  Content Security Policy blocks them. The only exception is a script with the nonce from
+  `csp_nonce('script')`, for example `importmap()`.
+- Logs and error messages never contain field values from the driving data.
+- Change the database schema only with Doctrine migrations. Do not use
+  `doctrine:schema:update` or hand-written SQL.
+- Use the PHP default time zone for all dates and times. Do not convert them. Calculate a
+  duration from `getTimestamp()`, not with `TIMESTAMPDIFF()`. Get the time from `ClockInterface`,
+  not from `NOW()`. See [ADR 005](docs/adr/005-dates-and-times-in-one-time-zone.md).
+- The parser uses UTC as a scratch zone for wall-clock arithmetic, in `CellConverter` and
+  `StopRowDto::moment()`. UTC has no change to summer time, so a time of 24:00 or more stays
+  exact. Do not remove this UTC. It is an exception in ADR 005.
+- The user interface is in Danish. Code, comments and documentation are in English.
+
+## Symfony conventions
+
+Follow the [Symfony best practices](https://symfony.com/doc/current/best_practices.html):
+
+- Add packages with `task composer -- require <PACKAGE>`, and let the Flex recipe configure
+  them. Do not edit `config/bundles.php` by hand. Flex does not add Docker services
+  (`extra.symfony.docker` is `false`), because the template has them.
+- Use PHP attributes for framework metadata, for example `#[Route]`, `#[IsGranted]`,
+  `#[Assert\...]`, `#[AsCommand]` and `#[AsEventListener]`. Do not use YAML or XML routing.
+- Use autowiring and autoconfiguration. Use `#[Autowire]` or `#[Target]` when a type is not
+  sufficient. Use a YAML service definition only as the last solution.
+- Controllers extend `AbstractController` and send the work to services.
+- Use the framework components: Form for forms, Validator for validation, Security for access
+  control, and `path()` or `url()` in Twig.
+- Bind request data with `#[MapRequestPayload]` or `#[MapQueryString]`.
+- Use constructor property promotion. Use `readonly` for DTOs and value objects.
+
+To find how the project is configured, use these commands. Do not guess:
+
+- `task console -- debug:router`, `debug:container` and `debug:config <BUNDLE>`
+- `task console -- lint:container`, and `lint:yaml config/`
+- The source code and docblocks in `vendor/`
+
+## Coding standards
+
+- PHP uses the `@Symfony` ruleset of PHP CS Fixer.
+- YAML in `config/` has 4 spaces. Other YAML files have 2 spaces. Prettier checks them.
+- Markdown lines have a maximum of 120 characters. markdownlint checks them.
+- Run `task prepare-code` before you commit. It fixes the coding standards, normalizes
+  `composer.json`, and runs the checks and the tests. It does not measure the coverage.
+- The release and hotfix branches run the coverage gate. Run `task test:coverage:check` to run
+  the gate locally.
+
+## Git and pull requests
+
+- Create a branch `feature/issue-<ISSUE_NUMBER>-<SHORT_DESCRIPTION>` from `develop`.
+- Use Conventional Commits, for example `feat:`, `fix:`, `test:`, `docs:` and `chore:`.
+- Add the task ID to the pull request title, for example
+  `feat: replace stop rows for the date range of an upload (M1-16)`.
+- Add `Closes #<ISSUE_NUMBER>` to the pull request description.
+- Add an entry to `CHANGELOG.md` under "Unreleased".
+- In the pull request that closes a feature, delete its plan file in `docs/plans/`, and move its
+  row to "Done" in [docs/plans/README.md](docs/plans/README.md).
+
+## Plans
+
+- Write a plan for new work in `docs/plans/`. Follow the rules in
+  [docs/plans/README.md](docs/plans/README.md).
+- A plan for new work starts with the issue text. The user creates the issue on GitHub. Wait
+  for the issue number before you create the branch.
+- The repository, the issues and the pull requests are public. Write `XX` in place of each
+  number from the real driving data. See the rules in [docs/plans/README.md](docs/plans/README.md).
+
+## Writing
+
+Write comments, docblocks, commit messages and documentation in ASD-STE100 Simplified
+Technical English:
+
+- Use short sentences: no more than 20 words in procedures and 25 words in descriptions.
+- Use the active voice and the simple tenses.
+- Write instructions in the imperative.
+- Do not use phrasal verbs.

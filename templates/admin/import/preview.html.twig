@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+{% import 'admin/import/_macros.html.twig' as upload_macros %}
+
+{% block title %}{{ 'upload.preview_title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    {% set summary = preview.summary %}
+    {% set rejections = summary.rejections|map(group => {field: group.field ? group.field.value : null, reason: group.reason.value, count: group.count, rowNumbers: group.rowNumbers}) %}
+    {% set warnings = summary.warnings|map(group => {field: group.field ? group.field.value : null, reason: group.reason.value, count: group.count, rowNumbers: group.rowNumbers}) %}
+
+    <h1>{{ 'upload.preview_title'|trans }}</h1>
+    <p>{{ 'upload.preview_intro'|trans }}</p>
+
+    <dl class="upload-summary">
+        <dt>{{ 'upload.summary.file'|trans }}</dt>
+        <dd data-test="preview-file">{{ upload.fileName }}</dd>
+        <dt>{{ 'upload.summary.range'|trans }}</dt>
+        <dd data-test="preview-range">{{ upload_macros.date(upload.range.firstDate) }} – {{ upload_macros.date(upload.range.lastDate) }}</dd>
+        <dt>{{ 'upload.summary.insert'|trans }}</dt>
+        <dd data-test="preview-insert">{{ summary.stopRows|number_format }}</dd>
+        <dt>{{ 'upload.summary.delete'|trans }}</dt>
+        <dd data-test="preview-delete">{{ preview.rowsToDelete|number_format }}</dd>
+        <dt>{{ 'upload.summary.reject'|trans }}</dt>
+        <dd data-test="preview-reject">{{ summary.rejectedRows|number_format }}</dd>
+        <dt>{{ 'upload.summary.warnings'|trans }}</dt>
+        <dd data-test="preview-warnings">{{ summary.warningCount|number_format }}</dd>
+    </dl>
+
+    {% if preview.emptyDates is not empty %}
+        <h2>{{ 'upload.empty_dates'|trans }}</h2>
+        <ul>
+            {% for date in preview.emptyDates %}
+                <li data-test="empty-date">{{ upload_macros.date(date) }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {{ upload_macros.groups('upload.rejected_rows'|trans, rejections, 'rejection-row') }}
+    {{ upload_macros.groups('upload.warnings'|trans, warnings, 'warning-row') }}
+
+    <div class="admin-form__buttons">
+        {% if summary.stopRows > 0 %}
+            <form method="post" action="{{ path('admin_import_confirm', {token: upload.token}) }}" data-test="confirm">
+                <input type="hidden" name="_token" value="{{ csrf_token('import-' ~ upload.token) }}">
+                <button class="itkaarhus-btn itkaarhus-btn--primary" type="submit">{{ 'upload.confirm'|trans }}</button>
+            </form>
+        {% else %}
+            <p class="itkaarhus-callout itkaarhus-callout--warn" data-test="no-stop-rows">{{ 'upload.no_stop_rows'|trans }}</p>
+        {% endif %}
+        <form method="post" action="{{ path('admin_import_cancel', {token: upload.token}) }}" data-test="cancel">
+            <input type="hidden" name="_token" value="{{ csrf_token('import-' ~ upload.token) }}">
+            <button class="itkaarhus-btn itkaarhus-btn--secondary" type="submit">{{ 'upload.cancel'|trans }}</button>
+        </form>
+    </div>
+{% endblock %}

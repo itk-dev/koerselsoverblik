@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Menu;
+
+/**
+ * The definition of the main menu. The route names are the names that the later tasks use.
+ *
+ * MenuBuilder hides the items whose route does not exist yet.
+ */
+final class MainMenu
+{
+    /**
+     * @return list<MenuItem>
+     */
+    public static function items(): array
+    {
+        return [
+            new MenuItem('menu.overview', 'overview', 'ROLE_VIEW_OVERVIEW', 'lucide:layout-dashboard'),
+            new MenuItem('menu.punctuality', 'punctuality', 'ROLE_VIEW_OVERVIEW', 'lucide:clock'),
+            new MenuItem('menu.daily_counts', 'daily_counts', 'ROLE_EDIT_DAILY_COUNTS', 'lucide:calendar'),
+            new MenuItem('menu.upload', 'admin_import', 'ROLE_MANAGE_DRIVING_DATA', 'lucide:upload'),
+            // The sub-agreements are a tab of the suppliers.
+            new MenuItem('menu.suppliers', 'admin_supplier_index', 'ROLE_MANAGE_SUPPLIERS', 'lucide:car', ['admin_supplier', 'admin_sub_agreement']),
+        ];
+    }
+}

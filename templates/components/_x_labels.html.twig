@@ -1,0 +1,4 @@
+{# The labels of the horizontal axis, for example the months. #}
+{% for label in geometry.xLabels %}
+    <text class="ch-xtick" x="{{ label.x }}" y="{{ constant('App\\Chart\\Scale::LABEL_Y') }}">{{ label.label }}</text>
+{% endfor %}

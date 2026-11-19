@@ -1,0 +1,13 @@
+{#
+ # The number of files in each of "states", as pills. The bulk-upload controller sets each count.
+ # The status bar and the dialogs use it, with the same colours as the state of a row.
+ #}
+{% set tones = {waiting: 'neutral', checked: 'info', imported: 'success', skipped: 'warning', failed: 'danger'} %}
+<ul class="bulk-upload__counts"{% if live ?? false %} aria-live="polite"{% endif %}>
+    {% for state in states %}
+        <li class="itkaarhus-tag itkaarhus-tag--{{ tones[state] }}">
+            {{ ('upload.bulk.state.' ~ state)|trans }}
+            <span data-bulk-upload-target="count" data-state="{{ state }}">0</span>
+        </li>
+    {% endfor %}
+</ul>

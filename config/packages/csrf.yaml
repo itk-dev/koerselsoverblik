@@ -1,0 +1,5 @@
+# Forms keep their CSRF tokens in the session. See "Security" in docs/architecture.md.
+framework:
+    form:
+        csrf_protection:
+            enabled: true

@@ -1,0 +1,166 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Command;
+
+use App\Import\Extract\ExtractColumnsDto;
+use App\Import\Extract\ExtractSummaryDto;
+use App\Import\Extract\InvalidExtractException;
+use App\Import\Extract\MissingColumnsException;
+use App\Import\Extract\StopRowDto;
+use App\Import\Extract\StopRowParser;
+use App\Import\Mapping\FieldName;
+use App\Import\Mapping\InvalidMappingException;
+use App\Import\Mapping\MappingProvider;
+use Symfony\Component\Console\Attribute\Argument;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+/**
+ * Reads a sample file through an import mapping, and shows the result. It changes no data.
+ *
+ * The output never has a person id (ADR 004), a location name or a value of a rejected row.
+ */
+#[AsCommand(name: 'app:driving-data:mapping:validate', description: 'Validate an import mapping against a sample file')]
+final readonly class DrivingDataMappingValidateCommand
+{
+    private const string HIDDEN = '(hidden)';
+
+    public function __construct(
+        private MappingProvider $mappings,
+        private StopRowParser $parser,
+    ) {
+    }
+
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Argument('The name of the import mapping')]
+        string $mappingName,
+        #[Argument('The path of the sample file')]
+        string $pathToFile,
+        #[Option('The number of stop rows in the preview')]
+        int $rows = 5,
+    ): int {
+        if ($rows < 1) {
+            $io->error('The number of rows must be at least 1.');
+
+            return Command::INVALID;
+        }
+
+        try {
+            $mapping = $this->mappings->get($mappingName);
+        } catch (InvalidMappingException $exception) {
+            $io->error($exception->getMessage());
+
+            return Command::INVALID;
+        }
+
+        try {
+            // The command has no upload range, so the parser accepts all dates.
+            $summary = ExtractSummaryDto::fromRows($this->parser->parse($pathToFile, $mapping, null), $rows);
+            $columns = ExtractColumnsDto::compare($this->parser->header($pathToFile, $mapping), $mapping);
+        } catch (MissingColumnsException $exception) {
+            $io->error('The file does not have these columns of the mapping:');
+            $io->listing($exception->columns);
+
+            return Command::FAILURE;
+        } catch (InvalidExtractException $exception) {
+            $io->error($exception->getMessage());
+
+            return Command::FAILURE;
+        }
+
+        $io->definitionList(
+            ['Stop rows' => $summary->stopRows],
+            ['Rejected rows' => $summary->rejectedRows],
+            ['Warnings' => $summary->warningCount],
+            ['First date' => $summary->dates[0] ?? '-'],
+            ['Last date' => array_slice($summary->dates, -1)[0] ?? '-'],
+            ['Dates with stop rows' => \count($summary->dates)],
+        );
+
+        RejectionGroupsTable::show($io, 'Rejected rows', $summary->rejections);
+        // A bad value in an optional field. The field is empty, and the row is imported.
+        RejectionGroupsTable::show($io, 'Warnings', $summary->warnings);
+
+        // The names only. A new column can hold personal data, so it is not kept until a person
+        // adds it to the mapping.
+        self::columnNames($io, 'Kept columns that are not in the file', $columns->missingKeptColumns);
+        // An excluded column with a new name in the file then shows here and as a column that is
+        // not read.
+        self::columnNames($io, 'Excluded columns that are not in the file', $columns->missingExcludedColumns);
+        self::columnNames($io, 'Columns that are not read', $columns->unreadColumns);
+
+        if ([] !== $summary->preview) {
+            // A row id column can be the person id column. Then the row key has the person id.
+            $hideRowKey = \in_array($mapping->field(FieldName::PersonId)->column, $mapping->rowId, true);
+            $io->section('Preview');
+            $io->table(
+                ['row', 'row key', ...array_map(static fn (FieldName $name): string => $name->value, FieldName::cases())],
+                array_map(fn (StopRowDto $row): array => $this->previewRow($row, $hideRowKey), $summary->preview),
+            );
+        }
+
+        if ($summary->rejectedRows > 0) {
+            $io->error(\sprintf('The file has %d rejected rows.', $summary->rejectedRows));
+
+            return Command::FAILURE;
+        }
+        if (0 === $summary->stopRows) {
+            $io->error('The file has no stop rows.');
+
+            return Command::FAILURE;
+        }
+
+        $io->success('The file agrees with the mapping.');
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * @param list<string> $columns
+     */
+    private static function columnNames(SymfonyStyle $io, string $title, array $columns): void
+    {
+        if ([] !== $columns) {
+            $io->section($title);
+            $io->listing($columns);
+        }
+    }
+
+    /**
+     * Gives the values of a stop row in the order of FieldName::cases(). The times are wall-clock
+     * times, as in the cells of the file.
+     *
+     * @param bool $hideRowKey true if the row key has the person id
+     *
+     * @return list<string|int|float|null>
+     */
+    private function previewRow(StopRowDto $row, bool $hideRowKey): array
+    {
+        return [
+            $row->rowNumber,
+            $hideRowKey ? self::HIDDEN : $row->rowKey,
+            $row->route,
+            null === $row->personId ? null : self::HIDDEN,
+            $row->serviceDate->format('Y-m-d'),
+            $row->run,
+            $row->stopType->value,
+            $row->stopStatus->value,
+            $row->passengersAfter,
+            $row->nextDistanceKm,
+            $row->nextDurationMin,
+            $row->plannedTime->format('Y-m-d H:i:s'),
+            $row->actualTime?->format('Y-m-d H:i:s'),
+            match ($row->plannedSolo) {
+                true => 'yes',
+                false => 'no',
+                null => null,
+            },
+            null === $row->locationName ? null : self::HIDDEN,
+        ];
+    }
+}

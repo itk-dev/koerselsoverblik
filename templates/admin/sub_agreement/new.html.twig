@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'sub_agreement.new_title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'sub_agreement.new_title'|trans }}</h1>
+
+    {{ form_start(form, {attr: {class: 'admin-form'}}) }}
+        {{ form_widget(form) }}
+        <div class="admin-form__buttons">
+            <button class="itkaarhus-btn itkaarhus-btn--primary" type="submit">{{ 'common.save'|trans }}</button>
+            <a class="itkaarhus-btn itkaarhus-btn--secondary" href="{{ path('admin_sub_agreement_index') }}">{{ 'common.cancel'|trans }}</a>
+        </div>
+    {{ form_end(form) }}
+{% endblock %}

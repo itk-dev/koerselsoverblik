@@ -1,0 +1,19 @@
+# Project settings for the server. docker-compose.server.yml is a file of the ITK Dev template, so
+# a template update can replace it.
+services:
+  # The upload of driving data accepts an extract of up to APP_DRIVING_DATA_MAX_FILE_SIZE
+  # (20 MiB). The limits of PHP and nginx must be higher.
+  #
+  # An upload parses the xlsx file in the request. With 256M, OpenSpout keeps the shared strings of
+  # a weekly extract in memory, which is much faster than its file cache. 256M is the same as dev.
+  # The import of a week also writes to the database, so a request gets 60 seconds.
+  phpfpm:
+    environment:
+      - PHP_UPLOAD_MAX_FILESIZE=25M
+      - PHP_POST_MAX_SIZE=25M
+      - PHP_MEMORY_LIMIT=256M
+      - PHP_MAX_EXECUTION_TIME=60
+
+  nginx:
+    environment:
+      NGINX_MAX_BODY_SIZE: 25M

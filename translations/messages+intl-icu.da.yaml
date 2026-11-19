@@ -1,0 +1,436 @@
+app:
+  name: Kørselsoverblik
+  owner: Kørselskontoret
+
+layout:
+  skip_to_content: Spring til indhold
+  show_menu: Vis menu
+
+menu:
+  label: Hovedmenu
+  overview: Overblik
+  punctuality: Rettidighed
+  upload: Upload kørselsdata
+  daily_counts: Daglige tal
+  suppliers: Leverandører og delaftaler
+
+about:
+  title: Om tallene
+  close: Luk
+  placeholder: Her kommer en forklaring af tallene og deres kilder.
+
+overview:
+  title: Overblik
+  heading: Bliver borgerkørslen bedre eller værre?
+  lede: "{period} sammenlignet med {comparison}."
+  conclusion:
+    head:
+      better: Servicen er blevet bedre.
+      worse: Servicen er blevet dårligere.
+      mixed: Blandet billede.
+      unchanged: Stort set uændret.
+      no_comparison: Ingen sammenligning for denne periode.
+    no_comparison: Vælg en anden periode eller et andet sammenligningsgrundlag for at se en retning.
+    sentence: "I {period} mod {comparison}: {clauses}."
+    clause:
+      punctuality: "{now} af vognløbene blev afsluttet til tiden mod {before}"
+      solo: "{now} af vognløbene kørte med én borger mod {before}"
+      cancelled: "{now} af turene blev aflyst mod {before}"
+    and: og
+    settings: Tilpas konklusion
+    measures: Mål der indgår i konklusionen
+    measure:
+      punctuality: Rettidighed
+      solo: Reelt solo
+      cancelled: Aflyste ture
+    at_least_one: Mindst ét mål skal indgå.
+    threshold: Mindste ændring der tæller
+    any_change: Enhver ændring
+    at_least: "Mindst {threshold, number} pct.point"
+    any_change_note: Enhver ændring tæller med.
+    threshold_note: "Ændringer under {threshold, number} pct.point tæller som uændret."
+  trips:
+    label: Personture
+    note: "{completed, number} gennemført · {cancelled, number} aflyst{pending, plural, =0 {} other { · # uden registrering}}"
+    help:
+      title: Personture
+      body: Én persontur er én borgers tur fra afhentning til afsætning. Kører to borgere sammen i samme bil, tæller det som to personture. Tallet tæller alle bestilte ture i perioden, også de aflyste ture og de ture, hvor chaufføren ikke har registreret afhentningen. Status for afhentningen giver status for turen.
+  citizens:
+    label: Unikke borgere
+    note: Forskellige borgere, uanset antal ture
+    help:
+      title: Unikke borgere
+      body: Hvor mange forskellige borgere der blev kørt i perioden. Den samme borger tæller kun én gang, uanset antallet af ture. En borger, hvis ture alle blev aflyst, tæller ikke med. En tur, hvor chaufføren ikke har registreret afhentningen, tæller med. Tallet er en optælling af borger-id'erne i kørselsdata.
+  punctuality:
+    label: Rettidighed
+    title: Rettidighed mod servicemålet
+  suppliers:
+    title: Leverandørerne side om side
+    subtitle: Samme mål for alle leverandører i den valgte periode.
+    caption: Nøgletal pr. leverandør
+    cancelled: Aflyst
+    source: "Kilde: kørselsdata"
+  real_solo:
+    label: Reelt solo
+    note: "{count, number} vognløb med én borger ad gangen"
+    help:
+      title: Reelt solo
+      body: Andelen af vognløbene, hvor der aldrig var mere end én borger i bilen ad gangen. Det er ikke det samme som planlagt solokørsel. En del af turene er bestilt som samkørsel, men blev alligevel kørt med én borger. Tallet bruger antallet af borgere i bilen efter hvert stop, som ikke er aflyst. Aflyste vognløb og vognløb uden borgere i bilen indgår ikke. Et stop uden registrering indgår med det planlagte antal, så den aktuelle periode delvist viser planen.
+
+period:
+  week: "Uge {week} · {first}–{last} {year}"
+  month: "{month} {year}"
+  quarter: "{quarter}. kvartal {year}"
+  half_year: "{half}. halvår {year}"
+  day_short: "{day}. {month}"
+  one_day: "{day}. {month} {year}"
+  days_of_month: "{first}.–{last}. {month} {year}"
+  days: "{first}–{last} {year}"
+  until_today: "{range} (til og med i dag)"
+  partial: "{period} (delvis periode)"
+  no_data: en periode uden data
+  months_note: Kurverne viser hele måneder.
+
+filter:
+  period: Periode
+  type:
+    week: Uge
+    month: Måned
+    quarter: Kvartal
+    half_year: Halvår
+  selected: Valgt periode
+  previous: Forrige periode
+  next: Næste periode
+  comparison: Sammenlign med
+  comparison_previous: Forrige periode
+  comparison_last_year: Samme periode sidste år
+  supplier: Leverandør
+  all_suppliers: Alle leverandører
+  show: Vis
+
+month:
+  long:
+    1: januar
+    2: februar
+    3: marts
+    4: april
+    5: maj
+    6: juni
+    7: juli
+    8: august
+    9: september
+    10: oktober
+    11: november
+    12: december
+  short:
+    1: jan
+    2: feb
+    3: mar
+    4: apr
+    5: maj
+    6: jun
+    7: jul
+    8: aug
+    9: sep
+    10: okt
+    11: nov
+    12: dec
+
+punctuality:
+  title: Rettidighed
+  lede: "{period} sammenlignet med {comparison}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb."
+  ignored_note: "{count, plural, one {# delaftale er ignoreret i tallene} other {# delaftaler er ignoreret i tallene}}: {references}"
+  goal:
+    label: Servicemål
+    rule: Højst {minutes} minutter for sent · {target} % rettidighed
+    status: "{count} af {total} målinger når målet"
+  target_note: Mål {target} %
+  target_met: Målet er nået
+  target_gap: "{gap} pct.point under målet"
+  points: "{change} pct.point"
+  measure:
+    pickup_per_citizen: Afhentning pr. borger
+    drop_off_per_citizen: Afsætning pr. borger
+    pickup_per_run: Afhentning pr. vognløb
+    drop_off_per_run: Afsætning pr. vognløb
+  help:
+    pickup_per_citizen:
+      title: Rettidig afhentning pr. borger
+      body: Andelen af borgerne, der blev hentet højst {minutes} minutter efter det planlagte tidspunkt. Hver afhentning tæller for sig. Målingen sammenligner chaufførens indtastning med den planlagte afgangstid. Kommer bilen før tid, tæller det som til tiden. Aflyste stop og stop uden indtastning indgår ikke.
+    drop_off_per_citizen:
+      title: Rettidig afsætning pr. borger
+      body: Andelen af borgerne, der blev sat af højst {minutes} minutter efter det planlagte tidspunkt. Hver afsætning tæller for sig. Det er det tal, der ligger tættest på, hvad den enkelte borger oplever. Aflyste stop og stop uden indtastning indgår ikke.
+    pickup_per_run:
+      title: Rettidig afhentning pr. vognløb
+      body: Andelen af vognløb, hvor den første borger blev hentet højst {minutes} minutter efter det planlagte tidspunkt. Et vognløb er en blok i udtrækket. Den første afhentning er afhentningen med det tidligste planlagte tidspunkt, som ikke er aflyst. Målingen viser, om bilen kommer af sted til tiden.
+    drop_off_per_run:
+      title: Rettidig afsætning pr. vognløb
+      body: Andelen af vognløb, hvor den sidste borger i bilen blev sat af højst {minutes} minutter efter det planlagte tidspunkt. Den sidste afsætning er afsætningen med det seneste planlagte tidspunkt, som ikke er aflyst. Forsinkelser tidligere i vognløbet tæller ikke med her. Dem viser rettidigheden pr. borger.
+  late_runs: Forsinkede afsætninger
+  late_share_note: "{share} af {runs, number} vognløb"
+  late_runs_help:
+    title: Forsinkede afsætninger
+    body: Antallet af vognløb, hvor den sidste borger i bilen blev sat af mere end {minutes} minutter efter det planlagte tidspunkt. Det er de vognløb, der trækker rettidigheden ved afsætning pr. vognløb ned. Den sidste afsætning er afsætningen med det seneste planlagte tidspunkt, som ikke er aflyst. Har den ingen indtastning, tæller vognløbet ikke med.
+  over_30: Over 30 minutter
+  over_30_help:
+    title: Over 30 minutter
+    body: Antallet af vognløb, hvor den sidste borger i bilen blev sat af mere end 30 minutter efter det planlagte tidspunkt. Vognløbene er en del af de forsinkede afsætninger og måles på samme måde.
+  trend:
+    title: Rettidighed måned for måned
+    subtitle: Afhentning og afsætning, pr. borger og pr. vognløb, mod servicemålet. Stiplet er pr. vognløb.
+    caption: Rettidighed pr. måned ved afhentning og afsætning, pr. borger og pr. vognløb
+  split:
+    title: Den valgte periode
+    caption: Sidste afsætning pr. vognløb i perioden
+    total: "{count, number} vognløb"
+    foot: Afsætninger inden for {minutes} minutter tælles som til tiden og udgør den grønne andel.
+  band:
+    on_time: Til tiden (inden for {minutes} min.)
+    up_to_15: "{minutes}–15 min. forsinket"
+    up_to_30: 15–30 min. forsinket
+    over_30: Over 30 min. forsinket
+  severity:
+    title: Forsinkelser fordelt på intervaller
+    subtitle: De store forsinkelser er ikke bare flere minutter. Det er en anden slags hændelse.
+    caption: Andel af vognløbene med forsinket sidste afsætning, fordelt på interval pr. måned
+    runs: vognløb
+    up_to_15: "{minutes}–15 min"
+    up_to_30: 15–30 min
+    over_30: Over 30 min
+  suppliers:
+    title: Rettidighed pr. leverandør
+    subtitle: Det tal en kontraktopfølgning kan tages på.
+    caption: Rettidighed pr. leverandør i perioden
+    supplier: Leverandør
+    runs: Vognløb
+    unknown: Ukendt
+    note: Kolonnerne med forsinkelser fordeler vognløbene efter forsinkelsen ved den sidste afsætning, som i fordelingen for den valgte periode. De øvrige vognløb er til tiden.
+  locations:
+    title: De ti lokationer med lavest rettidighed
+    subtitle: Institutionen, turen går til eller fra. Afhentninger og afsætninger pr. borger tæller sammen.
+    caption: De ti lokationer med lavest rettidighed ved afhentning og afsætning
+    location: Lokation
+    stops: Afhentninger og afsætninger
+    late: Forsinkede
+    punctuality: Rettidighed
+    foot: Lokationen er institutionen, ikke borgerens adresse. Kun gennemførte stop med en tid tæller.
+    too_few: "Ingen lokation har mindst {count, number} målte stop i perioden."
+    left_out: "{left, plural, one {# lokation} other {# lokationer}} med færre end {count, number} målte stop indgår ikke."
+    help:
+      title: Lokationer med lavest rettidighed
+      body: "Lokationen er institutionen, som turen går til eller fra. Rettidigheden er andelen af afhentninger og afsætninger, der var højst {minutes} minutter efter det planlagte tidspunkt. Afhentninger og afsætninger tæller sammen, som i målingerne pr. borger. Aflyste stop og stop uden indtastning indgår ikke. En lokation skal have mindst {count, number} målte stop i perioden for at komme på listen. Få stop viser ikke et mønster."
+  routes:
+    title: De ti vognløb med flest forsinkede sidste afsætninger
+    subtitle: Vognløbene med flest forsinkede sidste afsætninger i perioden. Ved samme antal står vognløbet med lavest rettidighed først.
+    caption: De ti vognløb med flest forsinkede sidste afsætninger
+    none_late: Ingen vognløb havde en forsinket sidste afsætning i perioden.
+    route: Vognløb
+    supplier: Leverandør
+    runs: Vognløb kørt
+    punctuality: Rettidighed
+    late: Forsinkede
+    foot: Rettidighed ved sidste afsætning.
+  source: "Kilde: chaufførens indtastning mod planlagt tid, kun gennemførte stop"
+  no_data: Ingen data i perioden.
+
+upload:
+  title: Upload kørselsdata
+  intro: Upload et udtræk fra planlægningssystemet for en periode. Uploaden erstatter alle kørselsdata i perioden. Du ser ændringerne, før du bekræfter.
+  caution:
+    range: Angiv perioden for udtrækket. En periode, der er længere end udtrækket, tømmer de ekstra datoer.
+    whole_days: Upload kun hele dage. En fil med kun en del af en dag fjerner de andre rækker for dagen.
+    no_undo: En upload kan ikke fortrydes. Ret en forkert upload med den rigtige fil for den samme periode, eller ryd datoerne nedenfor.
+  file: Udtræk (.xlsx)
+  drop: Træk udtrækket fra planlægningssystemet hertil, eller klik for at vælge det.
+  first_date: Første dato
+  last_date: Sidste dato
+  submit: Upload og vis ændringerne
+  preview_title: Kontrollér uploaden
+  preview_intro: Ingen data er ændret endnu. Kontrollér ændringerne, og bekræft eller annullér.
+  summary:
+    file: Fil
+    range: Periode
+    insert: Rækker der indsættes
+    delete: Gemte rækker der slettes
+    reject: Afviste rækker
+    warnings: Advarsler
+    inserted: Indsatte rækker
+    deleted: Slettede rækker
+  empty_dates: Datoer i perioden uden rækker i filen. De bliver tomme.
+  rejected_rows: Afviste rækker
+  warnings: Advarsler
+  group:
+    field: Felt
+    reason: Årsag
+    rows: Rækker
+    row_numbers: De første rækkenumre
+  confirm: Erstat kørselsdata for perioden
+  cancel: Annullér
+  cancelled: Uploaden er annulleret. Ingen data er ændret.
+  no_stop_rows: Filen har ingen stoprækker i perioden. Den kan ikke importeres.
+  expired: Uploaden er udløbet. Upload filen igen.
+  missing_columns: "Filen mangler disse kolonner fra opsætningen: {columns}."
+  row_id_conflict: Et række-id i filen findes allerede på en dato uden for perioden. Importen ændrede ingen data.
+  dates:
+    title: Uploadede datoer
+    previous: Forrige måned
+    next: Næste måned
+    none: Ingen datoer med kørselsdata i måneden.
+    date: Dato
+    stop_rows: Stoprækker
+    route_runs: Vognløb
+    rejected_rows: Afviste rækker
+    file: Seneste fil
+    by: Uploadet af
+    uploaded_at: Tidspunkt
+    at: kl.
+    console: konsol
+  clear:
+    open: Ryd
+    title: "Ryd kørselsdata for {date}"
+    text: "Det sletter {stopRows, plural, one {# stoprække} other {# stoprækker}}, {routeRuns, plural, other {# vognløb}} og {rejectedRows, plural, one {# afvist række} other {# afviste rækker}} for datoen og de tal, der er beregnet ud fra dem. Det kan ikke fortrydes."
+    confirm: Ryd datoen
+  cleared: "Kørselsdata for {day}. {month} {year} er ryddet. {stopRows, plural, one {# stoprække} other {# stoprækker}}, {routeRuns, plural, other {# vognløb}} og {rejectedRows, plural, one {# afvist række} other {# afviste rækker}} er slettet."
+  result_title: Kørselsdata er importeret
+  again: Upload en fil mere
+  tabs:
+    single: Én fil
+    bulk: Mange filer
+  bulk:
+    title: Upload mange filer
+    intro: Træk udtrækkene hen på feltet, eller vælg dem. Hver fil kontrolleres for sig. Kontrollér listen, og importér derefter filerne.
+    caution:
+      max_days: "Hver fil må højst have stoprækker på {limit} dage. En fil med flere dage fejler. Del et længere udtræk op i perioder på højst {limit} dage, for eksempel én fil for hver uge."
+      range: Perioden for hver fil er den første til den sidste dato med stoprækker i filen. Tomme dage før den første eller efter den sidste dato bliver ikke tømt.
+      no_undo: En upload kan ikke fortrydes. Ret en forkert upload med den rigtige fil, eller ryd datoerne på siden for én fil.
+      overlap: Filerne importeres i listens rækkefølge. Har to filer de samme datoer, erstatter den sidste fil data fra den første.
+    files: Udtræk (.xlsx)
+    drop: Træk filerne hertil, eller klik for at vælge dem. Du kan vælge mange filer på én gang.
+    import: Importér de kontrollerede filer
+    result: Se importen
+    request_failed: Forbindelsen til serveren fejlede. Prøv filen igen.
+    too_many_days: "Filen har rækker på flere end {limit} dage. Del udtrækket op i perioder på højst {limit} dage."
+    confirm:
+      title: Hold siden åben under importen
+      text: Siden sender filerne til serveren én ad gangen. Luk ikke fanen, genindlæs ikke siden, og gå ikke til en anden side, før beskeden "Importen er færdig" vises. Ellers bliver de resterende filer ikke importeret.
+      import: Importér
+    done: Importen er færdig
+    ok: OK
+    busy: Vent, til importen er færdig.
+    all_rows_rejected: Filen har rækker, men alle rækker er afvist. Kontrollér udtrækket, eller upload det på siden for én fil for at se årsagerne.
+    rows: Rækker
+    counts:
+      checked:
+        insert: indsættes
+        delete: slettes
+        reject: afvises
+      imported:
+        insert: indsat
+        delete: slettet
+        reject: afvist
+    skipped:
+      empty: Filen er tom.
+      no_stop_rows: Filen har ingen stoprækker.
+    state:
+      waiting: Venter
+      checked: Kontrolleret
+      imported: Importeret
+      skipped: Sprunget over
+      failed: Fejlet
+  problem:
+    not_file: Filen findes ikke.
+    too_large: Filen er større end {limit} bytes.
+    not_xlsx: Filen er ikke en xlsx-fil.
+    too_many_files: Filen har flere end {limit} dele.
+    unreadable: Filen har en del, der ikke kan læses.
+    too_large_uncompressed: Filen er større end {limit} bytes, når den er pakket ud.
+    doctype: Filen har en DOCTYPE og kan ikke læses.
+    too_many_rows: Filen har flere end {limit} rækker.
+    invalid_xml: Filen har en del, der ikke er gyldig XML.
+    too_many_columns: Filen har flere end {limit} kolonner.
+    invalid_cell_reference: Filen har en ugyldig cellereference.
+    invalid_workbook: Filen er ikke et gyldigt Excel-udtræk.
+    no_header_row: Filen har ingen overskriftsrække {limit}.
+    no_sheet: Filen har intet ark nummer {limit}.
+    missing_columns: Filen mangler kolonner fra opsætningen.
+  field:
+    row_id: Række-id
+    route: Vognløb
+    person_id: Borger-id
+    service_date: Dato
+    run: Blok
+    stop_type: Stoptype
+    stop_status: Status
+    passengers_after: Passagerer efter stoppet
+    next_distance_km: Afstand til næste stop
+    next_duration_min: Køretid til næste stop
+    planned_time: Planlagt tid
+    actual_time: Faktisk tid
+    planned_solo: Planlagt solo
+  reason:
+    empty: Feltet er tomt.
+    error_value: Cellen har en fejlværdi.
+    not_text: Værdien er ikke tekst.
+    unknown_code: Koden findes ikke i opsætningen.
+    not_whole_number: Værdien er ikke et helt tal.
+    not_number: Værdien er ikke et tal.
+    unknown_bool_value: Værdien er ikke ja eller nej i opsætningen.
+    not_date: Værdien er ikke en dato.
+    not_date_time: Værdien er ikke en dato og et tidspunkt.
+    not_time: Værdien er ikke et tidspunkt.
+    outside_range: Datoen er uden for perioden.
+    invalid_row_id: Række-id er tomt eller ugyldigt.
+    duplicate_row_id: En tidligere række har det samme række-id.
+
+chart:
+  period: Periode
+  no_comparison: ingen sammenligning
+  share_with_count: "{share} ({count, number} {noun})"
+  share_with_bare_count: "{share} ({count, number})"
+
+help:
+  how: Sådan er {title} regnet ud
+
+common:
+  actions: Handlinger
+  edit: Redigér
+  delete: Slet
+  save: Gem
+  cancel: Annullér
+
+admin:
+  title: Leverandører og delaftaler
+  suppliers: Leverandører
+  sub_agreements: Delaftaler
+
+supplier:
+  name: Navn
+  new: Opret leverandør
+  new_title: Ny leverandør
+  edit_title: Redigér leverandør
+  none: Der er ingen leverandører endnu.
+  saved: Leverandøren er gemt.
+  deleted: Leverandøren er slettet.
+  delete_blocked: Leverandøren kan ikke slettes, fordi den har delaftaler. Fjern først leverandøren fra delaftalerne.
+
+sub_agreement:
+  intro: En delaftale er den del af vognløbets navn, der kommer før det sidste nummer. Vognløbet "AB-CD-01" hører til delaftalen "AB-CD". Delaftaler uden en leverandør står øverst.
+  reference: Delaftale
+  reference_help: For eksempel "AB-CD" for vognløbene "AB-CD-01" og "AB-CD-02".
+  new: Opret delaftale
+  new_title: Ny delaftale
+  show_title: Delaftale {reference}
+  back: Tilbage til delaftalerne
+  none: Der er ingen delaftaler endnu.
+  created: Delaftalen er oprettet.
+  edit: Redigér delaftale
+  edit_title: Redigér delaftale {reference}
+  saved: Delaftalen er gemt.
+  supplier: Leverandør
+  no_supplier: Ingen leverandør – vises som "Ukendt"
+  no_supplier_ignored: Ingen leverandør
+  ignored: Ignorér i beregningerne
+  ignored_help: Vognløbene i delaftalen indgår ikke i tallene. Importen gemmer stadig kørselsdata.
+  ignored_tag: Ignoreret
+  routes: Vognløb
+  no_routes: Der er ingen vognløb endnu. Importen af kørselsdata opretter dem.

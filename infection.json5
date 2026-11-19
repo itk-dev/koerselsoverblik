@@ -1,0 +1,122 @@
+{
+    // Mutation testing for all mutated code. See "Tests" in README.md.
+    // bin/mutation-core-check.php reads the JSON log and sets the 100 % gate for src/Report and
+    // src/Import. Keep the json log.
+    $schema: 'vendor/infection/infection/resources/schema.json',
+    source: {
+        directories: ['src'],
+        // The functional tests cover this glue. Mutants in it are mostly equivalent.
+        // The generator, its settings and calendar, and the fixture commands make the development
+        // dataset. They are not production code, and the "fixtures" group of PHPUnit tests them
+        // outside the default run (see phpunit.dist.xml). The extract writer and the scenario
+        // loader are mutated, because the parser tests trust their files.
+        excludes: [
+            'Controller',
+            'Form',
+            'Twig/Components',
+            'Kernel.php',
+            'DataFixtures/DrivingData/DevDatasetGenerator.php',
+            'DataFixtures/DrivingData/DatasetSettings.php',
+            'DataFixtures/DrivingData/SchoolCalendar.php',
+            'Command/DrivingDataFixturesCommand.php',
+            'Command/SupplierFixturesCommand.php',
+        ],
+    },
+    tmpDir: 'var/infection/tmp',
+    logs: {
+        text: 'var/infection/infection.log',
+        html: 'var/infection/infection.html',
+        summary: 'var/infection/summary.log',
+        json: 'var/infection/infection.json',
+    },
+    testFramework: 'phpunit',
+    phpUnit: {
+        configDir: '.',
+    },
+    mutators: {
+        '@default': true,
+        // Equivalent mutants. PHP changes the numeric string of a date part to a number in
+        // arithmetic and in an array key. The casts are for PHPStan.
+        CastInt: {
+            ignoreSourceCodeByRegex: [
+                ".*\\(int\\) \\$first->format\\('n'\\);.*",
+                ".*intdiv\\(\\(int\\) \\$anchor->format\\('n'\\) - 1, \\$months\\).*",
+                '.*\\(int\\) \\$selectedRange->firstDate->diff\\(\\$selectedRange->lastDate\\)->days;.*',
+            ],
+        },
+        CastString: {
+            // Equivalent mutant. PHP changes a numeric array key to an int, with or without the
+            // cast, also with strict types. The cast is for PHPStan.
+            ignoreSourceCodeByRegex: ['.*\\$raw\\[\\(string\\) \\$field\\].*'],
+        },
+        // Equivalent: these arrays are sets. The code reads only the keys, with isset() and
+        // array_keys(), so the value of an item is not used.
+        TrueValue: {
+            ignoreSourceCodeByRegex: [
+                '.*\\$rowKeys\\[\\$stopRow->rowKey\\] = true;.*',
+                ".*\\$dates\\[\\$row->serviceDate->format\\('Y-m-d'\\)\\] = true;.*",
+            ],
+        },
+        // Equivalent mutant. PHP changes an int to a float for a float return type, also with
+        // strict types. The cast is for PHPStan.
+        CastFloat: {
+            ignoreSourceCodeByRegex: [
+                '.*\\? null : \\(float\\) \\$value, \\$this->reports\\),.*',
+                '.*\\? null : \\(float\\) \\$item, \\$this->counts\\),.*',
+            ],
+        },
+        // Equivalent mutant. array_map() calls the closure in coercive mode, so a numeric name key
+        // becomes a string also with no strval(). The call is for PHPStan.
+        UnwrapArrayMap: {
+            ignoreSourceCodeByRegex: ['.*\\$names = array_map\\(strval\\(\\.\\.\\.\\), array_keys\\(\\$bySupplier \\+ \\$dropOffs\\)\\);.*'],
+        },
+        // PHPStan rejects this mutant: findWithSuppliers() needs a list of route ids, not the rows.
+        // DBAL accepts the nested array by chance, so a test cannot always see the difference.
+        UnwrapArrayKeys: {
+            ignoreSourceCodeByRegex: ['.*findWithSuppliers\\(array_keys\\(\\$trips \\+ \\$solos\\)\\).*'],
+        },
+        // Equivalent for the tests: a test cannot see if the reader is closed. close() deletes
+        // the temporary files of OpenSpout, so it is necessary.
+        UnwrapFinally: {
+            ignore: ['App\\Import\\Extract\\StopRowParser::rows'],
+        },
+        Finally_: {
+            ignore: ['App\\Import\\Extract\\StopRowParser::rows'],
+        },
+        MethodCallRemoval: {
+            ignoreSourceCodeByRegex: ['\\$reader->close\\(\\);'],
+        },
+        // Equivalent: the inspector copies one byte more than the remaining size to find a file
+        // that is too large. Two bytes more find it too. Only the number of copied bytes changes.
+        //
+        // A change to a default value of a command parameter changes the class signature. Then the
+        // mutant process must build the test container again, and the build takes more than the
+        // timeout when all threads run. The command tests kill these mutants when they run alone.
+        IncrementInteger: {
+            ignoreSourceCodeByRegex: [
+                '.*stream_copy_to_stream\\(\\$stream, \\$copy, \\$remaining \\+ 1\\).*',
+                '.*int \\$rows = 5,.*',
+            ],
+        },
+        DecrementInteger: {
+            ignoreSourceCodeByRegex: ['.*int \\$rows = 5,.*'],
+        },
+        // A change to the visibility of a public method of a service changes the class signature,
+        // with the same problem as above. The tests call the method, so they kill the mutant when
+        // it runs alone.
+        PublicVisibility: {
+            ignore: [
+                'App\\Import\\StopRowReplacer::replace',
+                'App\\Import\\DrivingDataImporter::preview',
+                'App\\Import\\DrivingDataImporter::import',
+            ],
+        },
+    },
+    minCoveredMsi: 80,
+    // The default of 10 seconds is too short when all threads run. Each mutant process runs with
+    // Xdebug, and the threads share the CPU and the test databases, so a database test is slow.
+    // Infection also skips a mutant if all its tests took more than this time in the initial
+    // run. bin/mutation-core-check.php fails on a timed-out or skipped mutant in the gate,
+    // because nobody knows if a test kills it.
+    timeout: 60,
+}

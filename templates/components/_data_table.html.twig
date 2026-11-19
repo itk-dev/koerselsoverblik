@@ -1,0 +1,32 @@
+{# The values of a chart as a table for screen readers. The chart itself is hidden from them.
+   A share with a count shows both, as the title of a bar does. #}
+<div class="sr-only">
+    <table>
+        <caption>{{ caption }}</caption>
+        <thead>
+            <tr>
+                <th scope="col">{{ 'chart.period'|trans }}</th>
+                {% for item in series %}
+                    <th scope="col">{{ item.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for label in labels %}
+                {% set index = loop.index0 %}
+                <tr>
+                    <th scope="row">{{ label }}</th>
+                    {% for item in series %}
+                        {% set value = item.values[index] %}
+                        {% set count = item.counts[index] ?? null %}
+                        {% if unit == 'share' %}
+                            <td>{{ count is null ? value|share_percent : 'chart.share_with_bare_count'|trans({share: value|share_percent, count: count}) }}</td>
+                        {% else %}
+                            <td>{{ unit == 'percent' ? value|punctuality_percent : (value is null ? '–' : value|number_format) }}</td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

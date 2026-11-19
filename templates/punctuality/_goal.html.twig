@@ -1,0 +1,43 @@
+{# The service target heads the four measures. Needs page and tolerance_minutes. #}
+<section class="panel goal-panel" aria-labelledby="goal-title">
+    <header class="goal">
+        <h2 class="goal__text" id="goal-title">
+            <span class="goal__label">{{ 'punctuality.goal.label'|trans }}</span>
+            <span class="goal__rule">{{ 'punctuality.goal.rule'|trans({minutes: tolerance_minutes, target: page.target}) }}</span>
+        </h2>
+        {% set total = page.measures|length %}
+        <p class="goal__status{{ page.measuresAtTarget == total ? ' is-ok' }}" data-test="goal-status">{{ 'punctuality.goal.status'|trans({count: page.measuresAtTarget, total: total}) }}</p>
+    </header>
+    <div class="panel__body">
+        <div class="tiles tiles--4">
+            {% for measure in page.measures %}
+                {% set value = measure.percent %}
+                {% set gap = punctuality_gap(value) %}
+                {% set note = 'punctuality.target_note'|trans({target: page.target}) %}
+                {% if gap is not null %}
+                    {% set note = note ~ ' · ' ~ 'punctuality.target_gap'|trans({gap: gap}) %}
+                {% elseif value is not null %}
+                    {% set note = note ~ ' · ' ~ 'punctuality.target_met'|trans %}
+                {% endif %}
+                <twig:Tile
+                    :label="('punctuality.measure.' ~ measure.key)|trans"
+                    :value="value|punctuality_percent"
+                    :tone="punctuality_tone(value)"
+                    :change="measure.change is null ? null : 'punctuality.points'|trans({change: measure.change|percentage_points})"
+                    :changeTone="trend_tone(measure.change)"
+                    :changeIcon="trend_icon(measure.change)"
+                    :spark="measure.history"
+                    :sparkClass="measure.cssClass"
+                    :note="note"
+                    :test="'measure-' ~ measure.key"
+                >
+                    <twig:block name="help">
+                        <twig:HelpPopover :id="'help-' ~ measure.key" :title="('punctuality.help.' ~ measure.key ~ '.title')|trans">
+                            <p>{{ ('punctuality.help.' ~ measure.key ~ '.body')|trans({minutes: tolerance_minutes}) }}</p>
+                        </twig:HelpPopover>
+                    </twig:block>
+                </twig:Tile>
+            {% endfor %}
+        </div>
+    </div>
+</section>

@@ -1,0 +1,239 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'punctuality.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block topbar_controls %}{{ include('_filter_bar.html.twig', {route: 'punctuality'}) }}{% endblock %}
+
+{% block body %}
+    {% set report = page.current %}
+    {% set figures = report.total %}
+    {% set labels = page.months|map(item => ('month.short.' ~ item.number)|trans) %}
+
+    <header class="page-head">
+        <div>
+            <h1 class="page-head__title">{{ 'punctuality.title'|trans }}</h1>
+            <p class="page-head__lede" data-test="lede">{{ 'punctuality.lede'|trans({period: period_phrase(selection), comparison: comparison_phrase(selection)}) }}</p>
+            {# The tiles show the whole period, but the sparklines and the charts show months. #}
+            {% if selection.filter.type.value != 'month' %}
+                <p class="page-head__lede" data-test="months-note">{{ 'period.months_note'|trans }}</p>
+            {% endif %}
+            {% if ignored_sub_agreements is not empty %}
+                <p class="page-head__lede" data-test="ignored-note">{{ 'punctuality.ignored_note'|trans({count: ignored_sub_agreements|length, references: ignored_sub_agreements|join(', ')}) }}</p>
+            {% endif %}
+        </div>
+    </header>
+
+    {{ include('punctuality/_goal.html.twig', {page: page, tolerance_minutes: tolerance_minutes}, with_context: false) }}
+
+    {# The tiles show the count. The change, the sparkline and the note are of the share of the
+       measured runs, so that months with different volumes can be compared. #}
+    <div class="tiles tiles--2">
+        {% set late = page.lateRuns %}
+        <twig:Tile
+            :label="'punctuality.late_runs'|trans"
+            :value="late.count is null ? '–' : late.count|number_format"
+            :change="late.change is null ? null : 'punctuality.points'|trans({change: late.change|percentage_points})"
+            :changeTone="trend_tone(late.change, false)"
+            :changeIcon="trend_icon(late.change)"
+            :spark="late.history"
+            sparkClass="series-coral"
+            :note="late.share is null ? null : 'punctuality.late_share_note'|trans({share: late.share|share_percent, runs: late.runs})"
+            test="late-runs"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-late-runs" :title="'punctuality.late_runs_help.title'|trans">
+                    <p>{{ 'punctuality.late_runs_help.body'|trans({minutes: tolerance_minutes}) }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+        {% set over30 = page.over30 %}
+        <twig:Tile
+            :label="'punctuality.over_30'|trans"
+            :value="over30.count is null ? '–' : over30.count|number_format"
+            :tone="over30.count is null ? null : (over30.count == 0 ? 'ok' : 'danger')"
+            :change="over30.change is null ? null : 'punctuality.points'|trans({change: over30.change|percentage_points})"
+            :changeTone="trend_tone(over30.change, false)"
+            :changeIcon="trend_icon(over30.change)"
+            :spark="over30.history"
+            sparkClass="series-danger"
+            :note="over30.share is null ? null : 'punctuality.late_share_note'|trans({share: over30.share|share_percent, runs: over30.runs})"
+            test="over-30"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-over-30" :title="'punctuality.over_30_help.title'|trans">
+                    <p>{{ 'punctuality.over_30_help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+    </div>
+
+    {{ include('punctuality/_trend.html.twig', {
+        page: page,
+        labels: labels,
+        trend_title: 'punctuality.trend.title'|trans,
+    }, with_context: false) }}
+
+    <div class="grid-2">
+        <twig:Panel :title="'punctuality.split.title'|trans">
+            <div data-test="bands">
+                <twig:DistributionBar
+                    id="split"
+                    :caption="'punctuality.split.caption'|trans"
+                    :total="'punctuality.split.total'|trans({count: figures.dropOffPerRun.measured})"
+                    :segments="[
+                        {name: 'punctuality.band.on_time'|trans({minutes: tolerance_minutes}), cssClass: 'series-success', value: figures.bands.onTime},
+                        {name: 'punctuality.band.up_to_15'|trans({minutes: tolerance_minutes}), cssClass: 'series-warning', value: figures.bands.upTo15},
+                        {name: 'punctuality.band.up_to_30'|trans, cssClass: 'series-coral', value: figures.bands.upTo30},
+                        {name: 'punctuality.band.over_30'|trans, cssClass: 'series-danger', value: figures.bands.over30},
+                    ]"
+                />
+            </div>
+            <twig:block name="foot"><span class="muted">{{ 'punctuality.split.foot'|trans({minutes: tolerance_minutes}) }}</span></twig:block>
+        </twig:Panel>
+
+        {% set shares = page.lateBandShares %}
+        {% set counts = page.lateBandCounts %}
+        <twig:Panel :title="'punctuality.severity.title'|trans" :subtitle="'punctuality.severity.subtitle'|trans">
+            <twig:ColumnChart
+                id="severity"
+                :width="constant('App\\Chart\\Scale::HALF_WIDTH')"
+                :caption="'punctuality.severity.caption'|trans"
+                :labels="labels"
+                unit="share"
+                :countLabel="'punctuality.severity.runs'|trans"
+                :series="[
+                    {name: 'punctuality.severity.up_to_15'|trans({minutes: tolerance_minutes}), cssClass: 'series-warning', values: shares[0], counts: counts[0]},
+                    {name: 'punctuality.severity.up_to_30'|trans, cssClass: 'series-coral', values: shares[1], counts: counts[1]},
+                    {name: 'punctuality.severity.over_30'|trans, cssClass: 'series-danger', values: shares[2], counts: counts[2]},
+                ]"
+            />
+        </twig:Panel>
+    </div>
+
+    <twig:Panel :title="'punctuality.suppliers.title'|trans" :subtitle="'punctuality.suppliers.subtitle'|trans" data-test="suppliers">
+        {% if report.suppliers is empty %}
+            <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'punctuality.suppliers.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'punctuality.suppliers.supplier'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.suppliers.runs'|trans }}</th>
+                            {% for key in ['pickup_per_citizen', 'drop_off_per_citizen', 'pickup_per_run', 'drop_off_per_run'] %}
+                                <th scope="col" class="num">{{ ('punctuality.measure.' ~ key)|trans }}</th>
+                            {% endfor %}
+                            <th scope="col" class="num">{{ 'punctuality.band.up_to_15'|trans({minutes: tolerance_minutes}) }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.band.up_to_30'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.band.over_30'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in report.suppliers %}
+                            {% set row = supplier.figures %}
+                            <tr data-test="supplier-row">
+                                <th scope="row">{{ supplier.supplier ?? 'punctuality.suppliers.unknown'|trans }}</th>
+                                <td class="num">{{ row.dropOffPerRun.measured|number_format }}</td>
+                                {% for count in [row.pickupPerCitizen, row.dropOffPerCitizen, row.pickupPerRun, row.dropOffPerRun] %}
+                                    {% set tone = punctuality_tone(count.percent) %}
+                                    <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
+                                {% endfor %}
+                                <td class="num">{{ row.bands.upTo15|number_format }}</td>
+                                <td class="num">{{ row.bands.upTo30|number_format }}</td>
+                                <td class="num {{ row.bands.over30 > 0 ? 't-danger' : 't-ok' }}">{{ row.bands.over30|number_format }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">
+            {% if report.suppliers is not empty %}
+                <span data-test="suppliers-note">{{ 'punctuality.suppliers.note'|trans }}</span>
+            {% endif %}
+            {{ 'punctuality.source'|trans }}
+        </twig:block>
+    </twig:Panel>
+
+    {% set locations = report.worstLocations %}
+    <twig:Panel :title="'punctuality.locations.title'|trans" :subtitle="'punctuality.locations.subtitle'|trans" data-test="worst-locations">
+        <twig:block name="help">
+            <twig:HelpPopover id="help-locations" :title="'punctuality.locations.help.title'|trans">
+                <p>{{ 'punctuality.locations.help.body'|trans({minutes: tolerance_minutes, count: locations.minStops}) }}</p>
+            </twig:HelpPopover>
+        </twig:block>
+        {% if locations.locations is empty %}
+            {# With left-out locations, the period has data, but no location has enough stops. #}
+            <p class="empty" data-test="no-data">{{ locations.leftOut > 0 ? 'punctuality.locations.too_few'|trans({count: locations.minStops}) : 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'punctuality.locations.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'punctuality.locations.location'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.locations.stops'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.locations.late'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.locations.punctuality'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for location in locations.locations %}
+                            {% set count = location.stops %}
+                            {% set tone = punctuality_tone(count.percent) %}
+                            <tr data-test="worst-location-row">
+                                <th scope="row">{{ location.location }}</th>
+                                <td class="num">{{ count.measured|number_format }}</td>
+                                <td class="num">{{ count.late|number_format }}</td>
+                                <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">
+            {{ 'punctuality.locations.foot'|trans }}
+            {% if locations.leftOut > 0 %}
+                <span data-test="locations-left-out">{{ 'punctuality.locations.left_out'|trans({left: locations.leftOut, count: locations.minStops}) }}</span>
+            {% endif %}
+        </twig:block>
+    </twig:Panel>
+
+    <twig:Panel :title="'punctuality.routes.title'|trans" :subtitle="'punctuality.routes.subtitle'|trans" data-test="worst-routes">
+        {% if report.worstRoutes is empty %}
+            {# With measured runs, the period has data, but no run is late. #}
+            <p class="empty" data-test="no-data">{{ figures.dropOffPerRun.measured > 0 ? 'punctuality.routes.none_late'|trans : 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'punctuality.routes.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'punctuality.routes.route'|trans }}</th>
+                            <th scope="col">{{ 'punctuality.routes.supplier'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.routes.runs'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.routes.late'|trans }}</th>
+                            <th scope="col" class="num">{{ 'punctuality.routes.punctuality'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for route in report.worstRoutes %}
+                            {% set count = route.lastDropOff %}
+                            {% set tone = punctuality_tone(count.percent) %}
+                            <tr data-test="worst-route-row">
+                                <th scope="row">{{ route.route }}</th>
+                                <td>{{ route.supplier ?? 'punctuality.suppliers.unknown'|trans }}</td>
+                                <td class="num">{{ count.measured|number_format }}</td>
+                                <td class="num">{{ count.late|number_format }}</td>
+                                <td class="num{{ tone ? ' t-' ~ tone }}">{{ count.percent|punctuality_percent }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">{{ 'punctuality.routes.foot'|trans }}</twig:block>
+    </twig:Panel>
+{% endblock %}

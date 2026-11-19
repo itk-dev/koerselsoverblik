@@ -1,0 +1,45 @@
+security:
+    # The keys are the app roles of Entra ID: "admin" (Superadministrator) and "bruger" (Slutbruger)
+    # become ROLE_ADMIN and ROLE_USER at login (see OidcLogin). At this time, both give all
+    # permission roles.
+    # ROLE_ADMIN is for features that only administrators will get. Controllers check only the
+    # permission roles, the roles at the end of the hierarchy. See "Security" in
+    # docs/architecture.md.
+    role_hierarchy:
+        ROLE_ADMIN:
+            - ROLE_USER
+        ROLE_USER:
+            - ROLE_VIEW_OVERVIEW
+            - ROLE_MANAGE_DRIVING_DATA
+            - ROLE_EDIT_DAILY_COUNTS
+            - ROLE_MANAGE_SUPPLIERS
+
+    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    firewalls:
+        dev:
+            # Ensure dev tools and static assets are always allowed
+            pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
+            security: false
+        main:
+            lazy: true
+            provider: app_user_provider
+            custom_authenticators:
+                - App\Security\OidcAuthenticator
+            # Sends anonymous users to the OIDC login.
+            entry_point: App\Security\OidcAuthenticator
+            # Ends the session in the application, not at the identity provider.
+            logout:
+                path: /logout
+
+    # Note: Only the *first* matching rule is applied
+    access_control:
+        - { path: ^/openidconnect/, roles: PUBLIC_ACCESS }
+        - { path: ^/openid-connect/generic$, roles: PUBLIC_ACCESS }
+        - { path: ^/assets/, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: IS_AUTHENTICATED }

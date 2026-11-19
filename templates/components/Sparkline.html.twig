@@ -1,0 +1,4 @@
+{% set path = this.path %}
+{% if path is not null %}
+    <svg class="spark {{ cssClass }}" viewBox="0 0 {{ constant('App\\Chart\\SparklineGeometry::WIDTH') }} {{ constant('App\\Chart\\SparklineGeometry::HEIGHT') }}" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="{{ path }}"/></svg>
+{% endif %}

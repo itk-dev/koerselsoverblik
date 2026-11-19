@@ -1,0 +1,94 @@
+### ### Tests and code analysis
+###
+### Runs PHPStan, Rector and the tests. The jobs use the same Taskfile tasks as local
+### development. The tests run with no coverage. The coverage gate and the mutation
+### testing run only on the release and hotfix branches (see release-checks.yaml).
+### The tests of the "fixtures" group are slow and are not production code, so they run
+### in their own job.
+###
+### The template workflows run the coding standards and the Composer checks.
+
+name: Tests
+
+env:
+  COMPOSE_USER: runner
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  code-analysis:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task code-analysis
+
+  rector:
+    name: Rector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task rector:check
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task test
+
+  fixtures:
+    name: Fixture tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: go-task/setup-task@v1
+        with:
+          version: 3.x
+
+      - name: Create docker network
+        run: |
+          docker network create frontend
+
+      - run: |
+          task composer -- install
+          task test:fixtures

@@ -1,0 +1,8 @@
+# Supercronic runs this file in the phpfpm container. See
+# https://github.com/itk-dev/documentation/blob/main/docs/web/server/supercronic.md
+
+# Delete the upload files that nobody confirmed.
+*/15 * * * * bin/console app:driving-data:purge-uploads --quiet
+
+# Delete the copies of the imported rows that have no row. They hold personal data.
+30 2 * * * bin/console app:driving-data:delete-orphan-copies --quiet

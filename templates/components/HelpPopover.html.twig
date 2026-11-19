@@ -1,0 +1,9 @@
+{% props id, title %}
+{# The native popover attribute opens and closes the help text, so no script is necessary. #}
+<div class="help">
+    <button type="button" class="help__btn" popovertarget="{{ id }}" aria-label="{{ 'help.how'|trans({title: title}) }}"><span aria-hidden="true">?</span></button>
+    <div id="{{ id }}" class="help__pop" popover role="note">
+        <span class="help__title">{{ title }}</span>
+        <div class="help__body">{% block content %}{% endblock %}</div>
+    </div>
+</div>

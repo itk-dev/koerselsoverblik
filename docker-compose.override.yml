@@ -1,0 +1,46 @@
+# Local development only.
+services:
+  # The upload of driving data accepts an extract of up to APP_DRIVING_DATA_MAX_FILE_SIZE
+  # (20 MiB). The limits of PHP and nginx must be higher. docker-compose.server.override.yml has
+  # the same values for the server.
+  phpfpm:
+    environment:
+      - PHP_UPLOAD_MAX_FILESIZE=25M
+      - PHP_POST_MAX_SIZE=25M
+      - PHP_MEMORY_LIMIT=512M
+
+  nginx:
+    environment:
+      NGINX_MAX_BODY_SIZE: 25M
+
+  # A mock OIDC identity provider: https://github.com/geigerzaehler/oidc-provider-mock
+  #
+  # The container name is the external host name, so that the browser and the application reach
+  # the mock with the same name. Then the issuer in the discovery document matches the issuer in
+  # the ID token.
+  #
+  # Each user has the claims that OidcAuthenticator reads: upn and the role claim (roles). The users
+  # match the app roles of Entra ID on staging and production: "admin" (Superadministrator), "bruger"
+  # (Slutbruger), and a user with no app role.
+  idp:
+    image: ghcr.io/geigerzaehler/oidc-provider-mock:latest
+    container_name: idp.${COMPOSE_DOMAIN:?}
+    networks:
+      - app
+      - frontend
+    expose:
+      - "80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME:?}_idp.rule=Host(`idp.${COMPOSE_DOMAIN:?}`)"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME:?}_idp.loadbalancer.server.port=80"
+    command:
+      - "--port"
+      - "80"
+      - "--user-claims"
+      - '{"sub": "admin", "name": "Admin", "upn": "admin@example.com", "email": "admin@example.com", "roles": ["admin"]}'
+      - "--user-claims"
+      - '{"sub": "user", "name": "User", "upn": "user@example.com", "email": "user@example.com", "roles": ["bruger"]}'
+      - "--user-claims"
+      - '{"sub": "norole", "name": "No role", "upn": "norole@example.com", "email": "norole@example.com", "roles": []}'

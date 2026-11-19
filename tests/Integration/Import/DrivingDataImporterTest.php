@@ -1,0 +1,482 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Integration\Import;
+
+use App\DataFixtures\DrivingData\ExtractRow;
+use App\DataFixtures\DrivingData\ExtractWriter;
+use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\LocationDayTotals;
+use App\Entity\MonthCitizens;
+use App\Entity\RejectedStopRow;
+use App\Entity\RouteDayTotals;
+use App\Entity\RouteRun;
+use App\Entity\SourceRow;
+use App\Entity\StopRow;
+use App\Entity\User;
+use App\Import\AllRowsRejectedException;
+use App\Import\DrivingDataImporter;
+use App\Import\Extract\MissingColumnsException;
+use App\Import\Extract\StopRowParser;
+use App\Import\ImportRangeDto;
+use App\Import\InvalidImportRangeException;
+use App\Import\LocationDayTotalsBuilder;
+use App\Import\Mapping\FieldName;
+use App\Import\Mapping\MappingDto;
+use App\Import\Mapping\MappingProvider;
+use App\Import\MonthCitizensBuilder;
+use App\Import\NoStopRowsException;
+use App\Import\RouteBuilder;
+use App\Import\RouteDayTotalsBuilder;
+use App\Import\RouteRunCalculator;
+use App\Import\RowIdConflictException;
+use App\Import\StopRowRangeDeleter;
+use App\Import\StopRowReplacer;
+use App\Repository\RejectedStopRowRepository;
+use App\Repository\RouteRunRepository;
+use App\Repository\SourceRowRepository;
+use App\Repository\StopRowRepository;
+use App\Repository\SubAgreementRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Clock\MockClock;
+
+/**
+ * Checks the one service for the upload page and the import command: the preview changes no data,
+ * and the import replaces the rows and saves the batch in one transaction.
+ */
+final class DrivingDataImporterTest extends KernelTestCase
+{
+    private const string SCENARIOS = __DIR__.'/../../fixtures/driving_data';
+
+    private string $path = '';
+
+    private EntityManagerInterface $entityManager;
+
+    protected function setUp(): void
+    {
+        $this->path = sys_get_temp_dir().'/'.uniqid('extract_', true).'.xlsx';
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
+        $this->entityManager = $entityManager;
+    }
+
+    protected function tearDown(): void
+    {
+        if (is_file($this->path)) {
+            unlink($this->path);
+        }
+        parent::tearDown();
+    }
+
+    /**
+     * The range of a file is the first to the last date with stop rows. The bulk upload uses it.
+     */
+    #[DataProvider('fileRangeProvider')]
+    public function testRangeOfAFileIsTheFirstToTheLastDateWithStopRows(string $scenario, string $firstDate, string $lastDate): void
+    {
+        $this->writeScenario($scenario);
+
+        [$range] = $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+
+        self::assertEquals(self::range($firstDate, $lastDate), $range);
+    }
+
+    /**
+     * The bulk upload parses a file once. Its preview is the same as the preview of its range,
+     * because no row is outside the range of its own dates.
+     */
+    public function testThePreviewOfAFileIsThePreviewOfItsRange(): void
+    {
+        $this->writeScenario('base');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $this->writeScenario('range_edges');
+
+        [$range, $preview] = $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+
+        self::assertEquals($this->importer()->preview($this->path, $range, $this->mapping(), 0), $preview);
+        self::assertSame(14, $preview->rowsToDelete);
+        self::assertSame(['2026-01-06'], $preview->emptyDates);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function fileRangeProvider(): iterable
+    {
+        yield 'one date' => ['base', '2026-01-05', '2026-01-05'];
+        // The file has no rows on 2026-01-06, and a row on 2026-01-08 after its export range.
+        yield 'dates with a gap' => ['range_edges', '2026-01-05', '2026-01-08'];
+    }
+
+    public function testRangeOfAFileWithMoreDaysThanTheLimitIsNotValid(): void
+    {
+        $this->writeScenario('range_edges');
+
+        $this->expectException(InvalidImportRangeException::class);
+
+        $this->importer()->rangeAndPreview($this->path, $this->mapping(), 3);
+    }
+
+    public function testRangeOfAFileWithNoDataRowsIsNotValid(): void
+    {
+        new ExtractWriter()->write($this->path, $this->mapping(), []);
+
+        $this->expectException(NoStopRowsException::class);
+
+        $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+    }
+
+    /**
+     * A file with data rows that are all rejected is broken, not empty.
+     */
+    public function testRangeOfAFileWithOnlyRejectedRowsIsNotValid(): void
+    {
+        $rows = array_map(
+            static fn (ExtractRow $row): ExtractRow => new ExtractRow($row->values, $row->rowId, ['service_date' => 'not a date'] + $row->raw, $row->kept),
+            new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows,
+        );
+        new ExtractWriter()->write($this->path, $this->mapping(), $rows);
+
+        try {
+            $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+            self::fail('The file was accepted.');
+        } catch (AllRowsRejectedException $exception) {
+            // The message goes to the log of a failed upload, so it must tell the reason.
+            self::assertSame('The file has data rows, but all rows are rejected.', $exception->getMessage());
+        }
+    }
+
+    /**
+     * The preview counts the rows of the file and the stored rows that the import deletes.
+     */
+    public function testPreviewCountsAndChangesNoData(): void
+    {
+        $this->writeScenario('base');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $this->writeScenario('range_edges');
+
+        $preview = $this->importer()->preview($this->path, self::range('2026-01-05', '2026-01-07'), $this->mapping(), 3);
+
+        self::assertSame(4, $preview->summary->stopRows);
+        self::assertCount(3, $preview->summary->preview);
+        self::assertSame(1, $preview->summary->rejectedRows);
+        self::assertSame(14, $preview->rowsToDelete);
+        self::assertSame(['2026-01-06'], $preview->emptyDates);
+        self::assertSame(14, $this->storedRows());
+    }
+
+    /**
+     * The preview and the import agree on the rows with a duplicate row id.
+     */
+    public function testPreviewAndImportRejectTheSameDuplicateRowIds(): void
+    {
+        $this->writeScenario('duplicate_row_ids');
+
+        $preview = $this->importer()->preview($this->path, self::range('2026-01-05'), $this->mapping(), 5);
+        $batch = $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'duplicates.xlsx');
+
+        self::assertSame(2, $preview->summary->stopRows);
+        self::assertSame(1, $preview->summary->rejectedRows);
+        self::assertSame(2, $batch->getRowsInserted());
+        self::assertSame(1, $batch->getRowsRejected());
+    }
+
+    public function testImportSavesTheBatch(): void
+    {
+        $user = new User('admin@example.com');
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+        $this->writeScenario('bad_values');
+
+        $batch = $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), $user, 'january.xlsx');
+
+        self::assertNotNull($batch->getId());
+        self::assertSame('default', $batch->getMappingName());
+        self::assertSame('january.xlsx', $batch->getFileName());
+        self::assertSame($user, $batch->getUploadedBy());
+        self::assertSame('2026-01-07 10:15:00', $batch->getUploadedAt()->format('Y-m-d H:i:s'));
+        self::assertSame('2026-01-05', $batch->getFirstDate()->format('Y-m-d'));
+        self::assertSame('2026-01-05', $batch->getLastDate()->format('Y-m-d'));
+        self::assertSame(0, $batch->getRowsDeleted());
+        self::assertSame(4, $batch->getRowsInserted());
+        self::assertSame(5, $batch->getRowsRejected());
+        self::assertSame(3, $batch->getWarningCount());
+        self::assertCount(5, $batch->getErrors());
+        // The errors are codes. They never have a value from the extract.
+        $errors = json_encode($batch->getErrors(), \JSON_THROW_ON_ERROR);
+        foreach (['abc', 'not-a-date', 'late', 'UNKNOWN'] as $value) {
+            self::assertStringNotContainsString($value, $errors);
+        }
+        self::assertSame(4, $this->storedRows());
+        // The counts are saved, not only set on the object.
+        self::assertEquals(
+            ['rows_inserted' => 4, 'rows_rejected' => 5, 'warning_count' => 3],
+            $this->entityManager->getConnection()->fetchAssociative('SELECT rows_inserted, rows_rejected, warning_count FROM import_batch WHERE id = ?', [$batch->getId()]),
+        );
+    }
+
+    /**
+     * A user can be deleted. The batches of the user stay, with no user.
+     */
+    public function testDeletedUserLeavesTheBatchWithNoUser(): void
+    {
+        $user = new User('admin@example.com');
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+        $this->writeScenario('base');
+        $batch = $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), $user, 'base.xlsx');
+
+        $this->entityManager->createQuery('DELETE FROM '.User::class.' user WHERE user.id = :id')
+            ->setParameter('id', $user->getId())
+            ->execute();
+
+        self::assertNull($this->entityManager->getConnection()->fetchOne('SELECT uploaded_by_id FROM import_batch WHERE id = ?', [$batch->getId()]));
+        self::assertSame(1, $this->storedBatches());
+    }
+
+    /**
+     * The import command has no user.
+     */
+    public function testImportFromTheConsoleHasNoUser(): void
+    {
+        $this->writeScenario('base');
+
+        $batch = $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+
+        self::assertNull($batch->getUploadedBy());
+        self::assertSame(14, $batch->getRowsInserted());
+    }
+
+    /**
+     * The import stores the location name in its own column.
+     */
+    public function testImportStoresTheLocationName(): void
+    {
+        $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
+        $values['location_name'] = 'Skole 7';
+        new ExtractWriter()->write($this->path, $this->mapping(), [new ExtractRow($values)]);
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'location.xlsx');
+
+        self::assertSame('Skole 7', $this->entityManager->getConnection()->fetchOne('SELECT location_name FROM stop_row'));
+    }
+
+    /**
+     * The import builds the route runs of the range in the same transaction. A second import of
+     * the same range builds them again.
+     */
+    public function testImportBuildsTheRouteRuns(): void
+    {
+        $this->writeScenario('base');
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $afterFirstImport = $this->storedRuns();
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+
+        self::assertSame([4, 4], [$afterFirstImport, $this->storedRuns()]);
+    }
+
+    /**
+     * The import builds the totals of each route and day of the range, after the route runs. The
+     * base scenario has three routes on one date.
+     */
+    public function testImportBuildsTheTotalsOfEachRouteAndDay(): void
+    {
+        $this->writeScenario('base');
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+
+        self::assertSame(3, $this->entityManager->getRepository(RouteDayTotals::class)->count());
+    }
+
+    /**
+     * The import builds the measured stops of each location, route and day of the range. The
+     * base scenario has measured stops at three locations, on three routes.
+     */
+    public function testImportBuildsTheTotalsOfEachLocation(): void
+    {
+        $this->writeScenario('base');
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+
+        self::assertSame(3, $this->entityManager->getRepository(LocationDayTotals::class)->count());
+    }
+
+    /**
+     * The import builds the citizens of the months of its range. The routes of the base scenario
+     * have no supplier, so the month has a count for all suppliers only. The citizens are in the
+     * "expected" section of the scenario.
+     */
+    public function testImportBuildsTheCitizensOfEachMonth(): void
+    {
+        $this->writeScenario('base');
+
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+
+        $months = $this->entityManager->getRepository(MonthCitizens::class)->findAll();
+        self::assertSame(['2026-01-01'], array_map(static fn (MonthCitizens $month): string => $month->getFirstDate()->format('Y-m-d'), $months));
+        self::assertSame([6], array_map(static fn (MonthCitizens $month): int => $month->getCitizens(), $months));
+        self::assertNull($months[0]->getSupplier());
+    }
+
+    /**
+     * The parse starts after the delete. A file with a missing column then also undoes the delete.
+     */
+    public function testFailedImportLeavesTheDataAsItWas(): void
+    {
+        $this->writeScenario('base');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml');
+        new ExtractWriter()->write($this->path, $this->mapping(), $scenario->rows, [FieldName::PlannedSolo]);
+
+        try {
+            $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'broken.xlsx');
+            self::fail('The import did not fail.');
+        } catch (MissingColumnsException) {
+        }
+
+        self::assertSame(14, $this->storedRows());
+        self::assertSame(4, $this->storedRuns());
+        self::assertSame(1, $this->storedBatches());
+    }
+
+    /**
+     * A wrong range gives a file with no stop rows in it. The import would then only delete the
+     * stored rows of the range, so it stops, and no data changes. The upload page and the command
+     * share the rule.
+     */
+    public function testFileWithNoStopRowsInTheRangeStopsTheImport(): void
+    {
+        $this->writeScenario('base');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        // A file of the next day, uploaded for the date of the stored rows.
+        $rows = array_map(
+            static fn (ExtractRow $row): ExtractRow => new ExtractRow(['service_date' => new \DateTimeImmutable('2026-01-06')] + $row->values, $row->rowId, $row->raw, $row->kept),
+            new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows,
+        );
+        new ExtractWriter()->write($this->path, $this->mapping(), $rows);
+
+        try {
+            $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'next-day.xlsx');
+            self::fail('The import did not fail.');
+        } catch (NoStopRowsException $exception) {
+            self::assertSame('The file has no stop rows in the range. The import changed no data.', $exception->getMessage());
+        }
+
+        self::assertSame(14, $this->storedRows());
+        self::assertSame(1, $this->storedBatches());
+    }
+
+    /**
+     * Each extract holds whole days, so a row id is not stored on a date outside the range. If it
+     * is, the unique index stops the import, and no data changes. The caller gets an exception of
+     * the import, with no value from the extract. The message of the database has the row id, so
+     * it is not kept.
+     */
+    public function testRowIdThatIsStoredOutsideTheRangeStopsTheImport(): void
+    {
+        $this->writeScenario('base');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $rows = array_map(
+            static fn (ExtractRow $row): ExtractRow => new ExtractRow(['service_date' => new \DateTimeImmutable('2026-01-06')] + $row->values, $row->rowId, $row->raw, $row->kept),
+            new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows,
+        );
+        new ExtractWriter()->write($this->path, $this->mapping(), $rows);
+
+        try {
+            $this->importer()->import($this->path, self::range('2026-01-06'), $this->mapping(), null, 'next-day.xlsx');
+            self::fail('The import did not fail.');
+        } catch (RowIdConflictException $exception) {
+            self::assertSame('A row id of the file is already stored on a date outside the range. The import changed no data.', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+        }
+
+        self::assertSame(14, $this->storedRows());
+        self::assertSame(1, $this->storedBatches());
+    }
+
+    private function importer(): DrivingDataImporter
+    {
+        $parser = self::getContainer()->get(StopRowParser::class);
+        self::assertInstanceOf(StopRowParser::class, $parser);
+        $subAgreements = self::getContainer()->get(SubAgreementRepository::class);
+        self::assertInstanceOf(SubAgreementRepository::class, $subAgreements);
+        $stopRows = $this->entityManager->getRepository(StopRow::class);
+        self::assertInstanceOf(StopRowRepository::class, $stopRows);
+        $routeRuns = $this->entityManager->getRepository(RouteRun::class);
+        self::assertInstanceOf(RouteRunRepository::class, $routeRuns);
+        $rejectedRows = $this->entityManager->getRepository(RejectedStopRow::class);
+        self::assertInstanceOf(RejectedStopRowRepository::class, $rejectedRows);
+        $sourceRows = $this->entityManager->getRepository(SourceRow::class);
+        self::assertInstanceOf(SourceRowRepository::class, $sourceRows);
+        $totalsBuilder = self::getContainer()->get(RouteDayTotalsBuilder::class);
+        self::assertInstanceOf(RouteDayTotalsBuilder::class, $totalsBuilder);
+        $locationTotalsBuilder = self::getContainer()->get(LocationDayTotalsBuilder::class);
+        self::assertInstanceOf(LocationDayTotalsBuilder::class, $locationTotalsBuilder);
+        $monthCitizens = self::getContainer()->get(MonthCitizensBuilder::class);
+        self::assertInstanceOf(MonthCitizensBuilder::class, $monthCitizens);
+
+        // The container removes a private service that no other service uses yet.
+        return new DrivingDataImporter(
+            $parser,
+            new StopRowReplacer($this->entityManager, $subAgreements, new StopRowRangeDeleter($stopRows, $rejectedRows, $sourceRows)),
+            new RouteBuilder($routeRuns, $stopRows, $this->entityManager, new RouteRunCalculator()),
+            $totalsBuilder,
+            $locationTotalsBuilder,
+            $monthCitizens,
+            $stopRows,
+            $this->entityManager,
+            new MockClock('2026-01-07 10:15:00'),
+        );
+    }
+
+    private function writeScenario(string $name): void
+    {
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/'.$name.'.yaml');
+        new ExtractWriter()->write($this->path, $this->mapping(), $scenario->rows, $scenario->omittedFields);
+    }
+
+    private function mapping(): MappingDto
+    {
+        $provider = self::getContainer()->get(MappingProvider::class);
+        self::assertInstanceOf(MappingProvider::class, $provider);
+
+        return $provider->default();
+    }
+
+    /**
+     * ORM closes the entity manager after a failed transaction, so the count uses the connection.
+     */
+    private function storedRows(): int
+    {
+        return $this->countRows('stop_row');
+    }
+
+    private function storedRuns(): int
+    {
+        return $this->countRows('route_run');
+    }
+
+    private function storedBatches(): int
+    {
+        return $this->countRows('import_batch');
+    }
+
+    private function countRows(string $table): int
+    {
+        $count = $this->entityManager->getConnection()->fetchOne('SELECT COUNT(*) FROM '.$table);
+        self::assertIsNumeric($count);
+
+        return (int) $count;
+    }
+
+    private static function range(string $firstDate, ?string $lastDate = null): ImportRangeDto
+    {
+        return ImportRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate ?? $firstDate), 31);
+    }
+}

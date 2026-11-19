@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'admin.suppliers'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'admin.title'|trans }}</h1>
+    {{ include('admin/_tabs.html.twig', {current: 'suppliers'}) }}
+
+    <p><a class="itkaarhus-btn itkaarhus-btn--primary" href="{{ path('admin_supplier_new') }}" data-test="supplier-new">{{ 'supplier.new'|trans }}</a></p>
+
+    {% if suppliers is empty %}
+        <p data-test="supplier-none">{{ 'supplier.none'|trans }}</p>
+    {% else %}
+        <table class="itkaarhus-table" data-test="supplier-list">
+            <thead>
+                <tr>
+                    <th scope="col">{{ 'supplier.name'|trans }}</th>
+                    <th scope="col"><span class="sr-only">{{ 'common.actions'|trans }}</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in suppliers %}
+                    <tr data-test="supplier-row">
+                        <td>{{ supplier.name }}</td>
+                        <td class="actions">
+                            <a class="itkaarhus-btn itkaarhus-btn--secondary itkaarhus-btn--sm" href="{{ path('admin_supplier_edit', {id: supplier.id}) }}">{{ 'common.edit'|trans }}</a>
+                            <form method="post" action="{{ path('admin_supplier_delete', {id: supplier.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete-supplier-' ~ supplier.id) }}">
+                                <button class="itkaarhus-btn itkaarhus-btn--danger itkaarhus-btn--sm" type="submit">{{ 'common.delete'|trans }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

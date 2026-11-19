@@ -1,0 +1,328 @@
+# https://taskfile.dev — install with `brew install go-task` (or see docs).
+# Run `task` (or `task --list-all`) to see all available commands.
+
+version: '3'
+
+# https://taskfile.dev/usage/#env-files
+dotenv: ['.env.local', '.env']
+
+vars:
+  # https://taskfile.dev/reference/templating/
+  BASE_URL: '{{ .TASK_BASE_URL | default .COMPOSE_SERVER_DOMAIN | default .COMPOSE_DOMAIN }}'
+  DOCKER_COMPOSE: '{{ .TASK_DOCKER_COMPOSE | default "docker compose" }}'
+  PHP: '{{ .DOCKER_COMPOSE }} run --rm phpfpm php'
+  COMPOSER: '{{ .DOCKER_COMPOSE }} run --rm phpfpm composer'
+  CONSOLE: '{{ .PHP }} bin/console'
+  PHPUNIT: '{{ .PHP }} vendor/bin/phpunit'
+  # Xdebug collects the coverage, because the phpfpm image has no pcov.
+  PHPUNIT_COVERAGE: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/phpunit'
+  COVERAGE_DIR: var/coverage
+  # A fixed number of threads gives the same result on all computers. With one thread for each
+  # core, the integration tests are slow on a computer with many cores, and mutants time out.
+  INFECTION_THREADS: '{{ .TASK_INFECTION_THREADS | default "4" }}'
+  # A timed-out mutant counts as killed in the MSI. bin/mutation-core-check.php fails on a
+  # timeout in src/Import and src/Report.
+  # "--only-covering-test-cases" runs only the tests that cover the mutated line, not all tests
+  # of their classes. The database tests are slow, so the full classes made mutants time out.
+  INFECTION: '{{ .DOCKER_COMPOSE }} run --rm --env PHP_XDEBUG_MODE=coverage phpfpm php vendor/bin/infection --threads={{ .INFECTION_THREADS }} --ignore-msi-with-no-mutations --only-covering-test-cases'
+  MUTATION_LOG: var/infection/infection.json
+  MUTATION_TEXT_LOG: var/infection/infection.log
+  # The changed-lines run compares with this git reference.
+  MUTATION_BASE: '{{ .TASK_MUTATION_BASE | default "origin/develop" }}'
+
+tasks:
+  default:
+    desc: List all tasks
+    cmds:
+      - task --list-all
+    silent: true
+
+  # --------------------------------------------------------------- Stack ---
+
+  setup:
+    desc: Set up the stack, install the Composer dependencies and run the migrations
+    cmds:
+      - docker network inspect frontend >/dev/null 2>&1 || docker network create frontend
+      - task: compose
+        vars:
+          CLI_ARGS: pull
+      - task: compose
+        vars:
+          CLI_ARGS: up --detach --remove-orphans --wait
+      - task: composer
+        vars:
+          CLI_ARGS: install
+      - task: db:migrate
+
+  compose:
+    desc: 'Run a docker compose command — `task compose -- ps`'
+    cmds:
+      - '{{ .DOCKER_COMPOSE }} {{ .CLI_ARGS }}'
+
+  composer:
+    desc: 'Run a composer command — `task composer -- outdated`'
+    cmds:
+      - '{{ .COMPOSER }} {{ .CLI_ARGS }}'
+
+  console:
+    desc: 'Run a Symfony console command — `task console -- about`'
+    cmds:
+      - '{{ .CONSOLE }} {{ .CLI_ARGS }}'
+
+  db:migrate:
+    desc: Run the database migrations
+    cmds:
+      - task: console
+        vars:
+          CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+  fixtures:extracts:
+    desc: 'Write the test scenarios and 13 months of invented driving data, one file for each week, to var/fixtures/driving_data/ — `task fixtures:extracts -- --seed=2 --punctuality-start=80 --punctuality-trend=-1`'
+    cmds:
+      - '{{ .CONSOLE }} app:fixtures:driving-data {{ .CLI_ARGS }}'
+
+  fixtures:import:
+    desc: 'Write the extracts, import each week of invented driving data into the database, and give the sub-agreements their invented suppliers — `task fixtures:import -- --seed=2`'
+    cmds:
+      - task: fixtures:extracts
+      - task: fixtures:import:weeks
+      - '{{ .CONSOLE }} app:fixtures:suppliers'
+
+  fixtures:import:weeks:
+    internal: true
+    # The task reads the Mondays from the file names after fixtures:extracts has written them.
+    vars:
+      WEEKS:
+        sh: ls var/fixtures/driving_data | sed -n 's/^dev-\(.*\)\.xlsx$/\1/p'
+    cmds:
+      # The range of each file is its Monday to its Sunday. With debug, the import of a week
+      # uses more memory than the container has.
+      - for: { var: WEEKS }
+        cmd: '{{ .CONSOLE }} app:driving-data:import var/fixtures/driving_data/dev-{{ .ITEM }}.xlsx {{ .ITEM }} {{ ((toDate "2006-01-02" .ITEM).AddDate 0 0 6).Format "2006-01-02" }} --no-interaction --no-debug'
+
+  # --------------------------------------------------------------- Tests ---
+
+  test:db:setup:
+    desc: Create the test database and run the migrations on it
+    cmds:
+      - task: console
+        vars:
+          CLI_ARGS: doctrine:database:create --env=test --if-not-exists
+      - task: console
+        vars:
+          CLI_ARGS: doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
+
+  test:db:setup:threads:
+    internal: true
+    # Infection sets TEST_TOKEN to the thread number (1 to INFECTION_THREADS) in each mutant
+    # process, and config/packages/doctrine.yaml adds it to the database name. Each thread uses
+    # its own database, db_test1 to db_test4. If the database does not exist, a database test
+    # fails, and Infection counts the mutant as killed. One container creates all databases.
+    cmds:
+      - >-
+        {{ .DOCKER_COMPOSE }} run --rm phpfpm sh -c 'set -e;
+        for token in $(seq 1 {{ .INFECTION_THREADS }}); do
+        TEST_TOKEN=$token bin/console doctrine:database:create --env=test --if-not-exists;
+        TEST_TOKEN=$token bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration;
+        done'
+
+  test:
+    desc: Run all tests, except the "fixtures" group
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT }} {{ .CLI_ARGS }}'
+
+  test:fixtures:
+    desc: Run the tests of the code that makes invented data (the "fixtures" group)
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT }} --group fixtures {{ .CLI_ARGS }}'
+
+  test:unit:
+    desc: Run the unit tests
+    cmds:
+      - '{{ .PHPUNIT }} --testsuite Unit {{ .CLI_ARGS }}'
+
+  test:file:
+    desc: 'Run the tests in one file — `task test:file -- tests/Functional/SmokeTest.php`'
+    cmds:
+      - task: test:db:setup
+      # "--all" also runs a file of the "fixtures" group, which phpunit.dist.xml excludes.
+      - '{{ .PHPUNIT }} --all {{ .CLI_ARGS }}'
+
+  test:coverage:
+    desc: Run all tests, except the "fixtures" group, with coverage. The reports are in var/coverage/.
+    cmds:
+      - task: test:db:setup
+      - '{{ .PHPUNIT_COVERAGE }} --coverage-clover {{ .COVERAGE_DIR }}/clover.xml --coverage-html {{ .COVERAGE_DIR }}/html --coverage-text'
+
+  test:coverage:check:
+    desc: Run all tests, except the "fixtures" group, and fail if line coverage is below 100 %
+    cmds:
+      - task: test:coverage
+      - '{{ .PHP }} vendor/bin/coverage-check {{ .COVERAGE_DIR }}/clover.xml 100'
+
+  test:mutation:
+    desc: Run mutation testing on the lines that changed since develop. The reports are in var/infection/.
+    cmds:
+      - task: test:db:setup
+      - task: test:db:setup:threads
+      - task: test:cache:warmup
+      - rm -f {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}
+      - '{{ .INFECTION }} --git-diff-lines --git-diff-base={{ .MUTATION_BASE }} {{ .CLI_ARGS }}'
+      - task: test:mutation:core-check
+
+  test:mutation:full:
+    desc: Run mutation testing on all code. The reports are in var/infection/.
+    cmds:
+      - task: test:db:setup
+      - task: test:db:setup:threads
+      - task: test:cache:warmup
+      - rm -f {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}
+      # The filter "src/" matches all source files. Infection fails on an unfiltered run with no
+      # source files, but a filtered run with no files passes. This is necessary while src/ has no
+      # mutated code. Do not use the positional path "src/" instead: Infection then applies no filter.
+      # "--filter" is deprecated since Infection 0.34.
+      - '{{ .INFECTION }} --filter=src/ {{ .CLI_ARGS }}'
+      - task: test:mutation:core-check
+
+  test:cache:warmup:
+    internal: true
+    # The mutant processes run in parallel. If they fill a cold test cache at the same time, some
+    # of them take more than the Infection timeout. Fill the cache one time before the run.
+    cmds:
+      - task: console
+        vars:
+          CLI_ARGS: cache:warmup --env=test
+
+  test:mutation:core-check:
+    internal: true
+    # Infection writes no log when it finds no source files. Then there is nothing to check.
+    status:
+      - test ! -f {{ .MUTATION_LOG }}
+    cmds:
+      - '{{ .PHP }} bin/mutation-core-check.php {{ .MUTATION_LOG }} {{ .MUTATION_TEXT_LOG }}'
+
+  prepare-code:
+    desc: Fix the coding standards, normalize composer.json, run the checks and the tests. Run it before you commit
+    # The tests run with no coverage, because Xdebug makes them about four times slower. The
+    # release and hotfix branches run the coverage gate. Run `task test:coverage:check` to run
+    # it locally.
+    cmds:
+      - task: rector:apply
+      - task: coding-standards-apply
+      - task: coding-standards-check
+      - task: code-analysis
+      - task: test
+
+  # ------------------------------------------------------- Code analysis ---
+
+  code-analysis:
+    desc: Analyse the code with PHPStan
+    cmds:
+      - '{{ .PHP }} vendor/bin/phpstan analyse'
+
+  rector:check:
+    desc: Check for Rector changes
+    cmds:
+      - '{{ .PHP }} vendor/bin/rector process --dry-run'
+
+  rector:apply:
+    desc: Apply the Rector changes
+    cmds:
+      - '{{ .PHP }} vendor/bin/rector process'
+
+  # ---------------------------------------------------- Coding standards ---
+
+  coding-standards-check:
+    desc: Check all coding standards
+    cmds:
+      - task: coding-standards-composer-check
+      - task: coding-standards-php-check
+      - task: coding-standards-twig-check
+      - task: coding-standards-javascript-check
+      - task: coding-standards-styles-check
+      - task: coding-standards-markdown-check
+      - task: coding-standards-yaml-check
+
+  coding-standards-apply:
+    desc: Apply all coding standards
+    cmds:
+      - task: coding-standards-composer-apply
+      - task: coding-standards-php-apply
+      - task: coding-standards-twig-apply
+      - task: coding-standards-javascript-apply
+      - task: coding-standards-styles-apply
+      - task: coding-standards-markdown-apply
+      - task: coding-standards-yaml-apply
+
+  coding-standards-composer-check:
+    desc: Check that composer.json is valid and normalized
+    cmds:
+      - '{{ .COMPOSER }} validate --strict'
+      - '{{ .COMPOSER }} normalize --dry-run'
+
+  coding-standards-composer-apply:
+    desc: Normalize composer.json
+    cmds:
+      - '{{ .COMPOSER }} normalize'
+
+  coding-standards-php-check:
+    desc: Check the PHP coding standards
+    cmds:
+      - '{{ .PHP }} vendor/bin/php-cs-fixer fix --dry-run --diff'
+
+  coding-standards-php-apply:
+    desc: Apply the PHP coding standards
+    cmds:
+      - '{{ .PHP }} vendor/bin/php-cs-fixer fix'
+
+  coding-standards-twig-check:
+    desc: Check the Twig coding standards
+    cmds:
+      - '{{ .PHP }} vendor/bin/twig-cs-fixer lint'
+
+  coding-standards-twig-apply:
+    desc: Apply the Twig coding standards
+    cmds:
+      - '{{ .PHP }} vendor/bin/twig-cs-fixer fix'
+
+  coding-standards-javascript-check:
+    desc: Check the JavaScript coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig 'assets/**/*.js' --check"
+
+  coding-standards-javascript-apply:
+    desc: Apply the JavaScript coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig 'assets/**/*.js' --write"
+
+  coding-standards-styles-check:
+    desc: Check the CSS coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig 'assets/**/*.{css,scss}' --check"
+
+  coding-standards-styles-apply:
+    desc: Apply the CSS coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig 'assets/**/*.{css,scss}' --write"
+
+  coding-standards-markdown-check:
+    desc: Check the Markdown coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm markdownlint markdownlint '**/*.md'"
+
+  coding-standards-markdown-apply:
+    desc: Apply the Markdown coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm markdownlint markdownlint '**/*.md' --fix"
+
+  coding-standards-yaml-check:
+    desc: Check the YAML coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig '**/*.{yml,yaml}' --check"
+
+  coding-standards-yaml-apply:
+    desc: Apply the YAML coding standards
+    cmds:
+      - "{{ .DOCKER_COMPOSE }} run --rm prettier --no-editorconfig '**/*.{yml,yaml}' --write"

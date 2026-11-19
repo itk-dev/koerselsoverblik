@@ -1,0 +1,91 @@
+# The extract of the planning system: one sheet, a title in row 1 and the column headers in row 3.
+# See "Import mappings" in the README.
+sheet: 0
+header_row: 3
+row_id: [RouteStopID]
+# The other columns that the copy of a row keeps, so that a later task can read them with no new
+# upload. The personal data is never kept (see "exclude_columns" and ADR 006). Add a new column of
+# the extract here only after a check for personal data.
+keep_columns:
+    - RouteGroupID
+    - TripID
+    - RouteID
+    - TripRequestID
+    - PlaceID
+    - AddressID
+    - LocationID
+    - IsCancelled
+    - CancellationID
+    - RequestTimeEarliest
+    - RequestTimePref
+    - RequestTimeLatest
+    - StopService
+    - ServiceTime
+    - ServiceTime2
+    - PlannedArrival
+    - PlannedActivityStart
+    - PlannedActivityStop
+    - MaxDriveTime
+    - RideGroups
+    - ToNextPathID
+    - DirectPathID
+    - MaxInCar
+    - ReplacedByRouteStopID
+    - IsLocked
+    - RunLocationID
+    - StatusClickLocationID
+    - StatusClickDeviation
+    - DirectPathDuration
+    - DirectPathDistance
+    - prisprminut
+    - passengers
+    - aflysningstidspunkt
+    - aflysningsvarsel
+    - RettidigAflysningsvarsel
+    - rutestartet
+    - blokstart
+    - blokslut
+    - StartTidspunkt
+    - SlutTidspunkt
+    - tidspunkt
+    - Tur
+# The personal data of the extract (ADR 004 and ADR 006). The copy of a row never keeps these
+# columns, and the validate command does not show them as not read.
+exclude_columns: [PersonName, Adresse, Post-nr, By, Labels, Comment]
+fields:
+    route: { column: RouteName, type: string, required: true }
+    person_id: { column: PersonID, type: string, required: true }
+    service_date: { column: Date, type: date, format: Y-m-d, required: true }
+    # The block number identifies the route run.
+    run: { column: blocknumber, type: int, required: true }
+    stop_type:
+        column: StopType
+        type: string
+        required: true
+        map: { IN: pickup, OUT: drop_off }
+    stop_status:
+        column: Status
+        type: string
+        required: true
+        map: { Served: completed, Cancelled: cancelled, Pending: pending }
+    passengers_after:
+        column: passengersaftercancel
+        type: int
+        required: true
+    next_distance_km: { column: ToNextDistance, type: float }
+    next_duration_min: { column: ToNextDuration, type: float }
+    # An Excel time. It can be 24:00 or more after midnight on the same service day. The transport
+    # office measures punctuality against the planned departure, not the planned arrival.
+    planned_time: { column: PlannedDeparture, type: time, required: true }
+    # Empty when the stop has no registration.
+    actual_time: { column: StatusUpdateTime, type: datetime, format: excel }
+    # Optional, so that a new code gives a warning and does not reject the row. No figure needs it
+    # yet.
+    planned_solo:
+        column: kørselstype
+        type: bool
+        true_values: [Solo]
+        false_values: [Samkørsel]
+    # The institution of the trip. Never show it with a person id, or write it to a log or to the
+    # output of a command.
+    location_name: { column: Placename, type: string }

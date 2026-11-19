@@ -1,0 +1,308 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Integration\Repository;
+
+use App\DataFixtures\DrivingData\ExtractWriter;
+use App\DataFixtures\DrivingData\Scenario;
+use App\DataFixtures\DrivingData\ScenarioLoader;
+use App\Entity\ImportBatch;
+use App\Entity\Route;
+use App\Entity\RouteDayTotals;
+use App\Entity\StopRow;
+use App\Entity\SubAgreement;
+use App\Entity\Supplier;
+use App\Import\DrivingDataImporter;
+use App\Import\Extract\StopRowDto;
+use App\Import\ImportRangeDto;
+use App\Import\Mapping\MappingProvider;
+use App\Import\Mapping\StopStatus;
+use App\Import\Mapping\StopType;
+use App\Import\RouteDayTotalsBuilder;
+use App\Report\DateRangeDto;
+use App\Report\TripCountDto;
+use App\Repository\RouteDayTotalsRepository;
+use App\Repository\StopRowRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+
+/**
+ * Checks the trips and the citizens of a date range: a trip is a pickup, also a cancelled pickup
+ * and a pickup with no registration. The trips come from the totals of each route and day, and
+ * the citizens from the stop rows.
+ */
+final class StopRowTripCountTest extends KernelTestCase
+{
+    private const string SCENARIOS = __DIR__.'/../../fixtures/driving_data';
+
+    private EntityManagerInterface $entityManager;
+
+    private int $rowKey = 0;
+
+    private ?ImportBatch $batch = null;
+
+    protected function setUp(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
+        $this->entityManager = $entityManager;
+    }
+
+    /**
+     * The trips and the citizens are in the "expected" section of the scenario. The scenario has
+     * one cancelled pickup (P-006) and one pickup with no registration (P-005).
+     */
+    public function testBaseScenario(): void
+    {
+        /** @var array{trips: int, citizens: int} $expected */
+        $expected = $this->importBase()->expected;
+
+        self::assertEquals(
+            new TripCountDto(trips: $expected['trips'], completed: 5, cancelled: 1, pending: 1, citizens: $expected['citizens']),
+            $this->trips('2026-01-01', '2026-01-31'),
+        );
+    }
+
+    /**
+     * A citizen who was not driven does not count. A pickup with no registration is not
+     * cancelled, so its citizen counts.
+     */
+    public function testCitizenWithOnlyCancelledTripsDoesNotCount(): void
+    {
+        $route = $this->route();
+        $this->stop($route, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($route, '2026-02-03', 'P-A', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($route, '2026-02-03', 'P-B', StopType::Pickup, StopStatus::Pending);
+
+        self::assertEquals(
+            new TripCountDto(trips: 3, completed: 0, cancelled: 2, pending: 1, citizens: 1),
+            $this->trips('2026-02-01', '2026-02-28'),
+        );
+    }
+
+    public function testCitizenWithTwoTripsCountsOnce(): void
+    {
+        $route = $this->route();
+        $this->stop($route, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($route, '2026-02-02', 'P-A', StopType::DropOff, StopStatus::Completed);
+        $this->stop($route, '2026-02-03', 'P-A', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($route, '2026-02-03', 'P-B', StopType::Pickup, StopStatus::Completed);
+
+        self::assertEquals(
+            new TripCountDto(trips: 3, completed: 2, cancelled: 1, pending: 0, citizens: 2),
+            $this->trips('2026-02-01', '2026-02-28'),
+        );
+    }
+
+    public function testOnlyTheDatesOfTheRangeCount(): void
+    {
+        $route = $this->route();
+        $this->stop($route, '2026-01-31', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($route, '2026-02-01', 'P-B', StopType::Pickup, StopStatus::Pending);
+        $this->stop($route, '2026-02-28', 'P-C', StopType::Pickup, StopStatus::Completed);
+        $this->stop($route, '2026-03-01', 'P-D', StopType::Pickup, StopStatus::Completed);
+
+        self::assertEquals(
+            new TripCountDto(trips: 2, completed: 1, cancelled: 0, pending: 1, citizens: 2),
+            $this->trips('2026-02-01', '2026-02-28'),
+        );
+    }
+
+    /**
+     * With a supplier, only the routes of the sub-agreements of that supplier count. An ignored
+     * sub-agreement of the supplier does not count.
+     */
+    public function testOnlyTheRoutesOfTheSupplierCount(): void
+    {
+        $supplier = new Supplier()->setName('Vognmand A');
+        $this->entityManager->persist($supplier);
+        $ofSupplier = $this->route('A', supplier: $supplier);
+        $ignored = $this->route('AI', ignored: true, supplier: $supplier);
+        $other = $this->route();
+        $this->stop($ofSupplier, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($ignored, '2026-02-02', 'P-C', StopType::Pickup, StopStatus::Completed);
+        $this->stop($other, '2026-02-02', 'P-B', StopType::Pickup, StopStatus::Completed);
+        $this->entityManager->flush();
+
+        self::assertEquals(new TripCountDto(1, 1, 0, 0, 1), $this->trips('2026-02-01', '2026-02-28', $supplier->getId()));
+        self::assertEquals(new TripCountDto(2, 2, 0, 0, 2), $this->trips('2026-02-01', '2026-02-28'));
+    }
+
+    /**
+     * The trips and the citizens of an ignored sub-agreement do not count. P-A is driven on both
+     * routes, so the citizen counts once, from the route that is not ignored.
+     */
+    public function testIgnoredSubAgreementDoesNotCount(): void
+    {
+        $route = $this->route();
+        $ignored = $this->route('I', ignored: true);
+        $this->stop($route, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($ignored, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($ignored, '2026-02-03', 'P-B', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($ignored, '2026-02-03', 'P-C', StopType::Pickup, StopStatus::Pending);
+
+        self::assertEquals(
+            new TripCountDto(trips: 1, completed: 1, cancelled: 0, pending: 0, citizens: 1),
+            $this->trips('2026-02-01', '2026-02-28'),
+        );
+    }
+
+    public function testRangeWithNoTripsHasZeroCounts(): void
+    {
+        self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $this->trips('2026-02-01', '2026-02-28'));
+    }
+
+    /**
+     * With no counted route, nothing counts. The query has no list of routes.
+     */
+    public function testNoCountedRouteHasZeroCounts(): void
+    {
+        $this->stop($this->route('I', ignored: true), '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Completed);
+
+        self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $this->trips('2026-02-01', '2026-02-28'));
+        self::assertSame([], $this->tripsByMonth(self::range('2026-02-01', '2026-02-28')));
+    }
+
+    /**
+     * Each month has the counts of the range of that month. A citizen who is driven in two months
+     * counts in each month. A month with no trips has no item.
+     */
+    public function testTripsOfEachMonth(): void
+    {
+        $supplier = new Supplier()->setName('Vognmand A');
+        $this->entityManager->persist($supplier);
+        $ofSupplier = $this->route('A', supplier: $supplier);
+        $other = $this->route();
+        $ignored = $this->route('I', ignored: true, supplier: $supplier);
+        $this->stop($ofSupplier, '2026-01-31', 'P-A', StopType::Pickup, StopStatus::Completed);
+        $this->stop($other, '2026-01-31', 'P-B', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($ofSupplier, '2026-02-01', 'P-A', StopType::Pickup, StopStatus::Pending);
+        $this->stop($ofSupplier, '2026-02-01', 'P-A', StopType::DropOff, StopStatus::Completed);
+        $this->stop($ignored, '2026-02-02', 'P-C', StopType::Pickup, StopStatus::Completed);
+        $this->entityManager->flush();
+        $range = self::range('2026-01-01', '2026-03-31');
+
+        foreach ([null, $supplier->getId()] as $supplierId) {
+            $months = $this->tripsByMonth($range, $supplierId);
+
+            self::assertSame(['2026-01', '2026-02'], array_keys($months));
+            self::assertEquals($this->trips('2026-01-01', '2026-01-31', $supplierId), $months['2026-01']);
+            self::assertEquals($this->trips('2026-02-01', '2026-02-28', $supplierId), $months['2026-02']);
+        }
+        self::assertEquals(new TripCountDto(trips: 2, completed: 1, cancelled: 1, pending: 0, citizens: 1), $this->tripsByMonth($range)['2026-01']);
+        self::assertEquals(new TripCountDto(trips: 1, completed: 0, cancelled: 0, pending: 1, citizens: 1), $this->tripsByMonth($range)['2026-02']);
+    }
+
+    /**
+     * Gives the trips from the totals of each route and day, and the citizens from the stop rows,
+     * as the overview does.
+     */
+    private function trips(string $firstDate, string $lastDate, ?int $supplier = null): TripCountDto
+    {
+        $range = self::range($firstDate, $lastDate);
+
+        return $this->totals()->sum($range, $supplier)->trips($this->stopRows()->countCitizens($range, $supplier));
+    }
+
+    /**
+     * @return array<string, TripCountDto>
+     */
+    private function tripsByMonth(DateRangeDto $range, ?int $supplier = null): array
+    {
+        $citizens = $this->stopRows()->countCitizensByMonth($range, $supplier);
+        $months = [];
+        foreach ($this->totals()->sumByMonth($range, $supplier) as $month => $totals) {
+            $months[$month] = $totals->trips($citizens[$month] ?? 0);
+        }
+
+        return $months;
+    }
+
+    /**
+     * Saves the stops, and builds the totals of the dates of the tests, as an import does.
+     */
+    private function totals(): RouteDayTotalsRepository
+    {
+        $this->entityManager->flush();
+        $builder = self::getContainer()->get(RouteDayTotalsBuilder::class);
+        self::assertInstanceOf(RouteDayTotalsBuilder::class, $builder);
+        $builder->rebuild(ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-03-31'), 90));
+        $totals = $this->entityManager->getRepository(RouteDayTotals::class);
+        self::assertInstanceOf(RouteDayTotalsRepository::class, $totals);
+
+        return $totals;
+    }
+
+    private function stopRows(): StopRowRepository
+    {
+        $this->entityManager->flush();
+        $stopRows = $this->entityManager->getRepository(StopRow::class);
+        self::assertInstanceOf(StopRowRepository::class, $stopRows);
+
+        return $stopRows;
+    }
+
+    private static function range(string $firstDate, string $lastDate): DateRangeDto
+    {
+        return DateRangeDto::create(new \DateTimeImmutable($firstDate), new \DateTimeImmutable($lastDate));
+    }
+
+    private function route(string $reference = 'R', bool $ignored = false, ?Supplier $supplier = null): Route
+    {
+        $subAgreement = new SubAgreement()->setReference($reference)->setIgnored($ignored)->setSupplier($supplier);
+        $this->entityManager->persist($subAgreement);
+        $route = new Route($reference.'-01', $subAgreement);
+        $this->entityManager->persist($route);
+
+        return $route;
+    }
+
+    private function stop(Route $route, string $date, string $person, StopType $type, StopStatus $status): void
+    {
+        $serviceDate = new \DateTimeImmutable($date);
+        $row = new StopRowDto(
+            rowNumber: ++$this->rowKey,
+            rowKey: 'S-'.$this->rowKey,
+            route: $route->getSourceKey(),
+            personId: $person,
+            serviceDate: $serviceDate,
+            run: 1,
+            stopType: $type,
+            stopStatus: $status,
+            passengersAfter: null,
+            nextDistanceKm: null,
+            nextDurationMin: null,
+            plannedTime: $serviceDate->setTime(7, 0),
+            actualTime: null,
+            plannedSolo: null,
+            locationName: null,
+        );
+        $this->entityManager->persist(new StopRow($row, 'default', $route, $this->batch()));
+    }
+
+    private function batch(): ImportBatch
+    {
+        if (null === $this->batch) {
+            $this->batch = new ImportBatch('default', 'test.xlsx', null, new \DateTimeImmutable(), ImportRangeDto::create(new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-03-31'), 90));
+            $this->entityManager->persist($this->batch);
+        }
+
+        return $this->batch;
+    }
+
+    private function importBase(): Scenario
+    {
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml');
+        $path = sys_get_temp_dir().'/'.uniqid('extract_', true).'.xlsx';
+        $provider = self::getContainer()->get(MappingProvider::class);
+        self::assertInstanceOf(MappingProvider::class, $provider);
+        new ExtractWriter()->write($path, $provider->default(), $scenario->rows);
+        $importer = self::getContainer()->get(DrivingDataImporter::class);
+        self::assertInstanceOf(DrivingDataImporter::class, $importer);
+        $importer->import($path, ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable('2026-01-05'), 31), $provider->default(), null, 'base.xlsx');
+        unlink($path);
+
+        return $scenario;
+    }
+}

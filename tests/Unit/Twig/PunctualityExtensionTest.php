@@ -1,0 +1,231 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Unit\Twig;
+
+use App\Twig\PunctualityExtension;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Checks the formats of the punctuality figures, as in the prototype (`js/punctuality.js`).
+ */
+final class PunctualityExtensionTest extends TestCase
+{
+    /**
+     * A whole percent, but a value below the target that rounds to the target shows one decimal,
+     * truncated. Then a value below the target never shows as the target.
+     */
+    #[DataProvider('percents')]
+    public function testPercent(?float $value, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->percent($value));
+    }
+
+    /**
+     * @return iterable<string, array{?float, string}>
+     */
+    public static function percents(): iterable
+    {
+        yield 'no value' => [null, '–'];
+        yield 'all on time' => [100.0, '100 %'];
+        yield 'none on time' => [0.0, '0 %'];
+        yield 'rounds down' => [83.333, '83 %'];
+        yield 'rounds up below the target' => [74.5, '75 %'];
+        yield 'below the target, rounds to the target' => [89.6, '89,6 %'];
+        yield 'below the target, truncated' => [89.96, '89,9 %'];
+        yield 'below the target, rounds below the target' => [89.4, '89 %'];
+        yield 'at the target' => [90.0, '90 %'];
+        yield 'above the target' => [90.4, '90 %'];
+    }
+
+    /**
+     * A share with no target: one decimal below 10 %, so that a small share does not show as 0 %,
+     * and a whole percent from 10 %.
+     */
+    #[DataProvider('shares')]
+    public function testShare(?float $value, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->share($value));
+    }
+
+    /**
+     * @return iterable<string, array{?float, string}>
+     */
+    public static function shares(): iterable
+    {
+        yield 'no value' => [null, '–'];
+        yield 'none' => [0.0, '0 %'];
+        yield 'very small, not 0' => [0.04, '< 0,1 %'];
+        yield 'smallest that rounds to 0,1' => [0.05, '0,1 %'];
+        yield 'small' => [0.44, '0,4 %'];
+        yield 'below 10, whole' => [5.0, '5 %'];
+        yield 'below 10, rounds up' => [9.96, '10 %'];
+        yield 'from 10' => [10.0, '10 %'];
+        yield 'from 10, rounds' => [44.444, '44 %'];
+    }
+
+    /**
+     * A grid value of a percent axis shows exactly, with no more decimals than it needs. A nice
+     * maximum of 5 gives grid lines at 1,25 % and 3,75 %.
+     */
+    #[DataProvider('axisValues')]
+    public function testAxisPercent(float $value, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->axisPercent($value));
+    }
+
+    /**
+     * @return iterable<string, array{float, string}>
+     */
+    public static function axisValues(): iterable
+    {
+        yield 'zero' => [0.0, '0 %'];
+        yield 'whole' => [25.0, '25 %'];
+        yield 'one decimal' => [12.5, '12,5 %'];
+        yield 'two decimals' => [1.25, '1,25 %'];
+        yield 'two decimals, above 1' => [3.75, '3,75 %'];
+        yield 'thousands' => [1000.0, '1.000 %'];
+    }
+
+    /**
+     * The change from the previous month, in percentage points. The minus sign is U+2212.
+     */
+    #[DataProvider('changes')]
+    public function testPoints(?float $change, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->points($change));
+    }
+
+    /**
+     * @return iterable<string, array{?float, string}>
+     */
+    public static function changes(): iterable
+    {
+        yield 'no value' => [null, '–'];
+        yield 'no change' => [0.0, '±0'];
+        yield 'a very small rise' => [0.04, '±0'];
+        yield 'a very small fall' => [-0.04, '±0'];
+        yield 'the smallest change' => [0.05, '+0,1'];
+        yield 'a small rise' => [2.0, '+2,0'];
+        yield 'the smallest large change' => [10.0, '+10'];
+        yield 'a small fall' => [-1.44, '−1,4'];
+        yield 'a large rise' => [12.3, '+12'];
+        yield 'a large fall' => [-15.6, '−16'];
+    }
+
+    /**
+     * The distance to the target, from the value that the page shows. No value and a value at or
+     * above the target have no distance.
+     */
+    #[DataProvider('gaps')]
+    public function testGap(?float $value, ?string $expected): void
+    {
+        self::assertSame($expected, self::extension()->gap($value));
+    }
+
+    /**
+     * @return iterable<string, array{?float, ?string}>
+     */
+    public static function gaps(): iterable
+    {
+        yield 'no value' => [null, null];
+        yield 'at the target' => [90.0, null];
+        yield 'above the target' => [95.0, null];
+        yield 'a whole distance' => [83.333, '7'];
+        yield 'a decimal distance' => [89.6, '0,4'];
+        yield 'from the truncated value' => [89.96, '0,1'];
+    }
+
+    #[DataProvider('tones')]
+    public function testTone(?float $value, ?string $expected): void
+    {
+        self::assertSame($expected, self::extension()->tone($value));
+    }
+
+    /**
+     * @return iterable<string, array{?float, ?string}>
+     */
+    public static function tones(): iterable
+    {
+        yield 'at the target' => [90.0, 'ok'];
+        yield 'below the target' => [75.0, 'warn'];
+        yield 'below the warning limit' => [50.0, 'danger'];
+        yield 'no value' => [null, null];
+    }
+
+    /**
+     * The tone tells if a change is good or bad. A rise in punctuality is good, and a rise in late
+     * runs is bad.
+     */
+    #[DataProvider('trendTones')]
+    public function testTrendTone(?float $change, bool $higherIsBetter, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->trendTone($change, $higherIsBetter));
+    }
+
+    /**
+     * @return iterable<string, array{?float, bool, string}>
+     */
+    public static function trendTones(): iterable
+    {
+        yield 'no value' => [null, true, 'none'];
+        yield 'no change' => [0.04, true, 'neutral'];
+        yield 'a small fall, no change' => [-0.04, false, 'neutral'];
+        yield 'a rise in punctuality' => [2.0, true, 'up'];
+        yield 'a fall in punctuality' => [-0.05, true, 'down'];
+        yield 'a rise in late runs' => [3.0, false, 'down'];
+        yield 'a fall in late runs' => [-1.0, false, 'up'];
+    }
+
+    /**
+     * The arrow shows the direction of the change, also when the change is bad.
+     */
+    #[DataProvider('trendIcons')]
+    public function testTrendIcon(?float $change, ?string $expected): void
+    {
+        self::assertSame($expected, self::extension()->trendIcon($change));
+    }
+
+    /**
+     * @return iterable<string, array{?float, ?string}>
+     */
+    public static function trendIcons(): iterable
+    {
+        yield 'no value' => [null, null];
+        yield 'no change' => [0.04, 'lucide:minus'];
+        yield 'a rise' => [0.05, 'lucide:arrow-up-right'];
+        yield 'a fall' => [-0.05, 'lucide:arrow-down-right'];
+    }
+
+    #[DataProvider('signedNumbers')]
+    public function testSignedNumber(?int $change, string $expected): void
+    {
+        self::assertSame($expected, self::extension()->signedNumber($change));
+    }
+
+    /**
+     * @return iterable<string, array{?int, string}>
+     */
+    public static function signedNumbers(): iterable
+    {
+        yield 'no value' => [null, '–'];
+        yield 'no change' => [0, '±0'];
+        yield 'a rise' => [3, '+3'];
+        yield 'a fall' => [-1200, '−1.200'];
+    }
+
+    public function testTargetComesFromTheSetting(): void
+    {
+        $extension = new PunctualityExtension(80);
+
+        self::assertSame('79,6 %', $extension->percent(79.6));
+        self::assertSame('ok', $extension->tone(80.0));
+    }
+
+    private static function extension(): PunctualityExtension
+    {
+        return new PunctualityExtension(90);
+    }
+}
