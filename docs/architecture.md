@@ -1201,7 +1201,7 @@ flowchart TD
   IP address and the reason. A login that fails in the identity provider does not come back to
   the application, so it is not in this log. `OidcLogin` adds a record with the email and the
   roles at each login. Both go to the `openid_connect_audit` channel, which Monolog writes to
-  stderr. The application writes no log files.
+  stderr in prod, and to `var/log/dev.log` in dev.
 - Local development uses the `idp` mock service. Functional tests sign in with `loginUser()`.
 
 **Authorization:**

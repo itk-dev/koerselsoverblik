@@ -499,8 +499,9 @@ A user is created in the application at the first login. The application has no 
 
 ### Authentication log
 
-Each login is written to stderr, in the `openid_connect_audit` channel. Read it in the log of the
-`phpfpm` container, for example with `docker compose logs phpfpm`:
+Each login is written to the `openid_connect_audit` channel. On a server, it goes to stderr. Read
+it in the log of the `phpfpm` container, for example with `docker compose logs phpfpm`. In local
+development, it goes to `var/log/dev.log`:
 
 - A successful login, with the email, the roles and the time. For example:
   `user foobar@example.com logged in with roles [ROLE_ADMIN] at 2026-10-28T12:00:00+01:00`.
@@ -513,8 +514,9 @@ decision in [ADR 004](docs/adr/004-personal-data-in-driving-data.md).
 
 ### Driving data log
 
-Each [clear of driving data](#clear-driving-data) is written to stderr, in the
-`driving_data_audit` channel, with the user, the date range and the deleted counts.
+Each [clear of driving data](#clear-driving-data) is written to the `driving_data_audit` channel,
+with the user, the date range and the deleted counts. Like the authentication log, it goes to
+stderr on a server and to `var/log/dev.log` in local development.
 For example:
 
 ```text

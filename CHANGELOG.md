@@ -10,8 +10,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The login accepts the app role values of Entra ID. The role map (`OIDC_ROLE_MAP`) changes
   `admin` to `ROLE_ADMIN` and `user` to `ROLE_VIEW_OVERVIEW`. The login logs the ignored role
   values as a warning.
-- All logs go to stderr in the dev and prod environments, also the authentication log and the
-  driving data log. The application writes no log files.
+- All logs go to stderr in the prod environment, also the authentication log and the driving data
+  log. In prod, the application writes no log files.
 
 ## [0.1.0] - 2026-11-18
 

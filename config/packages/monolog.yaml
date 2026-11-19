@@ -4,13 +4,14 @@ monolog:
         - openid_connect_audit # The authentication log. See "Authentication log" in README.md
         - driving_data_audit # The log of the clears of driving data. See "Driving data log" in README.md
 
-# All logs go to stderr. The application writes no log files.
+# In prod, all logs go to stderr, and the application writes no log files. In dev and test, the
+# logs go to files in var/log.
 when@dev:
     monolog:
         handlers:
             main:
                 type: stream
-                path: php://stderr
+                path: '%kernel.logs_dir%/%kernel.environment%.log'
                 level: debug
                 channels: ['!event']
             console:
