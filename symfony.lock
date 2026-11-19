@@ -218,6 +218,21 @@
             "config/routes/security.yaml"
         ]
     },
+    "symfony/stimulus-bundle": {
+        "version": "3.7",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "3.3",
+            "ref": "7ce779ee74ea8d8aae6afed73e8438af5a392b30"
+        },
+        "files": [
+            "assets/controllers.json",
+            "assets/controllers/csrf_protection_controller.js",
+            "assets/controllers/hello_controller.js",
+            "assets/stimulus_bootstrap.js"
+        ]
+    },
     "symfony/translation": {
         "version": "8.1",
         "recipe": {
@@ -252,6 +267,9 @@
             "version": "7.0",
             "ref": "0df5844274d871b37fc3816c57a768ffc60a43a5"
         }
+    },
+    "symfony/ux-dropzone": {
+        "version": "v3.7.0"
     },
     "symfony/ux-icons": {
         "version": "3.6",

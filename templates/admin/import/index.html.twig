@@ -4,22 +4,30 @@
 
 {% block body %}
     <h1>{{ 'upload.title'|trans }}</h1>
+    {{ include('admin/import/_tabs.html.twig', {current: 'single'}) }}
 
     <p>{{ 'upload.intro'|trans }}</p>
-    <div class="itkaarhus-callout itkaarhus-callout--warn">
+
+    {# The same order as the bulk upload: the drop area, then the info box. #}
+    {{ form_start(form, {attr: {class: 'admin-form', 'data-test': 'upload-form'}}) }}
+        {{ form_errors(form) }}
+        {{ form_row(form.file) }}
+        <div class="admin-form__row">
+            {{ form_row(form.firstDate) }}
+            {{ form_row(form.lastDate) }}
+        </div>
+        {{ form_rest(form) }}
+        <div class="admin-form__buttons">
+            <button class="itkaarhus-btn itkaarhus-btn--primary" type="submit">{{ 'upload.submit'|trans }}</button>
+        </div>
+    {{ form_end(form) }}
+    <div class="itkaarhus-callout itkaarhus-callout--info">
         <ul>
             <li>{{ 'upload.caution.range'|trans }}</li>
             <li>{{ 'upload.caution.whole_days'|trans }}</li>
             <li>{{ 'upload.caution.no_undo'|trans }}</li>
         </ul>
     </div>
-
-    {{ form_start(form, {attr: {class: 'admin-form', 'data-test': 'upload-form'}}) }}
-        {{ form_widget(form) }}
-        <div class="admin-form__buttons">
-            <button class="itkaarhus-btn itkaarhus-btn--primary" type="submit">{{ 'upload.submit'|trans }}</button>
-        </div>
-    {{ form_end(form) }}
 
     {{ include('admin/import/_dates.html.twig') }}
 {% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'upload.bulk.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'upload.bulk.title'|trans }}</h1>
+    {{ include('admin/import/_tabs.html.twig', {current: 'bulk'}) }}
+
+    <p>{{ 'upload.bulk.intro'|trans }}</p>
+
+    <div class="bulk-upload"
+         data-controller="bulk-upload"
+         data-action="dropzone:change->bulk-upload#add"
+         data-bulk-upload-check-url-value="{{ path('admin_import_bulk_check') }}"
+         data-bulk-upload-csrf-token-value="{{ csrf_token('bulk-import') }}"
+         data-bulk-upload-busy-text-value="{{ 'upload.bulk.busy'|trans }}">
+        {{ form_start(form, {attr: {class: 'admin-form'}}) }}
+            {{ form_row(form.files) }}
+        {{ form_end(form) }}
+
+        <div class="itkaarhus-callout itkaarhus-callout--info">
+            <ul>
+                <li data-test="bulk-max-days">{{ 'upload.bulk.caution.max_days'|trans({limit: maxDays}) }}</li>
+                <li>{{ 'upload.bulk.caution.range'|trans }}</li>
+                <li>{{ 'upload.bulk.caution.overlap'|trans }}</li>
+                <li>{{ 'upload.caution.whole_days'|trans }}</li>
+                <li>{{ 'upload.bulk.caution.no_undo'|trans }}</li>
+            </ul>
+        </div>
+
+        {# The bar stays at the top of the window, so that the status is visible in a long list. #}
+        <div class="bulk-upload__bar">
+            {{ include('admin/import/_bulk_counts.html.twig', {states: ['waiting', 'checked', 'imported', 'skipped', 'failed'], live: true}) }}
+            <button class="itkaarhus-btn itkaarhus-btn--primary" type="button" disabled
+                    data-bulk-upload-target="importButton" data-action="bulk-upload#confirm">
+                {{ 'upload.bulk.import'|trans }}
+            </button>
+        </div>
+
+        <ol class="bulk-upload__list" data-bulk-upload-target="list" data-test="bulk-list"></ol>
+
+        {#
+         # The import button opens this dialog. The page sends the files, so the import stops if the
+         # user leaves the page. The import starts when the dialog closes with the value "import".
+         #}
+        <dialog class="about bulk-upload__done" aria-labelledby="bulk-confirm-title" data-bulk-upload-target="confirmDialog" data-action="close->bulk-upload#confirmed" data-test="bulk-confirm">
+            <form method="dialog">
+                <header class="about__head">
+                    <h2 id="bulk-confirm-title">{{ 'upload.bulk.confirm.title'|trans }}</h2>
+                </header>
+                <div class="about__body">
+                    {{ include('admin/import/_bulk_counts.html.twig', {states: ['checked']}) }}
+                    <p>{{ 'upload.bulk.confirm.text'|trans }}</p>
+                    <div class="admin-form__buttons">
+                        <button class="itkaarhus-btn itkaarhus-btn--primary" value="import" autofocus>{{ 'upload.bulk.confirm.import'|trans }}</button>
+                        <button class="itkaarhus-btn" value="cancel">{{ 'upload.cancel'|trans }}</button>
+                    </div>
+                </div>
+            </form>
+        </dialog>
+
+        {# The controller opens the dialog when the last import is done. "OK" closes it with no script. #}
+        <dialog class="about bulk-upload__done" aria-labelledby="bulk-done-title" data-bulk-upload-target="doneDialog" data-action="close->bulk-upload#reset" data-test="bulk-done">
+            <form method="dialog">
+                <header class="about__head">
+                    <h2 id="bulk-done-title">{{ 'upload.bulk.done'|trans }}</h2>
+                </header>
+                <div class="about__body">
+                    {{ include('admin/import/_bulk_counts.html.twig', {states: ['imported', 'skipped', 'failed']}) }}
+                    <div class="admin-form__buttons">
+                        <button class="itkaarhus-btn itkaarhus-btn--primary" value="ok" autofocus>{{ 'upload.bulk.ok'|trans }}</button>
+                    </div>
+                </div>
+            </form>
+        </dialog>
+
+        {# The controller copies these rows. The server sends the other rows. #}
+        <template data-bulk-upload-target="waitingRow">
+            <li class="bulk-upload__file" data-test="bulk-file" data-state="waiting">
+                <span class="bulk-upload__name" data-test="bulk-name"></span>
+                {{ include('admin/import/_bulk_state.html.twig', {state: 'waiting'}) }}
+            </li>
+        </template>
+        <template data-bulk-upload-target="failedRow">
+            <li class="bulk-upload__file" data-test="bulk-file" data-state="failed">
+                <span class="bulk-upload__name" data-test="bulk-name"></span>
+                {{ include('admin/import/_bulk_state.html.twig', {state: 'failed'}) }}
+                <span class="bulk-upload__detail bulk-upload__message" data-test="bulk-error">{{ 'upload.bulk.request_failed'|trans }}</span>
+            </li>
+        </template>
+    </div>
+{% endblock %}
