@@ -90,8 +90,7 @@ final class BulkImportController extends AbstractController
 
         $mapping = $this->mappings->default();
         try {
-            $range = $this->importer->rangeOf($file->getPathname(), $mapping, $this->maxDays);
-            $preview = $this->importer->preview($file->getPathname(), $range, $mapping, 0);
+            [$range, $preview] = $this->importer->rangeAndPreview($file->getPathname(), $mapping, $this->maxDays);
         } catch (NoStopRowsException) {
             return $this->skippedRow($name, 'upload.bulk.skipped.no_stop_rows');
         } catch (InvalidExtractException|AllRowsRejectedException|InvalidImportRangeException $exception) {
