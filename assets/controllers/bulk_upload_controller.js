@@ -6,7 +6,14 @@ import { Controller } from "@hotwired/stimulus";
  * renders the row of each file, and the controller puts it in the list.
  */
 export default class extends Controller {
-  static targets = ["list", "count", "importButton", "waitingRow", "failedRow"];
+  static targets = [
+    "list",
+    "count",
+    "importButton",
+    "waitingRow",
+    "failedRow",
+    "doneDialog",
+  ];
 
   static values = { checkUrl: String, csrfToken: String };
 
@@ -56,6 +63,9 @@ export default class extends Controller {
       row.dataset.state = "waiting";
       this.enqueue(() => this.send(row, row.dataset.importUrl, null));
     }
+    // The last task of the queue tells the user that the import is done. update() has set the
+    // counts of the dialog after the last file.
+    this.enqueue(() => this.doneDialogTarget.showModal());
     this.update();
   }
 

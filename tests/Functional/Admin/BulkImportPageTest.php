@@ -102,6 +102,22 @@ final class BulkImportPageTest extends WebTestCase
     }
 
     /**
+     * The controller opens the dialog when the import is done. It shows the counts of the files.
+     */
+    public function testThePageHasADialogForTheEndOfTheImport(): void
+    {
+        $this->loginAs($this->client, 'admin');
+
+        $dialog = $this->openPage()->filter('dialog[data-test="bulk-done"]');
+
+        self::assertSame('Importen er færdig', $dialog->filter('h2')->text());
+        self::assertSame(['imported', 'skipped', 'failed'], $dialog->filter('[data-bulk-upload-target="count"]')->each(static fn (Crawler $count): ?string => $count->attr('data-state')));
+        self::assertSame(['Importeret', 'Sprunget over', 'Fejlet'], $dialog->filter('dt')->each(static fn (Crawler $label): string => $label->text()));
+        self::assertSame('dialog', $dialog->filter('form')->attr('method'));
+        self::assertSame('OK', $dialog->filter('button')->text());
+    }
+
+    /**
      * The range comes from the stop rows of the file. The check changes no data.
      */
     public function testCheckReadsTheRangeAndChangesNoData(): void

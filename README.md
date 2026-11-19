@@ -268,7 +268,8 @@ because the import would only delete data. The command does not delete the file.
 3. Wait until each file has the state "Kontrolleret" or "Fejlet". Each row shows the date range
    and how many rows will be inserted, deleted and rejected, or the reason of the failure.
 4. Select **Importér de kontrollerede filer**.
-5. Each row shows "Importeret" with a link to the result, or "Fejlet" with the reason.
+5. Each row shows "Importeret" with a link to the result, or "Fejlet" with the reason. When all
+   files are done, a dialog shows how many files were imported, skipped and failed. Select **OK**.
 
 The browser sends each file in its own request, one file at a time. Thus the size limit applies
 to each file, not to all the files together.
