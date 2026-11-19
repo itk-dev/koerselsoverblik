@@ -120,6 +120,18 @@ final class LocationDayTotalsBuilderTest extends KernelTestCase
     }
 
     /**
+     * The entity manager forgets the written rows, so that they use no memory. The test counts the
+     * rows, because a failure message with the entities takes more than the Infection timeout.
+     */
+    public function testWrittenRowsAreForgotten(): void
+    {
+        $this->stop($this->route('A-01'), '2026-01-05', StopType::DropOff, StopStatus::Completed, 0, 'Skole 1');
+
+        self::assertSame(1, $this->builder()->rebuild(self::range('2026-01-05', '2026-01-05')));
+        self::assertCount(0, $this->entityManager->getUnitOfWork()->getIdentityMap()[LocationDayTotals::class] ?? []);
+    }
+
+    /**
      * @return array<string, PunctualityCountDto> keyed by the route, the date and the location
      */
     private function rows(): array

@@ -114,6 +114,19 @@ final class RouteDayTotalsBuilderTest extends KernelTestCase
     }
 
     /**
+     * The entity manager forgets the written rows, so that they use no memory. The test counts the
+     * rows, because a failure message with the entities takes more than the Infection timeout.
+     */
+    public function testWrittenRowsAreForgotten(): void
+    {
+        $this->importBase();
+        $this->entityManager->clear();
+
+        self::assertSame(3, $this->builder()->rebuild(self::range('2026-01-05', '2026-01-05')));
+        self::assertCount(0, $this->entityManager->getUnitOfWork()->getIdentityMap()[RouteDayTotals::class] ?? []);
+    }
+
+    /**
      * @return list<RouteDayTotals>
      */
     private function rows(): array
