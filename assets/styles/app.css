@@ -434,12 +434,27 @@ body {
 .bulk-upload .admin-form {
   margin-bottom: var(--itkaarhus-space-5);
 }
+/* The counters and the import button stay below the topbar while the user scrolls the list. */
+.bulk-upload__bar {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itkaarhus-space-3);
+  margin: var(--itkaarhus-space-5) 0 var(--itkaarhus-space-3);
+  padding: var(--itkaarhus-space-3) 0;
+  border-bottom: var(--hairline);
+  background: var(--canvas);
+}
 /* The number of files in each state, as pills on one line. */
 .bulk-upload__counts {
   display: flex;
   flex-wrap: wrap;
   gap: var(--itkaarhus-space-2);
-  margin: var(--itkaarhus-space-5) 0;
+  margin: 0;
   padding: 0;
   list-style: none;
   font-variant-numeric: tabular-nums;

@@ -27,23 +27,23 @@
             </ul>
         </div>
 
-        <ul class="bulk-upload__counts" aria-live="polite">
-            {% for state, tone in {waiting: 'neutral', checked: 'info', imported: 'success', skipped: 'warning', failed: 'danger'} %}
-                <li class="itkaarhus-tag itkaarhus-tag--{{ tone }}">
-                    {{ ('upload.bulk.state.' ~ state)|trans }}
-                    <span data-bulk-upload-target="count" data-state="{{ state }}" data-test="bulk-count-{{ state }}">0</span>
-                </li>
-            {% endfor %}
-        </ul>
-
-        <ol class="bulk-upload__list" data-bulk-upload-target="list" data-test="bulk-list"></ol>
-
-        <div class="admin-form__buttons">
+        {# The bar stays at the top of the window, so that the status is visible in a long list. #}
+        <div class="bulk-upload__bar">
+            <ul class="bulk-upload__counts" aria-live="polite">
+                {% for state, tone in {waiting: 'neutral', checked: 'info', imported: 'success', skipped: 'warning', failed: 'danger'} %}
+                    <li class="itkaarhus-tag itkaarhus-tag--{{ tone }}">
+                        {{ ('upload.bulk.state.' ~ state)|trans }}
+                        <span data-bulk-upload-target="count" data-state="{{ state }}" data-test="bulk-count-{{ state }}">0</span>
+                    </li>
+                {% endfor %}
+            </ul>
             <button class="itkaarhus-btn itkaarhus-btn--primary" type="button" disabled
                     data-bulk-upload-target="importButton" data-action="bulk-upload#import">
                 {{ 'upload.bulk.import'|trans }}
             </button>
         </div>
+
+        <ol class="bulk-upload__list" data-bulk-upload-target="list" data-test="bulk-list"></ol>
 
         {# The controller copies these rows. The server sends the other rows. #}
         <template data-bulk-upload-target="waitingRow">
