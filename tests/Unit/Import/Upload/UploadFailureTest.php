@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Import\Upload;
 
+use App\Import\AllRowsRejectedException;
 use App\Import\Extract\ExtractProblem;
 use App\Import\Extract\InvalidExtractException;
 use App\Import\Extract\MissingColumnsException;
@@ -20,7 +21,7 @@ final class UploadFailureTest extends TestCase
      * @param array<string, mixed> $parameters
      */
     #[DataProvider('failureProvider')]
-    public function testGivesTheMessageOfTheFailure(InvalidExtractException|NoStopRowsException|RowIdConflictException|InvalidImportRangeException $exception, string $key, array $parameters): void
+    public function testGivesTheMessageOfTheFailure(InvalidExtractException|NoStopRowsException|AllRowsRejectedException|RowIdConflictException|InvalidImportRangeException $exception, string $key, array $parameters): void
     {
         $message = UploadFailure::message($exception, 7);
 
@@ -29,7 +30,7 @@ final class UploadFailureTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{InvalidExtractException|NoStopRowsException|RowIdConflictException|InvalidImportRangeException, string, array<string, mixed>}>
+     * @return iterable<string, array{InvalidExtractException|NoStopRowsException|AllRowsRejectedException|RowIdConflictException|InvalidImportRangeException, string, array<string, mixed>}>
      */
     public static function failureProvider(): iterable
     {
@@ -37,6 +38,7 @@ final class UploadFailureTest extends TestCase
         yield 'a problem with a limit' => [new InvalidExtractException(ExtractProblem::TooLarge, 10), 'upload.problem.too_large', ['limit' => 10]];
         yield 'a problem with no limit' => [new InvalidExtractException(ExtractProblem::NotXlsx), 'upload.problem.not_xlsx', ['limit' => 0]];
         yield 'no stop rows' => [new NoStopRowsException(), 'upload.no_stop_rows', []];
+        yield 'all rows rejected' => [new AllRowsRejectedException(), 'upload.bulk.all_rows_rejected', []];
         yield 'row id conflict' => [new RowIdConflictException(), 'upload.row_id_conflict', []];
         yield 'too many days' => [new InvalidImportRangeException('The range has more than 7 days.'), 'upload.bulk.too_many_days', ['limit' => 7]];
     }

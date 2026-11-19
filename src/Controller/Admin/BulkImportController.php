@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\User;
 use App\Form\BulkImportType;
 use App\Form\ImportType;
+use App\Import\AllRowsRejectedException;
 use App\Import\DrivingDataImporter;
 use App\Import\Extract\InvalidExtractException;
 use App\Import\InvalidImportRangeException;
@@ -78,6 +79,10 @@ final class BulkImportController extends AbstractController
         $file = $file instanceof UploadedFile ? $file : null;
         $name = $file?->getClientOriginalName() ?? '';
 
+        // A file with no data is skipped, not failed.
+        if (0 === $file?->getSize()) {
+            return $this->skippedRow($name, 'upload.bulk.skipped.empty');
+        }
         $violations = $this->validator->validate($file, [new NotNull(message: 'upload.file_required'), ImportType::fileConstraint($this->maxFileSize)]);
         if (null === $file || \count($violations) > 0) {
             return $this->failedRow($name, (string) $violations[0]?->getMessage());
@@ -87,7 +92,9 @@ final class BulkImportController extends AbstractController
         try {
             $range = $this->importer->rangeOf($file->getPathname(), $mapping, $this->maxDays);
             $preview = $this->importer->preview($file->getPathname(), $range, $mapping, 0);
-        } catch (InvalidExtractException|NoStopRowsException|InvalidImportRangeException $exception) {
+        } catch (NoStopRowsException) {
+            return $this->skippedRow($name, 'upload.bulk.skipped.no_stop_rows');
+        } catch (InvalidExtractException|AllRowsRejectedException|InvalidImportRangeException $exception) {
             return $this->failed($name, $exception);
         }
         $upload = $this->uploads->save($file, $range, $mapping->name);
@@ -147,7 +154,7 @@ final class BulkImportController extends AbstractController
     /**
      * The log line has no value from the extract.
      */
-    private function failed(string $name, InvalidExtractException|RowIdConflictException|NoStopRowsException|InvalidImportRangeException $exception): Response
+    private function failed(string $name, InvalidExtractException|RowIdConflictException|NoStopRowsException|AllRowsRejectedException|InvalidImportRangeException $exception): Response
     {
         $this->logger->warning('A bulk upload of driving data failed: {message}', [
             'message' => $exception->getMessage(),
@@ -155,6 +162,11 @@ final class BulkImportController extends AbstractController
         ]);
 
         return $this->failedRow($name, UploadFailure::message($exception, $this->maxDays));
+    }
+
+    private function skippedRow(string $name, string $reason): Response
+    {
+        return $this->render('admin/import/_bulk_row.html.twig', ['name' => $name, 'state' => 'skipped', 'error' => new TranslatableMessage($reason)]);
     }
 
     private function failedRow(string $name, string|TranslatableMessage $error): Response

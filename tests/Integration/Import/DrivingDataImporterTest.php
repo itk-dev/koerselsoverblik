@@ -15,6 +15,7 @@ use App\Entity\RouteRun;
 use App\Entity\SourceRow;
 use App\Entity\StopRow;
 use App\Entity\User;
+use App\Import\AllRowsRejectedException;
 use App\Import\DrivingDataImporter;
 use App\Import\Extract\MissingColumnsException;
 use App\Import\Extract\StopRowParser;
@@ -102,11 +103,27 @@ final class DrivingDataImporterTest extends KernelTestCase
         $this->importer()->rangeOf($this->path, $this->mapping(), 3);
     }
 
-    public function testRangeOfAFileWithNoStopRowsIsNotValid(): void
+    public function testRangeOfAFileWithNoDataRowsIsNotValid(): void
     {
         new ExtractWriter()->write($this->path, $this->mapping(), []);
 
         $this->expectException(NoStopRowsException::class);
+
+        $this->importer()->rangeOf($this->path, $this->mapping(), 7);
+    }
+
+    /**
+     * A file with data rows that are all rejected is broken, not empty.
+     */
+    public function testRangeOfAFileWithOnlyRejectedRowsIsNotValid(): void
+    {
+        $rows = array_map(
+            static fn (ExtractRow $row): ExtractRow => new ExtractRow($row->values, $row->rowId, ['service_date' => 'not a date'] + $row->raw, $row->kept),
+            new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows,
+        );
+        new ExtractWriter()->write($this->path, $this->mapping(), $rows);
+
+        $this->expectException(AllRowsRejectedException::class);
 
         $this->importer()->rangeOf($this->path, $this->mapping(), 7);
     }

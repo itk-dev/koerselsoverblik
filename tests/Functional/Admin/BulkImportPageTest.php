@@ -137,15 +137,52 @@ final class BulkImportPageTest extends WebTestCase
         self::assertSame([], glob($this->uploadDirectory().'/*.xlsx') ?: []);
     }
 
-    public function testCheckOfAFileWithNoStopRowsFails(): void
+    /**
+     * A file with no data is skipped, not failed. It is not kept for the import.
+     */
+    public function testCheckSkipsAFileWithNoStopRows(): void
     {
         $this->loginAs($this->client, 'admin');
         new ExtractWriter()->write($this->path, $this->mapping(), []);
 
-        $row = $this->check('empty.xlsx');
+        $row = $this->check('no-rows.xlsx');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('skipped', $row->attr('data-state'));
+        self::assertSame('Filen har ingen stoprækker.', $row->filter('[data-test="bulk-error"]')->text());
+        self::assertNull($row->attr('data-import-url'));
+        self::assertSame([], glob($this->uploadDirectory().'/*.xlsx') ?: []);
+    }
+
+    /**
+     * A file with data rows that are all rejected is broken. It fails, so that the user sees it.
+     */
+    public function testCheckOfAFileWithOnlyRejectedRowsFails(): void
+    {
+        $this->loginAs($this->client, 'admin');
+        $rows = array_map(
+            static fn (ExtractRow $row): ExtractRow => new ExtractRow($row->values, $row->rowId, ['service_date' => 'not a date'] + $row->raw, $row->kept),
+            new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows,
+        );
+        new ExtractWriter()->write($this->path, $this->mapping(), $rows);
+
+        $row = $this->check('broken.xlsx');
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
-        self::assertSame('Filen har ingen stoprækker i perioden. Den kan ikke importeres.', $row->filter('[data-test="bulk-error"]')->text());
+        self::assertSame('failed', $row->attr('data-state'));
+        self::assertSame('Filen har rækker, men alle rækker er afvist. Kontrollér udtrækket, eller upload det på siden for én fil for at se årsagerne.', $row->filter('[data-test="bulk-error"]')->text());
+    }
+
+    public function testCheckSkipsAnEmptyFile(): void
+    {
+        $this->loginAs($this->client, 'admin');
+        file_put_contents($this->path, '');
+
+        $row = $this->check('empty.xlsx');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('skipped', $row->attr('data-state'));
+        self::assertSame('Filen er tom.', $row->filter('[data-test="bulk-error"]')->text());
     }
 
     public function testCheckOfAFileThatIsNotXlsxFails(): void
@@ -306,7 +343,7 @@ final class BulkImportPageTest extends WebTestCase
 
     private function uploadDirectory(): string
     {
-        return self::getContainer()->getParameter('kernel.project_dir').'/var/uploads/driving_data';
+        return self::getContainer()->getParameter('kernel.project_dir').'/var/uploads/test/driving_data';
     }
 
     private function stored(string $table): int

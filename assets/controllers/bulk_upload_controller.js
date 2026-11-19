@@ -89,7 +89,10 @@ export default class extends Controller {
     }
 
     const name = row.querySelector('[data-test="bulk-name"]').textContent;
-    row.replaceWith(next ?? this.copyRow(this.failedRowTarget, name));
+    next ??= this.copyRow(this.failedRowTarget, name);
+    // The server does not know the name of an expired upload. Keep the name of the row.
+    next.querySelector('[data-test="bulk-name"]').textContent = name;
+    row.replaceWith(next);
   }
 
   copyRow(template, name) {

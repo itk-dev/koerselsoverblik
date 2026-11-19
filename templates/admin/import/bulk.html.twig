@@ -28,7 +28,7 @@
         </div>
 
         <ul class="bulk-upload__counts" aria-live="polite">
-            {% for state, tone in {waiting: 'neutral', checked: 'info', imported: 'success', failed: 'danger'} %}
+            {% for state, tone in {waiting: 'neutral', checked: 'info', imported: 'success', skipped: 'warning', failed: 'danger'} %}
                 <li class="itkaarhus-tag itkaarhus-tag--{{ tone }}">
                     {{ ('upload.bulk.state.' ~ state)|trans }}
                     <span data-bulk-upload-target="count" data-state="{{ state }}" data-test="bulk-count-{{ state }}">0</span>
@@ -49,14 +49,14 @@
         <template data-bulk-upload-target="waitingRow">
             <li class="bulk-upload__file" data-test="bulk-file" data-state="waiting">
                 <span class="bulk-upload__name" data-test="bulk-name"></span>
-                <span class="bulk-upload__state">{{ 'upload.bulk.state.waiting'|trans }}</span>
+                {{ include('admin/import/_bulk_state.html.twig', {state: 'waiting'}) }}
             </li>
         </template>
         <template data-bulk-upload-target="failedRow">
             <li class="bulk-upload__file" data-test="bulk-file" data-state="failed">
                 <span class="bulk-upload__name" data-test="bulk-name"></span>
-                <span class="bulk-upload__state">{{ 'upload.bulk.state.failed'|trans }}</span>
-                <span class="bulk-upload__error" data-test="bulk-error">{{ 'upload.bulk.request_failed'|trans }}</span>
+                {{ include('admin/import/_bulk_state.html.twig', {state: 'failed'}) }}
+                <span class="bulk-upload__detail bulk-upload__message" data-test="bulk-error">{{ 'upload.bulk.request_failed'|trans }}</span>
             </li>
         </template>
     </div>

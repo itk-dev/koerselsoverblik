@@ -310,10 +310,25 @@ upload:
     result: Se importen
     request_failed: Forbindelsen til serveren fejlede. Prøv filen igen.
     too_many_days: "Filen har rækker på flere end {limit} dage. Del udtrækket op i perioder på højst {limit} dage."
+    all_rows_rejected: Filen har rækker, men alle rækker er afvist. Kontrollér udtrækket, eller upload det på siden for én fil for at se årsagerne.
+    rows: Rækker
+    counts:
+      checked:
+        insert: indsættes
+        delete: slettes
+        reject: afvises
+      imported:
+        insert: indsat
+        delete: slettet
+        reject: afvist
+    skipped:
+      empty: Filen er tom.
+      no_stop_rows: Filen har ingen stoprækker.
     state:
       waiting: Venter
       checked: Kontrolleret
       imported: Importeret
+      skipped: Sprunget over
       failed: Fejlet
   problem:
     not_file: Filen findes ikke.

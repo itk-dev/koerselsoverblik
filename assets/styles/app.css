@@ -444,28 +444,45 @@ body {
   list-style: none;
   font-variant-numeric: tabular-nums;
 }
+/* The rows share the columns of the list (subgrid): name, state, range and counts. */
 .bulk-upload__list {
   display: grid;
+  grid-template-columns: max-content max-content max-content 1fr;
   gap: var(--itkaarhus-space-2);
   margin: 0 0 var(--itkaarhus-space-5);
   padding: 0;
   list-style: none;
+  font-size: 0.875rem;
 }
 .bulk-upload__file {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--itkaarhus-space-1) var(--itkaarhus-space-4);
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  column-gap: var(--itkaarhus-space-4);
   padding: var(--itkaarhus-space-2) var(--itkaarhus-space-3);
   border: var(--hairline);
   border-left: 4px solid var(--itkaarhus-gray-200);
   border-radius: var(--itkaarhus-radius-2);
+  background: var(--surface);
   font-variant-numeric: tabular-nums;
 }
+/* The file name is the heading of the row. The other columns are smaller and lighter. */
 .bulk-upload__name {
   font-weight: 600;
+  color: var(--itkaarhus-gray-900);
 }
-.bulk-upload__state {
+.bulk-upload__detail {
   color: var(--itkaarhus-gray-600);
+  font-size: 0.8125rem;
+}
+.bulk-upload__detail strong {
+  font-weight: 600;
+  color: var(--itkaarhus-gray-900);
+}
+/* A message takes the range and the counts columns. */
+.bulk-upload__message {
+  grid-column: 3 / -1;
 }
 .bulk-upload__file[data-state="checked"] {
   border-left-color: var(--itkaarhus-blue-700);
@@ -473,11 +490,25 @@ body {
 .bulk-upload__file[data-state="imported"] {
   border-left-color: var(--itkaarhus-success-500);
 }
+.bulk-upload__file[data-state="skipped"] {
+  border-left-color: var(--itkaarhus-warning-500);
+}
 .bulk-upload__file[data-state="failed"] {
   border-left-color: var(--itkaarhus-danger-700);
 }
-.bulk-upload__error {
+.bulk-upload__file[data-state="failed"] .bulk-upload__message {
   color: var(--itkaarhus-danger-700);
+}
+/* On a small screen, each row wraps its columns. */
+@media (max-width: 767px) {
+  .bulk-upload__list {
+    grid-template-columns: 1fr;
+  }
+  .bulk-upload__file {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--itkaarhus-space-1) var(--itkaarhus-space-3);
+  }
 }
 /* The confirmation of a clear: the native popover opens it in the middle of the top layer. */
 .clear-pop {

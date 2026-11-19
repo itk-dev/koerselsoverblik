@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Import\Upload;
 
+use App\Import\AllRowsRejectedException;
 use App\Import\Extract\InvalidExtractException;
 use App\Import\Extract\MissingColumnsException;
 use App\Import\InvalidImportRangeException;
@@ -20,9 +21,10 @@ final class UploadFailure
     /**
      * @param int $maxDays the value of APP_DRIVING_DATA_MAX_DAYS
      */
-    public static function message(InvalidExtractException|NoStopRowsException|RowIdConflictException|InvalidImportRangeException $exception, int $maxDays): TranslatableMessage
+    public static function message(InvalidExtractException|NoStopRowsException|AllRowsRejectedException|RowIdConflictException|InvalidImportRangeException $exception, int $maxDays): TranslatableMessage
     {
         return match (true) {
+            $exception instanceof AllRowsRejectedException => new TranslatableMessage('upload.bulk.all_rows_rejected'),
             $exception instanceof MissingColumnsException => new TranslatableMessage('upload.missing_columns', ['columns' => implode(', ', $exception->columns)]),
             $exception instanceof InvalidExtractException => new TranslatableMessage('upload.problem.'.$exception->problem->value, ['limit' => $exception->limit ?? 0]),
             $exception instanceof NoStopRowsException => new TranslatableMessage('upload.no_stop_rows'),

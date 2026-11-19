@@ -474,7 +474,7 @@ final class ImportPageTest extends WebTestCase
 
     private function uploadDirectory(): string
     {
-        return self::getContainer()->getParameter('kernel.project_dir').'/var/uploads/driving_data';
+        return self::getContainer()->getParameter('kernel.project_dir').'/var/uploads/test/driving_data';
     }
 
     private function stored(string $table): int

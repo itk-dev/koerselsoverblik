@@ -44,15 +44,17 @@ final readonly class DrivingDataImporter
      *
      * @throws MissingColumnsException     if the extract does not have all the columns of the mapping
      * @throws InvalidExtractException     if the extract is above a limit, or is not a valid extract
-     * @throws NoStopRowsException         if the file has no stop rows
+     * @throws NoStopRowsException         if the file has no data rows
+     * @throws AllRowsRejectedException    if the file has data rows, but all are rejected
      * @throws InvalidImportRangeException if the dates span more than $maxDays days
      */
     public function rangeOf(string $path, MappingDto $mapping, int $maxDays): ImportRangeDto
     {
         // ponytail: the preview parses the file again. Return the summary too if large files are slow.
-        $dates = ExtractSummaryDto::fromRows($this->parser->parse($path, $mapping, null), 0)->dates;
+        $summary = ExtractSummaryDto::fromRows($this->parser->parse($path, $mapping, null), 0);
+        $dates = $summary->dates;
         if ([] === $dates) {
-            throw new NoStopRowsException();
+            throw $summary->rejectedRows > 0 ? new AllRowsRejectedException() : new NoStopRowsException();
         }
 
         return ImportRangeDto::create(new \DateTimeImmutable($dates[0]), new \DateTimeImmutable($dates[\count($dates) - 1]), $maxDays);
