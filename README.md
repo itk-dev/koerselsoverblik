@@ -259,6 +259,31 @@ given. The default answer is no. The dates have the format `YYYY-MM-DD`. The def
 the value of `APP_DRIVING_DATA_MAPPING`. A file with no stop rows in the range is not imported,
 because the import would only delete data. The command does not delete the file.
 
+### Upload many files
+
+1. Go to **Administration → Upload driving data**, and select the tab **Mange filer** (requires
+   `ROLE_MANAGE_DRIVING_DATA`).
+2. Drag the extracts to the drop area, or select them. You can add many files, for example 100.
+3. Wait until each file has the state "Kontrolleret" or "Fejlet". Each row shows the date range
+   and how many rows will be inserted, deleted and rejected, or the reason of the failure.
+4. Select **Importér de kontrollerede filer**.
+5. Each row shows "Importeret" with a link to the result, or "Fejlet" with the reason.
+
+The browser sends each file in its own request, one file at a time. Thus the size limit applies
+to each file, not to all the files together.
+
+The date range of each file is the first to the last date with stop rows in the file. You do not
+enter a range. Empty dates before the first or after the last date with rows do not become empty.
+
+**CAUTION:**
+
+- A file can have stop rows on at most `APP_DRIVING_DATA_MAX_DAYS` days (7 by default). A file
+  with more days fails. Split a longer export, for example into one file for each week. The page
+  shows the limit.
+- The files are imported in the order of the list. If two files have the same dates, the last
+  file replaces the data of the first file.
+- A file that fails does not stop the other files.
+
 ### Clear driving data
 
 1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`).
