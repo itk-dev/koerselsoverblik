@@ -127,9 +127,13 @@ final class BulkImportPageTest extends WebTestCase
     {
         $this->loginAs($this->client, 'admin');
 
-        $dialog = $this->openPage()->filter('dialog[data-test="bulk-done"]');
+        $crawler = $this->openPage();
+        $dialog = $crawler->filter('dialog[data-test="bulk-done"]');
 
         self::assertSame('Importen er færdig', $dialog->filter('h2')->text());
+        // "OK" resets the drop area, which is inactive during the import.
+        self::assertSame('close->bulk-upload#reset', $dialog->attr('data-action'));
+        self::assertSame('Vent, til importen er færdig.', $crawler->filter('[data-controller~="bulk-upload"]')->attr('data-bulk-upload-busy-text-value'));
         self::assertSame(['imported', 'skipped', 'failed'], $dialog->filter('[data-bulk-upload-target="count"]')->each(static fn (Crawler $count): ?string => $count->attr('data-state')));
         // The same pills as the counters of the page.
         self::assertSame(

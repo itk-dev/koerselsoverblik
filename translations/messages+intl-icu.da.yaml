@@ -316,6 +316,7 @@ upload:
       import: Importér
     done: Importen er færdig
     ok: OK
+    busy: Vent, til importen er færdig.
     all_rows_rejected: Filen har rækker, men alle rækker er afvist. Kontrollér udtrækket, eller upload det på siden for én fil for at se årsagerne.
     rows: Rækker
     counts:

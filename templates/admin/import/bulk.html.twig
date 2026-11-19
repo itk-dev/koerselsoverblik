@@ -12,7 +12,8 @@
          data-controller="bulk-upload"
          data-action="dropzone:change->bulk-upload#add"
          data-bulk-upload-check-url-value="{{ path('admin_import_bulk_check') }}"
-         data-bulk-upload-csrf-token-value="{{ csrf_token('bulk-import') }}">
+         data-bulk-upload-csrf-token-value="{{ csrf_token('bulk-import') }}"
+         data-bulk-upload-busy-text-value="{{ 'upload.bulk.busy'|trans }}">
         {{ form_start(form, {attr: {class: 'admin-form'}}) }}
             {{ form_row(form.files) }}
         {{ form_end(form) }}
@@ -59,7 +60,7 @@
         </dialog>
 
         {# The controller opens the dialog when the last import is done. "OK" closes it with no script. #}
-        <dialog class="about bulk-upload__done" aria-labelledby="bulk-done-title" data-bulk-upload-target="doneDialog" data-test="bulk-done">
+        <dialog class="about bulk-upload__done" aria-labelledby="bulk-done-title" data-bulk-upload-target="doneDialog" data-action="close->bulk-upload#reset" data-test="bulk-done">
             <form method="dialog">
                 <header class="about__head">
                     <h2 id="bulk-done-title">{{ 'upload.bulk.done'|trans }}</h2>

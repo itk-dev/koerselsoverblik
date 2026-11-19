@@ -456,6 +456,24 @@ body {
   border-bottom: var(--hairline);
   background: var(--canvas);
 }
+/* The drop area takes no files during the import. The text comes from the controller. */
+.itkaarhus-field > .dropzone-container.is-busy {
+  border-style: solid;
+  border-color: var(--itkaarhus-gray-200);
+  background: var(--itkaarhus-gray-50);
+  cursor: not-allowed;
+}
+.dropzone-container.is-busy .dropzone-input {
+  cursor: not-allowed;
+}
+.dropzone-container.is-busy .dropzone-placeholder {
+  display: none;
+}
+.dropzone-container.is-busy::after {
+  content: attr(data-busy-text);
+  align-self: center;
+  color: var(--itkaarhus-gray-500);
+}
 /* The dialog at the end of the import. It uses the style of the "Om tallene" dialog. */
 .bulk-upload__done {
   max-width: 360px;

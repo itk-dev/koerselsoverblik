@@ -16,7 +16,7 @@ export default class extends Controller {
     "doneDialog",
   ];
 
-  static values = { checkUrl: String, csrfToken: String };
+  static values = { checkUrl: String, csrfToken: String, busyText: String };
 
   connect() {
     // The requests run one after the other.
@@ -24,6 +24,21 @@ export default class extends Controller {
     this.running = 0;
     // Dropzone keeps all the files of earlier drops in its change event. Send each file once.
     this.seen = new Set();
+    // A file that is dropped outside the active drop area must not open in the tab. That leaves
+    // the page and stops the import. Firefox opens such a file.
+    this.blockDrop = (event) => {
+      const input = this.element.querySelector(".dropzone-input");
+      if (event.target !== input || input.disabled) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("dragover", this.blockDrop);
+    window.addEventListener("drop", this.blockDrop);
+  }
+
+  disconnect() {
+    window.removeEventListener("dragover", this.blockDrop);
+    window.removeEventListener("drop", this.blockDrop);
   }
 
   /*
@@ -79,6 +94,8 @@ export default class extends Controller {
     if (rows.length === 0) {
       return;
     }
+    // No new files during the import. reset() makes the drop area active again.
+    this.setDropzoneActive(false);
     for (const row of rows) {
       // A second click must not import the file again.
       row.dataset.state = "waiting";
@@ -88,6 +105,30 @@ export default class extends Controller {
     // counts of the dialog after the last file.
     this.enqueue(() => this.doneDialogTarget.showModal());
     this.update();
+  }
+
+  /*
+   * Makes the drop area empty and active again when the user closes the dialog of the import.
+   * The same files can then be dropped again. Dropzone shows no clear button in its multiple mode,
+   * but its controller has clear().
+   */
+  reset() {
+    const container = this.element.querySelector(".dropzone-container");
+    this.application
+      .getControllerForElementAndIdentifier(
+        container,
+        "symfony--ux-dropzone--dropzone",
+      )
+      ?.clear();
+    this.seen.clear();
+    this.setDropzoneActive(true);
+  }
+
+  setDropzoneActive(active) {
+    const container = this.element.querySelector(".dropzone-container");
+    container.classList.toggle("is-busy", !active);
+    container.dataset.busyText = this.busyTextValue;
+    container.querySelector(".dropzone-input").disabled = !active;
   }
 
   enqueue(task) {
