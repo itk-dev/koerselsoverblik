@@ -369,6 +369,12 @@ body {
   display: grid;
   gap: var(--itkaarhus-space-4);
 }
+/* Fields side by side, for example the first and the last date of an upload. */
+.admin-form__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itkaarhus-space-4);
+}
 .admin-form__buttons,
 .actions {
   display: flex;
@@ -412,12 +418,13 @@ body {
 .bulk-upload .dropzone-preview-list {
   display: none;
 }
-/* A large drop area, as wide as the form, because the user drops many files on it. The design
-   system gives a field a maximum width of 320px. */
-.bulk-upload .itkaarhus-field {
+/* The drop area of the two upload pages: large, and as wide as the form. The design system gives
+   a field a maximum width of 320px. The selectors are more specific than the Dropzone stylesheet,
+   which loads after this file. */
+.itkaarhus-field:has(> .dropzone-container) {
   max-width: none;
 }
-.bulk-upload .dropzone-container {
+.itkaarhus-field > .dropzone-container {
   width: 100%;
   min-height: 160px;
   justify-content: center;
@@ -425,7 +432,7 @@ body {
   border-radius: var(--itkaarhus-radius-2);
   background: var(--surface);
 }
-.bulk-upload .dropzone-placeholder {
+.dropzone-container .dropzone-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;

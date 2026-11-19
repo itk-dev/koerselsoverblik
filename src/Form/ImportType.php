@@ -8,10 +8,10 @@ use App\Import\Upload\UploadDto;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
-use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\File;
+use Symfony\UX\Dropzone\Form\DropzoneType;
 
 /**
  * The upload of an extract with the date range of the export.
@@ -52,9 +52,9 @@ final class ImportType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('file', FileType::class, [
+            ->add('file', DropzoneType::class, [
                 'label' => 'upload.file',
-                'help' => 'upload.file_help',
+                'placeholder' => 'upload.drop',
                 'attr' => ['accept' => '.xlsx'],
                 'constraints' => [self::fileConstraint($this->maxFileSize)],
             ])

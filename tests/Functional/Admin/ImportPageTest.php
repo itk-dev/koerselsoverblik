@@ -84,6 +84,20 @@ final class ImportPageTest extends WebTestCase
     }
 
     /**
+     * The same layout as the bulk upload: a drop area for one file, then the info box.
+     */
+    public function testThePageHasADropAreaForOneFile(): void
+    {
+        $this->loginAs($this->client, 'admin');
+
+        $crawler = $this->client->request('GET', '/admin/import');
+
+        self::assertCount(1, $crawler->filter('[data-test="upload-form"] .dropzone-container input[type="file"]:not([multiple])'));
+        self::assertSame('Træk udtrækket fra planlægningssystemet hertil, eller klik for at vælge det.', $crawler->filter('.dropzone-placeholder')->text());
+        self::assertCount(1, $crawler->filter('[data-test="upload-form"] + .itkaarhus-callout--info'));
+    }
+
+    /**
      * The preview shows the changes. The data changes only at the confirmation.
      */
     public function testUploadShowsThePreviewAndChangesNoData(): void

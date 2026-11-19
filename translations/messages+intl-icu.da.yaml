@@ -241,7 +241,7 @@ upload:
     whole_days: Upload kun hele dage. En fil med kun en del af en dag fjerner de andre rækker for dagen.
     no_undo: En upload kan ikke fortrydes. Ret en forkert upload med den rigtige fil for den samme periode, eller ryd datoerne nedenfor.
   file: Udtræk (.xlsx)
-  file_help: Filen fra planlægningssystemet.
+  drop: Træk udtrækket fra planlægningssystemet hertil, eller klik for at vælge det.
   first_date: Første dato
   last_date: Sidste dato
   submit: Upload og vis ændringerne
