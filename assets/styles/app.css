@@ -488,8 +488,10 @@ body {
   border-radius: var(--itkaarhus-radius-2);
   background: var(--surface);
   font-variant-numeric: tabular-nums;
-  /* The scroll of the import keeps the row below the topbar and the sticky bar. */
+  /* The scroll of the import keeps the row below the topbar and the sticky bar, and about one row
+     above the bottom of the window. */
   scroll-margin-top: calc(var(--topbar-h) + 4rem);
+  scroll-margin-bottom: 4rem;
 }
 /* The file name is the heading of the row. The other columns are smaller and lighter. */
 .bulk-upload__name {
