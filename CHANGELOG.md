@@ -437,3 +437,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   then imported with its own batch, in the order of the list. A failed file does not stop the
   others. The page shows the limit of `APP_DRIVING_DATA_MAX_DAYS`. StimulusBundle and UX Dropzone
   are added. `UploadFailure` gives the Danish message of a failed upload for both upload pages.
+  The upload of one file has the same layout: a drop area, then the info box. Tabs switch between
+  the two pages.

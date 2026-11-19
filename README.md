@@ -215,8 +215,9 @@ from the real identity provider.
 
 ### Upload driving data
 
-1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`).
-2. Choose a driving data extract (`.xlsx`).
+1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`). The tab
+   **Én fil** opens.
+2. Drag a driving data extract (`.xlsx`) to the drop area, or select it.
 3. Enter the first and the last date of the export, and upload the file.
 4. Check the preview. It shows:
    - the date range
