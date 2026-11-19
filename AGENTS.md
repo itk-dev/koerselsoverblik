@@ -62,7 +62,7 @@ The project uses test-driven development. See "Development" in [README.md](READM
 ## Rules for the code
 
 - Every controller has a class-level `#[IsGranted]` with a permission role. Do not check
-  `ROLE_ADMIN` or `ROLE_BRUGER` in a controller. See "Security" in
+  `ROLE_ADMIN` or `ROLE_USER` in a controller. See "Security" in
   [docs/architecture.md](docs/architecture.md).
 - Templates have no inline scripts, no inline event handlers and no `style` attributes. The
   Content Security Policy blocks them. The only exception is a script with the nonce from
