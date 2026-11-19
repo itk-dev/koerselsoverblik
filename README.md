@@ -272,6 +272,7 @@ because the import would only delete data. The command does not delete the file.
    not imported if you close the tab, reload the page or go to another page.
 5. Each row shows "Importeret" with a link to the result, or "Fejlet" with the reason. When all
    files are done, a dialog shows how many files were imported, skipped and failed. Select **OK**.
+   The list stays until you add the next files. Then a new list starts.
 
 The browser sends each file in its own request, one file at a time. Thus the size limit applies
 to each file, not to all the files together.

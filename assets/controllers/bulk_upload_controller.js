@@ -49,6 +49,11 @@ export default class extends Controller {
       event.detail instanceof FileList
         ? Array.from(event.detail)
         : [event.detail];
+    // The first files after an import start a new list.
+    if (this.clearListOnAdd && files.some(Boolean)) {
+      this.listTarget.replaceChildren();
+      this.clearListOnAdd = false;
+    }
     for (const file of files) {
       if (!file) {
         continue;
@@ -122,6 +127,8 @@ export default class extends Controller {
       ?.clear();
     this.seen.clear();
     this.setDropzoneActive(true);
+    // The rows of the import stay until the next drop, so that the user can read them.
+    this.clearListOnAdd = true;
   }
 
   setDropzoneActive(active) {
