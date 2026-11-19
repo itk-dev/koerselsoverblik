@@ -312,7 +312,6 @@ upload:
     too_many_days: "Filen har rækker på flere end {limit} dage. Del udtrækket op i perioder på højst {limit} dage."
     confirm:
       title: Hold siden åben under importen
-      files: "Filer, der importeres:"
       text: Siden sender filerne til serveren én ad gangen. Luk ikke fanen, genindlæs ikke siden, og gå ikke til en anden side, før beskeden "Importen er færdig" vises. Ellers bliver de resterende filer ikke importeret.
       import: Importér
     done: Importen er færdig

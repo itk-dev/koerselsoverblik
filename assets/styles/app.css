@@ -460,7 +460,7 @@ body {
 .bulk-upload__done {
   max-width: 360px;
 }
-.bulk-upload__done .upload-summary {
+.bulk-upload__done .bulk-upload__counts {
   margin-bottom: var(--itkaarhus-space-4);
 }
 /* The number of files in each state, as pills on one line. */

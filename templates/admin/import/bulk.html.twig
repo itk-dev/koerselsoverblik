@@ -29,14 +29,7 @@
 
         {# The bar stays at the top of the window, so that the status is visible in a long list. #}
         <div class="bulk-upload__bar">
-            <ul class="bulk-upload__counts" aria-live="polite">
-                {% for state, tone in {waiting: 'neutral', checked: 'info', imported: 'success', skipped: 'warning', failed: 'danger'} %}
-                    <li class="itkaarhus-tag itkaarhus-tag--{{ tone }}">
-                        {{ ('upload.bulk.state.' ~ state)|trans }}
-                        <span data-bulk-upload-target="count" data-state="{{ state }}" data-test="bulk-count-{{ state }}">0</span>
-                    </li>
-                {% endfor %}
-            </ul>
+            {{ include('admin/import/_bulk_counts.html.twig', {states: ['waiting', 'checked', 'imported', 'skipped', 'failed'], live: true}) }}
             <button class="itkaarhus-btn itkaarhus-btn--primary" type="button" disabled
                     data-bulk-upload-target="importButton" data-action="bulk-upload#confirm">
                 {{ 'upload.bulk.import'|trans }}
@@ -55,10 +48,7 @@
                     <h2 id="bulk-confirm-title">{{ 'upload.bulk.confirm.title'|trans }}</h2>
                 </header>
                 <div class="about__body">
-                    <p>
-                        {{ 'upload.bulk.confirm.files'|trans }}
-                        <strong data-bulk-upload-target="count" data-state="checked">0</strong>
-                    </p>
+                    {{ include('admin/import/_bulk_counts.html.twig', {states: ['checked']}) }}
                     <p>{{ 'upload.bulk.confirm.text'|trans }}</p>
                     <div class="admin-form__buttons">
                         <button class="itkaarhus-btn itkaarhus-btn--primary" value="import" autofocus>{{ 'upload.bulk.confirm.import'|trans }}</button>
@@ -75,12 +65,7 @@
                     <h2 id="bulk-done-title">{{ 'upload.bulk.done'|trans }}</h2>
                 </header>
                 <div class="about__body">
-                    <dl class="upload-summary">
-                        {% for state in ['imported', 'skipped', 'failed'] %}
-                            <dt>{{ ('upload.bulk.state.' ~ state)|trans }}</dt>
-                            <dd data-bulk-upload-target="count" data-state="{{ state }}">0</dd>
-                        {% endfor %}
-                    </dl>
+                    {{ include('admin/import/_bulk_counts.html.twig', {states: ['imported', 'skipped', 'failed']}) }}
                     <div class="admin-form__buttons">
                         <button class="itkaarhus-btn itkaarhus-btn--primary" value="ok" autofocus>{{ 'upload.bulk.ok'|trans }}</button>
                     </div>

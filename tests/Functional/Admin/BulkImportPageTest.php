@@ -116,6 +116,7 @@ final class BulkImportPageTest extends WebTestCase
         self::assertSame('close->bulk-upload#confirmed', $dialog->attr('data-action'));
         self::assertSame('Hold siden åben under importen', $dialog->filter('h2')->text());
         self::assertSame('checked', $dialog->filter('[data-bulk-upload-target="count"]')->attr('data-state'));
+        self::assertSame(['itkaarhus-tag itkaarhus-tag--info', 'Kontrolleret 0'], [$dialog->filter('.bulk-upload__counts li')->attr('class'), $dialog->filter('.bulk-upload__counts li')->text()]);
         self::assertSame([['import', 'Importér'], ['cancel', 'Annullér']], $dialog->filter('form[method="dialog"] button')->each(static fn (Crawler $button): array => [$button->attr('value'), $button->text()]));
     }
 
@@ -130,7 +131,11 @@ final class BulkImportPageTest extends WebTestCase
 
         self::assertSame('Importen er færdig', $dialog->filter('h2')->text());
         self::assertSame(['imported', 'skipped', 'failed'], $dialog->filter('[data-bulk-upload-target="count"]')->each(static fn (Crawler $count): ?string => $count->attr('data-state')));
-        self::assertSame(['Importeret', 'Sprunget over', 'Fejlet'], $dialog->filter('dt')->each(static fn (Crawler $label): string => $label->text()));
+        // The same pills as the counters of the page.
+        self::assertSame(
+            [['itkaarhus-tag itkaarhus-tag--success', 'Importeret 0'], ['itkaarhus-tag itkaarhus-tag--warning', 'Sprunget over 0'], ['itkaarhus-tag itkaarhus-tag--danger', 'Fejlet 0']],
+            $dialog->filter('.bulk-upload__counts li')->each(static fn (Crawler $pill): array => [$pill->attr('class'), $pill->text()]),
+        );
         self::assertSame('dialog', $dialog->filter('form')->attr('method'));
         self::assertSame('OK', $dialog->filter('button')->text());
     }
