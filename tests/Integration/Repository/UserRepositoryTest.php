@@ -24,7 +24,7 @@ final class UserRepositoryTest extends KernelTestCase
 
         self::assertNotNull($found);
         self::assertSame('foobar@example.com', $found->getEmail());
-        self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $found->getRoles());
+        self::assertSame(['ROLE_ADMIN'], $found->getRoles());
     }
 
     public function testAnUnknownEmailGivesNoUser(): void

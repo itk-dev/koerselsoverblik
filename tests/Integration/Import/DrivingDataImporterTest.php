@@ -79,9 +79,26 @@ final class DrivingDataImporterTest extends KernelTestCase
     {
         $this->writeScenario($scenario);
 
-        $range = $this->importer()->rangeOf($this->path, $this->mapping(), 7);
+        [$range] = $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
 
         self::assertEquals(self::range($firstDate, $lastDate), $range);
+    }
+
+    /**
+     * The bulk upload parses a file once. Its preview is the same as the preview of its range,
+     * because no row is outside the range of its own dates.
+     */
+    public function testThePreviewOfAFileIsThePreviewOfItsRange(): void
+    {
+        $this->writeScenario('base');
+        $this->importer()->import($this->path, self::range('2026-01-05'), $this->mapping(), null, 'base.xlsx');
+        $this->writeScenario('range_edges');
+
+        [$range, $preview] = $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+
+        self::assertEquals($this->importer()->preview($this->path, $range, $this->mapping(), 0), $preview);
+        self::assertSame(14, $preview->rowsToDelete);
+        self::assertSame(['2026-01-06'], $preview->emptyDates);
     }
 
     /**
@@ -100,7 +117,7 @@ final class DrivingDataImporterTest extends KernelTestCase
 
         $this->expectException(InvalidImportRangeException::class);
 
-        $this->importer()->rangeOf($this->path, $this->mapping(), 3);
+        $this->importer()->rangeAndPreview($this->path, $this->mapping(), 3);
     }
 
     public function testRangeOfAFileWithNoDataRowsIsNotValid(): void
@@ -109,7 +126,7 @@ final class DrivingDataImporterTest extends KernelTestCase
 
         $this->expectException(NoStopRowsException::class);
 
-        $this->importer()->rangeOf($this->path, $this->mapping(), 7);
+        $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
     }
 
     /**
@@ -123,9 +140,13 @@ final class DrivingDataImporterTest extends KernelTestCase
         );
         new ExtractWriter()->write($this->path, $this->mapping(), $rows);
 
-        $this->expectException(AllRowsRejectedException::class);
-
-        $this->importer()->rangeOf($this->path, $this->mapping(), 7);
+        try {
+            $this->importer()->rangeAndPreview($this->path, $this->mapping(), 7);
+            self::fail('The file was accepted.');
+        } catch (AllRowsRejectedException $exception) {
+            // The message goes to the log of a failed upload, so it must tell the reason.
+            self::assertSame('The file has data rows, but all rows are rejected.', $exception->getMessage());
+        }
     }
 
     /**

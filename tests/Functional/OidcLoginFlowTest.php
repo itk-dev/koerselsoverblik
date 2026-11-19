@@ -11,6 +11,7 @@ use ItkDev\OpenIdConnectBundle\Security\OpenIdConfigurationProviderManager;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use Monolog\LogRecord;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +33,7 @@ final class OidcLoginFlowTest extends WebTestCase
      *
      * @var array<string, mixed>
      */
-    private array $claims = ['upn' => 'foobar@example.com', 'roles' => ['ROLE_ADMIN']];
+    private array $claims = ['upn' => 'foobar@example.com', 'roles' => ['admin']];
 
     /**
      * The error of the token request to the stub identity provider, or null for a valid token.
@@ -88,7 +89,7 @@ final class OidcLoginFlowTest extends WebTestCase
         self::assertResponseRedirects('http://localhost/');
         $user = $this->userRepository()->findOneByEmail('foobar@example.com');
         self::assertNotNull($user);
-        self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $user->getRoles());
+        self::assertSame(['ROLE_ADMIN'], $user->getRoles());
 
         $this->client->request('GET', '/');
         self::assertResponseIsSuccessful();
@@ -165,7 +166,7 @@ final class OidcLoginFlowTest extends WebTestCase
     public function testALoginWithoutAUpnIsWrittenToTheAuthenticationLog(): void
     {
         // The identity provider approved the login, but the application rejects it.
-        $this->claims = ['roles' => ['ROLE_ADMIN']];
+        $this->claims = ['roles' => ['admin']];
         $audit = $this->logHandler('openid_connect_audit');
 
         $this->signIn();
@@ -179,14 +180,38 @@ final class OidcLoginFlowTest extends WebTestCase
         self::assertSame('The upn claim is missing.', $failures[0]->context['reason']);
     }
 
-    public function testAUserWithNoKnownRoleCanSignInButIsDenied(): void
+    /**
+     * @param list<string> $roles
+     */
+    #[DataProvider('deniedRolesProvider')]
+    public function testAUserWithNoPermissionRoleCanSignInButIsDenied(array $roles): void
     {
-        $this->claims = ['upn' => 'foobar@example.com', 'roles' => ['ROLE_SUPERHERO']];
+        $this->claims = ['upn' => 'foobar@example.com', 'roles' => $roles];
 
         $this->signIn();
         $this->client->request('GET', '/');
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
+    /**
+     * @return iterable<string, array{list<string>}>
+     */
+    public static function deniedRolesProvider(): iterable
+    {
+        yield 'no role' => [[]];
+        yield 'an unknown role' => [['superhero']];
+    }
+
+    public function testAnEndUserSeesTheOverview(): void
+    {
+        // "Slutbruger" in Entra ID.
+        $this->claims = ['upn' => 'foobar@example.com', 'roles' => ['bruger']];
+
+        $this->signIn();
+        $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
     }
 
     public function testLogoutEndsTheSession(): void
