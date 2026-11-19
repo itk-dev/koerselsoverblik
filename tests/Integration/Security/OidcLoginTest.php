@@ -6,7 +6,6 @@ namespace App\Tests\Integration\Security;
 
 use App\Repository\UserRepository;
 use App\Security\OidcLogin;
-use App\Security\OidcRoleMapper;
 use Doctrine\ORM\EntityManagerInterface;
 use ItkDev\OpenIdConnect\Exception\ClaimsException;
 use Monolog\Handler\TestHandler;
@@ -33,7 +32,7 @@ final class OidcLoginTest extends KernelTestCase
         $this->login = new OidcLogin(
             $this->repository(),
             $this->entityManager(),
-            new OidcRoleMapper(['ROLE_ADMIN' => ['ROLE_VIEW_OVERVIEW']], 'roles'),
+            'roles',
             $this->clock,
             new Logger('openid_connect_audit', [$this->log]),
         );
@@ -41,47 +40,71 @@ final class OidcLoginTest extends KernelTestCase
 
     public function testTheFirstLoginCreatesTheUserWithTheRolesFromTheClaim(): void
     {
-        $user = $this->login->login(['upn' => 'Foobar@Example.com', 'roles' => ['ROLE_ADMIN', 'ROLE_SUPERHERO']]);
+        $user = $this->login->login(['upn' => 'Foobar@Example.com', 'roles' => ['admin']]);
 
         $this->entityManager()->clear();
         $stored = $this->repository()->findOneByEmail('foobar@example.com');
         self::assertNotNull($stored);
         self::assertSame($user->getId(), $stored->getId());
-        self::assertSame(['ROLE_ADMIN', 'ROLE_USER'], $stored->getRoles());
+        self::assertSame(['ROLE_ADMIN'], $stored->getRoles());
         self::assertEquals($this->clock->now(), $stored->getLastLoginAt());
     }
 
     public function testTheNextLoginUpdatesTheRolesAndTheTime(): void
     {
-        $first = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['ROLE_ADMIN']]);
+        $first = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['admin']]);
         $this->clock->sleep(3600);
 
-        $next = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['ROLE_VIEW_OVERVIEW']]);
+        $next = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['user']]);
 
         $this->entityManager()->clear();
         self::assertSame($first->getId(), $next->getId());
         self::assertCount(1, $this->repository()->findAll());
         $stored = $this->repository()->findOneByEmail('foobar@example.com');
         self::assertNotNull($stored);
-        self::assertSame(['ROLE_VIEW_OVERVIEW', 'ROLE_USER'], $stored->getRoles());
+        self::assertSame(['ROLE_USER'], $stored->getRoles());
         self::assertEquals($this->clock->now(), $stored->getLastLoginAt());
     }
 
-    public function testAUserWithNoKnownRoleCanSignIn(): void
+    public function testAUserWithNoRoleCanSignIn(): void
     {
         $user = $this->login->login(['upn' => 'foobar@example.com']);
 
-        self::assertSame(['ROLE_USER'], $user->getRoles());
+        self::assertSame([], $user->getRoles());
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('roleClaimProvider')]
+    public function testEachValueOfTheRoleClaimBecomesARole(mixed $claim, array $expected): void
+    {
+        $user = $this->login->login(['upn' => 'foobar@example.com', 'roles' => $claim]);
+
+        self::assertSame($expected, $user->getRoles());
+    }
+
+    /**
+     * @return iterable<string, array{mixed, list<string>}>
+     */
+    public static function roleClaimProvider(): iterable
+    {
+        yield 'Entra ID app roles' => [['admin', 'user'], ['ROLE_ADMIN', 'ROLE_USER']];
+        yield 'upper case' => [['manage_driving_data'], ['ROLE_MANAGE_DRIVING_DATA']];
+        yield 'a string' => ['Admin', ['ROLE_ADMIN']];
+        yield 'duplicates are removed' => [['admin', 'ADMIN'], ['ROLE_ADMIN']];
+        yield 'non-string values are ignored' => [[42, null, ['admin']], []];
+        yield 'a claim of another type' => [42, []];
     }
 
     public function testALoginIsWrittenToTheAuthenticationLog(): void
     {
-        $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['ROLE_ADMIN', 'ROLE_VIEW_OVERVIEW']]);
+        $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['admin', 'user']]);
 
         self::assertSame([[
             'INFO',
-            'user foobar@example.com logged in with roles [ROLE_ADMIN, ROLE_VIEW_OVERVIEW] at '.$this->clock->now()->format(\DATE_ATOM),
-            ['email' => 'foobar@example.com', 'roles' => ['ROLE_ADMIN', 'ROLE_VIEW_OVERVIEW']],
+            'user foobar@example.com logged in with roles [ROLE_ADMIN, ROLE_USER] at '.$this->clock->now()->format(\DATE_ATOM),
+            ['email' => 'foobar@example.com', 'roles' => ['ROLE_ADMIN', 'ROLE_USER']],
         ]], array_map(
             static fn (LogRecord $record): array => [$record->level->getName(), $record->message, $record->context],
             $this->log->getRecords(),

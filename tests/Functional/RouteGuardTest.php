@@ -11,8 +11,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * Makes sure that every application route requires a permission role.
  *
- * The permission roles are the roles that ROLE_ADMIN gives in the role hierarchy. Thus
- * config/packages/security.yaml is the only list of permission roles.
+ * The permission roles are the roles at the end of the role hierarchy: the roles that give no other
+ * role. Thus config/packages/security.yaml is the only list of permission roles.
  */
 final class RouteGuardTest extends KernelTestCase
 {
@@ -56,12 +56,11 @@ final class RouteGuardTest extends KernelTestCase
     private function permissionRoles(mixed $hierarchy): array
     {
         self::assertIsArray($hierarchy);
-        self::assertArrayHasKey('ROLE_ADMIN', $hierarchy);
-        $roles = $hierarchy['ROLE_ADMIN'];
-        self::assertIsArray($roles);
+        /** @var array<string, list<string>> $hierarchy */
+        $roles = array_values(array_diff(array_merge(...array_values($hierarchy)), array_keys($hierarchy)));
         self::assertNotEmpty($roles);
 
-        return array_values(array_filter($roles, is_string(...)));
+        return $roles;
     }
 
     /**

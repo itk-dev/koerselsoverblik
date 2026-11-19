@@ -121,21 +121,20 @@ Each part of the application has its own permission role:
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the supplier of each sub-agreement |
 
-`ROLE_ADMIN` gives all the permission roles above. For now, give users `ROLE_ADMIN`. The
-permission roles let us give narrower access later without code changes.
+The identity provider gives the roles. It sends them in a claim (`OIDC_ROLE_CLAIM`). At each
+login, each value becomes `ROLE_` and the value in upper case. The role hierarchy in
+`config/packages/security.yaml` gives the permission roles:
 
-The identity provider gives the roles. It sends them in a claim (`OIDC_ROLE_CLAIM`), and the
-application copies them to the user at each login. The role map (`OIDC_ROLE_MAP`) changes the
-app role values of Entra ID to roles:
+| Entra ID app role | Value | Role | Permission roles |
+| --- | --- | --- | --- |
+| Slutbruger | `user` | `ROLE_USER` | All the permission roles above |
+| Superadministrator | `admin` | `ROLE_ADMIN` | `ROLE_USER`, and thus all the permission roles above |
 
-| Entra ID app role | Value | Role |
-| --- | --- | --- |
-| Superadministrator | `admin` | `ROLE_ADMIN` |
-| Slutbruger | `user` | `ROLE_VIEW_OVERVIEW` |
+At this time, the two app roles give the same access. `ROLE_ADMIN` is for features that only
+administrators will get.
 
-Values that are not `ROLE_ADMIN` or a permission role after the map are ignored, and logged as a
-warning in the authentication log. A user with no known role can sign in, but cannot open any
-page.
+The authentication log shows the roles of each login. A user with no role, or with only an
+unknown role, can sign in, but cannot open any page.
 
 Every page requires a permission role. Anonymous users are sent to the identity provider.
 
@@ -202,7 +201,6 @@ Set these in `.env.local`:
 | `OIDC_CLIENT_SECRET_EXPIRES_AT` | The date the client secret expires, for example `2027-01-31`. A login logs a warning 30 days before, and a critical error after the date. Empty means not monitored, and each login logs an error | Empty |
 | `OIDC_REDIRECT_URI` | The callback URL of the application, `https://<HOST>/openid-connect/generic`, registered in the identity provider | The local callback URL |
 | `OIDC_ROLE_CLAIM` | The claim that holds the user's roles | `roles` |
-| `OIDC_ROLE_MAP` | A JSON object that changes a value in the role claim to a role. A value that is not in the map stays as it is | `{"admin": "ROLE_ADMIN", "user": "ROLE_VIEW_OVERVIEW"}` |
 | `OIDC_ALLOW_HTTP` | Set to `true` to allow an identity provider on HTTP. Only the local mock service needs it, and `.env.dev` sets it | `false` |
 | `TRUSTED_PROXIES` | The proxies whose `X-Forwarded-*` headers are trusted, so that URLs use https behind Traefik | `127.0.0.1,REMOTE_ADDR` |
 | `APP_PUNCTUALITY_TOLERANCE_MINUTES` | Minutes a pickup or a drop-off may be late and still count as on time. After a change, run `app:driving-data:rebuild-totals` (see [Deployment](#deployment)) | `5` |

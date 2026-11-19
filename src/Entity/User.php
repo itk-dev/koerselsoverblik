@@ -70,13 +70,14 @@ class User implements UserInterface
     }
 
     /**
-     * Every user also has ROLE_USER. It grants nothing alone.
+     * Only the roles from the identity provider. ROLE_USER is the "Slutbruger" role of Entra ID,
+     * so a user does not get it automatically.
      *
      * @return list<string>
      */
     public function getRoles(): array
     {
-        return array_values(array_unique([...$this->roles, 'ROLE_USER']));
+        return $this->roles;
     }
 
     /**
