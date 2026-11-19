@@ -434,6 +434,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   as a planned feature.
 - Deployment: Woodpecker pipelines for staging and production, a workflow that makes the release
   archive from a tag, and a `crontab` for Supercronic. One migration replaces all migrations.
+- [#151](https://github.com/itk-dev/koerselsoverblik/issues/151)
+  Escaped mutants in `src/Import` and `src/Report`: new tests kill the mutants. The code changes
+  where no test can see a mutant. The behaviour does not change.
 
 [Unreleased]: https://github.com/itk-dev/koerselsoverblik/compare/0.1.0...HEAD
 [0.1.0]: https://github.com/itk-dev/koerselsoverblik/releases/tag/0.1.0
