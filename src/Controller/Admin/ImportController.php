@@ -10,12 +10,12 @@ use App\Entity\User;
 use App\Form\ImportType;
 use App\Import\DrivingDataImporter;
 use App\Import\Extract\InvalidExtractException;
-use App\Import\Extract\MissingColumnsException;
 use App\Import\Mapping\MappingProvider;
 use App\Import\NoStopRowsException;
 use App\Import\RowIdConflictException;
 use App\Import\Upload\PendingUploadDto;
 use App\Import\Upload\UploadDto;
+use App\Import\Upload\UploadFailure;
 use App\Import\Upload\UploadStore;
 use App\Import\UploadedDates;
 use App\Report\MonthDto;
@@ -30,7 +30,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Translation\TranslatableMessage;
 
 /**
  * Uploads an extract: the form, the preview, the confirmation and the result. No data changes
@@ -179,12 +178,7 @@ final class ImportController extends AbstractController
             'user' => $this->getUser()?->getUserIdentifier(),
         ]);
 
-        $this->addFlash('error', match (true) {
-            $exception instanceof MissingColumnsException => new TranslatableMessage('upload.missing_columns', ['columns' => implode(', ', $exception->columns)]),
-            $exception instanceof InvalidExtractException => new TranslatableMessage('upload.problem.'.$exception->problem->value, ['limit' => $exception->limit ?? 0]),
-            $exception instanceof NoStopRowsException => new TranslatableMessage('upload.no_stop_rows'),
-            default => new TranslatableMessage('upload.row_id_conflict'),
-        });
+        $this->addFlash('error', UploadFailure::message($exception, $this->maxDays));
 
         return $this->redirectToRoute('admin_import');
     }

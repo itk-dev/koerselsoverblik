@@ -1,0 +1,3 @@
+{# The state of a file of the bulk upload, as a pill. The counters use the same colours. #}
+{% set tones = {waiting: 'neutral', checked: 'info', imported: 'success', skipped: 'warning', failed: 'danger'} %}
+<span class="bulk-upload__state"><span class="itkaarhus-tag itkaarhus-tag--{{ tones[state] }}">{{ ('upload.bulk.state.' ~ state)|trans }}</span></span>
