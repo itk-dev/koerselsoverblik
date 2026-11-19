@@ -117,11 +117,11 @@ final readonly class PeriodRangeFactory
             return self::shift($type, $first, -1);
         }
         if (PeriodType::Week === $type) {
-            $year = (int) $first->format('o') - 1;
-            // 28 December is always in the last ISO week of its year.
-            $weeks = (int) $first->setDate($year, 12, 28)->format('W');
+            $year = self::isoYear($first) - 1;
+            $same = $first->setISODate($year, (int) $first->format('W'));
 
-            return $first->setISODate($year, min((int) $first->format('W'), $weeks));
+            // Week 53 of a year with 52 weeks is week 1 of the next year. Then use week 52.
+            return self::isoYear($same) === $year ? $same : $same->modify('-1 week');
         }
 
         // The other periods start on the first day of a month, so one year back is exact.
@@ -138,9 +138,19 @@ final readonly class PeriodRangeFactory
         if (null === $comparison->range || !$selected->endsAfterToday) {
             return $comparison->range;
         }
-        $days = (int) $selected->firstDate->diff($selectedRange->lastDate)->days;
-        $last = min($comparison->firstDate->modify(\sprintf('+%d days', $days)), $comparison->range->lastDate);
+        // "%a" is the total number of days.
+        $days = $selected->firstDate->diff($selectedRange->lastDate)->format('+%a days');
+        $last = min($comparison->firstDate->modify($days), $comparison->range->lastDate);
 
         return $last < $comparison->range->firstDate ? null : DateRangeDto::create($comparison->range->firstDate, $last);
+    }
+
+    /**
+     * Gives the ISO year of the date. The first days of January can be in the last week of the
+     * previous year, and the last days of December in week 1 of the next year.
+     */
+    private static function isoYear(\DateTimeImmutable $date): int
+    {
+        return (int) $date->format('o');
     }
 }

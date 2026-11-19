@@ -77,7 +77,8 @@ final readonly class DayTotalsDto
 
     public static function empty(): self
     {
-        return new self(...array_fill(0, \count(self::FIELDS), 0));
+        // FIELDS has the names of the parameters, so the keys are named arguments.
+        return new self(...array_fill_keys(self::FIELDS, 0));
     }
 
     /**
