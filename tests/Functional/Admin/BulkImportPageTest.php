@@ -102,6 +102,24 @@ final class BulkImportPageTest extends WebTestCase
     }
 
     /**
+     * The import button opens a dialog that tells the user to keep the page open. The import
+     * starts only with the button "import" of the dialog.
+     */
+    public function testTheImportButtonAsksForAConfirmation(): void
+    {
+        $this->loginAs($this->client, 'admin');
+
+        $crawler = $this->openPage();
+
+        self::assertSame('bulk-upload#confirm', $crawler->filter('[data-bulk-upload-target="importButton"]')->attr('data-action'));
+        $dialog = $crawler->filter('dialog[data-test="bulk-confirm"]');
+        self::assertSame('close->bulk-upload#confirmed', $dialog->attr('data-action'));
+        self::assertSame('Hold siden åben under importen', $dialog->filter('h2')->text());
+        self::assertSame('checked', $dialog->filter('[data-bulk-upload-target="count"]')->attr('data-state'));
+        self::assertSame([['import', 'Importér'], ['cancel', 'Annullér']], $dialog->filter('form[method="dialog"] button')->each(static fn (Crawler $button): array => [$button->attr('value'), $button->text()]));
+    }
+
+    /**
      * The controller opens the dialog when the import is done. It shows the counts of the files.
      */
     public function testThePageHasADialogForTheEndOfTheImport(): void

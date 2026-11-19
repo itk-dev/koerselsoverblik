@@ -12,6 +12,7 @@ export default class extends Controller {
     "importButton",
     "waitingRow",
     "failedRow",
+    "confirmDialog",
     "doneDialog",
   ];
 
@@ -53,12 +54,32 @@ export default class extends Controller {
   }
 
   /*
+   * Asks the user to keep the page open. The page sends the files, so the import stops if the
+   * user leaves the page.
+   */
+  confirm() {
+    this.confirmDialogTarget.returnValue = "";
+    this.confirmDialogTarget.showModal();
+  }
+
+  /*
+   * Starts the import when the user closes the dialog with the import button.
+   */
+  confirmed() {
+    if (this.confirmDialogTarget.returnValue === "import") {
+      this.import();
+    }
+  }
+
+  /*
    * Imports the checked files, in the order of the list.
    */
   import() {
-    for (const row of this.listTarget.querySelectorAll(
-      '[data-state="checked"]',
-    )) {
+    const rows = this.listTarget.querySelectorAll('[data-state="checked"]');
+    if (rows.length === 0) {
+      return;
+    }
+    for (const row of rows) {
       // A second click must not import the file again.
       row.dataset.state = "waiting";
       this.enqueue(() => this.send(row, row.dataset.importUrl, null));

@@ -38,12 +38,35 @@
                 {% endfor %}
             </ul>
             <button class="itkaarhus-btn itkaarhus-btn--primary" type="button" disabled
-                    data-bulk-upload-target="importButton" data-action="bulk-upload#import">
+                    data-bulk-upload-target="importButton" data-action="bulk-upload#confirm">
                 {{ 'upload.bulk.import'|trans }}
             </button>
         </div>
 
         <ol class="bulk-upload__list" data-bulk-upload-target="list" data-test="bulk-list"></ol>
+
+        {#
+         # The import button opens this dialog. The page sends the files, so the import stops if the
+         # user leaves the page. The import starts when the dialog closes with the value "import".
+         #}
+        <dialog class="about bulk-upload__done" aria-labelledby="bulk-confirm-title" data-bulk-upload-target="confirmDialog" data-action="close->bulk-upload#confirmed" data-test="bulk-confirm">
+            <form method="dialog">
+                <header class="about__head">
+                    <h2 id="bulk-confirm-title">{{ 'upload.bulk.confirm.title'|trans }}</h2>
+                </header>
+                <div class="about__body">
+                    <p>
+                        {{ 'upload.bulk.confirm.files'|trans }}
+                        <strong data-bulk-upload-target="count" data-state="checked">0</strong>
+                    </p>
+                    <p>{{ 'upload.bulk.confirm.text'|trans }}</p>
+                    <div class="admin-form__buttons">
+                        <button class="itkaarhus-btn itkaarhus-btn--primary" value="import" autofocus>{{ 'upload.bulk.confirm.import'|trans }}</button>
+                        <button class="itkaarhus-btn" value="cancel">{{ 'upload.cancel'|trans }}</button>
+                    </div>
+                </div>
+            </form>
+        </dialog>
 
         {# The controller opens the dialog when the last import is done. "OK" closes it with no script. #}
         <dialog class="about bulk-upload__done" aria-labelledby="bulk-done-title" data-bulk-upload-target="doneDialog" data-test="bulk-done">

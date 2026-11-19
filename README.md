@@ -267,7 +267,9 @@ because the import would only delete data. The command does not delete the file.
 2. Drag the extracts to the drop area, or select them. You can add many files, for example 100.
 3. Wait until each file has the state "Kontrolleret" or "Fejlet". Each row shows the date range
    and how many rows will be inserted, deleted and rejected, or the reason of the failure.
-4. Select **Importér de kontrollerede filer**.
+4. Select **Importér de kontrollerede filer**, and then **Importér** in the dialog. Keep the page
+   open until the import is done. The page sends the files, so the files that are not sent are
+   not imported if you close the tab, reload the page or go to another page.
 5. Each row shows "Importeret" with a link to the result, or "Fejlet" with the reason. When all
    files are done, a dialog shows how many files were imported, skipped and failed. Select **OK**.
 
