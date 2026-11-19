@@ -69,6 +69,8 @@ final readonly class RouteDayTotalsBuilder
             $this->routeRuns->countDayTotals($range, $onTimeSeconds, self::UP_TO_15_SECONDS, self::UP_TO_30_SECONDS),
         );
         foreach ($parts as $part) {
+            // implode() and not a concatenation: a change to the order or the separator of a
+            // concatenation gives a key that is also unique, so no test can see it.
             $key = implode('|', [$part['route'], $part['serviceDate']->format('Y-m-d')]);
             // A route and date has one part from the stops and one from the runs.
             $days[$key] = [
