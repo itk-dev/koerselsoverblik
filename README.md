@@ -127,8 +127,8 @@ login, each value becomes `ROLE_` and the value in upper case. The role hierarch
 
 | Entra ID app role | Value | Role | Permission roles |
 | --- | --- | --- | --- |
-| Slutbruger | `user` | `ROLE_USER` | All the permission roles above |
-| Superadministrator | `admin` | `ROLE_ADMIN` | `ROLE_USER`, and thus all the permission roles above |
+| Slutbruger | `bruger` | `ROLE_BRUGER` | All the permission roles above |
+| Superadministrator | `admin` | `ROLE_ADMIN` | `ROLE_BRUGER`, and thus all the permission roles above |
 
 At this time, the two app roles give the same access. `ROLE_ADMIN` is for features that only
 administrators will get.

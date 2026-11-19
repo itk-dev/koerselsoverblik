@@ -70,7 +70,7 @@ class User implements UserInterface
     }
 
     /**
-     * Only the roles from the identity provider. ROLE_USER is the "Slutbruger" role of Entra ID,
+     * Only the roles from the identity provider. ROLE_BRUGER is the "Slutbruger" role of Entra ID,
      * so a user does not get it automatically.
      *
      * @return list<string>

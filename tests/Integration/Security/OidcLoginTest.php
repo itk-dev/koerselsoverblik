@@ -55,14 +55,14 @@ final class OidcLoginTest extends KernelTestCase
         $first = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['admin']]);
         $this->clock->sleep(3600);
 
-        $next = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['user']]);
+        $next = $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['bruger']]);
 
         $this->entityManager()->clear();
         self::assertSame($first->getId(), $next->getId());
         self::assertCount(1, $this->repository()->findAll());
         $stored = $this->repository()->findOneByEmail('foobar@example.com');
         self::assertNotNull($stored);
-        self::assertSame(['ROLE_USER'], $stored->getRoles());
+        self::assertSame(['ROLE_BRUGER'], $stored->getRoles());
         self::assertEquals($this->clock->now(), $stored->getLastLoginAt());
     }
 
@@ -89,7 +89,7 @@ final class OidcLoginTest extends KernelTestCase
      */
     public static function roleClaimProvider(): iterable
     {
-        yield 'Entra ID app roles' => [['admin', 'user'], ['ROLE_ADMIN', 'ROLE_USER']];
+        yield 'Entra ID app roles' => [['admin', 'bruger'], ['ROLE_ADMIN', 'ROLE_BRUGER']];
         yield 'upper case' => [['manage_driving_data'], ['ROLE_MANAGE_DRIVING_DATA']];
         yield 'a string' => ['Admin', ['ROLE_ADMIN']];
         yield 'duplicates are removed' => [['admin', 'ADMIN'], ['ROLE_ADMIN']];
@@ -99,12 +99,12 @@ final class OidcLoginTest extends KernelTestCase
 
     public function testALoginIsWrittenToTheAuthenticationLog(): void
     {
-        $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['admin', 'user']]);
+        $this->login->login(['upn' => 'foobar@example.com', 'roles' => ['admin', 'bruger']]);
 
         self::assertSame([[
             'INFO',
-            'user foobar@example.com logged in with roles [ROLE_ADMIN, ROLE_USER] at '.$this->clock->now()->format(\DATE_ATOM),
-            ['email' => 'foobar@example.com', 'roles' => ['ROLE_ADMIN', 'ROLE_USER']],
+            'user foobar@example.com logged in with roles [ROLE_ADMIN, ROLE_BRUGER] at '.$this->clock->now()->format(\DATE_ATOM),
+            ['email' => 'foobar@example.com', 'roles' => ['ROLE_ADMIN', 'ROLE_BRUGER']],
         ]], array_map(
             static fn (LogRecord $record): array => [$record->level->getName(), $record->message, $record->context],
             $this->log->getRecords(),

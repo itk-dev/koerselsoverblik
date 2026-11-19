@@ -40,6 +40,6 @@ final class RoleHierarchyTest extends KernelTestCase
     public static function appRoleProvider(): iterable
     {
         yield 'Superadministrator' => ['ROLE_ADMIN'];
-        yield 'Slutbruger' => ['ROLE_USER'];
+        yield 'Slutbruger' => ['ROLE_BRUGER'];
     }
 }

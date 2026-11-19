@@ -1,13 +1,13 @@
 security:
-    # The keys are the app roles of Entra ID: "admin" (Superadministrator) and "user" (Slutbruger)
-    # become ROLE_ADMIN and ROLE_USER at login. At this time, both give all permission roles.
+    # The keys are the app roles of Entra ID: "admin" (Superadministrator) and "bruger" (Slutbruger)
+    # become ROLE_ADMIN and ROLE_BRUGER at login. At this time, both give all permission roles.
     # ROLE_ADMIN is for features that only administrators will get. Controllers check only the
     # permission roles, the roles at the end of the hierarchy. See "Security" in
     # docs/architecture.md.
     role_hierarchy:
         ROLE_ADMIN:
-            - ROLE_USER
-        ROLE_USER:
+            - ROLE_BRUGER
+        ROLE_BRUGER:
             - ROLE_VIEW_OVERVIEW
             - ROLE_MANAGE_DRIVING_DATA
             - ROLE_EDIT_DAILY_COUNTS
