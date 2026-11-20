@@ -76,6 +76,15 @@ tasks:
         vars:
           CLI_ARGS: doctrine:migrations:migrate --no-interaction --allow-no-migration
 
+  idp:cache:clear:
+    desc: Clear the cached signing keys of the idp mock. Run it if a login fails with `"kid" invalid`
+    # The mock makes new signing keys when its container restarts. The OpenID Connect bundle keeps
+    # the old keys in cache.app.
+    cmds:
+      - task: console
+        vars:
+          CLI_ARGS: cache:pool:clear cache.app
+
   fixtures:extracts:
     desc: 'Write the test scenarios and 13 months of invented driving data, one file for each week, to var/fixtures/driving_data/ — `task fixtures:extracts -- --seed=2 --punctuality-start=80 --punctuality-trend=-1`'
     cmds:

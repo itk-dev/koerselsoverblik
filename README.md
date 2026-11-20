@@ -184,7 +184,7 @@ Every page requires a permission role. Anonymous users are sent to the identity 
    `"kid" invalid`, clear the cache:
 
    ```shell
-   task console -- cache:pool:clear cache.app
+   task idp:cache:clear
    ```
 
 Run `task` to list every available task.
