@@ -27,9 +27,9 @@ final readonly class SupplierTableCalculator
      */
     public function calculate(DateRangeDto $range, PunctualityReportDto $punctuality): array
     {
-        // A route with no trips and no counted runs gives no row, for example a route with only a
-        // run with no citizen in the car.
-        $totals = array_filter($this->totals->sumOfEachRoute($range), static fn (DayTotalsDto $route): bool => $route->trips > 0 || $route->runs > 0);
+        // A route with no trips and no counted runs adds only zeros. Its supplier has a row of
+        // zeros, as on the punctuality page, which has a row for each supplier of the same routes.
+        $totals = $this->totals->sumOfEachRoute($range);
 
         /** @var array<string, array{trips: int, cancelled: int, runs: int, soloRuns: int}> $bySupplier keyed by the supplier name, or '' for "Ukendt" */
         $bySupplier = [];

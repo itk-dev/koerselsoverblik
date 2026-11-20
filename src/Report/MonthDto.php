@@ -40,7 +40,7 @@ final readonly class MonthDto
      */
     public static function of(\DateTimeImmutable $date): self
     {
-        return new self($date->modify('first day of this month')->setTime(0, 0));
+        return new self($date->modify('midnight first day of this month'));
     }
 
     public function query(): string

@@ -29,7 +29,7 @@ final readonly class PeriodSelector
     {
         $filter = PeriodFilter::fromQuery($type, $date, $comparison, $supplier, $this->calendar->today(), $measures, $threshold);
         // One query gives the suppliers of the filter bar and checks the selected supplier.
-        $suppliers = $this->suppliers->findBy([], ['name' => 'ASC']);
+        $suppliers = $this->suppliers->findAllByName();
         $ids = array_map(static fn (Supplier $item): ?int => $item->getId(), $suppliers);
         if (null !== $filter->supplier && !\in_array($filter->supplier, $ids, true)) {
             $filter = $filter->withoutSupplier();

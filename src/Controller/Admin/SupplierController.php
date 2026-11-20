@@ -26,7 +26,7 @@ final class SupplierController extends AbstractController
     public function index(SupplierRepository $suppliers): Response
     {
         return $this->render('admin/supplier/index.html.twig', [
-            'suppliers' => $suppliers->findBy([], ['name' => 'ASC']),
+            'suppliers' => $suppliers->findAllByName(),
         ]);
     }
 

@@ -40,8 +40,6 @@
         CastInt: {
             ignoreSourceCodeByRegex: [
                 ".*\\(int\\) \\$first->format\\('n'\\);.*",
-                ".*intdiv\\(\\(int\\) \\$anchor->format\\('n'\\) - 1, \\$months\\).*",
-                '.*\\(int\\) \\$selectedRange->firstDate->diff\\(\\$selectedRange->lastDate\\)->days;.*',
             ],
         },
         CastString: {

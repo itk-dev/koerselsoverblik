@@ -147,7 +147,9 @@ final class RouteBuilderTest extends KernelTestCase
         $this->builder()->rebuild(self::range('2026-01-05'));
 
         self::assertSame(1, $flushes->count);
-        self::assertSame([], $this->entityManager->getUnitOfWork()->getIdentityMap()[RouteRun::class] ?? []);
+        // Count the managed runs. A failure message with the entities takes more than the
+        // Infection timeout.
+        self::assertCount(0, $this->entityManager->getUnitOfWork()->getIdentityMap()[RouteRun::class] ?? []);
     }
 
     private function builder(): RouteBuilder

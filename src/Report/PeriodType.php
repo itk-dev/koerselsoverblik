@@ -39,8 +39,8 @@ enum PeriodType: string
         if (null === $months) {
             return $date->modify('monday this week');
         }
-        $month = intdiv((int) $date->format('n') - 1, $months) * $months + 1;
+        $month = MonthDto::of($date);
 
-        return $date->setDate((int) $date->format('Y'), $month, 1);
+        return $date->setDate($month->year(), intdiv($month->number() - 1, $months) * $months + 1, 1);
     }
 }

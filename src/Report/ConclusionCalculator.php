@@ -46,11 +46,13 @@ final readonly class ConclusionCalculator
     public static function compare(ConclusionMeasure $measure, float $now, float $before, ConclusionThreshold $threshold): ConclusionTone
     {
         $change = round($now - $before, 1);
-        if (0.0 === $change || abs($change) < $threshold->points()) {
+        // The direction is -1, 0 or 1. A threshold of 0 does not make 0 a change.
+        $direction = $change <=> 0.0;
+        if (0 === $direction || abs($change) < $threshold->points()) {
             return ConclusionTone::Unchanged;
         }
 
-        return ($change > 0) === $measure->higherIsBetter() ? ConclusionTone::Better : ConclusionTone::Worse;
+        return (1 === $direction) === $measure->higherIsBetter() ? ConclusionTone::Better : ConclusionTone::Worse;
     }
 
     /**

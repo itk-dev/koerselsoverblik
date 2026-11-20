@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- [#151](https://github.com/itk-dev/koerselsoverblik/issues/151)
+  Escaped mutants in `src/Import` and `src/Report`: new tests kill the mutants. The code changes
+  where no test can see a mutant. The behaviour does not change.
+
 ## [0.1.0] - 2026-11-19
 
 - [#5](https://github.com/itk-dev/koerselsoverblik/issues/5)

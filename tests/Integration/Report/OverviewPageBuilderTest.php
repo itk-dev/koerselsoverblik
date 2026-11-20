@@ -40,6 +40,8 @@ final class OverviewPageBuilderTest extends KernelTestCase
         self::assertCount(12, $page->months);
         self::assertCount(12, $page->counts);
         self::assertSame('2025-03', $page->months[0]->query());
+        // A month with no data has no citizens.
+        self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $page->counts[0]);
         self::assertEquals(new TripCountDto(7, 5, 1, 1, 6), $page->counts[10]);
         self::assertEquals(new TripCountDto(0, 0, 0, 0, 0), $page->current());
         // The base scenario is on 5 January, the comparison month.
