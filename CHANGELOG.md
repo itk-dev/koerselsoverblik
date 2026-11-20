@@ -11,7 +11,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Show the stored driving data: the new tab "Kørselsdata" has the list of uploaded dates (moved
   from the upload page), the stop rows and rejected rows of a range with 100 rows on a page, and a
   page for each row with its row of the extract. The person id never shows. KnpPaginator pages
-  the lists.
+  the lists. The lists and the dates show the stop rows of an ignored sub-agreement, which the
+  figures do not count.
 
 - [#151](https://github.com/itk-dev/koerselsoverblik/issues/151)
   Escaped mutants in `src/Import` and `src/Report`: new tests kill the mutants. The code changes

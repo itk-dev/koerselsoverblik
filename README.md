@@ -342,7 +342,8 @@ The source extract is deleted after the import, so this page is the only way to 
 1. Go to **Administration → Upload driving data**, and select the tab **Kørselsdata**.
 2. Find the date in the list of uploaded dates. Use the previous and next month links.
 3. Select the date to see its rows. Select the number of stop rows or rejected rows to go
-   directly to that list.
+   directly to that list. The number of stop rows also shows how many of them are of an
+   ignored sub-agreement, for example "(XX ignoreret)".
 4. To see a longer range or one route, select **Vis rækkerne i en periode**. Enter the first and
    the last date, and optionally a route name. Then select **Vis rækkerne**.
 5. Select **Vis** on a row to see the row.
@@ -354,11 +355,16 @@ are the same.
 The page has two lists, each with 100 rows on a page:
 
 - **Stoprækker:** the date, the route, the run, the stop type, the status, the planned and the
-  actual time, the delay, the passengers after the stop and the upload.
+  actual time, the delay, the passengers after the stop and the upload. A route of an ignored
+  sub-agreement has the tag "Ignoreret", and the heading shows how many rows have the tag. The
+  figures do not count these rows, but the import stores them.
 - **Afviste rækker:** the date, the row number in the extract, the field, the reason and the
   upload. A rejected row has no route, so the route filter does not apply to this list. A
   rejected row with no date is in the list when the range includes the whole range of its upload,
   as for a [clear](#clear-driving-data).
+
+The ignored rows show the current setting of the sub-agreement. If you change the setting, the
+counts change, and no upload is necessary.
 
 The page of a row shows the fields that the import read, and the row of the extract column by
 column. On a rejected row, the column that caused the rejection is marked. An empty cell is not

@@ -823,11 +823,12 @@ The driving data page (`Admin\DrivingDataController::index`, the tab "Kørselsda
 lists the dates with stop rows or rejected rows, one month at a time (`?month=YYYY-MM`). A month
 that is not valid or that is after the current month gives the current month. The month links
 stop at the current month and at the month of the first `ImportBatch`. A clear keeps the batches,
-so no driving data is before that month. `UploadedDates` reads each list
-in four queries: the stop rows, the route runs and the rejected rows of each date, and the batches
-that overlap the month. Each date shows the counts and the last upload (file name, who, when). The
-last upload is the newest batch whose range has the date, because an import replaces all dates of
-its range. A batch with no user shows "konsol": a console upload, or an upload of a deleted user.
+so no driving data is before that month. `UploadedDates` reads each list in six queries: the stop
+rows, the stop rows of an ignored sub-agreement (two queries), the route runs and the rejected rows
+of each date, and the batches that overlap the month. Each date shows the counts and the last
+upload (file name, who, when). The last upload is the newest batch whose range has the date,
+because an import replaces all dates of its range. A batch with no user shows "konsol": a console
+upload, or an upload of a deleted user.
 
 Users with `ROLE_MANAGE_DRIVING_DATA` can delete the driving data for a date, for example after a
 wrong upload.
@@ -865,6 +866,9 @@ change. A failure partway leaves the data as it was.
   page parameter (`stopPage`, `rejectedPage`). A page number after the last page gives the last
   page. The query can neither sort nor filter the lists: a sort or filter parameter in the URL
   could otherwise test the value of a field that does not show, for example the person id.
+- The lists and the dates show the stop rows of an ignored sub-agreement. `CountedRouteFilter::applyIgnored()`
+  limits a count to these routes, with the ids from `RouteRepository::ignoredIds()`, as `apply()` does for the
+  counted routes. The list query joins the sub-agreement, so the tag of a row needs no extra query.
 - The page of a row shows the typed fields and the copy (`SourceRow`). `SourceRowView` makes the
   columns of the copy, with the mapping of the upload, and `SourceValueFormatter` gives the
   display text of each value. A cell value is not translated, so a `{` in a value cannot break

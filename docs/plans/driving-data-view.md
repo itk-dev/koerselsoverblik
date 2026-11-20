@@ -14,6 +14,8 @@ See the [rules for plans](README.md#rules).
 - The list of uploaded dates ([#81](https://github.com/itk-dev/koerselsoverblik/issues/81)) moves from the
   "Én fil" tab to the "Kørselsdata" tab, with the month stepper and the clear action. A date and its counts
   link to the rows of that date. The upload tabs only upload.
+- The stop rows of an ignored sub-agreement get the tag "Ignoreret". The heading of the stop rows and each
+  date of the dates list show how many of the stop rows have the tag. The figures do not count these rows.
 
 ### Routes
 
