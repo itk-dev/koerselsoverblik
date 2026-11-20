@@ -819,10 +819,11 @@ file for the same range, or clear the dates.
 
 ### Clearing driving data
 
-The upload page lists the dates with stop rows or rejected rows, one month at a time
-(`?month=YYYY-MM`). A month that is not valid or that is after the current month gives the current
-month. The month links stop at the current month and at the month of the first `ImportBatch`. A
-clear keeps the batches, so no driving data is before that month. `UploadedDates` reads each list
+The driving data page (`Admin\DrivingDataController::index`, the tab "Kørselsdata" of the upload)
+lists the dates with stop rows or rejected rows, one month at a time (`?month=YYYY-MM`). A month
+that is not valid or that is after the current month gives the current month. The month links
+stop at the current month and at the month of the first `ImportBatch`. A clear keeps the batches,
+so no driving data is before that month. `UploadedDates` reads each list
 in four queries: the stop rows, the route runs and the rejected rows of each date, and the batches
 that overlap the month. Each date shows the counts and the last upload (file name, who, when). The
 last upload is the newest batch whose range has the date, because an import replaces all dates of
@@ -848,6 +849,26 @@ wrong upload.
 
 The `ImportBatch` rows stay, so the history of the uploads stays complete. `DailyCount` does not
 change. A failure partway leaves the data as it was.
+
+### Showing the stored rows
+
+`Admin\DrivingDataController` (`ROLE_MANAGE_DRIVING_DATA`) shows the stored rows of a range.
+
+- The range form (`RowsQueryType`) is a GET form with no name, so a link can open a range, for
+  example `/admin/driving-data/rows?firstDate=2026-01-05&lastDate=2026-01-05`. The dates list links
+  to it. `ValidImportRange` checks the range with the same rules as the upload: the form and
+  `UploadDto` share the interface `DateRangeInput`.
+- `StopRowRepository::listInRange()` and `RejectedStopRowRepository::listInRange()` give the
+  queries of the lists. The rejected rows use the same condition of the range as the delete, so
+  the list and a clear cannot differ. The queries do not read the copies.
+- `DrivingDataRows` pages the queries with KnpPaginator, 100 rows on a page. Each list has its own
+  page parameter (`stopPage`, `rejectedPage`). A page number after the last page gives the last
+  page. The query can neither sort nor filter the lists: a sort or filter parameter in the URL
+  could otherwise test the value of a field that does not show, for example the person id.
+- The page of a row shows the typed fields and the copy (`SourceRow`). `SourceRowView` makes the
+  columns of the copy, with the mapping of the upload, and `SourceValueFormatter` gives the
+  display text of each value. A cell value is not translated, so a `{` in a value cannot break
+  the page.
 
 `app:driving-data:clear <FROM> <TO>` uses the same service to clear a date range. It shows the
 counts, and asks for confirmation. The range has a maximum of `APP_DRIVING_DATA_MAX_DAYS` days.
@@ -1231,7 +1252,7 @@ flowchart TD
   | Permission role | Grants |
   | --- | --- |
   | `ROLE_VIEW_OVERVIEW` | The overview |
-  | `ROLE_MANAGE_DRIVING_DATA` | The upload of driving data, and clearing the driving data for a date on the upload page |
+  | `ROLE_MANAGE_DRIVING_DATA` | The upload of driving data, the driving data page, and clearing the driving data for a date |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, sub-agreements and the supplier of each sub-agreement |
 
@@ -1263,7 +1284,12 @@ flowchart TD
 
 **Data protection:**
 
-- Forms use CSRF tokens.
+- Forms that change data use CSRF tokens. The range form of the driving data page changes no
+  data, so it is a GET form with no token.
+- No page shows the person id. The driving data page shows "(skjult)" in place of the person id,
+  also in the copy of a row and when a row id column is the person id column. The mapping of the
+  upload tells which column has the person id. If the mapping no longer exists, the page shows no
+  copy. The lists cannot be sorted or filtered by a URL parameter.
 - Uploads are limited to `.xlsx` and a maximum size. The file is kept in `var/`, outside the
   public folder, until the user confirms or cancels. The scheduled purge deletes a file that is
   older than one hour (see [Pipeline](#pipeline)). The extract can hold health data, so the file

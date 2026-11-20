@@ -48,21 +48,22 @@ See the [rules for plans](README.md#rules).
 
 ### Repositories
 
-- `StopRowRepository::findPageInRange()` and `countPageInRange()`, with the range, the optional route, the
-  offset and the limit. Use the private `inRange()`, then compare `route.sourceKey`. MariaDB compares text
-  with no regard to case. Join `Route` and `ImportBatch`. Do not join the copy: the relation is lazy. Order
-  by date, route, run, planned time and id.
-- `RejectedStopRowRepository::findPageInRange()`: use the private `inRange()`, so that the list and the
-  delete cannot differ. Order by date, upload, row number and id. `countInRange()` exists.
+- `StopRowRepository::listInRange()` gives the query of the stop rows, with the range and the optional
+  route. Use the private `inRange()`, then compare `route.sourceKey`. MariaDB compares text with no regard
+  to case. Join `Route` and `ImportBatch`. Do not join the copy: the relation is lazy. Order by date,
+  route, run, planned time and id.
+- `RejectedStopRowRepository::listInRange()`: use the private `inRange()`, so that the list and the
+  delete cannot differ. Order by date (no date last), upload, row number and id.
 - The route filter does not apply to the rejected rows. The page tells this.
 
 ### Pagination
 
-- `App\Admin\PageDto` (`readonly`): the items, the page number, the page size and the total. It gives the
-  number of pages, the offset, and if a previous and a next page exist. A page number after the last page
-  gives the last page. 0 rows gives page 1 of 1.
-- The page size is 100.
-- The previous and next links keep the query, so the range, the route and the page of the other list stay.
+- KnpPaginatorBundle pages the queries (`App\Admin\DrivingDataRows`). The page size is 100.
+- Each list has its own page parameter: `stopPage` and `rejectedPage`. The links keep the other query
+  values.
+- A page number after the last page gives the last page (`page_out_of_range: fix`).
+- A URL cannot sort or filter the lists. A filter on the person id would tell if a row has a value.
+- `templates/_pagination.html.twig` shows the pages with the stepper of the design system.
 
 ### Values of the copy
 
