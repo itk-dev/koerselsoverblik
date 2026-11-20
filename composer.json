@@ -20,6 +20,7 @@
         "itk-dev/itkaarhus-design-system": "^0.6.0",
         "itk-dev/openid-connect": "^5.1",
         "itk-dev/openid-connect-bundle": "^6.1",
+        "knplabs/knp-paginator-bundle": "^6.11",
         "nelmio/security-bundle": "^3.9",
         "openspout/openspout": "^5.13",
         "psr/clock": "^1.0",

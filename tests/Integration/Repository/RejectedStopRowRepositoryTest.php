@@ -97,6 +97,47 @@ final class RejectedStopRowRepositoryTest extends KernelTestCase
     }
 
     /**
+     * The driving data page lists the same rows as the delete deletes. The rows with a date come
+     * first, in the order of the date. The rows with no date come last.
+     */
+    public function testListInRangeGivesTheRowsThatTheDeleteDeletesInOrder(): void
+    {
+        $this->storeRows();
+
+        /** @var list<RejectedStopRow> $rows */
+        $rows = $this->repository()->listInRange(self::range())->getResult();
+
+        self::assertSame(
+            ['first', 'last', 'no date, smaller batch'],
+            array_map(static fn (RejectedStopRow $row): mixed => $row->getSourceRow()->getValues()['name'], $rows),
+        );
+    }
+
+    /**
+     * The rows of one date are in the order of the upload and the row number.
+     */
+    public function testListInRangeOrdersTheRowsOfADateByUploadAndRowNumber(): void
+    {
+        $entityManager = $this->entityManager();
+        $first = self::batch('2026-01-05', '2026-01-05');
+        $second = self::batch('2026-01-05', '2026-01-05');
+        $date = new \DateTimeImmutable('2026-01-05');
+        $entityManager->persist($first);
+        $entityManager->persist($second);
+        $entityManager->flush();
+        foreach ([[$second, 2], [$first, 9], [$first, 3]] as [$batch, $rowNumber]) {
+            $entityManager->persist(new RejectedStopRow(new RejectedRowDto($rowNumber, RejectionReason::Empty, null, $date, []), $batch));
+        }
+        $entityManager->flush();
+        $entityManager->clear();
+
+        /** @var list<RejectedStopRow> $rows */
+        $rows = $this->repository()->listInRange(self::range())->getResult();
+
+        self::assertSame([3, 9, 2], array_map(static fn (RejectedStopRow $row): int => $row->getRowNumber(), $rows));
+    }
+
+    /**
      * Stores a rejected row inside, on and outside the edges of the range, and a row with no date
      * of a batch in the range and of a batch that is larger than the range.
      *

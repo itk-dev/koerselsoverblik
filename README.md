@@ -68,8 +68,10 @@ The user interface is in Danish.
       corrected file are removed, and a date with no rows in the file becomes empty.
     - A preview shows the changes. The data changes only when you confirm.
     - The figures for the replaced dates are recalculated.
-    - The page lists the uploaded dates. You can clear the driving data for a date, for example
-      after a wrong upload.
+    - The tab "Kørselsdata" lists the uploaded dates. You can clear the driving data for a date,
+      for example after a wrong upload.
+    - The tab also shows the stored stop rows and rejected rows of a date range, and each row
+      with its row of the extract. The person id never shows.
     - Columns are read through an [import mapping](#import-mappings), so a changed column name,
       code or format needs no code change.
   - **Suppliers and sub-agreements:** the suppliers, and which supplier drives each
@@ -117,7 +119,7 @@ Each part of the application has its own permission role:
 | Role | Can |
 | --- | --- |
 | `ROLE_VIEW_OVERVIEW` | View the overview |
-| `ROLE_MANAGE_DRIVING_DATA` | Upload driving data, and clear the driving data for a date |
+| `ROLE_MANAGE_DRIVING_DATA` | Upload driving data, see the stored driving data, and clear the driving data for a date |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the supplier of each sub-agreement |
 
@@ -303,7 +305,8 @@ enter a range. Empty dates before the first or after the last date with rows do 
 
 ### Clear driving data
 
-1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`).
+1. Go to **Administration → Upload driving data**, and select the tab **Kørselsdata** (requires
+   `ROLE_MANAGE_DRIVING_DATA`).
 2. Find the date in the list of uploaded dates. Use the previous and next month links.
 3. Check the number of stop rows, route runs and rejected rows for the date.
 4. Select **Ryd**, and then **Ryd datoen**.
@@ -330,6 +333,47 @@ task console -- app:driving-data:clear <FROM_DATE> <TO_DATE>
 The command shows the counts, and asks for confirmation unless `--no-interaction` is given. The
 default answer is no. The dates have the format `YYYY-MM-DD`. The range has a maximum of
 `APP_DRIVING_DATA_MAX_DAYS` days.
+
+### Driving data
+
+The tab **Kørselsdata** shows the stored driving data. It requires `ROLE_MANAGE_DRIVING_DATA`.
+The source extract is deleted after the import, so this page is the only way to see the rows.
+
+1. Go to **Administration → Upload driving data**, and select the tab **Kørselsdata**.
+2. Find the date in the list of uploaded dates. Use the previous and next month links.
+3. Select the date to see its rows. Select the number of stop rows or rejected rows to go
+   directly to that list. The number of stop rows also shows how many of them are of an
+   ignored sub-agreement, for example "(XX ignoreret)".
+4. To see a longer range or one route, select **Vis rækkerne i en periode**. Enter the first and
+   the last date, and optionally a route name. Then select **Vis rækkerne**.
+5. Select **Vis** on a row to see the row.
+
+The range can be at most `APP_DRIVING_DATA_MAX_DAYS` days. With no range, the page shows
+yesterday. The route name must be the full name, for example `AB-CD-01`. Upper case and lower case
+are the same.
+
+The page has two lists, each with 100 rows on a page:
+
+- **Stoprækker:** the date, the route, the run, the stop type, the status, the planned and the
+  actual time, the delay, the passengers after the stop and the upload. A route of an ignored
+  sub-agreement has the tag "Ignoreret", and the heading shows how many rows have the tag. The
+  figures do not count these rows, but the import stores them.
+- **Afviste rækker:** the date, the row number in the extract, the field, the reason and the
+  upload. A rejected row has no route, so the route filter does not apply to this list. A
+  rejected row with no date is in the list when the range includes the whole range of its upload,
+  as for a [clear](#clear-driving-data).
+
+The ignored rows show the current setting of the sub-agreement. If you change the setting, the
+counts change, and no upload is necessary.
+
+The page of a row shows the fields that the import read, and the row of the extract column by
+column. On a rejected row, the column that caused the rejection is marked. An empty cell is not
+stored, so an empty column that caused the rejection shows as "(tom)".
+
+The person id never shows. It shows as "(skjult)", also in the row of the extract and when the
+row id is the person id column. The import mapping tells which column has the person id. If the
+mapping of the upload no longer exists, the page cannot find that column, and it does not show the
+row of the extract.
 
 ### Import mappings
 

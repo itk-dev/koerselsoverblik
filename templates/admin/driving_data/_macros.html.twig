@@ -1,0 +1,13 @@
+{#
+ # The tag of a route of an ignored sub-agreement. The figures do not count such a route. Only a
+ # user with the role of the suppliers can open the sub-agreement, so only such a user gets a link.
+ #}
+{% macro ignored_tag(sub_agreement) %}
+    {%- if sub_agreement.ignored -%}
+        {%- if is_granted('ROLE_MANAGE_SUPPLIERS') -%}
+            <a class="itkaarhus-tag itkaarhus-tag--neutral" href="{{ path('admin_sub_agreement_show', {id: sub_agreement.id}) }}" data-test="ignored">{{ 'sub_agreement.ignored_tag'|trans }}</a>
+        {%- else -%}
+            <span class="itkaarhus-tag itkaarhus-tag--neutral" data-test="ignored">{{ 'sub_agreement.ignored_tag'|trans }}</span>
+        {%- endif -%}
+    {%- endif -%}
+{% endmacro %}

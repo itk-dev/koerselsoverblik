@@ -17,7 +17,7 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Checks the uploaded dates on the upload page, and the clear of the driving data of a date.
+ * Checks the uploaded dates on the driving data page, and the clear of the driving data of a date.
  */
 final class UploadedDatesPageTest extends WebTestCase
 {
@@ -43,7 +43,7 @@ final class UploadedDatesPageTest extends WebTestCase
         $this->importBaseOn('2026-01-05', $this->user('admin@example.com'));
         $this->importBaseOn('2026-01-06');
 
-        $crawler = $this->client->request('GET', '/admin/import');
+        $crawler = $this->client->request('GET', '/admin/driving-data');
 
         self::assertResponseIsSuccessful();
         self::assertSame('januar 2026', $crawler->filter('[data-test="month"]')->text());
@@ -59,6 +59,41 @@ final class UploadedDatesPageTest extends WebTestCase
     }
 
     /**
+     * The date and the counts of the rows link to the rows of the date.
+     */
+    public function testDateLinksToTheRowsOfTheDate(): void
+    {
+        $this->loginAs($this->client, 'admin');
+        $this->importBaseOn('2026-01-05');
+
+        $crawler = $this->client->request('GET', '/admin/driving-data');
+
+        $rows = '/admin/driving-data/rows?firstDate=2026-01-05&lastDate=2026-01-05';
+        self::assertSame($rows, $crawler->filter('[data-test="date-link"]')->attr('href'));
+        self::assertSame($rows.'#stop-rows', $crawler->filter('[data-test="stop-rows-link"]')->attr('href'));
+        self::assertSame($rows.'#rejected-rows', $crawler->filter('[data-test="rejected-rows-link"]')->attr('href'));
+    }
+
+    /**
+     * The page is a tab next to the upload tabs. The upload page no longer lists the dates.
+     */
+    public function testPageIsATabOfTheUpload(): void
+    {
+        $this->loginAs($this->client, 'admin');
+        $this->importBaseOn('2026-01-05');
+
+        $crawler = $this->client->request('GET', '/admin/driving-data');
+
+        self::assertSame(['Én fil', 'Mange filer', 'Kørselsdata'], $crawler->filter('[data-test="upload-tabs"] a')->each(static fn (Crawler $tab): string => $tab->text()));
+        self::assertSame('Kørselsdata', $crawler->filter('[data-test="upload-tabs"] a[aria-current="page"]')->text());
+        self::assertSame('Upload kørselsdata', trim($crawler->filter('[data-test="menu-item"][aria-current="page"]')->text()));
+
+        $crawler = $this->client->request('GET', '/admin/import');
+
+        self::assertCount(0, $crawler->filter('[data-test="uploaded-dates"]'));
+    }
+
+    /**
      * The next month is after the current month, so it has no link. The batches stay after a
      * clear, so a month before the first batch has no driving data, and it has no link.
      */
@@ -67,12 +102,12 @@ final class UploadedDatesPageTest extends WebTestCase
         $this->loginAs($this->client, 'admin');
         $this->importBaseOn('2025-12-05');
 
-        $crawler = $this->client->request('GET', '/admin/import');
+        $crawler = $this->client->request('GET', '/admin/driving-data');
 
-        self::assertSame('/admin/import?month=2025-12', $crawler->filter('[data-test="previous-month"]')->attr('href'));
+        self::assertSame('/admin/driving-data?month=2025-12', $crawler->filter('[data-test="previous-month"]')->attr('href'));
         self::assertCount(0, $crawler->filter('[data-test="next-month"]'));
 
-        $crawler = $this->client->request('GET', '/admin/import?month=2025-12');
+        $crawler = $this->client->request('GET', '/admin/driving-data?month=2025-12');
 
         self::assertCount(0, $crawler->filter('[data-test="previous-month"]'));
     }
@@ -81,7 +116,7 @@ final class UploadedDatesPageTest extends WebTestCase
     {
         $this->loginAs($this->client, 'admin');
 
-        $crawler = $this->client->request('GET', '/admin/import');
+        $crawler = $this->client->request('GET', '/admin/driving-data');
 
         self::assertCount(0, $crawler->filter('[data-test="previous-month"]'));
     }
@@ -92,18 +127,18 @@ final class UploadedDatesPageTest extends WebTestCase
         $this->importBaseOn('2025-12-05');
         $this->importBaseOn('2026-01-05');
 
-        $crawler = $this->client->request('GET', '/admin/import?month=2025-12');
+        $crawler = $this->client->request('GET', '/admin/driving-data?month=2025-12');
 
         self::assertSame('december 2025', $crawler->filter('[data-test="month"]')->text());
         self::assertSame(['5. december 2025'], $crawler->filter('[data-test="uploaded-date"] td:first-child')->each(static fn (Crawler $cell): string => $cell->text()));
-        self::assertSame('/admin/import?month=2026-01', $crawler->filter('[data-test="next-month"]')->attr('href'));
+        self::assertSame('/admin/driving-data?month=2026-01', $crawler->filter('[data-test="next-month"]')->attr('href'));
     }
 
     public function testMonthWithNoDatesShowsAMessage(): void
     {
         $this->loginAs($this->client, 'admin');
 
-        $crawler = $this->client->request('GET', '/admin/import?month=2025-11');
+        $crawler = $this->client->request('GET', '/admin/driving-data?month=2025-11');
 
         self::assertSame('Ingen datoer med kørselsdata i måneden.', $crawler->filter('[data-test="no-dates"]')->text());
         self::assertCount(0, $crawler->filter('[data-test="uploaded-dates"]'));
@@ -117,7 +152,7 @@ final class UploadedDatesPageTest extends WebTestCase
         $this->loginAs($this->client, 'admin');
 
         foreach (['2026-13', 'foo', '2026-02'] as $month) {
-            $crawler = $this->client->request('GET', '/admin/import?month='.$month);
+            $crawler = $this->client->request('GET', '/admin/driving-data?month='.$month);
 
             self::assertResponseIsSuccessful();
             self::assertSame('januar 2026', $crawler->filter('[data-test="month"]')->text(), $month);
@@ -132,7 +167,7 @@ final class UploadedDatesPageTest extends WebTestCase
         $this->loginAs($this->client, 'admin');
         $this->importBaseOn('2026-01-05');
 
-        $crawler = $this->client->request('GET', '/admin/import');
+        $crawler = $this->client->request('GET', '/admin/driving-data');
 
         $button = $crawler->filter('[data-test="clear-open"]');
         self::assertSame('Ryd', $button->text());
@@ -155,11 +190,11 @@ final class UploadedDatesPageTest extends WebTestCase
         $this->importBaseOn('2025-12-05');
         $this->importBaseOn('2026-01-05');
         $this->importBaseOn('2026-01-06');
-        $crawler = $this->client->request('GET', '/admin/import');
+        $crawler = $this->client->request('GET', '/admin/driving-data');
 
         $this->client->submit($crawler->filter('#clear-2026-01-05 form')->form());
 
-        self::assertResponseRedirects('/admin/import?month=2026-01');
+        self::assertResponseRedirects('/admin/driving-data?month=2026-01');
         $crawler = $this->client->followRedirect();
         self::assertSame('Kørselsdata for 5. januar 2026 er ryddet. 14 stoprækker, 4 vognløb og 0 afviste rækker er slettet.', $crawler->filter('[data-test="flash-success"]')->text());
         self::assertSame(['6. januar 2026'], $crawler->filter('[data-test="uploaded-date"] td:first-child')->each(static fn (Crawler $cell): string => $cell->text()));
@@ -175,11 +210,11 @@ final class UploadedDatesPageTest extends WebTestCase
     {
         $this->loginAs($this->client, 'admin');
         $this->importBaseOn('2025-12-05');
-        $crawler = $this->client->request('GET', '/admin/import?month=2025-12');
+        $crawler = $this->client->request('GET', '/admin/driving-data?month=2025-12');
 
         $this->client->submit($crawler->filter('#clear-2025-12-05 form')->form());
 
-        self::assertResponseRedirects('/admin/import?month=2025-12');
+        self::assertResponseRedirects('/admin/driving-data?month=2025-12');
         self::assertSame(0, $this->stored('stop_row'));
     }
 
@@ -188,7 +223,7 @@ final class UploadedDatesPageTest extends WebTestCase
         $this->loginAs($this->client, 'admin');
         $this->importBaseOn('2026-01-05');
 
-        $this->client->request('POST', '/admin/import/clear/2026-01-05');
+        $this->client->request('POST', '/admin/driving-data/clear/2026-01-05');
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
         self::assertSame(14, $this->stored('stop_row'));
@@ -202,10 +237,10 @@ final class UploadedDatesPageTest extends WebTestCase
         $this->loginAs($this->client, 'admin');
         $this->importBaseOn('2026-01-05');
         $this->importBaseOn('2026-01-06');
-        $crawler = $this->client->request('GET', '/admin/import');
+        $crawler = $this->client->request('GET', '/admin/driving-data');
         $token = $crawler->filter('#clear-2026-01-05 input[name="_token"]')->attr('value');
 
-        $this->client->request('POST', '/admin/import/clear/2026-01-06', ['_token' => $token]);
+        $this->client->request('POST', '/admin/driving-data/clear/2026-01-06', ['_token' => $token]);
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
         self::assertSame(28, $this->stored('stop_row'));
@@ -216,7 +251,7 @@ final class UploadedDatesPageTest extends WebTestCase
         $this->loginAs($this->client, 'viewer');
         $this->importBaseOn('2026-01-05');
 
-        $this->client->request('POST', '/admin/import/clear/2026-01-05');
+        $this->client->request('POST', '/admin/driving-data/clear/2026-01-05');
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
         self::assertSame(14, $this->stored('stop_row'));
@@ -226,7 +261,7 @@ final class UploadedDatesPageTest extends WebTestCase
     {
         $this->loginAs($this->client, 'admin');
 
-        $this->client->request('POST', '/admin/import/clear/2026-02-30');
+        $this->client->request('POST', '/admin/driving-data/clear/2026-02-30');
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }

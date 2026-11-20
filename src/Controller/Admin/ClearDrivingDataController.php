@@ -19,7 +19,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Translation\TranslatableMessage;
 
 /**
- * Clears the driving data of one date from the list of uploaded dates on the upload page. See
+ * Clears the driving data of one date from the list of uploaded dates on the driving data page. See
  * "Clear driving data" in the README.
  */
 #[IsGranted('ROLE_MANAGE_DRIVING_DATA')]
@@ -35,7 +35,7 @@ final class ClearDrivingDataController extends AbstractController
     ) {
     }
 
-    #[Route('/admin/import/clear/{date}', name: 'admin_import_clear', requirements: ['date' => '\d{4}-\d{2}-\d{2}'], methods: ['POST'])]
+    #[Route('/admin/driving-data/clear/{date}', name: 'admin_driving_data_clear', requirements: ['date' => '\d{4}-\d{2}-\d{2}'], methods: ['POST'])]
     public function __invoke(
         Request $request,
         string $date,
@@ -63,6 +63,6 @@ final class ClearDrivingDataController extends AbstractController
             'rejectedRows' => $cleared->rejectedRows,
         ]));
 
-        return $this->redirectToRoute('admin_import', ['month' => MonthDto::of($day)->query()]);
+        return $this->redirectToRoute('admin_driving_data', ['month' => MonthDto::of($day)->query()]);
     }
 }

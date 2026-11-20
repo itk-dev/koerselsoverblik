@@ -12,7 +12,7 @@ use App\Repository\RouteRunRepository;
 use App\Repository\StopRowRepository;
 
 /**
- * Gives the dates with driving data of a month, for the upload page.
+ * Gives the dates with driving data of a month, for the driving data page.
  */
 final readonly class UploadedDates
 {
@@ -26,7 +26,7 @@ final readonly class UploadedDates
 
     /**
      * Gives the dates of the month with stop rows or rejected rows, in the order of the date. A
-     * date with only rejected rows is in the list, so that the page can clear its rows. Four
+     * date with only rejected rows is in the list, so that the page can clear its rows. Six
      * queries give all the dates.
      *
      * @return list<UploadedDateDto>
@@ -35,6 +35,7 @@ final readonly class UploadedDates
     {
         $range = $month->range();
         $stopRows = $this->stopRows->countByDate($range);
+        $ignoredStopRows = $this->stopRows->countIgnoredByDate($range);
         $routeRuns = $this->routeRuns->countByDate($range);
         $rejectedRows = $this->rejectedRows->countByDate($range);
         $batches = $this->batches->findOverlapping($range);
@@ -45,6 +46,7 @@ final readonly class UploadedDates
             $dates[] = new UploadedDateDto(
                 new \DateTimeImmutable($date),
                 $stopRows[$date] ?? 0,
+                $ignoredStopRows[$date] ?? 0,
                 $routeRuns[$date] ?? 0,
                 $rejectedRows[$date] ?? 0,
                 self::lastUpload($batches, $date),

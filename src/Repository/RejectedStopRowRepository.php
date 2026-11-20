@@ -10,6 +10,7 @@ use App\Import\ImportRangeDto;
 use App\Report\DateRangeDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -47,6 +48,27 @@ class RejectedStopRowRepository extends ServiceEntityRepository
         $builder = $this->createQueryBuilder('rejected')->select('COUNT(rejected.id)');
 
         return (int) $this->inRange($builder, $range)->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Gives the query of the rejected rows in the range for the driving data page, which pages it.
+     * The rows are the rows that the delete deletes. The rows with no date come last. The query
+     * does not read the copies.
+     *
+     * @return Query<null, RejectedStopRow>
+     */
+    public function listInRange(ImportRangeDto $range): Query
+    {
+        return $this->inRange($this->createQueryBuilder('rejected'), $range)
+            // The condition of the range has a subquery with the alias "batch".
+            ->addSelect('upload', 'CASE WHEN rejected.serviceDate IS NULL THEN 1 ELSE 0 END AS HIDDEN noDate')
+            ->join('rejected.importBatch', 'upload')
+            ->orderBy('noDate')
+            ->addOrderBy('rejected.serviceDate')
+            ->addOrderBy('upload.id')
+            ->addOrderBy('rejected.rowNumber')
+            ->addOrderBy('rejected.id')
+            ->getQuery();
     }
 
     /**

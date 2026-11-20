@@ -45,6 +45,27 @@ final class RouteRepositoryTest extends KernelTestCase
         self::assertSame(self::ids($ofB), $this->repository()->countedIds($supplierB->getId()));
     }
 
+    /**
+     * The driving data page shows the stop rows that the figures do not count.
+     */
+    public function testIgnoredIds(): void
+    {
+        $this->route('A', null);
+        $ignored = $this->route('I', null, ignored: true);
+        $secondIgnored = $this->route('J', null, ignored: true);
+        $this->entityManager->flush();
+
+        self::assertSame(self::ids($ignored, $secondIgnored), $this->sorted($this->repository()->ignoredIds()));
+    }
+
+    public function testNoIgnoredSubAgreementHasNoIgnoredIds(): void
+    {
+        $this->route('A', null);
+        $this->entityManager->flush();
+
+        self::assertSame([], $this->repository()->ignoredIds());
+    }
+
     public function testSupplierWithNoRoutesHasNoCountedIds(): void
     {
         $supplier = $this->supplier('Vognmand A');

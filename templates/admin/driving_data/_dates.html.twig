@@ -7,14 +7,14 @@
             {% if isFirstMonth %}
                 <span class="stepper__btn is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
             {% else %}
-                <a class="stepper__btn" href="{{ path('admin_import', {month: month.previous.query}) }}" aria-label="{{ 'upload.dates.previous'|trans }}" data-test="previous-month">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+                <a class="stepper__btn" href="{{ path('admin_driving_data', {month: month.previous.query}) }}" aria-label="{{ 'upload.dates.previous'|trans }}" data-test="previous-month">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
             {% endif %}
             {# The year is text, so that ICU does not format it as a number. #}
             <span class="stepper__label" data-test="month">{{ 'period.month'|trans({month: ('month.long.' ~ month.number)|trans, year: month.year ~ ''}) }}</span>
             {% if isCurrentMonth %}
                 <span class="stepper__btn is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
             {% else %}
-                <a class="stepper__btn" href="{{ path('admin_import', {month: month.next.query}) }}" aria-label="{{ 'upload.dates.next'|trans }}" data-test="next-month">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+                <a class="stepper__btn" href="{{ path('admin_driving_data', {month: month.next.query}) }}" aria-label="{{ 'upload.dates.next'|trans }}" data-test="next-month">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
             {% endif %}
         </div>
     </div>
@@ -41,11 +41,15 @@
                         {% set key = date.date|date('Y-m-d') %}
                         {% set label = upload_macros.date(date.date) %}
                         {% set upload = date.lastUpload %}
+                        {% set rows = path('admin_driving_data_rows', {firstDate: key, lastDate: key}) %}
                         <tr data-test="uploaded-date">
-                            <td>{{ label }}</td>
-                            <td class="num">{{ date.stopRows|number_format }}</td>
+                            <td><a href="{{ rows }}" data-test="date-link">{{ label }}</a></td>
+                            <td class="num">
+                                <a href="{{ rows }}#stop-rows" data-test="stop-rows-link">{{ date.stopRows|number_format }}</a>
+                                {%- if date.ignoredStopRows > 0 %} <span data-test="ignored-stop-rows">{{ 'driving_data.ignored_short'|trans({count: date.ignoredStopRows}) }}</span>{% endif -%}
+                            </td>
                             <td class="num">{{ date.routeRuns|number_format }}</td>
-                            <td class="num">{{ date.rejectedRows|number_format }}</td>
+                            <td class="num"><a href="{{ rows }}#rejected-rows" data-test="rejected-rows-link">{{ date.rejectedRows|number_format }}</a></td>
                             {% if upload %}
                                 <td>{{ upload.fileName }}</td>
                                 {# A console upload has no user. So has an upload of a deleted user. #}
@@ -60,7 +64,7 @@
                                     <h3 id="clear-{{ key }}-title" class="clear-pop__title" data-test="clear-title">{{ 'upload.clear.title'|trans({date: label}) }}</h3>
                                     {# The counts are from the load of the page. The message after the clear has the deleted counts. #}
                                     <p data-test="clear-text">{{ 'upload.clear.text'|trans({stopRows: date.stopRows, routeRuns: date.routeRuns, rejectedRows: date.rejectedRows}) }}</p>
-                                    <form class="clear-pop__buttons" method="post" action="{{ path('admin_import_clear', {date: key}) }}">
+                                    <form class="clear-pop__buttons" method="post" action="{{ path('admin_driving_data_clear', {date: key}) }}">
                                         <input type="hidden" name="_token" value="{{ csrf_token('clear-' ~ key) }}">
                                         <button type="button" class="itkaarhus-btn itkaarhus-btn--secondary itkaarhus-btn--sm" popovertarget="clear-{{ key }}" popovertargetaction="hide" autofocus data-test="clear-cancel">{{ 'common.cancel'|trans }}</button>
                                         <button type="submit" class="itkaarhus-btn itkaarhus-btn--danger itkaarhus-btn--sm" data-test="clear-confirm">{{ 'upload.clear.confirm'|trans }}</button>

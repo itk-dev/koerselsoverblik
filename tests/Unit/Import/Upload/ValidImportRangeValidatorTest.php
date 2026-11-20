@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Import\Upload;
 
+use App\Admin\RowsQueryDto;
 use App\Import\Upload\UploadDto;
 use App\Import\Upload\ValidImportRange;
 use App\Import\Upload\ValidImportRangeValidator;
@@ -77,6 +78,22 @@ final class ValidImportRangeValidatorTest extends ConstraintValidatorTestCase
         $this->validate($upload, new ValidImportRange());
 
         $this->assertNoViolation();
+    }
+
+    /**
+     * The range form of the driving data page has the same rules.
+     */
+    public function testRangeOfTheDrivingDataPageIsChecked(): void
+    {
+        $query = new RowsQueryDto();
+        $query->firstDate = new \DateTimeImmutable('2026-01-05');
+        $query->lastDate = new \DateTimeImmutable('2026-01-04');
+
+        $this->validate($query, new ValidImportRange());
+
+        $this->buildViolation('upload.end_before_start')
+            ->atPath('property.path.lastDate')
+            ->assertRaised();
     }
 
     public function testValueThatIsNotAnUploadHasNoViolation(): void
