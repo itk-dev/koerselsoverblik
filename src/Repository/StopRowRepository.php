@@ -64,20 +64,43 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function listInRange(ImportRangeDto $range, ?string $route): Query
     {
-        $builder = $this->inRange($this->createQueryBuilder('row'), $range)
-            ->addSelect('route', 'batch')
-            ->join('row.route', 'route')
+        return $this->withRoute($this->inRange($this->createQueryBuilder('row'), $range), $route)
+            // The page marks the rows of an ignored sub-agreement.
+            ->addSelect('route', 'subAgreement', 'batch')
+            ->join('route.subAgreement', 'subAgreement')
             ->join('row.importBatch', 'batch')
             ->orderBy('row.serviceDate')
             ->addOrderBy('route.sourceKey')
             ->addOrderBy('row.run')
             ->addOrderBy('row.plannedTime')
-            ->addOrderBy('row.id');
+            ->addOrderBy('row.id')
+            ->getQuery();
+    }
+
+    /**
+     * Gives the number of stop rows in the range that the figures do not count, because the
+     * sub-agreement of the route is ignored.
+     *
+     * @param string|null $route the route name, or null for all routes
+     */
+    public function countIgnoredInRange(ImportRangeDto $range, ?string $route): int
+    {
+        $builder = $this->withRoute($this->inRange($this->createQueryBuilder('row')->select('COUNT(row.id)'), $range), $route);
+
+        return (int) $this->countedRoutes->applyIgnored($builder, 'row.route')->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Joins the route, and limits the query to one route if a route name is given.
+     */
+    private function withRoute(QueryBuilder $builder, ?string $route): QueryBuilder
+    {
+        $builder->join('row.route', 'route');
         if (null !== $route) {
             $builder->andWhere('route.sourceKey = :route')->setParameter('route', $route);
         }
 
-        return $builder->getQuery();
+        return $builder;
     }
 
     /**
@@ -118,13 +141,36 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function countByDate(DateRangeDto $range): array
     {
-        $builder = $this->createQueryBuilder('row')
+        return self::countsByDate($this->countByDateBuilder($range));
+    }
+
+    /**
+     * Gives the number of stop rows of each date in the range that the figures do not count,
+     * because the sub-agreement of the route is ignored. A date with no such rows is not in the
+     * result.
+     *
+     * @return array<string, int> the counts in the order of the date, keyed by the date as Y-m-d
+     */
+    public function countIgnoredByDate(DateRangeDto $range): array
+    {
+        return self::countsByDate($this->countedRoutes->applyIgnored($this->countByDateBuilder($range), 'row.route'));
+    }
+
+    private function countByDateBuilder(DateRangeDto $range): QueryBuilder
+    {
+        return $this->inRange($this->createQueryBuilder('row'), $range)
             ->select('row.serviceDate AS serviceDate', 'COUNT(row.id) AS count')
             ->groupBy('row.serviceDate')
             ->orderBy('row.serviceDate');
+    }
 
+    /**
+     * @return array<string, int> the counts in the order of the date, keyed by the date as Y-m-d
+     */
+    private static function countsByDate(QueryBuilder $builder): array
+    {
         /** @var list<array{serviceDate: \DateTimeImmutable, count: int|string}> $rows */
-        $rows = $this->inRange($builder, $range)->getQuery()->getArrayResult();
+        $rows = $builder->getQuery()->getArrayResult();
         $counts = [];
         foreach ($rows as $row) {
             // MariaDB can give a count as text.

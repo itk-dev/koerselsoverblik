@@ -395,6 +395,9 @@ driving_data:
   stop_rows: Stoprækker
   rejected_rows: Afviste rækker
   rejected_intro: Filteret på vognløb gælder ikke de afviste rækker, fordi en afvist række ikke har et vognløb.
+  ignored_count: "heraf {count, number} ignoreret"
+  ignored_short: "({count, number} ignoreret)"
+  ignored_note: Tallene tæller ikke vognløbene i en ignoreret delaftale. Importen gemmer stadig rækkerne, så de står i listen.
   no_stop_rows: Ingen stoprækker i perioden.
   no_rejected_rows: Ingen afviste rækker i perioden.
   delay: Forsinkelse

@@ -1,5 +1,6 @@
 {% extends 'base.html.twig' %}
 {% import 'admin/import/_macros.html.twig' as upload_macros %}
+{% import 'admin/driving_data/_macros.html.twig' as driving_data_macros %}
 
 {% block title %}{{ 'driving_data.stop_row_title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
 
@@ -15,6 +16,8 @@
         <dd>{{ upload_macros.date(row.serviceDate) }}</dd>
         <dt>{{ 'upload.field.route'|trans }}</dt>
         <dd>{{ row.route.sourceKey }}</dd>
+        <dt>{{ 'sub_agreement.reference'|trans }}</dt>
+        <dd data-test="sub-agreement">{{ row.route.subAgreement.reference }} {{ driving_data_macros.ignored_tag(row.route.subAgreement) }}</dd>
         <dt>{{ 'upload.field.run'|trans }}</dt>
         <dd>{{ row.run }}</dd>
         <dt>{{ 'upload.field.stop_type'|trans }}</dt>

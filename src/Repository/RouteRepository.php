@@ -45,6 +45,26 @@ class RouteRepository extends ServiceEntityRepository
     }
 
     /**
+     * Gives the ids of the routes that the figures do not count: the routes of an ignored
+     * sub-agreement. The import still stores their rows.
+     *
+     * @return list<int>
+     */
+    public function ignoredIds(): array
+    {
+        /** @var list<int|string> $ids */
+        $ids = $this->createQueryBuilder('route')
+            ->select('route.id')
+            ->join('route.subAgreement', 'subAgreement')
+            ->where('subAgreement.ignored = true')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        // MariaDB can give an id as text.
+        return array_map(static fn (int|string $id): int => (int) $id, $ids);
+    }
+
+    /**
      * Gives the routes with their sub-agreement and its supplier, in one query.
      *
      * @param list<int> $ids

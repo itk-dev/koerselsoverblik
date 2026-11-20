@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'admin/driving_data/_macros.html.twig' as driving_data_macros %}
 
 {% block title %}{{ 'driving_data.rows_title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
 
@@ -21,7 +22,13 @@
 
     {% if stopRows is not null %}
         <section id="stop-rows" class="driving-data-list" aria-labelledby="stop-rows-title" data-test="stop-rows">
-            <h2 id="stop-rows-title">{{ 'driving_data.stop_rows'|trans }} (<span data-test="stop-rows-total">{{ stopRows.totalItemCount|number_format }}</span>)</h2>
+            <h2 id="stop-rows-title">
+                {{ 'driving_data.stop_rows'|trans }} (<span data-test="stop-rows-total">{{ stopRows.totalItemCount|number_format }}</span>
+                {%- if ignoredStopRows > 0 %}, <span data-test="ignored-stop-rows">{{ 'driving_data.ignored_count'|trans({count: ignoredStopRows}) }}</span>{% endif %})
+            </h2>
+            {% if ignoredStopRows > 0 %}
+                <p data-test="ignored-note">{{ 'driving_data.ignored_note'|trans }}</p>
+            {% endif %}
             {% if stopRows.totalItemCount == 0 %}
                 <p>{{ 'driving_data.no_stop_rows'|trans }}</p>
             {% else %}
@@ -46,7 +53,7 @@
                             {% for row in stopRows %}
                                 <tr data-test="stop-row">
                                     <td>{{ row.serviceDate|date('d-m-Y') }}</td>
-                                    <td>{{ row.route.sourceKey }}</td>
+                                    <td>{{ row.route.sourceKey }} {{ driving_data_macros.ignored_tag(row.route.subAgreement) }}</td>
                                     <td class="num">{{ row.run }}</td>
                                     <td>{{ ('driving_data.stop_type.' ~ row.stopType.value)|trans }}</td>
                                     <td>{{ ('driving_data.stop_status.' ~ row.stopStatus.value)|trans }}</td>

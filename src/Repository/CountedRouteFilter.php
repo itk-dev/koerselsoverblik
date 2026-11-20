@@ -41,4 +41,22 @@ final readonly class CountedRouteFilter
             ->andWhere(\sprintf('IDENTITY(%s) IN (:countedRoutes)', $route))
             ->setParameter('countedRoutes', $ids, ArrayParameterType::INTEGER);
     }
+
+    /**
+     * Adds the opposite condition: the routes of an ignored sub-agreement. The driving data page
+     * shows how many stored rows the figures leave out. Call it after where().
+     *
+     * @param string $route the path to the route of a row, for example "row.route"
+     */
+    public function applyIgnored(QueryBuilder $builder, string $route): QueryBuilder
+    {
+        $ids = $this->routes->ignoredIds();
+        if ([] === $ids) {
+            return $builder->andWhere('1 = 0');
+        }
+
+        return $builder
+            ->andWhere(\sprintf('IDENTITY(%s) IN (:ignoredRoutes)', $route))
+            ->setParameter('ignoredRoutes', $ids, ArrayParameterType::INTEGER);
+    }
 }

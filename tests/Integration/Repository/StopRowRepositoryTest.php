@@ -100,16 +100,65 @@ final class StopRowRepositoryTest extends KernelTestCase
     }
 
     /**
+     * The route B-01 is of an ignored sub-agreement. The count has the rows in the range only.
+     */
+    public function testCountIgnoredInRangeCountsTheRowsOfIgnoredRoutes(): void
+    {
+        $this->storeListRows();
+
+        self::assertSame(1, $this->repository()->countIgnoredInRange(self::range(), null));
+        self::assertSame(1, $this->repository()->countIgnoredInRange(self::range(), 'b-01'));
+        self::assertSame(0, $this->repository()->countIgnoredInRange(self::range(), 'A-01'));
+    }
+
+    public function testCountIgnoredByDateGivesTheDatesWithRowsOfIgnoredRoutes(): void
+    {
+        $this->storeListRows();
+
+        $counts = $this->repository()->countIgnoredByDate(DateRangeDto::create(new \DateTimeImmutable('2026-01-04'), new \DateTimeImmutable('2026-01-07')));
+
+        self::assertSame(['2026-01-05' => 1], $counts);
+    }
+
+    /**
+     * With no ignored sub-agreement, the counts are zero.
+     */
+    public function testNoIgnoredRoutesCountsZero(): void
+    {
+        $this->storeRows();
+
+        self::assertSame(0, $this->repository()->countIgnoredInRange(self::range(), null));
+        self::assertSame([], $this->repository()->countIgnoredByDate(DateRangeDto::create(new \DateTimeImmutable('2026-01-04'), new \DateTimeImmutable('2026-01-07'))));
+    }
+
+    /**
+     * The list reads the sub-agreement of each row in the same query, so the page can mark the
+     * rows of an ignored sub-agreement.
+     */
+    public function testListInRangeReadsTheSubAgreement(): void
+    {
+        $this->storeListRows();
+
+        /** @var list<StopRow> $rows */
+        $rows = $this->repository()->listInRange(self::range(), 'B-01')->getResult();
+
+        self::assertTrue($rows[0]->getRoute()->getSubAgreement()->isIgnored());
+        self::assertFalse($this->entityManager()->getUnitOfWork()->isUninitializedObject($rows[0]->getRoute()->getSubAgreement()));
+    }
+
+    /**
      * Stores rows of two routes on the dates of the range and on the day before and after it. The
-     * rows are stored in another order than the order of the list.
+     * rows are stored in another order than the order of the list. B-01 is of an ignored
+     * sub-agreement.
      */
     private function storeListRows(): void
     {
         $entityManager = $this->entityManager();
         $batch = new ImportBatch('default', 'extract.xlsx', null, new \DateTimeImmutable(), ImportRangeDto::create(new \DateTimeImmutable('2026-01-04'), new \DateTimeImmutable('2026-01-07'), 31));
         $subAgreement = new SubAgreement()->setReference('A');
-        $routes = ['A-01' => new Route('A-01', $subAgreement), 'B-01' => new Route('B-01', $subAgreement)];
-        $entities = [$batch, $subAgreement, ...array_values($routes)];
+        $ignored = new SubAgreement()->setReference('B')->setIgnored(true);
+        $routes = ['A-01' => new Route('A-01', $subAgreement), 'B-01' => new Route('B-01', $ignored)];
+        $entities = [$batch, $subAgreement, $ignored, ...array_values($routes)];
         foreach ([
             ['2026-01-06', 'A-01', 1, 7],
             ['2026-01-05', 'B-01', 1, 6],

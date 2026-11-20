@@ -95,6 +95,7 @@ final class DrivingDataController extends AbstractController
         return $this->render('admin/driving_data/rows.html.twig', [
             'form' => $form,
             'stopRows' => null === $range ? null : $this->rows->stopRows($range, $query->route, $stopPage ?? 1),
+            'ignoredStopRows' => null === $range ? 0 : $this->rows->ignoredStopRows($range, $query->route),
             'rejectedRows' => null === $range ? null : $this->rows->rejectedRows($range, $rejectedPage ?? 1),
         ]);
     }

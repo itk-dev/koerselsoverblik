@@ -113,6 +113,77 @@ final class DrivingDataPageTest extends WebTestCase
         self::assertSame('r-02', $crawler->filter('#route')->attr('value'));
     }
 
+    /**
+     * The figures do not count the routes of an ignored sub-agreement. The list shows how many of
+     * its rows these are, and marks each of them.
+     */
+    public function testRowsOfAnIgnoredSubAgreementAreCountedAndMarked(): void
+    {
+        $this->loginAs($this->client, 'admin');
+        $this->importBaseOn('2026-01-05');
+        $this->ignore('BOOKED');
+
+        $crawler = $this->client->request('GET', '/admin/driving-data/rows?firstDate=2026-01-05&lastDate=2026-01-05');
+
+        $marked = $crawler->filter('[data-test="stop-row"]')->reduce(static fn (Crawler $row): bool => $row->filter('[data-test="ignored"]')->count() > 0);
+        $routes = $marked->each(static fn (Crawler $row): string => $row->filter('td:nth-child(2)')->text());
+        self::assertNotSame([], $routes);
+        self::assertSame(['BOOKED Ignoreret'], array_values(array_unique($routes)));
+        self::assertSame('heraf '.\count($routes).' ignoreret', $crawler->filter('[data-test="ignored-stop-rows"]')->text());
+        self::assertCount(1, $crawler->filter('[data-test="ignored-note"]'));
+        self::assertStringStartsWith('/admin/sub-agreements/', (string) $marked->filter('[data-test="ignored"]')->attr('href'));
+
+        $crawler = $this->client->request('GET', '/admin/driving-data/rows?firstDate=2026-01-05&lastDate=2026-01-05&route=R-01');
+
+        self::assertCount(0, $crawler->filter('[data-test="ignored-stop-rows"]'));
+        self::assertCount(0, $crawler->filter('[data-test="ignored-note"]'));
+    }
+
+    public function testDatesListShowsTheIgnoredStopRows(): void
+    {
+        $this->loginAs($this->client, 'admin');
+        $this->importBaseOn('2026-01-05');
+        $this->importBaseOn('2026-01-04');
+        $this->ignore('BOOKED');
+        $crawler = $this->client->request('GET', '/admin/driving-data/rows?firstDate=2026-01-05&lastDate=2026-01-05&route=BOOKED');
+        $booked = $crawler->filter('[data-test="stop-row"]')->count();
+
+        $crawler = $this->client->request('GET', '/admin/driving-data');
+
+        self::assertSame(
+            ['('.$booked.' ignoreret)', '('.$booked.' ignoreret)'],
+            $crawler->filter('[data-test="ignored-stop-rows"]')->each(static fn (Crawler $cell): string => $cell->text()),
+        );
+    }
+
+    public function testStopRowPageShowsTheIgnoredSubAgreement(): void
+    {
+        $this->loginAs($this->client, 'admin');
+        $this->importBaseOn('2026-01-05');
+        $this->ignore('BOOKED');
+        $crawler = $this->client->request('GET', '/admin/driving-data/rows?firstDate=2026-01-05&lastDate=2026-01-05&route=BOOKED');
+
+        $crawler = $this->client->click($crawler->filter('[data-test="stop-row-link"]')->link());
+
+        self::assertSame('BOOKED Ignoreret', $crawler->filter('[data-test="sub-agreement"]')->text());
+    }
+
+    /**
+     * Only a user with the role of the suppliers can open the sub-agreement, so only such a user
+     * gets a link.
+     */
+    public function testIgnoredTagHasNoLinkWithoutTheRoleOfTheSuppliers(): void
+    {
+        $this->loginAs($this->client, 'driving_data');
+        $this->importBaseOn('2026-01-05');
+        $this->ignore('BOOKED');
+
+        $crawler = $this->client->request('GET', '/admin/driving-data/rows?firstDate=2026-01-05&lastDate=2026-01-05&route=BOOKED');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('span', $crawler->filter('[data-test="ignored"]')->first()->nodeName());
+    }
+
     public function testRangeThatIsTooLongShowsAnErrorAndNoLists(): void
     {
         $this->loginAs($this->client, 'admin');
@@ -348,6 +419,19 @@ final class DrivingDataPageTest extends WebTestCase
         $day = new \DateTimeImmutable($date);
         $importer->import($path, ImportRangeDto::create($day, $day, 7), $provider->default(), null, $name.'.xlsx');
         unlink($path);
+    }
+
+    /**
+     * Ignores the sub-agreement in the figures, as the page of the sub-agreements does.
+     */
+    private function ignore(string $reference): void
+    {
+        $entityManager = $this->entityManager();
+        $subAgreement = $entityManager->getRepository(SubAgreement::class)->findOneBy(['reference' => $reference]);
+        self::assertInstanceOf(SubAgreement::class, $subAgreement);
+        $subAgreement->setIgnored(true);
+        $entityManager->flush();
+        $entityManager->clear();
     }
 
     private function firstStopRow(): StopRow

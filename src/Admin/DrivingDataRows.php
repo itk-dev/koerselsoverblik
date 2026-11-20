@@ -40,6 +40,15 @@ final readonly class DrivingDataRows
     }
 
     /**
+     * Gives the number of stop rows in the list that the figures do not count, because the
+     * sub-agreement of the route is ignored.
+     */
+    public function ignoredStopRows(ImportRangeDto $range, ?string $route): int
+    {
+        return $this->stopRows->countIgnoredInRange($range, $route);
+    }
+
+    /**
      * @return PaginationInterface<int, RejectedStopRow>
      */
     public function rejectedRows(ImportRangeDto $range, int $page): PaginationInterface
