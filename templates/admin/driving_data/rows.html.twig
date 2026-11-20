@@ -1,0 +1,104 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'driving_data.rows_title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'driving_data.rows_title'|trans }}</h1>
+    {{ include('admin/import/_tabs.html.twig', {current: 'data'}) }}
+
+    {{ form_start(form, {attr: {class: 'admin-form', 'data-test': 'rows-form'}}) }}
+        {{ form_errors(form) }}
+        <div class="admin-form__row">
+            {{ form_row(form.firstDate) }}
+            {{ form_row(form.lastDate) }}
+            {{ form_row(form.route) }}
+        </div>
+        <div class="admin-form__buttons">
+            <button class="itkaarhus-btn itkaarhus-btn--primary" type="submit">{{ 'driving_data.show'|trans }}</button>
+            <a class="itkaarhus-btn itkaarhus-btn--secondary" href="{{ path('admin_driving_data') }}">{{ 'driving_data.dates_link'|trans }}</a>
+        </div>
+    {{ form_end(form) }}
+
+    {% if stopRows is not null %}
+        <section id="stop-rows" class="driving-data-list" aria-labelledby="stop-rows-title" data-test="stop-rows">
+            <h2 id="stop-rows-title">{{ 'driving_data.stop_rows'|trans }} (<span data-test="stop-rows-total">{{ stopRows.totalItemCount|number_format }}</span>)</h2>
+            {% if stopRows.totalItemCount == 0 %}
+                <p>{{ 'driving_data.no_stop_rows'|trans }}</p>
+            {% else %}
+                <div class="table-wrap">
+                    <table class="itkaarhus-table data-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">{{ 'upload.field.service_date'|trans }}</th>
+                                <th scope="col">{{ 'upload.field.route'|trans }}</th>
+                                <th scope="col" class="num">{{ 'upload.field.run'|trans }}</th>
+                                <th scope="col">{{ 'upload.field.stop_type'|trans }}</th>
+                                <th scope="col">{{ 'upload.field.stop_status'|trans }}</th>
+                                <th scope="col">{{ 'upload.field.planned_time'|trans }}</th>
+                                <th scope="col">{{ 'upload.field.actual_time'|trans }}</th>
+                                <th scope="col" class="num">{{ 'driving_data.delay'|trans }}</th>
+                                <th scope="col" class="num">{{ 'upload.field.passengers_after'|trans }}</th>
+                                <th scope="col">{{ 'driving_data.upload'|trans }}</th>
+                                <th scope="col"><span class="sr-only">{{ 'common.actions'|trans }}</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in stopRows %}
+                                <tr data-test="stop-row">
+                                    <td>{{ row.serviceDate|date('d-m-Y') }}</td>
+                                    <td>{{ row.route.sourceKey }}</td>
+                                    <td class="num">{{ row.run }}</td>
+                                    <td>{{ ('driving_data.stop_type.' ~ row.stopType.value)|trans }}</td>
+                                    <td>{{ ('driving_data.stop_status.' ~ row.stopStatus.value)|trans }}</td>
+                                    <td>{{ row.plannedTime|date('H:i') }}</td>
+                                    <td>{{ row.actualTime ? row.actualTime|date('H:i') : '–' }}</td>
+                                    <td class="num">{{ row.delaySeconds is null ? '–' : 'driving_data.minutes'|trans({minutes: (row.delaySeconds / 60)|round}) }}</td>
+                                    <td class="num">{{ row.passengersAfter ?? '–' }}</td>
+                                    <td>{{ row.importBatch.fileName }}</td>
+                                    <td class="actions"><a href="{{ path('admin_driving_data_stop_row', {id: row.id}) }}" data-test="stop-row-link">{{ 'driving_data.view'|trans }}</a></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {{ knp_pagination_render(stopRows) }}
+            {% endif %}
+        </section>
+
+        <section id="rejected-rows" class="driving-data-list" aria-labelledby="rejected-rows-title" data-test="rejected-rows">
+            <h2 id="rejected-rows-title">{{ 'driving_data.rejected_rows'|trans }} (<span data-test="rejected-rows-total">{{ rejectedRows.totalItemCount|number_format }}</span>)</h2>
+            <p>{{ 'driving_data.rejected_intro'|trans }}</p>
+            {% if rejectedRows.totalItemCount == 0 %}
+                <p>{{ 'driving_data.no_rejected_rows'|trans }}</p>
+            {% else %}
+                <div class="table-wrap">
+                    <table class="itkaarhus-table data-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">{{ 'upload.field.service_date'|trans }}</th>
+                                <th scope="col" class="num">{{ 'driving_data.row_number'|trans }}</th>
+                                <th scope="col">{{ 'upload.group.field'|trans }}</th>
+                                <th scope="col">{{ 'upload.group.reason'|trans }}</th>
+                                <th scope="col">{{ 'driving_data.upload'|trans }}</th>
+                                <th scope="col"><span class="sr-only">{{ 'common.actions'|trans }}</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rejectedRows %}
+                                <tr data-test="rejected-row">
+                                    <td>{{ row.serviceDate ? row.serviceDate|date('d-m-Y') : 'driving_data.no_date'|trans }}</td>
+                                    <td class="num">{{ row.rowNumber }}</td>
+                                    <td>{{ ('upload.field.' ~ (row.field.value ?? 'row_id'))|trans }}</td>
+                                    <td>{{ ('upload.reason.' ~ row.reason.value)|trans }}</td>
+                                    <td>{{ row.importBatch.fileName }}</td>
+                                    <td class="actions"><a href="{{ path('admin_driving_data_rejected_row', {id: row.id}) }}" data-test="rejected-row-link">{{ 'driving_data.view'|trans }}</a></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {{ knp_pagination_render(rejectedRows) }}
+            {% endif %}
+        </section>
+    {% endif %}
+{% endblock %}

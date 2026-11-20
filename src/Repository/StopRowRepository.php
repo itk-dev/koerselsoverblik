@@ -14,6 +14,7 @@ use App\Report\DayTotalsDto;
 use App\Report\PunctualityCountDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -51,6 +52,32 @@ class StopRowRepository extends ServiceEntityRepository
         $builder = $this->createQueryBuilder('row')->select('COUNT(row.id)');
 
         return (int) $this->inRange($builder, $range)->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Gives the query of the stop rows in the range for the driving data page, which pages it.
+     * The query does not read the copies.
+     *
+     * @param string|null $route the route name, or null for all routes. MariaDB compares it with no regard to case
+     *
+     * @return Query<null, StopRow>
+     */
+    public function listInRange(ImportRangeDto $range, ?string $route): Query
+    {
+        $builder = $this->inRange($this->createQueryBuilder('row'), $range)
+            ->addSelect('route', 'batch')
+            ->join('row.route', 'route')
+            ->join('row.importBatch', 'batch')
+            ->orderBy('row.serviceDate')
+            ->addOrderBy('route.sourceKey')
+            ->addOrderBy('row.run')
+            ->addOrderBy('row.plannedTime')
+            ->addOrderBy('row.id');
+        if (null !== $route) {
+            $builder->andWhere('route.sourceKey = :route')->setParameter('route', $route);
+        }
+
+        return $builder->getQuery();
     }
 
     /**

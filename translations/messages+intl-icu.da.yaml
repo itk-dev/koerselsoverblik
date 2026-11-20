@@ -296,6 +296,7 @@ upload:
   tabs:
     single: Én fil
     bulk: Mange filer
+    data: Kørselsdata
   bulk:
     title: Upload mange filer
     intro: Træk udtrækkene hen på feltet, eller vælg dem. Hver fil kontrolleres for sig. Kontrollér listen, og importér derefter filerne.
@@ -367,6 +368,7 @@ upload:
     planned_time: Planlagt tid
     actual_time: Faktisk tid
     planned_solo: Planlagt solo
+    location_name: Lokation
   reason:
     empty: Feltet er tomt.
     error_value: Cellen har en fejlværdi.
@@ -381,6 +383,49 @@ upload:
     outside_range: Datoen er uden for perioden.
     invalid_row_id: Række-id er tomt eller ugyldigt.
     duplicate_row_id: En tidligere række har det samme række-id.
+
+driving_data:
+  title: Kørselsdata
+  intro: Datoerne med kørselsdata i måneden. Klik på en dato for at se stoprækkerne og de afviste rækker.
+  rows_link: Vis rækkerne i en periode
+  rows_title: Stoprækker og afviste rækker
+  route: Vognløb
+  show: Vis rækkerne
+  dates_link: Uploadede datoer
+  stop_rows: Stoprækker
+  rejected_rows: Afviste rækker
+  rejected_intro: Filteret på vognløb gælder ikke de afviste rækker, fordi en afvist række ikke har et vognløb.
+  no_stop_rows: Ingen stoprækker i perioden.
+  no_rejected_rows: Ingen afviste rækker i perioden.
+  delay: Forsinkelse
+  minutes: "{minutes, number} min."
+  upload: Upload
+  view: Vis
+  row_number: Rækkenummer
+  no_date: Ingen dato
+  stop_row_title: Stoprække
+  rejected_row_title: Afvist række
+  back: Tilbage til listen
+  copy: Rækken i udtrækket
+  column: Kolonne
+  value: Værdi
+  cause: (årsagen til afvisningen)
+  hidden: (skjult)
+  empty: (tom)
+  mapping_missing: Opsætningen "{name}" findes ikke længere. Siden kan derfor ikke vise rækken fra udtrækket.
+  stop_type:
+    pickup: Afhentning
+    drop_off: Afsætning
+  stop_status:
+    completed: Gennemført
+    cancelled: Aflyst
+    pending: Uden registrering
+
+pagination:
+  label: Sider
+  previous: Forrige side
+  next: Næste side
+  page: "Side {page} af {pages}"
 
 chart:
   period: Periode
@@ -397,6 +442,8 @@ common:
   delete: Slet
   save: Gem
   cancel: Annullér
+  "yes": Ja
+  "no": Nej
 
 admin:
   title: Leverandører og delaftaler

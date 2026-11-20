@@ -399,7 +399,20 @@ body {
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
-/* The uploaded dates of one month, below the upload form. */
+/* The lists of the driving data page. */
+.driving-data-list {
+  margin-top: var(--itkaarhus-space-7);
+}
+.driving-data-list .pager {
+  margin-top: var(--itkaarhus-space-4);
+}
+/* The column of the copy that caused the rejection of the row. */
+.source-row__cause th,
+.source-row__cause td {
+  background: var(--itkaarhus-warning-100);
+  font-weight: 600;
+}
+/* The uploaded dates of one month, on the driving data page. */
 .uploaded-dates {
   margin-top: var(--itkaarhus-space-7);
 }

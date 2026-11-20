@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'driving_data.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'driving_data.title'|trans }}</h1>
+    {{ include('admin/import/_tabs.html.twig', {current: 'data'}) }}
+
+    <p>{{ 'driving_data.intro'|trans }}</p>
+    <p><a class="itkaarhus-btn itkaarhus-btn--secondary" href="{{ path('admin_driving_data_rows') }}" data-test="rows-link">{{ 'driving_data.rows_link'|trans }}</a></p>
+
+    {{ include('admin/driving_data/_dates.html.twig') }}
+{% endblock %}

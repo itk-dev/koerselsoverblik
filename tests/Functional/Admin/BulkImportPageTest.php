@@ -64,7 +64,7 @@ final class BulkImportPageTest extends WebTestCase
     }
 
     /**
-     * Tabs switch between the upload of one file and the bulk upload.
+     * Tabs switch between the upload of one file, the bulk upload and the driving data.
      */
     #[DataProvider('tabsProvider')]
     public function testTabsSwitchBetweenTheUploadPages(string $url, string $current): void
@@ -74,7 +74,7 @@ final class BulkImportPageTest extends WebTestCase
         $crawler = $this->client->request('GET', $url);
 
         $tabs = $crawler->filter('[data-test="upload-tabs"] a');
-        self::assertSame(['/admin/import', '/admin/import/bulk'], $tabs->each(static fn (Crawler $tab): ?string => $tab->attr('href')));
+        self::assertSame(['/admin/import', '/admin/import/bulk', '/admin/driving-data'], $tabs->each(static fn (Crawler $tab): ?string => $tab->attr('href')));
         self::assertSame([$current], $crawler->filter('[data-test="upload-tabs"] a[aria-current="page"]')->each(static fn (Crawler $tab): string => $tab->text()));
     }
 
@@ -85,6 +85,8 @@ final class BulkImportPageTest extends WebTestCase
     {
         yield 'one file' => ['/admin/import', 'Én fil'];
         yield 'many files' => ['/admin/import/bulk', 'Mange filer'];
+        yield 'driving data' => ['/admin/driving-data', 'Kørselsdata'];
+        yield 'rows of the driving data' => ['/admin/driving-data/rows', 'Kørselsdata'];
     }
 
     public function testThePageHasADropAreaForManyFiles(): void

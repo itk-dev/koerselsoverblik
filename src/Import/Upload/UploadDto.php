@@ -13,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * the constraints of the file, because the size limit is a setting.
  */
 #[ValidImportRange]
-final class UploadDto
+final class UploadDto implements DateRangeInput
 {
     #[Assert\NotNull(message: 'upload.file_required')]
     public ?UploadedFile $file = null;

@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+{% import 'admin/import/_macros.html.twig' as upload_macros %}
+
+{% block title %}{{ 'driving_data.stop_row_title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    {% set day = row.serviceDate|date('Y-m-d') %}
+    <h1>{{ 'driving_data.stop_row_title'|trans }}</h1>
+    {{ include('admin/import/_tabs.html.twig', {current: 'data'}) }}
+
+    <p><a href="{{ path('admin_driving_data_rows', {firstDate: day, lastDate: day}) }}" data-test="back">{{ 'driving_data.back'|trans }}</a></p>
+
+    <dl class="upload-summary">
+        <dt>{{ 'upload.field.service_date'|trans }}</dt>
+        <dd>{{ upload_macros.date(row.serviceDate) }}</dd>
+        <dt>{{ 'upload.field.route'|trans }}</dt>
+        <dd>{{ row.route.sourceKey }}</dd>
+        <dt>{{ 'upload.field.run'|trans }}</dt>
+        <dd>{{ row.run }}</dd>
+        <dt>{{ 'upload.field.stop_type'|trans }}</dt>
+        <dd>{{ ('driving_data.stop_type.' ~ row.stopType.value)|trans }}</dd>
+        <dt>{{ 'upload.field.stop_status'|trans }}</dt>
+        <dd>{{ ('driving_data.stop_status.' ~ row.stopStatus.value)|trans }}</dd>
+        <dt>{{ 'upload.field.planned_time'|trans }}</dt>
+        <dd>{{ row.plannedTime|date('d-m-Y H:i') }}</dd>
+        <dt>{{ 'upload.field.actual_time'|trans }}</dt>
+        <dd>{{ row.actualTime ? row.actualTime|date('d-m-Y H:i') : '–' }}</dd>
+        <dt>{{ 'driving_data.delay'|trans }}</dt>
+        <dd>{{ row.delaySeconds is null ? '–' : 'driving_data.minutes'|trans({minutes: (row.delaySeconds / 60)|round}) }}</dd>
+        <dt>{{ 'upload.field.passengers_after'|trans }}</dt>
+        <dd>{{ row.passengersAfter ?? '–' }}</dd>
+        <dt>{{ 'upload.field.next_distance_km'|trans }}</dt>
+        <dd>{{ row.nextDistanceKm is null ? '–' : row.nextDistanceKm|number_format(1) }}</dd>
+        <dt>{{ 'upload.field.next_duration_min'|trans }}</dt>
+        <dd>{{ row.nextDurationMin is null ? '–' : row.nextDurationMin|number_format(1) }}</dd>
+        <dt>{{ 'upload.field.planned_solo'|trans }}</dt>
+        <dd>{{ row.plannedSolo is null ? '–' : (row.plannedSolo ? 'common.yes' : 'common.no')|trans }}</dd>
+        <dt>{{ 'upload.field.location_name'|trans }}</dt>
+        <dd>{{ row.locationName ?? '–' }}</dd>
+        <dt>{{ 'upload.field.row_id'|trans }}</dt>
+        <dd>{{ row.rowKey is null ? '–' : (copy.rowKeyHidden ? 'driving_data.hidden'|trans : row.rowKey) }}</dd>
+        <dt>{{ 'upload.field.person_id'|trans }}</dt>
+        <dd data-test="person-id">{{ 'driving_data.hidden'|trans }}</dd>
+        {{ include('admin/driving_data/_upload.html.twig', {batch: row.importBatch}) }}
+    </dl>
+
+    {{ include('admin/driving_data/_source_row.html.twig', {mappingName: row.mappingName}) }}
+{% endblock %}
