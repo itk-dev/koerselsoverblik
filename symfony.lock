@@ -65,6 +65,9 @@
     "itk-dev/openid-connect-bundle": {
         "version": "6.1.0"
     },
+    "knplabs/knp-paginator-bundle": {
+        "version": "v6.11.0"
+    },
     "nelmio/security-bundle": {
         "version": "3.9",
         "recipe": {
