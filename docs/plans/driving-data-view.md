@@ -6,98 +6,111 @@ See the [rules for plans](README.md#rules).
 
 ## Implementation
 
-### Needs
+### Changes to the issue text
 
-- The detail pages read the copy with `getSourceRow()->getValues()`. #95 moved the copy to
-  `SourceRow`. A list query must not read the copies: the relation is lazy, so do not join it.
-- #81 shows the uploaded dates. When both features are merged, link each date of #81 to this page
-  with the date as the first and the last date.
+- "Kørselsdata" is a third tab in `templates/admin/import/_tabs.html.twig`: "Én fil", "Mange filer" and
+  "Kørselsdata". The issue was written before the upload got two tabs
+  ([#153](https://github.com/itk-dev/koerselsoverblik/issues/153)).
+- The list of uploaded dates ([#81](https://github.com/itk-dev/koerselsoverblik/issues/81)) moves from the
+  "Én fil" tab to the "Kørselsdata" tab, with the month stepper and the clear action. A date and its counts
+  link to the rows of that date. The upload tabs only upload.
 
-### Query and form
+### Routes
 
-- `App\Form\DrivingDataQueryType`, with `method: GET` and `csrf_protection: false`. It binds to
-  `App\Admin\DrivingDataQueryDto`: `firstDate`, `lastDate`, `route` (optional) and `page`
-  (default 1). `ImportType` uses the Form component for the same date fields, so the errors and
-  the Danish labels come from the same place.
-- Make the range with `ImportRangeDto::create()` and the value of `app.driving_data_max_days`.
-  Show `InvalidImportRangeException` as a form error, as the upload form does.
-- With no query, the form has the date of yesterday as the first and the last date, from
-  `ClockInterface` (ADR 005).
+`App\Controller\Admin\DrivingDataController`, with `#[IsGranted('ROLE_MANAGE_DRIVING_DATA')]` and
+`#[Route('/admin/driving-data')]`:
+
+| Action | Route | Path | Content |
+| --- | --- | --- | --- |
+| `index` | `admin_driving_data` | – | The month stepper and the uploaded dates |
+| `rows` | `admin_driving_data_rows` | `/rows` | The range form, the stop rows and the rejected rows |
+| `stopRow` | `admin_driving_data_stop_row` | `/stop-row/{id}` | One stop row and its copy |
+| `rejectedRow` | `admin_driving_data_rejected_row` | `/rejected-row/{id}` | One rejected row and its copy |
+
+- `index` gets the code of the dates list from `ImportController::index`: `MonthDto::fromQuery()`,
+  `LocalCalendar::today()`, `ImportBatchRepository::firstDate()` and `UploadedDates::forMonth()`. Remove
+  these dependencies and the `month` parameter from `ImportController`.
+- `ClearDrivingDataController` gets the path `/admin/driving-data/clear/{date}` and the name
+  `admin_driving_data_clear`. It redirects to `admin_driving_data` with the month.
+- `MainMenu`: the item `menu.upload` gets the active prefixes `admin_import` and `admin_driving_data`.
+
+### Range form
+
+- `App\Admin\RowsQueryDto` binds to the form: `firstDate`, `lastDate` and `route` (optional).
+  `range(int $maxDays)` gives the `ImportRangeDto`, as `UploadDto::range()` does.
+- `App\Form\RowsQueryType`, with `method: GET`, `csrf_protection: false` and the block prefix `''`. Then the
+  query is `?firstDate=…&lastDate=…&route=…`. The date fields are as in `ImportType`.
+- The controller reads the page numbers `stopPage` and `rejectedPage` with `MapQueryParameter`.
+- `ValidImportRangeValidator` accepts the interface `App\Import\DateRangeInput`, with the interface
+  properties `firstDate` and `lastDate`. `UploadDto` and `RowsQueryDto` implement it.
+- With no query, the first and the last date are yesterday (`LocalCalendar::today()`). With a range that is
+  not valid, the page shows the form errors and no lists.
 
 ### Repositories
 
-- `StopRowRepository::findPageInRange()`, with the range, the optional route, the page and the
-  page size: a DQL query with a join to `Route` and `ImportBatch`. Order by date, route name, run, planned
-  time and id. The route filter compares the route name. MariaDB compares text with no regard to
-  case, as the replacer expects.
-- `StopRowRepository::countInRange()` exists. Add the optional route to it, or add a second count
-  method.
-- `RejectedStopRowRepository` (from [#126](https://github.com/itk-dev/koerselsoverblik/issues/126)): add
-  `findPageInRange()` and `countInRange()`. Use its private condition method of the range, also
-  for the rows with no date. Then the delete and the list cannot differ. Order by date, upload,
-  row number and id.
-- The list queries do not read the copy. Doctrine does not load it (see the needed feature).
+- `StopRowRepository::findPageInRange()` and `countPageInRange()`, with the range, the optional route, the
+  offset and the limit. Use the private `inRange()`, then compare `route.sourceKey`. MariaDB compares text
+  with no regard to case. Join `Route` and `ImportBatch`. Do not join the copy: the relation is lazy. Order
+  by date, route, run, planned time and id.
+- `RejectedStopRowRepository::findPageInRange()`: use the private `inRange()`, so that the list and the
+  delete cannot differ. Order by date, upload, row number and id. `countInRange()` exists.
+- The route filter does not apply to the rejected rows. The page tells this.
 
 ### Pagination
 
-- No pagination package is installed. Add a `readonly` `App\Admin\PageDto` with the items, the
-  page number, the page size and the total. It calculates the number of pages, and if a previous
-  and a next page exist. A unit test covers the edge cases: 0 rows, exactly one full page, and a
-  page number after the last page.
-- The page size is 100. A page number after the last page gives the last page.
-- The previous and next links keep the query, with `path()` and the current query values.
+- `App\Admin\PageDto` (`readonly`): the items, the page number, the page size and the total. It gives the
+  number of pages, the offset, and if a previous and a next page exist. A page number after the last page
+  gives the last page. 0 rows gives page 1 of 1.
+- The page size is 100.
+- The previous and next links keep the query, so the range, the route and the page of the other list stay.
 
 ### Values of the copy
 
-- `App\Admin\SourceValueFormatter`: a plain PHP class that gives the display text of one
-  `SourceValue`. A duration shows as hours and minutes (`25:10`), a date and time as `d-m-Y H:i`
-  in the PHP default time zone, an Excel error as its code, and a boolean as "Ja" or "Nej".
-- `App\Admin\SourceRowView`: makes the list of columns and display texts for one copy. It gets the
-  mapping of the row from `MappingProvider` (`StopRow::getMappingName()`, or the mapping name of
-  the upload of a rejected row). It replaces the value of the person id column with "(skjult)".
-  If the mapping no longer exists, the view cannot find the person id column. Then it shows no
-  copy, and the page tells that the mapping is missing.
+- `App\Admin\SourceValueFormatter` gives the display text of one value of the type `SourceValue`
+  (`SourceCells`): a duration as hours and minutes (`25:10`), a date and time as `d-m-Y H:i` with no time
+  zone conversion, an Excel error as its code, and a boolean as "Ja" or "Nej".
+- `App\Admin\SourceRowView` makes the columns and the display texts of one copy, with the mapping from
+  `MappingProvider`:
+  - The person id column gets "(skjult)", also when it is a row id column.
+  - On a rejected row, it marks the column of the field that caused the rejection. With no field, it marks
+    the row id columns.
+  - If the mapping no longer exists, the view cannot find the person id column. Then it shows no copy, and
+    the page tells that the mapping is missing.
+- The mapping name of a stop row is `StopRow::getMappingName()`. The mapping name of a rejected row is the
+  mapping name of its upload.
 
-### Controller and templates
+### Templates
 
-- `App\Controller\Admin\DrivingDataController`, with `#[IsGranted('ROLE_MANAGE_DRIVING_DATA')]`
-  and `#[Route('/admin/driving-data')]`:
-  - `index` (`admin_driving_data`): the form and the two lists.
-  - `stopRow` (`admin_driving_data_stop_row`, `/stop-row/{id}`): one stop row.
-  - `rejectedRow` (`admin_driving_data_rejected_row`, `/rejected-row/{id}`): one rejected row.
-- Templates in `templates/admin/driving_data/`. A tabs partial `_tabs.html.twig` for "Upload" and
-  "Kørselsdata", used also by `templates/admin/import/index.html.twig`. The existing
-  `admin/_tabs.html.twig` belongs to `ROLE_MANAGE_SUPPLIERS`, so do not add the tab there.
-- Translate the reasons and the fields with the keys of the result page, `upload.reason.*` and
-  `upload.field.*`.
-- Use `data-test` attributes on the lists, the rows, the pagination and the hidden values.
+- `templates/admin/driving_data/`: `index`, `_dates` (moved from `admin/import/`), `rows`, `_pagination`,
+  `stop_row`, `rejected_row` and `_source_row`.
+- Translate the reasons and the fields with `upload.reason.*` and `upload.field.*`. Add the missing
+  `upload.field.location_name`.
+- Use `data-test` attributes on the lists, the rows, the pagination, the hidden values and the cause.
+- The cause row gets a CSS class, not a `style` attribute.
 
 ### Tests
 
 Write each test first.
 
-- **Unit:** `PageDto`, `SourceValueFormatter`, `SourceRowView` (the person id and the row key are
-  hidden, a missing mapping), and `DrivingDataQueryDto`.
-- **Integration:** the four repository methods, with rows inside and outside the range, a rejected
-  row with no date of a smaller and of a larger upload, the route filter in another case, and the
-  order.
-- **Functional:** 403 without the role; the lists of an imported fixture; a range that is too long;
-  page 2; the detail page of a stop row and of a rejected row; no person id in the response.
+- **Unit:** `PageDto`, `SourceValueFormatter`, `SourceRowView` and the validator with both DTOs.
+- **Integration:** the repository methods, with rows inside and outside the range, a rejected row with no
+  date of a smaller and of a larger upload, the route filter in another case, the order, and the offset.
+- **Functional:** 403 without the role; the dates list on the new tab; the clear action on the new route;
+  the default range; the lists of an imported fixture; a range that is too long; page 2; the detail pages;
+  no person id and no `style` attribute in the responses.
 
 ### Documentation
 
-- README: a section "Driving data" under the upload, with the page, the filter and the hidden
-  person id.
-- `docs/architecture.md`: the new controller and the rule for the person id in the security
-  section.
+- README: a section "Driving data" with the tab, the dates list, the filter, the detail pages and the
+  hidden person id. Change "Clear driving data" to the new place of the dates list.
+- `docs/architecture.md`: the new controller, and the rule for the person id on the screen.
 - `CHANGELOG.md`: an entry under "Unreleased".
 
 ## Open points
 
-- The detail page of a rejected row shows the cell values of the extract on the screen. ADR 004
-  and ADR 006 allow these values in the database for the same users. The logs and the validate
-  command must still not show them. Ask the data protection adviser if the screen needs a
-  separate role.
-- The route filter does not apply to the rejected rows, because a rejected row has no route. A
-  filter on the route name in the copy needs a JSON query. Add it only if the transport office
-  asks for it.
+- The detail page of a rejected row shows the cell values of the extract on the screen. ADR 004 and ADR 006
+  allow these values in the database for the same users. The logs and the validate command must still not
+  show them. Ask the data protection adviser if the screen needs a separate role.
+- The route filter does not apply to the rejected rows, because a rejected row has no route. A filter on
+  the route name in the copy needs a JSON query. Add it only if the transport office asks for it.
+- The menu item "Upload" now also opens "Kørselsdata". A new label is a separate change.

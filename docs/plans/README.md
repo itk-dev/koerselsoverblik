@@ -70,7 +70,7 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the imported stop rows and rejected rows of a date range | Ready | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – | [driving-data-view.md](driving-data-view.md) |
+| Show the imported stop rows and rejected rows of a date range | In progress | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – | [driving-data-view.md](driving-data-view.md) |
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
