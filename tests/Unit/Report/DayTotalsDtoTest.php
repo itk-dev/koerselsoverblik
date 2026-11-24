@@ -117,8 +117,30 @@ final class DayTotalsDtoTest extends TestCase
      */
     public function testCancelledLatePercentIsOfAllTrips(): void
     {
-        self::assertSame(12.5, DayTotalsDto::fromRow(['trips' => 8, 'cancelledLateTrips' => 1], ['trips', 'cancelledLateTrips'])->cancelledLatePercent());
+        self::assertSame(12.5, self::cancellations(trips: 8, cancelled: 2, inTime: 1, late: 1)->cancelledLatePercent());
+        self::assertSame(0.0, self::cancellations(trips: 8, cancelled: 2, inTime: 2, late: 0)->cancelledLatePercent());
+        self::assertSame(0.0, self::cancellations(trips: 8, cancelled: 0, inTime: 0, late: 0)->cancelledLatePercent());
         self::assertNull(DayTotalsDto::empty()->cancelledLatePercent());
+    }
+
+    /**
+     * Cancelled trips with no code are not "not late". If no cancelled trip has a code, the share
+     * is not known, so it is null, not 0.
+     */
+    public function testCancelledLatePercentWithNoCodeIsNotKnown(): void
+    {
+        self::assertNull(self::cancellations(trips: 8, cancelled: 2, inTime: 0, late: 0)->cancelledLatePercent());
+        self::assertNull(self::cancellations(trips: 8, cancelled: 2, inTime: 0, late: 0)->cancelledLateOfCancelledPercent());
+    }
+
+    /**
+     * The note of the tile gives the late cancellations as a share of the cancelled trips. No
+     * cancelled trips gives no value.
+     */
+    public function testCancelledLateOfCancelledPercent(): void
+    {
+        self::assertSame(25.0, self::cancellations(trips: 8, cancelled: 4, inTime: 3, late: 1)->cancelledLateOfCancelledPercent());
+        self::assertNull(self::cancellations(trips: 8, cancelled: 0, inTime: 0, late: 0)->cancelledLateOfCancelledPercent());
     }
 
     /**
@@ -130,6 +152,13 @@ final class DayTotalsDtoTest extends TestCase
 
         self::assertSame(2, DayTotalsDto::fromRow(array_combine($fields, [6, 3, 1]), $fields)->cancelledUnknownTrips());
         self::assertSame(0, DayTotalsDto::empty()->cancelledUnknownTrips());
+    }
+
+    private static function cancellations(int $trips, int $cancelled, int $inTime, int $late): DayTotalsDto
+    {
+        $fields = ['trips', 'cancelledTrips', 'cancelledInTimeTrips', 'cancelledLateTrips'];
+
+        return DayTotalsDto::fromRow(array_combine($fields, [$trips, $cancelled, $inTime, $late]), $fields);
     }
 
     /**

@@ -171,13 +171,30 @@ final readonly class DayTotalsDto
     }
 
     /**
-     * Gives the trips that were cancelled too late as a share of all trips in percent, or null if
-     * there are no trips. The share is of all trips, so that it can be read against
-     * cancelledPercent().
+     * Gives the trips that were cancelled too late as a share of all trips in percent. The share
+     * is of all trips, so that it can be read against cancelledPercent(). It is null if there are
+     * no trips, or if no cancelled trip has a code, because then the share is not known.
      */
     public function cancelledLatePercent(): ?float
     {
-        return 0 === $this->trips ? null : $this->cancelledLateTrips / $this->trips * 100;
+        return 0 === $this->trips || $this->hasNoCodes() ? null : $this->cancelledLateTrips / $this->trips * 100;
+    }
+
+    /**
+     * Gives the trips that were cancelled too late as a share of the cancelled trips in percent,
+     * or null if there are no cancelled trips or no cancelled trip has a code.
+     */
+    public function cancelledLateOfCancelledPercent(): ?float
+    {
+        return 0 === $this->cancelledTrips || $this->hasNoCodes() ? null : $this->cancelledLateTrips / $this->cancelledTrips * 100;
+    }
+
+    /**
+     * Tells if there are cancelled trips, but none of them has a code.
+     */
+    private function hasNoCodes(): bool
+    {
+        return $this->cancelledTrips > 0 && 0 === $this->cancelledInTimeTrips + $this->cancelledLateTrips;
     }
 
     /**

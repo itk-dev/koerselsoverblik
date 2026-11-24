@@ -1231,7 +1231,10 @@ sub-agreements.
   only when the period or a month has some (`ActivityPageDto::hasCancelledWithNoCode()`). The
   parts add up to the trips.
 - The line chart has the share of all cancelled trips and the share of the late cancellations.
-  The distance between the two lines is the cancellations in time.
+  The distance between the two lines is the cancellations in time and the cancellations with no
+  code.
+- If no cancelled trip of a period has a code, the share of the late cancellations is not known.
+  `DayTotalsDto::cancelledLatePercent()` then gives null, and the page shows "–", not 0 %.
 - `ActivityTableCalculator` gives the two tables from one `sumOfEachRoute()` and one
   `RouteRepository::findWithSuppliers()`:
   - The trips of each sub-agreement, the most trips first, and then by the reference. The share
@@ -1628,10 +1631,16 @@ coverage gate and mutation testing on the production code.
     minutes before the planned arrival. Else it is "no", also on a row that is not cancelled.
     The code checks the date first, so it is correct. The late cancellations on the activity page
     use the code (#167).
+  - The code checks only for an earlier date. A cancellation that is registered on a later date
+    than the trip, at an earlier time of day, gets "yes", because the notice from the time of day
+    is then more than 60 minutes. For example, a no-show of a trip at 14:00 that is registered at
+    09:00 the next day. The activity page cannot find these rows, because the extract does not
+    have the date of the cancellation.
   - Open: is it on purpose that the notice uses only the time of day? Can the report calculate
     the notice from the date and the time, or add the time of the cancellation as a column? Is a
-    limit of 60 minutes before the planned arrival the rule of the contract? The product owner in
-    the transport office answers before the activity page can show the notice bands.
+    limit of 60 minutes before the planned arrival the rule of the contract? Must a cancellation
+    on a later date than the trip be "no"? The product owner in the transport office answers
+    before the activity page can show the notice bands.
 - **Cancellation cause.** The prototype shows who cancelled a trip (for example the citizen, the
   institution or the supplier), and why. The extract has no columns for this. Can the transport
   office make an extract with these fields? The product owner in the transport office answers

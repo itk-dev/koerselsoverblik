@@ -91,7 +91,7 @@
             </twig:block>
         </twig:Tile>
         {# The share is of all trips, as the share of the cancelled trips. The note gives the share
-           of the cancelled trips, and a period with no cancelled trips has no note. #}
+           of the cancelled trips. A period with no cancelled trip with a code has no note. #}
         {% set late = page.cancelledLate %}
         <twig:Tile
             :label="'activity.cancelled_late.label'|trans"
@@ -101,7 +101,7 @@
             :changeIcon="trend_icon(late.change)"
             :spark="late.history"
             sparkClass="series-danger"
-            :note="late.current is null or current.cancelledTrips == 0 ? null : 'activity.cancelled_late.note'|trans({share: (current.cancelledLateTrips / current.cancelledTrips * 100)|share_percent})"
+            :note="current.cancelledLateOfCancelledPercent is null ? null : 'activity.cancelled_late.note'|trans({share: current.cancelledLateOfCancelledPercent|share_percent})"
             test="cancelled-late"
         >
             <twig:block name="help">

@@ -259,7 +259,7 @@ activity:
     note: "{share} af de aflyste ture"
     help:
       title: For sent aflyst
-      body: Andelen af de bestilte ture, der blev aflyst for sent. En aflysning er for sent, når den kommer samme dag og 60 minutter eller mindre før den planlagte ankomst. En aflysning en tidligere dag er rettidig. Andelen er af alle bestilte ture, ligesom de aflyste ture, så de to tal kan læses mod hinanden. En lavere andel er bedre.
+      body: Andelen af de bestilte ture, der blev aflyst for sent. Udtrækket fra planlægningssystemet markerer en aflysning som for sent, når den kommer samme dag og 60 minutter eller mindre før den planlagte ankomst. En aflysning en tidligere dag er rettidig. Kørselskontoret har endnu ikke bekræftet, at det er reglen i kontrakten. Andelen er af alle bestilte ture, ligesom de aflyste ture, så de to tal kan læses mod hinanden. En lavere andel er bedre. Har ingen af periodens aflysninger et varsel, viser feltet "–".
   runs:
     label: Vognløb
     note: Vognløb, der ikke er aflyst
@@ -279,7 +279,7 @@ activity:
     pending: Uden registrering
   cancellations:
     title: Aflysninger i forhold til alle bestilte ture
-    subtitle: Begge kurver er andele af alle bestilte ture, så de kan læses mod hinanden. Afstanden mellem dem er de rettidige aflysninger.
+    subtitle: Begge kurver er andele af alle bestilte ture, så de kan læses mod hinanden. Afstanden mellem dem er de rettidige aflysninger og de aflysninger, hvor varslet ikke er kendt.
     caption: Andel aflyste og andel for sent aflyste af alle bestilte ture pr. måned
     all: Aflyst i alt
     late: For sent aflyst

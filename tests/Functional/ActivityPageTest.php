@@ -134,7 +134,8 @@ final class ActivityPageTest extends WebTestCase
 
     /**
      * A cancelled trip with no code was cancelled neither in time nor too late. The bar and the
-     * columns then show it in its own part, so that the parts add up to all trips.
+     * columns then show it in its own part, so that the parts add up to all trips. No cancelled
+     * trip has a code, so the share of the late cancellations is not known, and not 0 %.
      */
     public function testCancelledTripWithNoCodeHasItsOwnPart(): void
     {
@@ -143,7 +144,9 @@ final class ActivityPageTest extends WebTestCase
 
         $crawler = $client->request('GET', '/activity');
 
-        self::assertSame('0 %', self::value($crawler, 'cancelled-late'));
+        self::assertSame('–', self::value($crawler, 'cancelled-late'));
+        self::assertCount(0, $crawler->filter('[data-test="cancelled-late"] .tile__note'));
+        self::assertSame([['Ukendt', '7', '5', '1', '14 %', '0', '–', '4', '1,3']], self::rows($crawler, 'activity-supplier-row'));
         self::assertSame(
             ['Gennemført', 'Rettidigt aflyst', 'For sent aflyst', 'Aflyst, varsel ukendt', 'Uden registrering'],
             $crawler->filter('#outcome-months .legend li')->each(static fn (Crawler $item): string => $item->text()),

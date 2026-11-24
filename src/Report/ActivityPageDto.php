@@ -67,7 +67,7 @@ final readonly class ActivityPageDto
      */
     public function hasCancelledWithNoCode(): bool
     {
-        return array_any([$this->selected, ...$this->monthTotals], fn ($totals) => $totals->cancelledUnknownTrips() > 0);
+        return array_any([$this->selected, ...$this->monthTotals], static fn (DayTotalsDto $totals): bool => $totals->cancelledUnknownTrips() > 0);
     }
 
     /**
