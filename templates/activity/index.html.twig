@@ -19,9 +19,10 @@
         </div>
     </header>
 
-    {# A change of the volume is neither good nor bad, so the count tiles have no tone. A period
-       with no trips has no data, so the tiles then have no note. #}
-    <div class="tiles tiles--4">
+    {# The first row has the volume, and the second row the cancellations. A change of the volume
+       is neither good nor bad, so the count tiles have no tone. A period with no trips has no
+       data, so the tiles then have no note. #}
+    <div class="tiles">
         {% set trips = page.trips %}
         <twig:Tile
             :label="'activity.trips.label'|trans"
@@ -54,6 +55,22 @@
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
+        {% set runs = page.runs %}
+        <twig:Tile
+            :label="'activity.runs.label'|trans"
+            :value="runs.current is null ? '–' : runs.current|number_format"
+            :change="runs.change is null ? null : runs.change|signed_number"
+            :changeIcon="trend_icon(runs.change)"
+            :spark="runs.history"
+            :note="runs.current is null ? null : 'activity.runs.note'|trans"
+            test="runs"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-runs" :title="'activity.runs.help.title'|trans">
+                    <p>{{ 'activity.runs.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
         {# A lower share of cancelled trips is better. #}
         {% set cancelled = page.cancelled %}
         <twig:Tile
@@ -73,30 +90,40 @@
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
-        {% set runs = page.runs %}
+        {# The share is of all trips, as the share of the cancelled trips. The note gives the share
+           of the cancelled trips. A period with no cancelled trip with a code has no note. #}
+        {% set late = page.cancelledLate %}
         <twig:Tile
-            :label="'activity.runs.label'|trans"
-            :value="runs.current is null ? '–' : runs.current|number_format"
-            :change="runs.change is null ? null : runs.change|signed_number"
-            :changeIcon="trend_icon(runs.change)"
-            :spark="runs.history"
-            :note="runs.current is null ? null : 'activity.runs.note'|trans"
-            test="runs"
+            :label="'activity.cancelled_late.label'|trans"
+            :value="late.current|share_percent"
+            :change="late.change is null ? null : 'punctuality.points'|trans({change: late.change|percentage_points})"
+            :changeTone="trend_tone(late.change, false)"
+            :changeIcon="trend_icon(late.change)"
+            :spark="late.history"
+            sparkClass="series-danger"
+            :note="current.cancelledLateOfCancelledPercent is null ? null : 'activity.cancelled_late.note'|trans({share: current.cancelledLateOfCancelledPercent|share_percent})"
+            test="cancelled-late"
         >
             <twig:block name="help">
-                <twig:HelpPopover id="help-runs" :title="'activity.runs.help.title'|trans">
-                    <p>{{ 'activity.runs.help.body'|trans }}</p>
+                <twig:HelpPopover id="help-cancelled-late" :title="'activity.cancelled_late.help.title'|trans">
+                    <p>{{ 'activity.cancelled_late.help.body'|trans }}</p>
                 </twig:HelpPopover>
             </twig:block>
         </twig:Tile>
     </div>
 
-    {# One colour for each status, the same in the bar and in the columns. #}
+    {# One colour for each status, the same in the bar and in the columns. A cancelled trip with
+       no code is a part only when the period or a month has one, so that the parts add up to all
+       trips. #}
     {% set outcomes = [
         {name: 'activity.outcome.completed'|trans, cssClass: 'series-info', field: 'completedTrips'},
-        {name: 'activity.outcome.cancelled'|trans, cssClass: 'series-coral', field: 'cancelledTrips'},
-        {name: 'activity.outcome.pending'|trans, cssClass: 'series-gray', field: 'pendingTrips'},
+        {name: 'activity.outcome.cancelled_in_time'|trans, cssClass: 'series-coral', field: 'cancelledInTimeTrips'},
+        {name: 'activity.outcome.cancelled_late'|trans, cssClass: 'series-danger', field: 'cancelledLateTrips'},
     ] %}
+    {% if page.hasCancelledWithNoCode %}
+        {% set outcomes = outcomes|merge([{name: 'activity.outcome.cancelled_unknown'|trans, cssClass: 'series-warning', field: 'cancelledUnknownTrips'}]) %}
+    {% endif %}
+    {% set outcomes = outcomes|merge([{name: 'activity.outcome.pending'|trans, cssClass: 'series-gray', field: 'pendingTrips'}]) %}
     <twig:Panel :title="'activity.outcome.title'|trans" :subtitle="'activity.outcome.subtitle'|trans" data-test="outcome">
         <div data-test="outcome-period">
             <twig:DistributionBar
@@ -121,7 +148,10 @@
             id="cancelled-share"
             :caption="'activity.cancellations.caption'|trans"
             :labels="labels"
-            :series="[{name: 'activity.cancellations.series'|trans, cssClass: 'series-coral', values: cancelled.history}]"
+            :series="[
+                {name: 'activity.cancellations.all'|trans, cssClass: 'series-coral', values: cancelled.history},
+                {name: 'activity.cancellations.late'|trans, cssClass: 'series-danger', values: late.history},
+            ]"
             unit="percent"
         />
         <twig:block name="foot">{{ 'activity.source'|trans }}</twig:block>
@@ -172,6 +202,8 @@
                             <th scope="col" class="num">{{ 'activity.suppliers.completed'|trans }}</th>
                             <th scope="col" class="num">{{ 'activity.suppliers.cancelled'|trans }}</th>
                             <th scope="col" class="num">{{ 'activity.suppliers.cancelled_share'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.suppliers.cancelled_late'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.suppliers.cancelled_late_share'|trans }}</th>
                             <th scope="col" class="num">{{ 'activity.suppliers.runs'|trans }}</th>
                             <th scope="col" class="num">{{ 'activity.suppliers.per_run'|trans }}</th>
                         </tr>
@@ -185,6 +217,8 @@
                                 <td class="num">{{ row.totals.completedTrips|number_format }}</td>
                                 <td class="num">{{ row.totals.cancelledTrips|number_format }}</td>
                                 <td class="num">{{ row.totals.cancelledPercent|share_percent }}</td>
+                                <td class="num">{{ row.totals.cancelledLateTrips|number_format }}</td>
+                                <td class="num">{{ row.totals.cancelledLatePercent|share_percent }}</td>
                                 <td class="num">{{ row.totals.notCancelledRuns|number_format }}</td>
                                 <td class="num">{{ per_run is null ? '–' : per_run|number_format(1) }}</td>
                             </tr>

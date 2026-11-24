@@ -291,6 +291,7 @@ erDiagram
         int delay_seconds "actual_time minus planned_time, null = no actual time"
         bool planned_solo
         string location_name "the institution, never shown with person_id"
+        bool cancelled_in_time "null = not known"
         string person_id "from the extract (ADR 004)"
         int source_row_id FK "unique, the copy of the row (ADR 006)"
         int import_batch_id FK
@@ -598,6 +599,7 @@ permitted, for example "7 of 80 runs".
 | `actual_time` | `StatusUpdateTime` | Excel date and time | Empty when the stop has no registration. |
 | `planned_solo` | `kørselstype` | text code | Two codes: solo and shared. |
 | `location_name` | `Placename` | text | The institution of a trip. Empty in the reference extract. Never shown with a person id, or written to a log or to the output of a command. |
+| `cancelled_in_time` | `RettidigAflysningsvarsel` | text code | "yes" when the trip is cancelled on an earlier date, or more than 60 minutes before the planned arrival. "no" in all other rows, also when the stop is not cancelled. Optional. See "Cancellation notice" in [open decisions](#open-decisions). |
 
 **Why the planned time comes from `PlannedDeparture`:** the extract has a planned arrival
 (`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The departure is
@@ -614,10 +616,10 @@ row, but not the personal data. For example:
 
 - the ids of trips, trip requests, routes, addresses, locations, places and paths
 - the requested times, the service times, the planned arrival and the planned activity times
-- the cancellation columns: the cancellation id, the time of the cancellation, the notice in
-  minutes (`aflysningsvarsel`, negative when the cancellation came after the planned time), and
-  whether the notice was in time (`RettidigAflysningsvarsel`). The unit of the notice and the
-  meaning of the in-time code are not confirmed
+- the cancellation columns: the cancellation id, the time of the cancellation, and the notice in
+  minutes (`aflysningsvarsel`). The notice uses only the time of day of the cancellation, so it is
+  not correct for a cancellation on an earlier day (see "Cancellation notice" in
+  [open decisions](#open-decisions))
 - `prisprminut`, the price per minute, for the cost of empty running
 - `passengers`, the passengers after the stop before the cancellations are removed
 - `blokstart` and `blokslut`
@@ -1206,8 +1208,11 @@ sub-agreements.
   `RouteDayTotalsRepository::sumByMonth()`. A selected period or a comparison period that has the
   dates of a month of the history uses the totals of that month. Other periods run `sum()`.
 - `ActivityPageDto` gives the tiles: the ordered trips, the completed trips, the route runs that
-  are not cancelled, and the share of the cancelled trips of all trips. The share comes from
-  `DayTotalsDto::cancelledPercent()`, which the supplier table also uses.
+  are not cancelled, the share of the cancelled trips, and the share of the trips that were
+  cancelled too late. Both shares are of all trips, so that the two values can be read against
+  each other. They come from `DayTotalsDto::cancelledPercent()` and
+  `DayTotalsDto::cancelledLatePercent()`, which the supplier table also uses.
+- The first row of tiles has the volume, and the second row the cancellations.
 - A period with no trips has no data. The tiles then show "–" and have no note.
 - A change of a count has no tone, because more volume is not better or worse. A lower share of
   cancelled trips is better.
@@ -1217,19 +1222,31 @@ sub-agreements.
   not cancelled, also a run with a peak of 0 or no peak. The counter `runs` is different: it is
   the base of the share of the real solo runs, so it counts only the runs with a citizen in the
   car.
+- The late cancellations come from the code `cancelled_in_time` of the stop rows. The counters
+  `cancelledInTimeTrips` and `cancelledLateTrips` of `RouteDayTotals` count only the cancelled
+  pickups, because the extract has "no" also on a stop that is not cancelled. A cancelled pickup
+  with no code counts for neither (`DayTotalsDto::cancelledUnknownTrips()`).
 - The bar of the period and the columns of the months split the trips into completed, cancelled
-  and no registration. The parts add up to the trips.
+  in time, cancelled too late and no registration. The cancelled trips with no code are a part
+  only when the period or a month has some (`ActivityPageDto::hasCancelledWithNoCode()`). The
+  parts add up to the trips.
+- The line chart has the share of all cancelled trips and the share of the late cancellations.
+  The distance between the two lines is the cancellations in time and the cancellations with no
+  code.
+- If no cancelled trip of a period has a code, the share of the late cancellations is not known.
+  `DayTotalsDto::cancelledLatePercent()` then gives null, and the page shows "–", not 0 %.
 - `ActivityTableCalculator` gives the two tables from one `sumOfEachRoute()` and one
   `RouteRepository::findWithSuppliers()`:
   - The trips of each sub-agreement, the most trips first, and then by the reference. The share
     is of the trips of all rows. A sub-agreement with no trips has no row. The supplier filter
     applies to this table.
   - The volume of each supplier: the ordered, completed and cancelled trips, the share of the
-    cancelled trips, the route runs, and the completed trips for each run. The order is as in the
-    supplier table of the overview. This table always shows all suppliers.
-- The page does not show the late cancellations, where and when the cancellations come, who
-  cancels, and the no-shows of the prototype. See the open decisions "Cancellation notice",
-  "Cancellation cause" and "No-shows".
+    cancelled trips, the late cancellations and their share, the route runs, and the completed
+    trips for each run. The order is as in the supplier table of the overview. This table always
+    shows all suppliers.
+- The page does not show where and when the cancellations come, who cancels, and the no-shows of
+  the prototype. See the open decisions "Cancellation notice", "Cancellation cause" and
+  "No-shows".
 
 **Cost:** a request runs the query of the 12 months, one `sum()` for each period that is not a
 month of the history, the sum of each route, the routes with their suppliers, and the counted
@@ -1604,10 +1621,26 @@ coverage gate and mutation testing on the production code.
   product owner in the transport office answers before the punctuality page can show the
   no-shows.
 - **Cancellation notice.** The extract has the notice of a cancellation (`aflysningsvarsel`) and
-  a code that tells if the notice was in time (`RettidigAflysningsvarsel`). What is the unit of
-  the notice? What are the codes, and what do they mean? Which one decides that a cancellation
-  is too late: the code, or the notice against a limit? The product owner in the transport
-  office answers before the activity page can show the late cancellations.
+  a code that tells if the notice was in time (`RettidigAflysningsvarsel`). The report script of
+  the transport office calculates them:
+  - The notice is in minutes: the planned arrival minus the time of day of the cancellation. The
+    date of the cancellation is not used. Thus the notice is wrong for a cancellation on an
+    earlier day, and it can be negative. For example, a trip at 08:00 that is cancelled at 14:00
+    the day before gets −360 minutes, not 1,080 minutes.
+  - The code is "yes" when the cancellation is on an earlier date than the trip, or more than 60
+    minutes before the planned arrival. Else it is "no", also on a row that is not cancelled.
+    The code checks the date first, so it is correct. The late cancellations on the activity page
+    use the code (#167).
+  - The code checks only for an earlier date. A cancellation that is registered on a later date
+    than the trip, at an earlier time of day, gets "yes", because the notice from the time of day
+    is then more than 60 minutes. For example, a no-show of a trip at 14:00 that is registered at
+    09:00 the next day. The activity page cannot find these rows, because the extract does not
+    have the date of the cancellation.
+  - Open: is it on purpose that the notice uses only the time of day? Can the report calculate
+    the notice from the date and the time, or add the time of the cancellation as a column? Is a
+    limit of 60 minutes before the planned arrival the rule of the contract? Must a cancellation
+    on a later date than the trip be "no"? The product owner in the transport office answers
+    before the activity page can show the notice bands.
 - **Cancellation cause.** The prototype shows who cancelled a trip (for example the citizen, the
   institution or the supplier), and why. The extract has no columns for this. Can the transport
   office make an extract with these fields? The product owner in the transport office answers

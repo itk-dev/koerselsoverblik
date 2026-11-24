@@ -30,3 +30,8 @@ fields:
     true_values: [Y]
     false_values: [N, "-"]
   location_name: { column: Place, type: string }
+  cancelled_in_time:
+    column: InTime
+    type: bool
+    true_values: [Y]
+    false_values: [N]

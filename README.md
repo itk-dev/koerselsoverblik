@@ -51,12 +51,13 @@ The user interface is in Danish.
     with too few measured stops is not ranked.
   - Links to the previous and the next month.
 - **Kørselsaktivitet (driving activity):** the volume of the driving and the cancellations.
-  - Four tiles: the ordered trips, the completed trips, the share of the cancelled trips of all
-    trips, and the route runs that are not cancelled. Each tile has the change from the
-    comparison period, a 12-month sparkline and a help text.
-  - The trips of the period by status (completed, cancelled, no registration), and the same
-    parts for each of the 12 months.
-  - The share of the cancelled trips for each of the 12 months.
+  - Five tiles: the ordered trips, the completed trips, the route runs that are not cancelled,
+    the share of the cancelled trips of all trips, and the share of the trips that were cancelled
+    too late. Each tile has the change from the comparison period, a 12-month sparkline and a
+    help text.
+  - The trips of the period by status (completed, cancelled in time, cancelled too late, no
+    registration), and the same parts for each of the 12 months.
+  - The share of all cancelled trips and of the late cancellations for each of the 12 months.
   - The trips of each sub-agreement with their share, and the volume of each supplier.
 - **Filters:** a filter bar at the top of the overview, the punctuality page and the activity
   page.
@@ -105,6 +106,7 @@ averages of daily percentages.
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
 | Cancelled trips (%) | Share of all trips that are cancelled | Driving data |
+| Cancelled too late (%) | Share of all trips that the extract marks as cancelled too late: on the same day, 60 minutes or less before the planned arrival. A cancellation on an earlier day is in time. The transport office has not confirmed that this is the rule of the contract. No value when no cancelled trip of the period has a code | Driving data |
 | Route runs | Route runs that are not cancelled, also a run with no citizen in the vehicle. A run is cancelled when all its stops are cancelled | Driving data |
 | Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
 | Solo routes | Route runs with exactly one citizen in the vehicle at a time. Shown with the share of the route runs that had a citizen in the vehicle | Driving data |
@@ -453,6 +455,7 @@ required, because each stop row needs them:
 | `actual_time` | `time` or `datetime` | Optional |
 | `planned_solo` | `bool` | Optional |
 | `location_name` | `string` | Optional |
+| `cancelled_in_time` | `bool` | Optional |
 
 A mapping with a `time` field must have a `service_date` with the type `date`.
 
@@ -486,6 +489,7 @@ fields:
   actual_time:       { column: <COLUMN_NAME>, type: datetime, format: excel }
   planned_solo:      { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
   location_name:     { column: <COLUMN_NAME>, type: string }
+  cancelled_in_time: { column: <COLUMN_NAME>, type: bool, true_values: [<IN_TIME_VALUE>], false_values: [<LATE_VALUE>] }
 ```
 
 The parser reads the rows of an extract through the mapping. It rejects a row with a value that
@@ -883,6 +887,12 @@ and day, and the citizens of its months. Build them for all dates again in these
   locations.
 - After the first deploy of the runs that are not cancelled (#163). Until then, the totals of
   the dates that were imported before have 0 runs that are not cancelled.
+
+After the first deploy of the late cancellations (#167), import the stored dates again. A build
+is not enough, because the stop rows that were imported before have no code of a late
+cancellation. Until then, the activity page shows their cancelled trips as "Aflyst, varsel
+ukendt", and the share of the late cancellations as "–".
+
 - After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
   message that tells to run the command.
 

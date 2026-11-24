@@ -24,17 +24,17 @@ final class ExtractWriterTest extends TestCase
 {
     private const string MAPPINGS = __DIR__.'/../../../fixtures/mappings';
 
-    private const array HEADER = ['Id', 'Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Place', 'Note', 'Trip', 'Name'];
+    private const array HEADER = ['Id', 'Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Place', 'InTime', 'Note', 'Trip', 'Name'];
 
     /**
      * The index of the first kept column, "Note".
      */
-    private const int FIRST_KEPT = 14;
+    private const int FIRST_KEPT = 15;
 
     /**
      * The index of the excluded column, "Name".
      */
-    private const int EXCLUDED = 16;
+    private const int EXCLUDED = 17;
 
     private string $path = '';
 

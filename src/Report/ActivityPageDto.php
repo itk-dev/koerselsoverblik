@@ -46,17 +46,44 @@ final readonly class ActivityPageDto
 
     /**
      * Gives the share of the cancelled trips of all trips, with the change in percentage points.
-     * A share is also compared with a comparison period that starts before the data.
      */
     public function cancelled(): ShareTrendDto
     {
-        $current = $this->selected->cancelledPercent();
-        $before = $this->comparison?->cancelledPercent();
+        return $this->share(static fn (DayTotalsDto $totals): ?float => $totals->cancelledPercent());
+    }
+
+    /**
+     * Gives the share of the trips that were cancelled too late, of all trips, with the change in
+     * percentage points.
+     */
+    public function cancelledLate(): ShareTrendDto
+    {
+        return $this->share(static fn (DayTotalsDto $totals): ?float => $totals->cancelledLatePercent());
+    }
+
+    /**
+     * Tells if the selected period or a month has cancelled trips with no code. Only then do the
+     * bar and the columns show them as a part.
+     */
+    public function hasCancelledWithNoCode(): bool
+    {
+        return array_any([$this->selected, ...$this->monthTotals], static fn (DayTotalsDto $totals): bool => $totals->cancelledUnknownTrips() > 0);
+    }
+
+    /**
+     * A share is also compared with a comparison period that starts before the data.
+     *
+     * @param \Closure(DayTotalsDto): ?float $value
+     */
+    private function share(\Closure $value): ShareTrendDto
+    {
+        $current = $value($this->selected);
+        $before = null === $this->comparison ? null : $value($this->comparison);
 
         return new ShareTrendDto(
             $current,
             null === $current || null === $before ? null : $current - $before,
-            array_map(static fn (DayTotalsDto $totals): ?float => $totals->cancelledPercent(), $this->monthTotals),
+            array_map($value, $this->monthTotals),
         );
     }
 

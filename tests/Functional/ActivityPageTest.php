@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\DataFixtures\DrivingData\ExtractRow;
 use App\DataFixtures\DrivingData\ExtractWriter;
 use App\DataFixtures\DrivingData\ScenarioLoader;
 use App\Entity\SubAgreement;
@@ -68,7 +69,8 @@ final class ActivityPageTest extends WebTestCase
 
     /**
      * The values of the base scenario, on 5 January 2026: 7 trips, of which 5 are completed, 1 is
-     * cancelled and 1 has no registration, and 4 runs. The routes have no supplier.
+     * cancelled and 1 has no registration, and 4 runs. The cancelled trip has the code "no", so it
+     * was cancelled too late. The routes have no supplier.
      */
     public function testBaseScenario(): void
     {
@@ -81,36 +83,79 @@ final class ActivityPageTest extends WebTestCase
         self::assertSame('71 % af de bestilte ture', $crawler->filter('[data-test="completed"] .tile__note')->text());
         self::assertSame('14 %', self::value($crawler, 'cancelled'));
         self::assertSame('1 aflyste ture', $crawler->filter('[data-test="cancelled"] .tile__note')->text());
+        self::assertSame('14 %', self::value($crawler, 'cancelled-late'));
+        self::assertSame('100 % af de aflyste ture', $crawler->filter('[data-test="cancelled-late"] .tile__note')->text());
+        self::assertStringContainsString('60 minutter', $crawler->filter('#help-cancelled-late')->text());
         self::assertSame('4', self::value($crawler, 'runs'));
+        // The volume is in the first row, and the cancellations in the second row.
+        self::assertSame(
+            ['trips', 'completed', 'runs', 'cancelled', 'cancelled-late'],
+            $crawler->filter('.tiles > [data-test]')->each(static fn (Crawler $tile): string => (string) $tile->attr('data-test')),
+        );
         // December 2025 has no data, so there is no change.
-        foreach (['trips', 'completed', 'cancelled', 'runs'] as $tile) {
+        foreach (['trips', 'completed', 'cancelled', 'cancelled-late', 'runs'] as $tile) {
             self::assertSame('ingen sammenligning', $crawler->filter(\sprintf('[data-test="%s-change"]', $tile))->text());
         }
 
-        // The bar of the period has the three statuses, and the total is all trips.
+        // The bar of the period splits the cancelled trips into in time and too late, and the total
+        // is all trips. No cancelled trip has no code, so that part is not shown.
         self::assertSame('7 ture', $crawler->filter('[data-test="outcome-period"] .dist__total')->text());
+        self::assertSame(
+            ['Gennemført', 'Rettidigt aflyst', 'For sent aflyst', 'Uden registrering'],
+            $crawler->filter('#outcome-months .legend li')->each(static fn (Crawler $item): string => $item->text()),
+        );
         // The hidden data table of the columns gives the counts of January.
         self::assertSame(
-            ['jan', '5', '1', '1'],
+            ['jan', '5', '0', '1', '1'],
             $crawler->filter('#outcome-months table tbody tr')->last()->filter('th, td')->each(static fn (Crawler $cell): string => $cell->text()),
         );
-        self::assertCount(1, $crawler->filter('#cancelled-share svg'));
+        // The line chart has the share of all cancelled trips and of the late cancellations.
+        self::assertSame(
+            ['Aflyst i alt', 'For sent aflyst'],
+            $crawler->filter('#cancelled-share .legend li')->each(static fn (Crawler $item): string => $item->text()),
+        );
 
         // The share is of the trips of all rows: 6 of 7 and 1 of 7.
         self::assertSame(
             [['R', 'Ukendt', '6', '86 %'], ['BOOKED', 'Ukendt', '1', '14 %']],
             self::rows($crawler, 'sub-agreement-row'),
         );
-        // 5 completed trips on 4 runs.
+        // The late cancellations come after the cancelled trips. 5 completed trips on 4 runs.
         self::assertSame(
-            [['Ukendt', '7', '5', '1', '14 %', '4', '1,3']],
+            [['Ukendt', '7', '5', '1', '14 %', '1', '14 %', '4', '1,3']],
             self::rows($crawler, 'activity-supplier-row'),
         );
 
         // Each tile has a "?".
-        self::assertCount(4, $crawler->filter('.tiles [popover]'));
+        self::assertCount(5, $crawler->filter('.tiles [popover]'));
         // Each chart has a hidden data table.
         self::assertCount(2, $crawler->filter('figure.chart .sr-only table'));
+    }
+
+    /**
+     * A cancelled trip with no code was cancelled neither in time nor too late. The bar and the
+     * columns then show it in its own part, so that the parts add up to all trips. No cancelled
+     * trip has a code, so the share of the late cancellations is not known, and not 0 %.
+     */
+    public function testCancelledTripWithNoCodeHasItsOwnPart(): void
+    {
+        $client = $this->client('viewer');
+        $this->importBase(codeOfTheCancelledTrip: false);
+
+        $crawler = $client->request('GET', '/activity');
+
+        self::assertSame('–', self::value($crawler, 'cancelled-late'));
+        self::assertCount(0, $crawler->filter('[data-test="cancelled-late"] .tile__note'));
+        self::assertSame([['Ukendt', '7', '5', '1', '14 %', '0', '–', '4', '1,3']], self::rows($crawler, 'activity-supplier-row'));
+        self::assertSame(
+            ['Gennemført', 'Rettidigt aflyst', 'For sent aflyst', 'Aflyst, varsel ukendt', 'Uden registrering'],
+            $crawler->filter('#outcome-months .legend li')->each(static fn (Crawler $item): string => $item->text()),
+        );
+        self::assertSame(
+            ['jan', '5', '0', '0', '1', '1'],
+            $crawler->filter('#outcome-months table tbody tr')->last()->filter('th, td')->each(static fn (Crawler $cell): string => $cell->text()),
+        );
+        self::assertStringContainsString('Aflyst, varsel ukendt', $crawler->filter('[data-test="outcome-period"]')->text());
     }
 
     /**
@@ -165,7 +210,7 @@ final class ActivityPageTest extends WebTestCase
         $crawler = $this->page('viewer', '?d=2025-12-01', importBase: true);
 
         self::assertSame('december 2025', $crawler->filter('[data-test="period"]')->text());
-        foreach (['trips', 'completed', 'cancelled', 'runs'] as $tile) {
+        foreach (['trips', 'completed', 'cancelled', 'cancelled-late', 'runs'] as $tile) {
             self::assertSame('–', self::value($crawler, $tile));
             self::assertCount(0, $crawler->filter(\sprintf('[data-test="%s"] .tile__note', $tile)));
         }
@@ -242,9 +287,20 @@ final class ActivityPageTest extends WebTestCase
         return $client;
     }
 
-    private function importBase(): void
+    /**
+     * @param bool $codeOfTheCancelledTrip false to import the cancelled pickup with no code
+     */
+    private function importBase(bool $codeOfTheCancelledTrip = true): void
     {
         $rows = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows;
+        if (!$codeOfTheCancelledTrip) {
+            $rows = array_map(
+                static fn (ExtractRow $row): ExtractRow => 'cancelled' === $row->values['stop_status'] && 'pickup' === $row->values['stop_type']
+                    ? new ExtractRow(['cancelled_in_time' => null] + $row->values, $row->rowId, $row->raw, $row->kept)
+                    : $row,
+                $rows,
+            );
+        }
         $path = sys_get_temp_dir().'/'.uniqid('extract_', true).'.xlsx';
         $provider = self::getContainer()->get(MappingProvider::class);
         self::assertInstanceOf(MappingProvider::class, $provider);

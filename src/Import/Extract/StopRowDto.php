@@ -27,6 +27,7 @@ use App\Import\Mapping\StopType;
  *     actual_time: \DateInterval|\DateTimeImmutable|null,
  *     planned_solo: ?bool,
  *     location_name: ?string,
+ *     cancelled_in_time: ?bool,
  * }
  *
  * @phpstan-import-type SourceValue from SourceCells
@@ -41,11 +42,12 @@ final readonly class StopRowDto
     public ?int $delaySeconds;
 
     /**
-     * @param int                           $rowNumber    the 1-based row number in the sheet
-     * @param ?string                       $rowKey       the values of the row id columns, or null if the mapping has no row id
-     * @param ?string                       $locationName the institution of the trip, never the address of a citizen
-     * @param array<array-key, SourceValue> $sourceValues the copy of the row, keyed by the column name
-     * @param list<FieldWarningDto>         $warnings     the optional fields with a value that the parser cannot read
+     * @param int                           $rowNumber       the 1-based row number in the sheet
+     * @param ?string                       $rowKey          the values of the row id columns, or null if the mapping has no row id
+     * @param ?string                       $locationName    the institution of the trip, never the address of a citizen
+     * @param array<array-key, SourceValue> $sourceValues    the copy of the row, keyed by the column name
+     * @param list<FieldWarningDto>         $warnings        the optional fields with a value that the parser cannot read
+     * @param ?bool                         $cancelledInTime true if a cancellation came in time, false if it came too late, or null if not known. A row that is not cancelled has the value of the extract too
      */
     public function __construct(
         public int $rowNumber,
@@ -65,6 +67,7 @@ final readonly class StopRowDto
         public ?string $locationName,
         public array $sourceValues = [],
         public array $warnings = [],
+        public ?bool $cancelledInTime = null,
     ) {
         $this->delaySeconds = null === $actualTime ? null : $actualTime->getTimestamp() - $plannedTime->getTimestamp();
     }
@@ -99,6 +102,7 @@ final readonly class StopRowDto
             locationName: $values['location_name'],
             sourceValues: $sourceValues,
             warnings: $warnings,
+            cancelledInTime: $values['cancelled_in_time'],
         );
     }
 

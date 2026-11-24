@@ -35,6 +35,8 @@ class StopRowRepository extends ServiceEntityRepository
         'completedTrips',
         'cancelledTrips',
         'pendingTrips',
+        'cancelledInTimeTrips',
+        'cancelledLateTrips',
     ];
 
     public function __construct(
@@ -243,6 +245,9 @@ class StopRowRepository extends ServiceEntityRepository
      * - A measured stop is completed, and it has a delay (an actual time). It is on time if the
      *   delay is at most the tolerance.
      * - A trip is a pickup, with any status: completed, cancelled or with no registration.
+     * - A cancelled trip was cancelled in time or too late, from the code of the extract. The
+     *   extract gives the code also for a stop that is not cancelled, so only the cancelled
+     *   pickups count. A cancelled pickup with no code counts for neither.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      *
@@ -264,6 +269,8 @@ class StopRowRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :completed THEN 1 ELSE 0 END) AS completedTrips',
                 'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :cancelled THEN 1 ELSE 0 END) AS cancelledTrips',
                 'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :pending THEN 1 ELSE 0 END) AS pendingTrips',
+                'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :cancelled AND row.cancelledInTime = true THEN 1 ELSE 0 END) AS cancelledInTimeTrips',
+                'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :cancelled AND row.cancelledInTime = false THEN 1 ELSE 0 END) AS cancelledLateTrips',
             )
             ->groupBy('row.route, row.serviceDate')
             ->setParameter('pickup', StopType::Pickup)

@@ -37,6 +37,28 @@ final class ActivityPageDtoTest extends TestCase
     }
 
     /**
+     * The share of the late cancellations is of all trips, as the share of all cancelled trips. A
+     * lower share is better, so the change is in percentage points.
+     */
+    public function testLateShareIsOfAllTrips(): void
+    {
+        $page = self::page(self::totals(10, 6, 3, 1, 4, inTime: 1, late: 2), self::totals(8, 7, 1, 0, 5, late: 1));
+
+        self::assertEquals(new ShareTrendDto(20.0, 7.5, [null, 12.5]), $page->cancelledLate());
+    }
+
+    /**
+     * The bar and the columns show the cancelled trips with no code only when the selected period
+     * or a month has some.
+     */
+    public function testCancelledTripsWithNoCode(): void
+    {
+        self::assertFalse(self::page(self::totals(10, 6, 3, 1, 4, inTime: 1, late: 2), self::totals(8, 7, 1, 0, 5, late: 1))->hasCancelledWithNoCode());
+        self::assertTrue(self::page(self::totals(10, 6, 3, 1, 4, inTime: 1, late: 1), null)->hasCancelledWithNoCode());
+        self::assertTrue(self::page(DayTotalsDto::empty(), self::totals(8, 7, 1, 0, 5))->hasCancelledWithNoCode());
+    }
+
+    /**
      * A period with no trips has no data, so its values are null, not 0.
      */
     public function testPeriodWithNoTripsHasNoValues(): void
@@ -87,10 +109,10 @@ final class ActivityPageDtoTest extends TestCase
         );
     }
 
-    private static function totals(int $trips, int $completed, int $cancelled, int $pending, int $runs): DayTotalsDto
+    private static function totals(int $trips, int $completed, int $cancelled, int $pending, int $runs, int $inTime = 0, int $late = 0): DayTotalsDto
     {
-        $fields = ['trips', 'completedTrips', 'cancelledTrips', 'pendingTrips', 'notCancelledRuns'];
+        $fields = ['trips', 'completedTrips', 'cancelledTrips', 'pendingTrips', 'notCancelledRuns', 'cancelledInTimeTrips', 'cancelledLateTrips'];
 
-        return DayTotalsDto::fromRow(array_combine($fields, [$trips, $completed, $cancelled, $pending, $runs]), $fields);
+        return DayTotalsDto::fromRow(array_combine($fields, [$trips, $completed, $cancelled, $pending, $runs, $inTime, $late]), $fields);
     }
 }

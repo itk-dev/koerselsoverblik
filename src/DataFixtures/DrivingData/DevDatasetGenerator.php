@@ -245,12 +245,13 @@ final readonly class DevDatasetGenerator
                         'actual_time' => 'completed' === $status ? $day->modify(\sprintf('%+d seconds', $minutes * 60 + $delay)) : null,
                         'planned_solo' => $solo,
                         'location_name' => ('drop_off' === $type) === $toSchool ? $place : null,
+                        // The extract has "no" on a row that is not cancelled.
+                        'cancelled_in_time' => $cancelled && 'yes' === $trip['in time'],
                     ],
                     kept: [
                         'passengers' => $planned,
                         'prisprminut' => $price,
                         'aflysningsvarsel' => $cancelled ? $trip['notice'] : null,
-                        'RettidigAflysningsvarsel' => $cancelled ? $trip['in time'] : 'no',
                     ],
                 );
                 $minutes += 'pickup' === $type ? $random->getInt(4, 14) : $random->getInt(2, 8);
