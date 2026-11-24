@@ -70,6 +70,7 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
+| Review follow-up of the driving activity page | In progress | [#165](https://github.com/itk-dev/koerselsoverblik/issues/165) | – | [activity-review-follow-up.md](activity-review-follow-up.md) |
 | Show the late cancellations on the driving activity page | Blocked | – | Open decision "Cancellation notice" | [activity-late-cancellations.md](activity-late-cancellations.md) |
 | Show where and when the cancellations come | Blocked | – | The late cancellations | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
 | Show who cancels and why | Blocked | – | Open decision "Cancellation cause" | – |
