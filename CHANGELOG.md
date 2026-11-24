@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- [#163](https://github.com/itk-dev/koerselsoverblik/issues/163)
+  Show the driving activity page "Kørselsaktivitet": the ordered and the completed trips, the
+  share of the cancelled trips, the route runs that are not cancelled, the trips by status for
+  each month, the trips of each sub-agreement and the volume of each supplier. A new counter of
+  `RouteDayTotals` counts the route runs that are not cancelled. Run
+  `app:driving-data:rebuild-totals` after the deploy. The punctuality page no longer names the
+  ignored sub-agreements, because a long list made the page difficult to read.
+
 - [#96](https://github.com/itk-dev/koerselsoverblik/issues/96)
   Show the stored driving data: the new tab "Kørselsdata" has the list of uploaded dates (moved
   from the upload page), the stop rows and rejected rows of a range with 100 rows on a page, and a

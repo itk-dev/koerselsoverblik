@@ -1,0 +1,198 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'activity.title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block topbar_controls %}{{ include('_filter_bar.html.twig', {route: 'activity'}) }}{% endblock %}
+
+{% block body %}
+    {% set current = page.current %}
+    {% set labels = page.months|map(item => ('month.short.' ~ item.number)|trans) %}
+
+    <header class="page-head">
+        <div>
+            <h1 class="page-head__title">{{ 'activity.title'|trans }}</h1>
+            <p class="page-head__lede" data-test="lede">{{ 'activity.lede'|trans({period: period_phrase(selection), comparison: comparison_phrase(selection)}) }}</p>
+            {# The tiles show the whole period, but the sparklines and the charts show months. #}
+            {% if selection.filter.type.value != 'month' %}
+                <p class="page-head__lede" data-test="months-note">{{ 'period.months_note'|trans }}</p>
+            {% endif %}
+        </div>
+    </header>
+
+    {# A change of the volume is neither good nor bad, so the count tiles have no tone. A period
+       with no trips has no data, so the tiles then have no note. #}
+    <div class="tiles tiles--4">
+        {% set trips = page.trips %}
+        <twig:Tile
+            :label="'activity.trips.label'|trans"
+            :value="trips.current is null ? '–' : trips.current|number_format"
+            :change="trips.change is null ? null : trips.change|signed_number"
+            :changeIcon="trend_icon(trips.change)"
+            :spark="trips.history"
+            :note="trips.current is null ? null : 'activity.trips.note'|trans({pending: current.pendingTrips})"
+            test="trips"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-trips" :title="'activity.trips.help.title'|trans">
+                    <p>{{ 'activity.trips.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+        {% set completed = page.completed %}
+        <twig:Tile
+            :label="'activity.completed.label'|trans"
+            :value="completed.current is null ? '–' : completed.current|number_format"
+            :change="completed.change is null ? null : completed.change|signed_number"
+            :changeIcon="trend_icon(completed.change)"
+            :spark="completed.history"
+            :note="completed.current is null ? null : 'activity.completed.note'|trans({share: (current.completedTrips / current.trips * 100)|share_percent})"
+            test="completed"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-completed" :title="'activity.completed.help.title'|trans">
+                    <p>{{ 'activity.completed.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+        {# A lower share of cancelled trips is better. #}
+        {% set cancelled = page.cancelled %}
+        <twig:Tile
+            :label="'activity.cancelled.label'|trans"
+            :value="cancelled.current|share_percent"
+            :change="cancelled.change is null ? null : 'punctuality.points'|trans({change: cancelled.change|percentage_points})"
+            :changeTone="trend_tone(cancelled.change, false)"
+            :changeIcon="trend_icon(cancelled.change)"
+            :spark="cancelled.history"
+            sparkClass="series-coral"
+            :note="cancelled.current is null ? null : 'activity.cancelled.note'|trans({count: current.cancelledTrips})"
+            test="cancelled"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-cancelled" :title="'activity.cancelled.help.title'|trans">
+                    <p>{{ 'activity.cancelled.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+        {% set runs = page.runs %}
+        <twig:Tile
+            :label="'activity.runs.label'|trans"
+            :value="runs.current is null ? '–' : runs.current|number_format"
+            :change="runs.change is null ? null : runs.change|signed_number"
+            :changeIcon="trend_icon(runs.change)"
+            :spark="runs.history"
+            :note="runs.current is null ? null : 'activity.runs.note'|trans"
+            test="runs"
+        >
+            <twig:block name="help">
+                <twig:HelpPopover id="help-runs" :title="'activity.runs.help.title'|trans">
+                    <p>{{ 'activity.runs.help.body'|trans }}</p>
+                </twig:HelpPopover>
+            </twig:block>
+        </twig:Tile>
+    </div>
+
+    {# One colour for each status, the same in the bar and in the columns. #}
+    {% set outcomes = [
+        {name: 'activity.outcome.completed'|trans, cssClass: 'series-info', field: 'completedTrips'},
+        {name: 'activity.outcome.cancelled'|trans, cssClass: 'series-coral', field: 'cancelledTrips'},
+        {name: 'activity.outcome.pending'|trans, cssClass: 'series-gray', field: 'pendingTrips'},
+    ] %}
+    <twig:Panel :title="'activity.outcome.title'|trans" :subtitle="'activity.outcome.subtitle'|trans" data-test="outcome">
+        <div data-test="outcome-period">
+            <twig:DistributionBar
+                id="outcome"
+                :caption="'activity.outcome.caption'|trans"
+                :total="'activity.outcome.total'|trans({count: current.trips})"
+                :segments="outcomes|map(item => {name: item.name, cssClass: item.cssClass, value: attribute(current, item.field)})"
+            />
+        </div>
+        <twig:ColumnChart
+            id="outcome-months"
+            :caption="'activity.outcome.months_caption'|trans"
+            :labels="labels"
+            unit="count"
+            :series="outcomes|map(item => {name: item.name, cssClass: item.cssClass, values: page.monthTotals|map(totals => attribute(totals, item.field))})"
+        />
+        <twig:block name="foot">{{ 'activity.source'|trans }}</twig:block>
+    </twig:Panel>
+
+    <twig:Panel :title="'activity.cancellations.title'|trans" :subtitle="'activity.cancellations.subtitle'|trans" data-test="cancellations">
+        <twig:LineChart
+            id="cancelled-share"
+            :caption="'activity.cancellations.caption'|trans"
+            :labels="labels"
+            :series="[{name: 'activity.cancellations.series'|trans, cssClass: 'series-coral', values: cancelled.history}]"
+            unit="percent"
+        />
+        <twig:block name="foot">{{ 'activity.source'|trans }}</twig:block>
+    </twig:Panel>
+
+    <twig:Panel :title="'activity.sub_agreements.title'|trans" :subtitle="'activity.sub_agreements.subtitle'|trans" data-test="sub-agreements">
+        {% if tables.subAgreements is empty %}
+            <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'activity.sub_agreements.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'activity.sub_agreements.sub_agreement'|trans }}</th>
+                            <th scope="col">{{ 'activity.sub_agreements.supplier'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.sub_agreements.trips'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.sub_agreements.share'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in tables.subAgreements %}
+                            <tr data-test="sub-agreement-row">
+                                <th scope="row">{{ row.reference }}</th>
+                                <td>{{ row.supplier ?? 'punctuality.suppliers.unknown'|trans }}</td>
+                                <td class="num">{{ row.trips|number_format }}</td>
+                                <td class="num">{{ row.share|share_percent }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">{{ 'activity.sub_agreements.foot'|trans }} {{ 'activity.source'|trans }}</twig:block>
+    </twig:Panel>
+
+    <twig:Panel :title="'activity.suppliers.title'|trans" :subtitle="'activity.suppliers.subtitle'|trans" data-test="activity-suppliers">
+        {% if tables.suppliers is empty %}
+            <p class="empty" data-test="no-data">{{ 'punctuality.no_data'|trans }}</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="itkaarhus-table data-table">
+                    <caption class="sr-only">{{ 'activity.suppliers.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'punctuality.suppliers.supplier'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.suppliers.ordered'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.suppliers.completed'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.suppliers.cancelled'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.suppliers.cancelled_share'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.suppliers.runs'|trans }}</th>
+                            <th scope="col" class="num">{{ 'activity.suppliers.per_run'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in tables.suppliers %}
+                            {% set per_run = row.completedPerRun %}
+                            <tr data-test="activity-supplier-row">
+                                <th scope="row">{{ row.supplier ?? 'punctuality.suppliers.unknown'|trans }}</th>
+                                <td class="num">{{ row.totals.trips|number_format }}</td>
+                                <td class="num">{{ row.totals.completedTrips|number_format }}</td>
+                                <td class="num">{{ row.totals.cancelledTrips|number_format }}</td>
+                                <td class="num">{{ row.cancelledPercent|share_percent }}</td>
+                                <td class="num">{{ row.totals.notCancelledRuns|number_format }}</td>
+                                <td class="num">{{ per_run is null ? '–' : per_run|number_format(1) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <twig:block name="foot">{{ 'activity.source'|trans }}</twig:block>
+    </twig:Panel>
+{% endblock %}

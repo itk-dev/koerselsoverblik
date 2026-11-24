@@ -627,6 +627,9 @@ body {
 .series-danger {
   color: var(--itkaarhus-danger-500);
 }
+.series-gray {
+  color: var(--itkaarhus-gray-400);
+}
 
 .page-head {
   display: flex;

@@ -6,7 +6,6 @@ namespace App\Controller;
 
 use App\Report\PeriodSelector;
 use App\Report\PunctualityPageBuilder;
-use App\Repository\SubAgreementRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,7 +30,6 @@ final class PunctualityController extends AbstractController
         Request $request,
         PunctualityPageBuilder $builder,
         PeriodSelector $periods,
-        SubAgreementRepository $subAgreements,
         #[Autowire(param: 'app.punctuality_tolerance_minutes')]
         int $toleranceMinutes,
         #[MapQueryParameter(flags: \FILTER_NULL_ON_FAILURE)]
@@ -52,8 +50,6 @@ final class PunctualityController extends AbstractController
             'selection' => $selection,
             'page' => $builder->build($selection),
             'tolerance_minutes' => $toleranceMinutes,
-            // The figures do not include these sub-agreements, so the page names them.
-            'ignored_sub_agreements' => $subAgreements->findIgnoredReferences($selection->filter->supplier),
         ]);
     }
 }

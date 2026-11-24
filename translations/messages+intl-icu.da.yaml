@@ -10,6 +10,7 @@ menu:
   label: Hovedmenu
   overview: Overblik
   punctuality: Rettidighed
+  activity: Kørselsaktivitet
   upload: Upload kørselsdata
   daily_counts: Daglige tal
   suppliers: Leverandører og delaftaler
@@ -139,7 +140,6 @@ month:
 punctuality:
   title: Rettidighed
   lede: "{period} sammenlignet med {comparison}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb."
-  ignored_note: "{count, plural, one {# delaftale er ignoreret i tallene} other {# delaftaler er ignoreret i tallene}}: {references}"
   goal:
     label: Servicemål
     rule: Højst {minutes} minutter for sent · {target} % rettidighed
@@ -232,6 +232,68 @@ punctuality:
     foot: Rettidighed ved sidste afsætning.
   source: "Kilde: chaufførens indtastning mod planlagt tid, kun gennemførte stop"
   no_data: Ingen data i perioden.
+
+activity:
+  title: Kørselsaktivitet
+  lede: "Bestilte ture, aflysninger og vognløb for {period}, sammenlignet med {comparison}."
+  trips:
+    label: Bestilte ture
+    note: "{pending, plural, =0 {Også de aflyste ture} other {Også de aflyste ture · # uden registrering}}"
+    help:
+      title: Bestilte ture
+      body: Alle ture, der var bestilt i perioden, også de aflyste ture og de ture, hvor chaufføren ikke har registreret afhentningen. Én tur er én borgers tur fra afhentning til afsætning. Kører to borgere sammen i samme bil, tæller det som to ture. Status for afhentningen giver status for turen.
+  completed:
+    label: Gennemførte ture
+    note: "{share} af de bestilte ture"
+    help:
+      title: Gennemførte ture
+      body: De ture, hvor chaufføren har registreret afhentningen som gennemført. Ture uden registrering og aflyste ture tæller ikke med.
+  cancelled:
+    label: Aflyste ture
+    note: "{count, number} aflyste ture"
+    help:
+      title: Aflyste ture
+      body: Andelen af de bestilte ture, der blev aflyst. Andelen er af alle bestilte ture, så perioder med forskellig volumen kan sammenlignes. Ændringen er i procentpoint, og en lavere andel er bedre. Udtrækket viser ikke endnu, om en aflysning kom for sent.
+  runs:
+    label: Vognløb
+    note: Vognløb, der ikke er aflyst
+    help:
+      title: Vognløb
+      body: Antallet af vognløb, der ikke er aflyst. Et vognløb er en kæde af afhentninger og afsætninger, fra den første borger stiger ind, til bilen er tom igen. Et vognløb er aflyst, når alle dets stop er aflyst. Et vognløb uden borgere i bilen tæller også med.
+  outcome:
+    title: Gennemført og aflyst
+    subtitle: Alle bestilte ture, og hvordan de endte.
+    caption: Bestilte ture i perioden
+    total: "{count, number} ture"
+    months_caption: Gennemførte, aflyste og ikke registrerede ture pr. måned
+    completed: Gennemført
+    cancelled: Aflyst
+    pending: Uden registrering
+  cancellations:
+    title: Aflysninger i forhold til alle bestilte ture
+    subtitle: Andelen af de bestilte ture, der blev aflyst, måned for måned.
+    caption: Andel aflyste ture af alle bestilte ture pr. måned
+    series: Aflyst
+  sub_agreements:
+    title: Ture pr. delaftale
+    subtitle: De bestilte ture i perioden fordelt på delaftaler. Flest ture først.
+    caption: Bestilte ture pr. delaftale i perioden
+    sub_agreement: Delaftale
+    supplier: Leverandør
+    trips: Bestilte ture
+    share: Andel
+    foot: Ignorerede delaftaler indgår ikke.
+  suppliers:
+    title: Volumen pr. leverandør
+    subtitle: Alle leverandører i den valgte periode.
+    caption: Volumen pr. leverandør i perioden
+    ordered: Bestilt
+    completed: Gennemført
+    cancelled: Aflyst
+    cancelled_share: Aflyst %
+    runs: Vognløb
+    per_run: Gennemførte ture pr. vognløb
+  source: "Kilde: kørselsdata. Status for afhentningen giver status for turen."
 
 upload:
   title: Upload kørselsdata
