@@ -7,6 +7,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- [#165](https://github.com/itk-dev/koerselsoverblik/issues/165)
+  Review follow-up of the driving activity page: the lede tells that the figures leave out the
+  ignored sub-agreements, not only the foot of the table of the sub-agreements. One method of
+  `DayTotalsDto` calculates the share of the cancelled trips. `ActivityPageDto::current()` is
+  removed. The page shows the same values as before.
+
 - [#163](https://github.com/itk-dev/koerselsoverblik/issues/163)
   Show the driving activity page "Kørselsaktivitet": the ordered and the completed trips, the
   share of the cancelled trips, the route runs that are not cancelled, the trips by status for

@@ -5,7 +5,7 @@
 {% block topbar_controls %}{{ include('_filter_bar.html.twig', {route: 'activity'}) }}{% endblock %}
 
 {% block body %}
-    {% set current = page.current %}
+    {% set current = page.selected %}
     {% set labels = page.months|map(item => ('month.short.' ~ item.number)|trans) %}
 
     <header class="page-head">
@@ -155,7 +155,7 @@
                 </table>
             </div>
         {% endif %}
-        <twig:block name="foot">{{ 'activity.sub_agreements.foot'|trans }} {{ 'activity.source'|trans }}</twig:block>
+        <twig:block name="foot">{{ 'activity.source'|trans }}</twig:block>
     </twig:Panel>
 
     <twig:Panel :title="'activity.suppliers.title'|trans" :subtitle="'activity.suppliers.subtitle'|trans" data-test="activity-suppliers">
@@ -184,7 +184,7 @@
                                 <td class="num">{{ row.totals.trips|number_format }}</td>
                                 <td class="num">{{ row.totals.completedTrips|number_format }}</td>
                                 <td class="num">{{ row.totals.cancelledTrips|number_format }}</td>
-                                <td class="num">{{ row.cancelledPercent|share_percent }}</td>
+                                <td class="num">{{ row.totals.cancelledPercent|share_percent }}</td>
                                 <td class="num">{{ row.totals.notCancelledRuns|number_format }}</td>
                                 <td class="num">{{ per_run is null ? '–' : per_run|number_format(1) }}</td>
                             </tr>

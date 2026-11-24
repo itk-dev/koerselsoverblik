@@ -103,6 +103,15 @@ final class DayTotalsDtoTest extends TestCase
     }
 
     /**
+     * The share of the cancelled trips is of all trips. No trips gives no value, not 0.
+     */
+    public function testCancelledPercentIsOfAllTrips(): void
+    {
+        self::assertSame(25.0, DayTotalsDto::fromRow(['trips' => 8, 'cancelledTrips' => 2], ['trips', 'cancelledTrips'])->cancelledPercent());
+        self::assertNull(DayTotalsDto::empty()->cancelledPercent());
+    }
+
+    /**
      * Gives totals with the same value in each counter.
      */
     private static function totals(int $value): DayTotalsDto

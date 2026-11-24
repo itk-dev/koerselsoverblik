@@ -235,7 +235,7 @@ punctuality:
 
 activity:
   title: Kørselsaktivitet
-  lede: "Bestilte ture, aflysninger og vognløb for {period}, sammenlignet med {comparison}."
+  lede: "Bestilte ture, aflysninger og vognløb for {period}, sammenlignet med {comparison}. Ignorerede delaftaler indgår ikke i tallene."
   trips:
     label: Bestilte ture
     note: "{pending, plural, =0 {Også de aflyste ture} other {Også de aflyste ture · # uden registrering}}"
@@ -282,7 +282,6 @@ activity:
     supplier: Leverandør
     trips: Bestilte ture
     share: Andel
-    foot: Ignorerede delaftaler indgår ikke.
   suppliers:
     title: Volumen pr. leverandør
     subtitle: Alle leverandører i den valgte periode.

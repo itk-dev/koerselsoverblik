@@ -9,15 +9,11 @@ use App\Report\DayTotalsDto;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Checks the shares of one row of the supplier table of the activity page.
+ * Checks the completed trips for each run of one row of the supplier table of the activity page.
+ * DayTotalsDtoTest checks the share of the cancelled trips.
  */
 final class ActivitySupplierRowDtoTest extends TestCase
 {
-    public function testCancelledShareIsOfAllTrips(): void
-    {
-        self::assertSame(25.0, self::row(trips: 8, completed: 6, cancelled: 2, runs: 3)->cancelledPercent());
-    }
-
     public function testCompletedTripsForEachRun(): void
     {
         self::assertSame(2.0, self::row(trips: 8, completed: 6, cancelled: 2, runs: 3)->completedPerRun());
@@ -28,10 +24,7 @@ final class ActivitySupplierRowDtoTest extends TestCase
      */
     public function testZeroGivesNoValue(): void
     {
-        $row = self::row(trips: 0, completed: 0, cancelled: 0, runs: 0);
-
-        self::assertNull($row->cancelledPercent());
-        self::assertNull($row->completedPerRun());
+        self::assertNull(self::row(trips: 0, completed: 0, cancelled: 0, runs: 0)->completedPerRun());
     }
 
     private static function row(int $trips, int $completed, int $cancelled, int $runs): ActivitySupplierRowDto

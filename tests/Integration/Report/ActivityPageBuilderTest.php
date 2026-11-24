@@ -39,7 +39,7 @@ final class ActivityPageBuilderTest extends KernelTestCase
         self::assertSame('2025-03', $page->months[0]->query());
         self::assertEquals(DayTotalsDto::empty(), $page->monthTotals[0]);
         self::assertSame([7, 5, 1, 1, 4], self::counts($page->monthTotals[10]));
-        self::assertEquals(DayTotalsDto::empty(), $page->current());
+        self::assertEquals(DayTotalsDto::empty(), $page->selected);
         // The base scenario is on 5 January, the comparison month.
         self::assertNotNull($page->comparison);
         self::assertSame([7, 5, 1, 1, 4], self::counts($page->comparison));
@@ -55,7 +55,7 @@ final class ActivityPageBuilderTest extends KernelTestCase
 
         $page = $this->builder()->build(self::select('2026-01-10', '2026-01-01'));
 
-        self::assertSame([7, 5, 1, 1, 4], self::counts($page->current()));
+        self::assertSame([7, 5, 1, 1, 4], self::counts($page->selected));
         self::assertNull($page->comparison);
     }
 
@@ -84,7 +84,7 @@ final class ActivityPageBuilderTest extends KernelTestCase
 
         $page = $this->builder()->build(self::select('2026-01-07', '', 'week'));
 
-        self::assertSame([7, 5, 1, 1, 4], self::counts($page->current()));
+        self::assertSame([7, 5, 1, 1, 4], self::counts($page->selected));
         self::assertEquals(DayTotalsDto::empty(), $page->comparison);
         self::assertSame([7, 5, 1, 1, 4], self::counts($page->monthTotals[11]));
     }
@@ -107,7 +107,7 @@ final class ActivityPageBuilderTest extends KernelTestCase
 
         $page = $this->builder()->build(self::select('2026-01-10', '', supplier: (string) $supplier->getId()));
 
-        self::assertSame([1, 1, 0, 0, 1], self::counts($page->current()));
+        self::assertSame([1, 1, 0, 0, 1], self::counts($page->selected));
         self::assertSame([1, 1, 0, 0, 1], self::counts($page->monthTotals[11]));
     }
 
