@@ -26,11 +26,6 @@ final readonly class ActivityPageDto
     ) {
     }
 
-    public function current(): DayTotalsDto
-    {
-        return $this->selected;
-    }
-
     public function trips(): CountTrendDto
     {
         return $this->trend(static fn (DayTotalsDto $totals): int => $totals->trips);
@@ -55,19 +50,14 @@ final readonly class ActivityPageDto
      */
     public function cancelled(): ShareTrendDto
     {
-        $current = self::cancelledPercent($this->selected);
-        $before = null === $this->comparison ? null : self::cancelledPercent($this->comparison);
+        $current = $this->selected->cancelledPercent();
+        $before = $this->comparison?->cancelledPercent();
 
         return new ShareTrendDto(
             $current,
             null === $current || null === $before ? null : $current - $before,
-            array_map(self::cancelledPercent(...), $this->monthTotals),
+            array_map(static fn (DayTotalsDto $totals): ?float => $totals->cancelledPercent(), $this->monthTotals),
         );
-    }
-
-    private static function cancelledPercent(DayTotalsDto $totals): ?float
-    {
-        return 0 === $totals->trips ? null : $totals->cancelledTrips / $totals->trips * 100;
     }
 
     /**

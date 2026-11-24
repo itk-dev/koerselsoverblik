@@ -20,14 +20,6 @@ final readonly class ActivitySupplierRowDto
     }
 
     /**
-     * Gives the cancelled trips as a share of all trips in percent, or null if there are no trips.
-     */
-    public function cancelledPercent(): ?float
-    {
-        return 0 === $this->totals->trips ? null : $this->totals->cancelledTrips / $this->totals->trips * 100;
-    }
-
-    /**
      * Gives the completed trips for each route run that is not cancelled, or null if there are no
      * such runs.
      */

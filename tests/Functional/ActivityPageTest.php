@@ -135,8 +135,9 @@ final class ActivityPageTest extends WebTestCase
     }
 
     /**
-     * The figures do not include the routes of an ignored sub-agreement. The page does not name
-     * the ignored sub-agreements.
+     * The figures do not include the routes of an ignored sub-agreement. The lede tells this for
+     * all figures of the page, so the panel of the sub-agreements does not tell it again. The
+     * page does not name the ignored sub-agreements.
      */
     public function testIgnoredSubAgreementIsNotCounted(): void
     {
@@ -149,7 +150,9 @@ final class ActivityPageTest extends WebTestCase
 
         $crawler = $client->request('GET', '/activity');
 
-        self::assertStringNotContainsString('ignoreret i tallene', $crawler->filter('.page-head')->text());
+        self::assertStringEndsWith('Ignorerede delaftaler indgår ikke i tallene.', $crawler->filter('[data-test="lede"]')->text());
+        self::assertStringNotContainsString('BOOKED', $crawler->filter('.page-head')->text());
+        self::assertStringNotContainsString('Ignorerede', $crawler->filter('[data-test="sub-agreements"] .panel__foot')->text());
         self::assertSame('6', self::value($crawler, 'trips'));
         self::assertSame([['R', 'Ukendt', '6', '100 %']], self::rows($crawler, 'sub-agreement-row'));
     }

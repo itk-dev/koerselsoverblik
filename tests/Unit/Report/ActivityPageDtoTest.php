@@ -73,13 +73,6 @@ final class ActivityPageDtoTest extends TestCase
         self::assertSame(5.0, $page->cancelled()->change);
     }
 
-    public function testCurrentIsTheSelectedPeriod(): void
-    {
-        $selected = self::totals(10, 6, 3, 1, 4);
-
-        self::assertSame($selected, self::page($selected, null)->current());
-    }
-
     /**
      * The selected period is the last month of the history. The month before it has no data.
      */

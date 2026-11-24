@@ -154,6 +154,14 @@ final readonly class DayTotalsDto
         );
     }
 
+    /**
+     * Gives the cancelled trips as a share of all trips in percent, or null if there are no trips.
+     */
+    public function cancelledPercent(): ?float
+    {
+        return 0 === $this->trips ? null : $this->cancelledTrips / $this->trips * 100;
+    }
+
     public function solo(): SoloCountDto
     {
         return new SoloCountDto($this->runs, $this->soloRuns);

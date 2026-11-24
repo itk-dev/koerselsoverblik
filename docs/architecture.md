@@ -1198,14 +1198,16 @@ approximately 15 to 38 seconds.
 
 The page "Kørselsaktivitet" (`/activity`, `ActivityController`, `ROLE_VIEW_OVERVIEW`) shows the
 volume of the driving and the cancellations. It has the same filter bar as the punctuality page.
-As on the punctuality page, the figures do not include the routes of an ignored sub-agreement,
-and the page does not name them.
+As on the punctuality page, the figures do not include the routes of an ignored sub-agreement.
+The lede tells this for all figures of the page, but it does not name the ignored
+sub-agreements.
 
 - `ActivityPageBuilder` reads the totals of the 12 months with
   `RouteDayTotalsRepository::sumByMonth()`. A selected period or a comparison period that has the
   dates of a month of the history uses the totals of that month. Other periods run `sum()`.
 - `ActivityPageDto` gives the tiles: the ordered trips, the completed trips, the route runs that
-  are not cancelled, and the share of the cancelled trips of all trips.
+  are not cancelled, and the share of the cancelled trips of all trips. The share comes from
+  `DayTotalsDto::cancelledPercent()`, which the supplier table also uses.
 - A period with no trips has no data. The tiles then show "–" and have no note.
 - A change of a count has no tone, because more volume is not better or worse. A lower share of
   cancelled trips is better.
