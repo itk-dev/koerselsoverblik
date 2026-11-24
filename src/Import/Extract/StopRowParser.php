@@ -63,21 +63,60 @@ final readonly class StopRowParser
             if ($rowNumber === $mapping->headerRow) {
                 $columns = self::columns($row, $mapping);
             } elseif (null !== $columns && !self::isEmpty($row)) {
-                $stopRow = $this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $columns[2], $range);
-                if ($stopRow instanceof StopRowDto && null !== $stopRow->rowKey) {
-                    if (isset($rowKeys[$stopRow->rowKey])) {
-                        $stopRow = new RejectedRowDto($rowNumber, RejectionReason::DuplicateRowId, null, $stopRow->serviceDate, $stopRow->sourceValues);
-                    } else {
-                        $rowKeys[$stopRow->rowKey] = true;
-                    }
-                }
-                yield $stopRow;
+                yield self::firstRowKey($this->stopRow($rowNumber, $row, $mapping, $columns[0], $columns[1], $columns[2], $range), $rowKeys);
             }
         }
 
         if (null === $columns) {
             throw self::noHeaderRow($mapping);
         }
+    }
+
+    /**
+     * Reads the stored copies of rows through a mapping, with the same rules as the rows of a file
+     * (ADR 006). A copy has no empty cells, so a column of the mapping that is not in a copy is an
+     * empty cell. The copy of each new row has all the columns of the old copy, also a column that
+     * the mapping does not keep, so that the read loses no data.
+     *
+     * @param iterable<int, array<array-key, mixed>> $copies the copies keyed by a row number, for the reasons of the rejected rows
+     * @param ?ImportRangeDto                        $range  the dates of the rows, or null to accept all dates
+     *
+     * @return \Generator<int, StopRowDto|RejectedRowDto>
+     *
+     * @throws \InvalidArgumentException if a copy has a value of an unknown type
+     */
+    public function parseCopies(iterable $copies, MappingDto $mapping, ?ImportRangeDto $range): \Generator
+    {
+        /** @var array<string, true> $rowKeys the keys of the stop rows so far */
+        $rowKeys = [];
+        foreach ($copies as $rowNumber => $copy) {
+            $cells = SourceCells::cells($copy);
+            // The header has the columns of the copy, and then the other columns of the mapping.
+            $names = array_values(array_unique([...array_map(strval(...), array_keys($cells)), ...self::mappingColumns($mapping)]));
+            $indexes = array_flip($names);
+            $row = new Row(array_map(static fn (string $name): Cell => $cells[$name] ?? new EmptyCell(null), $names));
+            [$fieldColumns, $rowIdColumns] = self::fieldAndRowIdColumns($indexes, $mapping);
+
+            yield self::firstRowKey($this->stopRow($rowNumber, $row, $mapping, $fieldColumns, $rowIdColumns, $indexes, $range), $rowKeys);
+        }
+    }
+
+    /**
+     * A row key that occurs again gives a rejected row, after the first stop row with the key.
+     *
+     * @param array<string, true> $rowKeys the keys of the stop rows so far
+     */
+    private static function firstRowKey(StopRowDto|RejectedRowDto $row, array &$rowKeys): StopRowDto|RejectedRowDto
+    {
+        if (!$row instanceof StopRowDto || null === $row->rowKey) {
+            return $row;
+        }
+        if (isset($rowKeys[$row->rowKey])) {
+            return new RejectedRowDto($row->rowNumber, RejectionReason::DuplicateRowId, null, $row->serviceDate, $row->sourceValues);
+        }
+        $rowKeys[$row->rowKey] = true;
+
+        return $row;
     }
 
     /**
@@ -159,23 +198,52 @@ final readonly class StopRowParser
     {
         $indexes = self::indexes($header);
 
-        $fieldColumns = [];
-        foreach (FieldName::cases() as $name) {
-            $fieldColumns[$name->value] = $mapping->field($name)->column;
-        }
-
-        $missing = array_values(array_unique(array_diff([...$fieldColumns, ...$mapping->rowId], array_keys($indexes))));
+        $missing = array_values(array_unique(array_diff([...self::fieldColumnNames($mapping), ...$mapping->rowId], array_keys($indexes))));
         if ([] !== $missing) {
             throw new MissingColumnsException($missing);
         }
 
-        $copyColumns = array_flip([...$fieldColumns, ...$mapping->rowId, ...$mapping->keepColumns]);
-
         return [
-            array_map(static fn (string $column): int => $indexes[$column], $fieldColumns),
-            array_map(static fn (string $column): int => $indexes[$column], $mapping->rowId),
-            array_intersect_key($indexes, $copyColumns),
+            ...self::fieldAndRowIdColumns($indexes, $mapping),
+            array_intersect_key($indexes, array_flip(self::mappingColumns($mapping))),
         ];
+    }
+
+    /**
+     * @param array<array-key, int> $indexes the index of each column name. It has all the field columns and row id columns.
+     *
+     * @return array{array<string, int>, list<int>} the field columns keyed by the FieldName value, and the row id columns
+     */
+    private static function fieldAndRowIdColumns(array $indexes, MappingDto $mapping): array
+    {
+        return [
+            array_map(static fn (string $column): int => $indexes[$column], self::fieldColumnNames($mapping)),
+            array_map(static fn (string $column): int => $indexes[$column], $mapping->rowId),
+        ];
+    }
+
+    /**
+     * @return array<string, string> the column of each field, keyed by the FieldName value
+     */
+    private static function fieldColumnNames(MappingDto $mapping): array
+    {
+        $columns = [];
+        foreach (FieldName::cases() as $name) {
+            $columns[$name->value] = $mapping->field($name)->column;
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Gives the columns that the copy of a row from a file has: the field columns, the row id
+     * columns and the kept columns.
+     *
+     * @return list<string>
+     */
+    private static function mappingColumns(MappingDto $mapping): array
+    {
+        return array_values([...self::fieldColumnNames($mapping), ...$mapping->rowId, ...$mapping->keepColumns]);
     }
 
     /**

@@ -346,6 +346,35 @@ The command shows the counts, and asks for confirmation unless `--no-interaction
 default answer is no. The dates have the format `YYYY-MM-DD`. The range has a maximum of
 `APP_DRIVING_DATA_MAX_DAYS` days.
 
+### Read the stored copies again
+
+The upload deletes the file, but each imported row keeps a copy of its columns
+([ADR 006](docs/adr/006-keep-a-copy-of-each-imported-row.md)). After a change of the mapping, read
+the copies again in place of a new upload, for example:
+
+- a new field that reads a column that the copies keep
+- a changed rule of a field, for example a new code in a value map
+- rows that a mapping error rejected
+
+```shell
+task console -- app:driving-data:read-copies <FIRST_DATE> <LAST_DATE> --no-debug
+```
+
+1. The command reads the copies of each date in the range through the current mapping. Use
+   `--mapping=<NAME>` for another mapping.
+2. It shows a preview: the dates with stored rows, the stored rows that it replaces, and the stop
+   rows, rejected rows and warnings that the copies give.
+3. It asks for confirmation unless `--no-interaction` is given. The default answer is no.
+4. It replaces the rows of each date, and builds the figures of the date again.
+
+The range can be longer than an upload, because the command works through one date at a time. A
+date with no stored rows is not changed. The command stops before any change if no copy has the
+column of a required field, or if a copy gives another date than the date of its row. If a date
+fails during the read, that date keeps its rows, and the dates before it are read again. The
+[driving data log](#driving-data-log) records each read.
+
+A column that the copies do not keep cannot be read again. Then upload the extracts again.
+
 ### Driving data
 
 The tab **Kørselsdata** shows the stored driving data. It requires `ROLE_MANAGE_DRIVING_DATA`.
@@ -613,7 +642,15 @@ For example:
 admin@example.com cleared the driving data from 2026-01-05 to 2026-01-05: 14 stop rows, 4 route runs and 0 rejected rows
 ```
 
-A clear from the command line has the user `console`. The log has no values from the extract.
+Each [read of the stored copies](#read-the-stored-copies-again) is also written to the channel,
+with the date range, the mapping and the counts. For example:
+
+```text
+console read the stored copies from 2026-01-01 to 2026-01-31 again through the mapping "default": 2 dates, 28 stop rows and 0 rejected rows
+```
+
+A clear or a read from the command line has the user `console`. The log has no values from the
+extract.
 It holds the emails of the staff, so its retention follows the same decision as the
 authentication log.
 
@@ -888,10 +925,12 @@ and day, and the citizens of its months. Build them for all dates again in these
 - After the first deploy of the runs that are not cancelled (#163). Until then, the totals of
   the dates that were imported before have 0 runs that are not cancelled.
 
-After the first deploy of the late cancellations (#167), import the stored dates again. A build
-is not enough, because the stop rows that were imported before have no code of a late
-cancellation. Until then, the activity page shows their cancelled trips as "Aflyst, varsel
-ukendt", and the share of the late cancellations as "–".
+After the first deploy of the late cancellations (#167), read the stored copies again with
+`app:driving-data:read-copies` for all stored dates (see
+[Read the stored copies again](#read-the-stored-copies-again)). A build is not enough, because the
+stop rows that were imported before have no code of a late cancellation. Until then, the activity
+page shows their cancelled trips as "Aflyst, varsel ukendt", and the share of the late
+cancellations as "–".
 
 - After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
   message that tells to run the command.

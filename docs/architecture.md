@@ -537,8 +537,8 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
 ([ADR 006](adr/006-keep-a-copy-of-each-imported-row.md), proposed):
 
 - The copy holds the field columns, the row id columns and the kept columns of the mapping, keyed
-  by the column name. A later task can read the copies again through a changed mapping, with no
-  new upload.
+  by the column name. The command `app:driving-data:read-copies` reads the copies again through a
+  changed mapping, with no new upload (see [Read the stored copies again](#read-the-stored-copies-again)).
 - `SourceCells` makes the copy, and the cells again from a copy. The copy keeps the type of each
   cell: text, numbers and booleans are JSON values, and a duration, a date and time and an Excel
   error are objects with one key, for example `{"duration": "P0DT25H10M0S"}`. An empty cell is
@@ -567,6 +567,37 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
   Thus two imports of the same dates that overlap can leave copies with no row. The command
   `app:driving-data:delete-orphan-copies` deletes them with `SourceRowRepository::deleteOrphans()`.
   A cron job runs it each night. The import does not call it, because it reads all copies.
+
+### Read the stored copies again
+
+After go-live an upload deletes the file, so the copies are the only source of the dates that
+were imported before. `app:driving-data:read-copies <FIRST_DATE> <LAST_DATE>` reads the copies of
+a range again through the current mapping (#61). Use it after a new field from a kept column, a
+changed rule of the mapping, or a mapping error that rejected rows.
+
+- `StopRowParser::parseCopies()` reads copies with the same rules as the rows of a file. It makes
+  a row from each copy, with the columns of the copy and the columns of the mapping as the header.
+  A column of the mapping that is not in a copy is an empty cell.
+- The new copy of a row has all the columns of the old copy, also a column that the mapping no
+  longer keeps. Thus a read loses no data.
+- `StoredCopyReader` works through the range one date at a time, as an import of one day. The
+  replacement deletes the copies of the date, so the reader reads them first. The copies of one
+  day fit in the memory, and a range of any length does not. Each date is one transaction, with
+  its own batch (`StoredCopyReader::FILE_NAME`), and builds the route runs, the totals and the
+  citizens of its month again.
+- A date with no stored rows is not changed, so the read does not empty a date.
+- The stop rows have no row number, so they get their place on the date. A rejected row keeps
+  its row number of the file. A rejected row with no date is not read, because it belongs to no
+  date.
+- The preview reads all copies of the range through the mapping, and changes no data. It names
+  the field columns that no copy of the range has. A missing column of a required field or of the
+  row id stops the read before any change, as a file with a missing column. A missing column of
+  an optional field gives no value, and the preview shows a warning.
+- The command also stops before any change if a copy gives another date through the mapping than
+  the date of its row, because the replacement of one date would lose that row.
+- If a date fails during the read, for example with a row id that is stored on another date, that
+  date keeps its rows, and the dates before it are read again.
+- The audit log records each read with the range, the mapping and the counts.
 
 ### The reference extract
 

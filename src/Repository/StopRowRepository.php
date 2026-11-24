@@ -106,6 +106,28 @@ class StopRowRepository extends ServiceEntityRepository
     }
 
     /**
+     * Gives the copies of the stop rows of the date, in the order of the import, for a new read
+     * through a mapping (ADR 006).
+     *
+     * @return list<array<array-key, mixed>> the values of each copy, keyed by the column name
+     */
+    public function copiesOn(\DateTimeImmutable $date): array
+    {
+        // Doctrine converts the JSON of the copy to an array, with the type of the field.
+        /** @var list<array{values: array<array-key, mixed>}> $rows */
+        $rows = $this->createQueryBuilder('row')
+            ->select('copy.values AS values')
+            ->join('row.sourceRow', 'copy')
+            ->where('row.serviceDate = :date')
+            ->orderBy('row.id')
+            ->setParameter('date', $date, Types::DATE_IMMUTABLE)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_column($rows, 'values');
+    }
+
+    /**
      * Gives the ids of the copies of the stop rows in the range. Read them before the delete,
      * because a deleted row no longer points to its copy.
      *
