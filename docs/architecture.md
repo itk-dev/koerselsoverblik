@@ -1564,6 +1564,15 @@ coverage gate and mutation testing on the production code.
   no-show one of these, a cancellation code, or a column that the extract does not have? The
   product owner in the transport office answers before the punctuality page can show the
   no-shows.
+- **Cancellation notice.** The extract has the notice of a cancellation (`aflysningsvarsel`) and
+  a code that tells if the notice was in time (`RettidigAflysningsvarsel`). What is the unit of
+  the notice? What are the codes, and what do they mean? Which one decides that a cancellation
+  is too late: the code, or the notice against a limit? The product owner in the transport
+  office answers before the activity page can show the late cancellations.
+- **Cancellation cause.** The prototype shows who cancelled a trip (for example the citizen, the
+  institution or the supplier), and why. The extract has no columns for this. Can the transport
+  office make an extract with these fields? The product owner in the transport office answers
+  before the activity page can show who cancels and why.
 - **Partial month.** The overview and the punctuality page compare the current month, which is
   not complete, with all of the previous month. On 20 January, the trips of 20 days are compared
   with the trips of 31 days, so the change is too negative. The options: compare the same days of

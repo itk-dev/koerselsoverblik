@@ -66,6 +66,15 @@ feature that has an issue or an issue text.
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
 
+### Activity page
+
+| Feature | Status | Issue | Needs | Plan |
+| --- | --- | --- | --- | --- |
+| Show the driving activity page | In progress | [#163](https://github.com/itk-dev/koerselsoverblik/issues/163) | – | [activity-page.md](activity-page.md) |
+| Show the late cancellations on the driving activity page | Blocked | – | [#163](https://github.com/itk-dev/koerselsoverblik/issues/163), and open decision "Cancellation notice" | [activity-late-cancellations.md](activity-late-cancellations.md) |
+| Show where and when the cancellations come | Blocked | – | The late cancellations | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
+| Show who cancels and why | Blocked | – | Open decision "Cancellation cause" | – |
+
 ### Driving data
 
 | Feature | Status | Issue | Needs | Plan |
