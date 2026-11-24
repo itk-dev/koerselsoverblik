@@ -109,12 +109,13 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     {
         $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
         $values['planned_solo'] = null;
+        $values['cancelled_in_time'] = null;
         new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
 
         $result = $this->validate();
 
         self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
-        // The actual time is the last value, because the solo value is empty.
+        // The actual time is the last value, because the values after it are empty.
         self::assertMatchesRegularExpression('/2026-01-05 07:02:00\s*$/m', $result->getDisplay());
     }
 
@@ -125,17 +126,20 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     {
         $values = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows[0]->values;
         $values['actual_time'] = null;
+        $values['cancelled_in_time'] = null;
         new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow($values)]);
 
         $result = $this->validate();
 
         self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
         // The planned time comes directly before the solo value, because the actual time is empty.
+        // The solo value is the last value, because the values after it are empty.
         self::assertMatchesRegularExpression('/2026-01-05 07:00:00\s+no\s*$/m', $result->getDisplay());
     }
 
     /**
-     * The preview hides the location name.
+     * The preview hides the location name. The code of a late cancellation comes after it, as
+     * "yes" or "no".
      */
     public function testPreviewHidesTheLocationName(): void
     {
@@ -147,7 +151,7 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
 
         self::assertSame(Command::SUCCESS, $result->getStatusCode(), $result->getDisplay());
         $display = $result->getDisplay();
-        self::assertMatchesRegularExpression('/no\s+\(hidden\)\s*$/m', $display);
+        self::assertMatchesRegularExpression('/no\s+\(hidden\)\s+no\s*$/m', $display);
         self::assertStringNotContainsString('Skole 7', $display);
     }
 

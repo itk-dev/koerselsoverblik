@@ -79,6 +79,12 @@ class RouteDayTotals
     #[ORM\Column]
     private int $notCancelledRuns;
 
+    #[ORM\Column]
+    private int $cancelledInTimeTrips;
+
+    #[ORM\Column]
+    private int $cancelledLateTrips;
+
     /**
      * @param int $toleranceMinutes the value of APP_PUNCTUALITY_TOLERANCE_MINUTES when the counters were built
      */
@@ -110,6 +116,8 @@ class RouteDayTotals
         $this->runs = $totals->runs;
         $this->soloRuns = $totals->soloRuns;
         $this->notCancelledRuns = $totals->notCancelledRuns;
+        $this->cancelledInTimeTrips = $totals->cancelledInTimeTrips;
+        $this->cancelledLateTrips = $totals->cancelledLateTrips;
     }
 
     public function getId(): ?int
@@ -153,6 +161,8 @@ class RouteDayTotals
             $this->runs,
             $this->soloRuns,
             $this->notCancelledRuns,
+            $this->cancelledInTimeTrips,
+            $this->cancelledLateTrips,
         );
     }
 }

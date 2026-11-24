@@ -155,12 +155,18 @@ final readonly class DrivingDataMappingValidateCommand
             $row->nextDurationMin,
             $row->plannedTime->format('Y-m-d H:i:s'),
             $row->actualTime?->format('Y-m-d H:i:s'),
-            match ($row->plannedSolo) {
-                true => 'yes',
-                false => 'no',
-                null => null,
-            },
+            self::yesNo($row->plannedSolo),
             null === $row->locationName ? null : self::HIDDEN,
+            self::yesNo($row->cancelledInTime),
         ];
+    }
+
+    private static function yesNo(?bool $value): ?string
+    {
+        return match ($value) {
+            true => 'yes',
+            false => 'no',
+            null => null,
+        };
     }
 }

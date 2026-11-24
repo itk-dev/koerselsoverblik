@@ -184,13 +184,21 @@ final class DevDatasetGeneratorTest extends TestCase
         foreach ($rows as $row) {
             self::assertIsInt($row->kept['passengers']);
             self::assertIsFloat($row->kept['prisprminut']);
-            self::assertContains($row->kept['RettidigAflysningsvarsel'], ['yes', 'no']);
+            self::assertIsBool($row->values['cancelled_in_time']);
             $cancelled = 'cancelled' === $row->values['stop_status'];
             self::assertSame($cancelled, \is_float($row->kept['aflysningsvarsel']));
+            // The extract has "no" on a row that is not cancelled.
             if (!$cancelled) {
-                self::assertSame('no', $row->kept['RettidigAflysningsvarsel']);
+                self::assertFalse($row->values['cancelled_in_time']);
             }
         }
+        // Some cancelled trips came in time, and some came too late.
+        $codes = array_map(
+            static fn (ExtractRow $row): mixed => $row->values['cancelled_in_time'],
+            array_filter($rows, static fn (ExtractRow $row): bool => 'cancelled' === $row->values['stop_status']),
+        );
+        self::assertContains(true, $codes);
+        self::assertContains(false, $codes);
     }
 
     /**

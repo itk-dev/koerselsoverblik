@@ -40,6 +40,7 @@ final class StopRowDtoTest extends TestCase
         self::assertSame(120, $row->delaySeconds);
         self::assertTrue($row->plannedSolo);
         self::assertSame('Skole 1', $row->locationName);
+        self::assertFalse($row->cancelledInTime);
     }
 
     public function testEmptyValuesGiveNull(): void
@@ -52,6 +53,7 @@ final class StopRowDtoTest extends TestCase
         $values['actual_time'] = null;
         $values['planned_solo'] = null;
         $values['location_name'] = null;
+        $values['cancelled_in_time'] = null;
 
         $row = self::fromValues($values);
 
@@ -64,6 +66,7 @@ final class StopRowDtoTest extends TestCase
         self::assertNull($row->delaySeconds);
         self::assertNull($row->plannedSolo);
         self::assertNull($row->locationName);
+        self::assertNull($row->cancelledInTime);
     }
 
     /**
@@ -261,6 +264,7 @@ final class StopRowDtoTest extends TestCase
             'actual_time' => new \DateTimeImmutable('2026-01-05 07:12'),
             'planned_solo' => true,
             'location_name' => 'Skole 1',
+            'cancelled_in_time' => false,
         ];
     }
 }

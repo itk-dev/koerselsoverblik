@@ -291,6 +291,7 @@ erDiagram
         int delay_seconds "actual_time minus planned_time, null = no actual time"
         bool planned_solo
         string location_name "the institution, never shown with person_id"
+        bool cancelled_in_time "null = not known"
         string person_id "from the extract (ADR 004)"
         int source_row_id FK "unique, the copy of the row (ADR 006)"
         int import_batch_id FK
@@ -598,6 +599,7 @@ permitted, for example "7 of 80 runs".
 | `actual_time` | `StatusUpdateTime` | Excel date and time | Empty when the stop has no registration. |
 | `planned_solo` | `kørselstype` | text code | Two codes: solo and shared. |
 | `location_name` | `Placename` | text | The institution of a trip. Empty in the reference extract. Never shown with a person id, or written to a log or to the output of a command. |
+| `cancelled_in_time` | `RettidigAflysningsvarsel` | text code | "yes" when the trip is cancelled on an earlier date, or more than 60 minutes before the planned arrival. "no" in all other rows, also when the stop is not cancelled. Optional. See "Cancellation notice" in [open decisions](#open-decisions). |
 
 **Why the planned time comes from `PlannedDeparture`:** the extract has a planned arrival
 (`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The departure is
@@ -614,10 +616,10 @@ row, but not the personal data. For example:
 
 - the ids of trips, trip requests, routes, addresses, locations, places and paths
 - the requested times, the service times, the planned arrival and the planned activity times
-- the cancellation columns: the cancellation id, the time of the cancellation, the notice in
-  minutes (`aflysningsvarsel`, negative when the cancellation came after the planned time), and
-  whether the notice was in time (`RettidigAflysningsvarsel`). The unit of the notice and the
-  meaning of the in-time code are not confirmed
+- the cancellation columns: the cancellation id, the time of the cancellation, and the notice in
+  minutes (`aflysningsvarsel`). The notice uses only the time of day of the cancellation, so it is
+  not correct for a cancellation on an earlier day (see "Cancellation notice" in
+  [open decisions](#open-decisions))
 - `prisprminut`, the price per minute, for the cost of empty running
 - `passengers`, the passengers after the stop before the cancellations are removed
 - `blokstart` and `blokslut`

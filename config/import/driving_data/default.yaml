@@ -41,7 +41,6 @@ keep_columns:
     - passengers
     - aflysningstidspunkt
     - aflysningsvarsel
-    - RettidigAflysningsvarsel
     - rutestartet
     - blokstart
     - blokslut
@@ -89,3 +88,11 @@ fields:
     # The institution of the trip. Never show it with a person id, or write it to a log or to the
     # output of a command.
     location_name: { column: Placename, type: string }
+    # "yes" when the trip is cancelled on an earlier date, or more than 60 minutes before the planned
+    # arrival. "no" in all other rows, also when the stop is not cancelled. Optional, so that a new
+    # code gives a warning and does not reject the row.
+    cancelled_in_time:
+        column: RettidigAflysningsvarsel
+        type: bool
+        true_values: ['yes']
+        false_values: ['no']

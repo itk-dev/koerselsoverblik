@@ -34,27 +34,31 @@ final readonly class DayTotalsDto
         'runs',
         'soloRuns',
         'notCancelledRuns',
+        'cancelledInTimeTrips',
+        'cancelledLateTrips',
     ];
 
     /**
-     * @param int $pickupOnTime        the measured pickups that are on time
-     * @param int $pickupMeasured      the completed pickups with a delay
-     * @param int $dropOffOnTime       the measured drop-offs that are on time
-     * @param int $dropOffMeasured     the completed drop-offs with a delay
-     * @param int $firstPickupOnTime   the measured first pickups of the route runs that are on time
-     * @param int $firstPickupMeasured the route runs with a delay at the first pickup
-     * @param int $lastDropOnTime      the measured last drop-offs of the route runs that are on time
-     * @param int $lastDropMeasured    the route runs with a delay at the last drop-off
-     * @param int $lastDropUpTo15      the measured last drop-offs from the tolerance to 15 minutes late
-     * @param int $lastDropUpTo30      the measured last drop-offs from 15 to 30 minutes late
-     * @param int $lastDropOver30      the measured last drop-offs more than 30 minutes late
-     * @param int $trips               the pickups, with any status
-     * @param int $completedTrips      the completed pickups
-     * @param int $cancelledTrips      the cancelled pickups
-     * @param int $pendingTrips        the pickups with no registration
-     * @param int $runs                the route runs that are not cancelled and had a citizen in the car
-     * @param int $soloRuns            the counted runs with exactly one citizen in the car at a time
-     * @param int $notCancelledRuns    the route runs that are not cancelled, also a run with no citizen in the car
+     * @param int $pickupOnTime         the measured pickups that are on time
+     * @param int $pickupMeasured       the completed pickups with a delay
+     * @param int $dropOffOnTime        the measured drop-offs that are on time
+     * @param int $dropOffMeasured      the completed drop-offs with a delay
+     * @param int $firstPickupOnTime    the measured first pickups of the route runs that are on time
+     * @param int $firstPickupMeasured  the route runs with a delay at the first pickup
+     * @param int $lastDropOnTime       the measured last drop-offs of the route runs that are on time
+     * @param int $lastDropMeasured     the route runs with a delay at the last drop-off
+     * @param int $lastDropUpTo15       the measured last drop-offs from the tolerance to 15 minutes late
+     * @param int $lastDropUpTo30       the measured last drop-offs from 15 to 30 minutes late
+     * @param int $lastDropOver30       the measured last drop-offs more than 30 minutes late
+     * @param int $trips                the pickups, with any status
+     * @param int $completedTrips       the completed pickups
+     * @param int $cancelledTrips       the cancelled pickups
+     * @param int $pendingTrips         the pickups with no registration
+     * @param int $runs                 the route runs that are not cancelled and had a citizen in the car
+     * @param int $soloRuns             the counted runs with exactly one citizen in the car at a time
+     * @param int $notCancelledRuns     the route runs that are not cancelled, also a run with no citizen in the car
+     * @param int $cancelledInTimeTrips the cancelled pickups that were cancelled in time
+     * @param int $cancelledLateTrips   the cancelled pickups that were cancelled too late
      */
     public function __construct(
         public int $pickupOnTime,
@@ -75,6 +79,8 @@ final readonly class DayTotalsDto
         public int $runs,
         public int $soloRuns,
         public int $notCancelledRuns,
+        public int $cancelledInTimeTrips,
+        public int $cancelledLateTrips,
     ) {
     }
 
@@ -137,6 +143,8 @@ final readonly class DayTotalsDto
             $this->runs + $other->runs,
             $this->soloRuns + $other->soloRuns,
             $this->notCancelledRuns + $other->notCancelledRuns,
+            $this->cancelledInTimeTrips + $other->cancelledInTimeTrips,
+            $this->cancelledLateTrips + $other->cancelledLateTrips,
         );
     }
 

@@ -52,12 +52,12 @@ final class StopRowParserTest extends TestCase
     /**
      * The columns of the simple mapping, in the order of the fields.
      */
-    private const array HEADER = ['Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Place'];
+    private const array HEADER = ['Route', 'Person', 'Day', 'Run', 'Kind', 'State', 'Load', 'Km', 'Minutes', 'Planned', 'Actual', 'Solo', 'Place', 'InTime'];
 
     /**
      * One row for the simple mapping. The dates and times are Excel serial numbers of 5 January 2026.
      */
-    private const array ROW = ['R-01', 'P-001', 46027, 1, 'P', 'C', 1, 2.5, 5, 46027.3, 46027.31, 'Y', 'Skole 1'];
+    private const array ROW = ['R-01', 'P-001', 46027, 1, 'P', 'C', 1, 2.5, 5, 46027.3, 46027.31, 'Y', 'Skole 1', 'N'];
 
     private string $path = '';
 
@@ -236,6 +236,7 @@ final class StopRowParserTest extends TestCase
                 'Actual' => 46027.31,
                 'Solo' => 'Y',
                 'Place' => 'Skole 1',
+                'InTime' => 'N',
                 // A kept column that is not in the file is not an error.
                 'Note' => ' first ',
             ],
@@ -254,7 +255,7 @@ final class StopRowParserTest extends TestCase
 
         self::assertSame('S-1', $rows[0]->sourceValues['Id']);
         self::assertSame(1, $rows[0]->sourceValues['Run']);
-        self::assertCount(14, $rows[0]->sourceValues);
+        self::assertCount(15, $rows[0]->sourceValues);
     }
 
     public function testRejectedRowHasACopyAndTheServiceDate(): void
@@ -573,6 +574,22 @@ final class StopRowParserTest extends TestCase
         self::assertSame([[2, FieldName::LocationName, RejectionReason::NotText]], self::warnings($rows));
     }
 
+    /**
+     * The code of a late cancellation is optional. An empty cell gives no value. An unknown code
+     * gives no value and a warning, and the row is imported.
+     */
+    public function testCodeOfALateCancellation(): void
+    {
+        $row = static fn (?string $code): array => [...\array_slice(self::ROW, 0, 13), $code];
+        $this->writeRows([self::HEADER, $row('Y'), $row('N'), $row(null), $row('maybe')]);
+
+        [$rows, $rejected] = $this->parse(self::simpleMapping());
+
+        self::assertSame([], $rejected);
+        self::assertSame([true, false, null, null], array_map(static fn (StopRowDto $row): ?bool => $row->cancelledInTime, $rows));
+        self::assertSame([[5, FieldName::CancelledInTime, RejectionReason::UnknownBoolValue]], self::warnings($rows));
+    }
+
     public function testMissingSheetRejectsTheFile(): void
     {
         $this->writeRows([self::HEADER, self::ROW]);
@@ -796,6 +813,7 @@ final class StopRowParserTest extends TestCase
                 'actual_time' => self::simpleField(FieldName::ActualTime, FieldType::DateTime, $isRequired(FieldName::ActualTime)),
                 'planned_solo' => self::simpleField(FieldName::PlannedSolo, FieldType::Bool, $isRequired(FieldName::PlannedSolo), [], ['Y'], ['N']),
                 'location_name' => self::simpleField(FieldName::LocationName, FieldType::String, $isRequired(FieldName::LocationName)),
+                'cancelled_in_time' => self::simpleField(FieldName::CancelledInTime, FieldType::Bool, $isRequired(FieldName::CancelledInTime), [], ['Y'], ['N']),
             ],
             keepColumns: $keepColumns,
         );

@@ -77,6 +77,8 @@ final class ScenarioLoader
                 'actual_time' => null === $actual ? null : $serviceDate->add(self::time($path, $actual)),
                 'planned_solo' => self::bool($path, $stop['solo'] ?? false, 'solo'),
                 'location_name' => self::optionalString($path, $stop['location'] ?? null, 'location'),
+                // The extract has "no" on a row that is not cancelled, so "no" is the default.
+                'cancelled_in_time' => self::bool($path, $stop['in_time'] ?? false, 'in_time'),
             ],
             rowId: \array_key_exists('row_id', $stop) ? self::string($path, $stop['row_id'], 'row_id') : null,
             raw: self::raw($path, $stop['raw'] ?? []),

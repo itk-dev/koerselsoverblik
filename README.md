@@ -453,6 +453,7 @@ required, because each stop row needs them:
 | `actual_time` | `time` or `datetime` | Optional |
 | `planned_solo` | `bool` | Optional |
 | `location_name` | `string` | Optional |
+| `cancelled_in_time` | `bool` | Optional |
 
 A mapping with a `time` field must have a `service_date` with the type `date`.
 
@@ -486,6 +487,7 @@ fields:
   actual_time:       { column: <COLUMN_NAME>, type: datetime, format: excel }
   planned_solo:      { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
   location_name:     { column: <COLUMN_NAME>, type: string }
+  cancelled_in_time: { column: <COLUMN_NAME>, type: bool, true_values: [<IN_TIME_VALUE>], false_values: [<LATE_VALUE>] }
 ```
 
 The parser reads the rows of an extract through the mapping. It rejects a row with a value that

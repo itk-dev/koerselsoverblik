@@ -159,6 +159,7 @@ final class ExtractSummaryDtoTest extends TestCase
             'actual_time' => null,
             'planned_solo' => null,
             'location_name' => null,
+            'cancelled_in_time' => null,
         ], warnings: $warnings);
     }
 }
