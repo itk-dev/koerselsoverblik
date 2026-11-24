@@ -1604,10 +1604,19 @@ coverage gate and mutation testing on the production code.
   product owner in the transport office answers before the punctuality page can show the
   no-shows.
 - **Cancellation notice.** The extract has the notice of a cancellation (`aflysningsvarsel`) and
-  a code that tells if the notice was in time (`RettidigAflysningsvarsel`). What is the unit of
-  the notice? What are the codes, and what do they mean? Which one decides that a cancellation
-  is too late: the code, or the notice against a limit? The product owner in the transport
-  office answers before the activity page can show the late cancellations.
+  a code that tells if the notice was in time (`RettidigAflysningsvarsel`). The report script of
+  the transport office calculates them:
+  - The notice is in minutes: the planned arrival minus the time of day of the cancellation. The
+    date of the cancellation is not used. Thus the notice is wrong for a cancellation on an
+    earlier day, and it can be negative. For example, a trip at 08:00 that is cancelled at 14:00
+    the day before gets −360 minutes, not 1,080 minutes.
+  - The code is "yes" when the cancellation is on an earlier date than the trip, or more than 60
+    minutes before the planned arrival. Else it is "no", also on a row that is not cancelled.
+    The code checks the date first, so it is correct. The late cancellations can use the code.
+  - Open: is it on purpose that the notice uses only the time of day? Can the report calculate
+    the notice from the date and the time, or add the time of the cancellation as a column? Is a
+    limit of 60 minutes before the planned arrival the rule of the contract? The product owner in
+    the transport office answers before the activity page can show the notice bands.
 - **Cancellation cause.** The prototype shows who cancelled a trip (for example the citizen, the
   institution or the supplier), and why. The extract has no columns for this. Can the transport
   office make an extract with these fields? The product owner in the transport office answers
