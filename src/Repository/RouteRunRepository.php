@@ -31,6 +31,7 @@ class RouteRunRepository extends ServiceEntityRepository
         'lastDropOver30',
         'runs',
         'soloRuns',
+        'notCancelledRuns',
     ];
 
     public function __construct(ManagerRegistry $registry)
@@ -108,6 +109,8 @@ class RouteRunRepository extends ServiceEntityRepository
      * - A run counts for the solo runs if it is not cancelled and had at least one citizen in the
      *   car. A run with a peak of 0 or no peak is neither solo nor shared. A real solo run had
      *   exactly one citizen in the car at a time.
+     * - The runs that are not cancelled are all runs with a stop that is not cancelled, also a run
+     *   with a peak of 0 or no peak. The activity page shows them.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      * @param int $upTo15Seconds the highest delay of the second band
@@ -131,6 +134,7 @@ class RouteRunRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN run.lastDropDelaySeconds > :upTo30 THEN 1 ELSE 0 END) AS lastDropOver30',
                 'SUM(CASE WHEN run.cancelled = false AND run.peakPassengers >= 1 THEN 1 ELSE 0 END) AS runs',
                 'SUM(CASE WHEN run.cancelled = false AND run.peakPassengers = 1 THEN 1 ELSE 0 END) AS soloRuns',
+                'SUM(CASE WHEN run.cancelled = false THEN 1 ELSE 0 END) AS notCancelledRuns',
             )
             ->where('run.serviceDate BETWEEN :first AND :last')
             ->groupBy('run.route, run.serviceDate')

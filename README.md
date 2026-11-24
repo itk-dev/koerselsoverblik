@@ -871,6 +871,8 @@ and day, and the citizens of its months. Build them for all dates again in these
   totals of each location (#87). Until then, the pages show no figures for the dates that were
   imported before, the citizens sparkline shows no values, and the punctuality page shows no
   locations.
+- After the first deploy of the runs that are not cancelled (#163). Until then, the totals of
+  the dates that were imported before have 0 runs that are not cancelled.
 - After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
   message that tells to run the command.
 

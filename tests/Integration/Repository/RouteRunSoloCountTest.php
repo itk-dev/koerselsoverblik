@@ -25,7 +25,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * Checks the real solo runs of a date range: the runs with exactly one citizen in the car at a
- * time. The counts come from the totals of each route and day.
+ * time. Also checks the runs that are not cancelled. The counts come from the totals of each route
+ * and day.
  */
 final class RouteRunSoloCountTest extends KernelTestCase
 {
@@ -64,6 +65,34 @@ final class RouteRunSoloCountTest extends KernelTestCase
         $this->routeRun($route, '2026-02-02', 5, peak: 0);
 
         self::assertEquals(new SoloCountDto(runs: 2, soloRuns: 1), $this->solo('2026-02-01', '2026-02-28'));
+    }
+
+    /**
+     * The runs that are not cancelled also have a run with no citizen in the car, and a run with
+     * no passenger count. Only a cancelled run is not counted.
+     */
+    public function testRunsThatAreNotCancelledHaveAllPeaks(): void
+    {
+        $route = $this->route();
+        $this->routeRun($route, '2026-02-02', 1, peak: 1);
+        $this->routeRun($route, '2026-02-02', 2, peak: 3);
+        $this->routeRun($route, '2026-02-02', 3, peak: null);
+        $this->routeRun($route, '2026-02-02', 4, peak: null, cancelled: true);
+        $this->routeRun($route, '2026-02-02', 5, peak: 0);
+        $this->routeRun($route, '2026-02-02', 6, peak: 2, cancelled: true);
+
+        self::assertSame(4, $this->totals()->sum(self::range('2026-02-01', '2026-02-28'), null)->notCancelledRuns);
+    }
+
+    /**
+     * The runs of the base scenario: R-01 has two runs, R-02 and BOOKED have one run each. No run
+     * has only cancelled stops.
+     */
+    public function testBaseScenarioHasFourRunsThatAreNotCancelled(): void
+    {
+        $this->importBase();
+
+        self::assertSame(4, $this->totals()->sum(self::range('2026-01-01', '2026-01-31'), null)->notCancelledRuns);
     }
 
     public function testOnlyTheDatesOfTheRangeCount(): void
