@@ -1208,8 +1208,11 @@ sub-agreements.
   `RouteDayTotalsRepository::sumByMonth()`. A selected period or a comparison period that has the
   dates of a month of the history uses the totals of that month. Other periods run `sum()`.
 - `ActivityPageDto` gives the tiles: the ordered trips, the completed trips, the route runs that
-  are not cancelled, and the share of the cancelled trips of all trips. The share comes from
-  `DayTotalsDto::cancelledPercent()`, which the supplier table also uses.
+  are not cancelled, the share of the cancelled trips, and the share of the trips that were
+  cancelled too late. Both shares are of all trips, so that the two values can be read against
+  each other. They come from `DayTotalsDto::cancelledPercent()` and
+  `DayTotalsDto::cancelledLatePercent()`, which the supplier table also uses.
+- The first row of tiles has the volume, and the second row the cancellations.
 - A period with no trips has no data. The tiles then show "–" and have no note.
 - A change of a count has no tone, because more volume is not better or worse. A lower share of
   cancelled trips is better.
@@ -1219,19 +1222,28 @@ sub-agreements.
   not cancelled, also a run with a peak of 0 or no peak. The counter `runs` is different: it is
   the base of the share of the real solo runs, so it counts only the runs with a citizen in the
   car.
+- The late cancellations come from the code `cancelled_in_time` of the stop rows. The counters
+  `cancelledInTimeTrips` and `cancelledLateTrips` of `RouteDayTotals` count only the cancelled
+  pickups, because the extract has "no" also on a stop that is not cancelled. A cancelled pickup
+  with no code counts for neither (`DayTotalsDto::cancelledUnknownTrips()`).
 - The bar of the period and the columns of the months split the trips into completed, cancelled
-  and no registration. The parts add up to the trips.
+  in time, cancelled too late and no registration. The cancelled trips with no code are a part
+  only when the period or a month has some (`ActivityPageDto::hasCancelledWithNoCode()`). The
+  parts add up to the trips.
+- The line chart has the share of all cancelled trips and the share of the late cancellations.
+  The distance between the two lines is the cancellations in time.
 - `ActivityTableCalculator` gives the two tables from one `sumOfEachRoute()` and one
   `RouteRepository::findWithSuppliers()`:
   - The trips of each sub-agreement, the most trips first, and then by the reference. The share
     is of the trips of all rows. A sub-agreement with no trips has no row. The supplier filter
     applies to this table.
   - The volume of each supplier: the ordered, completed and cancelled trips, the share of the
-    cancelled trips, the route runs, and the completed trips for each run. The order is as in the
-    supplier table of the overview. This table always shows all suppliers.
-- The page does not show the late cancellations, where and when the cancellations come, who
-  cancels, and the no-shows of the prototype. See the open decisions "Cancellation notice",
-  "Cancellation cause" and "No-shows".
+    cancelled trips, the late cancellations and their share, the route runs, and the completed
+    trips for each run. The order is as in the supplier table of the overview. This table always
+    shows all suppliers.
+- The page does not show where and when the cancellations come, who cancels, and the no-shows of
+  the prototype. See the open decisions "Cancellation notice", "Cancellation cause" and
+  "No-shows".
 
 **Cost:** a request runs the query of the 12 months, one `sum()` for each period that is not a
 month of the history, the sum of each route, the routes with their suppliers, and the counted
@@ -1614,7 +1626,8 @@ coverage gate and mutation testing on the production code.
     the day before gets −360 minutes, not 1,080 minutes.
   - The code is "yes" when the cancellation is on an earlier date than the trip, or more than 60
     minutes before the planned arrival. Else it is "no", also on a row that is not cancelled.
-    The code checks the date first, so it is correct. The late cancellations can use the code.
+    The code checks the date first, so it is correct. The late cancellations on the activity page
+    use the code (#167).
   - Open: is it on purpose that the notice uses only the time of day? Can the report calculate
     the notice from the date and the time, or add the time of the cancellation as a column? Is a
     limit of 60 minutes before the planned arrival the rule of the contract? The product owner in

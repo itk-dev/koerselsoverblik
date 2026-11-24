@@ -70,8 +70,7 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the late cancellations on the driving activity page | In progress | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167) | – | [activity-late-cancellations.md](activity-late-cancellations.md) |
-| Show where and when the cancellations come | Blocked | – | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167), and the open questions of "Cancellation notice" for the notice bands | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
+| Show where and when the cancellations come | Blocked | – | The open questions of "Cancellation notice" for the notice bands | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
 | Show who cancels and why | Blocked | – | Open decision "Cancellation cause" | – |
 
 ### Driving data
@@ -165,4 +164,5 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Upload many extracts with drag and drop | [#153](https://github.com/itk-dev/koerselsoverblik/issues/153) | [#154](https://github.com/itk-dev/koerselsoverblik/pull/154) |
 | Show the imported stop rows and rejected rows of a date range | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – |
 | Show the driving activity page | [#163](https://github.com/itk-dev/koerselsoverblik/issues/163) | [#164](https://github.com/itk-dev/koerselsoverblik/pull/164) |
-| Review follow-up of the driving activity page | [#165](https://github.com/itk-dev/koerselsoverblik/issues/165) | – |
+| Review follow-up of the driving activity page | [#165](https://github.com/itk-dev/koerselsoverblik/issues/165) | [#166](https://github.com/itk-dev/koerselsoverblik/pull/166) |
+| Show the late cancellations on the driving activity page | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167) | – |

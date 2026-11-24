@@ -112,6 +112,27 @@ final class DayTotalsDtoTest extends TestCase
     }
 
     /**
+     * The share of the late cancellations is also of all trips, so that it can be read against
+     * the share of all cancelled trips. No trips gives no value, not 0.
+     */
+    public function testCancelledLatePercentIsOfAllTrips(): void
+    {
+        self::assertSame(12.5, DayTotalsDto::fromRow(['trips' => 8, 'cancelledLateTrips' => 1], ['trips', 'cancelledLateTrips'])->cancelledLatePercent());
+        self::assertNull(DayTotalsDto::empty()->cancelledLatePercent());
+    }
+
+    /**
+     * A cancelled trip with no code was cancelled neither in time nor too late.
+     */
+    public function testCancelledTripsWithNoCode(): void
+    {
+        $fields = ['cancelledTrips', 'cancelledInTimeTrips', 'cancelledLateTrips'];
+
+        self::assertSame(2, DayTotalsDto::fromRow(array_combine($fields, [6, 3, 1]), $fields)->cancelledUnknownTrips());
+        self::assertSame(0, DayTotalsDto::empty()->cancelledUnknownTrips());
+    }
+
+    /**
      * Gives totals with the same value in each counter.
      */
     private static function totals(int $value): DayTotalsDto

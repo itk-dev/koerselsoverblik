@@ -170,6 +170,24 @@ final readonly class DayTotalsDto
         return 0 === $this->trips ? null : $this->cancelledTrips / $this->trips * 100;
     }
 
+    /**
+     * Gives the trips that were cancelled too late as a share of all trips in percent, or null if
+     * there are no trips. The share is of all trips, so that it can be read against
+     * cancelledPercent().
+     */
+    public function cancelledLatePercent(): ?float
+    {
+        return 0 === $this->trips ? null : $this->cancelledLateTrips / $this->trips * 100;
+    }
+
+    /**
+     * Gives the cancelled trips with no code: cancelled neither in time nor too late.
+     */
+    public function cancelledUnknownTrips(): int
+    {
+        return $this->cancelledTrips - $this->cancelledInTimeTrips - $this->cancelledLateTrips;
+    }
+
     public function solo(): SoloCountDto
     {
         return new SoloCountDto($this->runs, $this->soloRuns);

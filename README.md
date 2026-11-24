@@ -51,12 +51,13 @@ The user interface is in Danish.
     with too few measured stops is not ranked.
   - Links to the previous and the next month.
 - **Kørselsaktivitet (driving activity):** the volume of the driving and the cancellations.
-  - Four tiles: the ordered trips, the completed trips, the share of the cancelled trips of all
-    trips, and the route runs that are not cancelled. Each tile has the change from the
-    comparison period, a 12-month sparkline and a help text.
-  - The trips of the period by status (completed, cancelled, no registration), and the same
-    parts for each of the 12 months.
-  - The share of the cancelled trips for each of the 12 months.
+  - Five tiles: the ordered trips, the completed trips, the route runs that are not cancelled,
+    the share of the cancelled trips of all trips, and the share of the trips that were cancelled
+    too late. Each tile has the change from the comparison period, a 12-month sparkline and a
+    help text.
+  - The trips of the period by status (completed, cancelled in time, cancelled too late, no
+    registration), and the same parts for each of the 12 months.
+  - The share of all cancelled trips and of the late cancellations for each of the 12 months.
   - The trips of each sub-agreement with their share, and the volume of each supplier.
 - **Filters:** a filter bar at the top of the overview, the punctuality page and the activity
   page.
@@ -105,6 +106,7 @@ averages of daily percentages.
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
 | Cancelled trips (%) | Share of all trips that are cancelled | Driving data |
+| Cancelled too late (%) | Share of all trips that are cancelled on the same day, 60 minutes or less before the planned arrival. A cancellation on an earlier day is in time | Driving data |
 | Route runs | Route runs that are not cancelled, also a run with no citizen in the vehicle. A run is cancelled when all its stops are cancelled | Driving data |
 | Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
 | Solo routes | Route runs with exactly one citizen in the vehicle at a time. Shown with the share of the route runs that had a citizen in the vehicle | Driving data |

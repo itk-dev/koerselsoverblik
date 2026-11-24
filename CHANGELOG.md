@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- [#167](https://github.com/itk-dev/koerselsoverblik/issues/167)
+  Show the late cancellations on the driving activity page: the import reads the code
+  `RettidigAflysningsvarsel` as the field `cancelled_in_time`, and the totals count the
+  cancellations in time and too late. The page has the tile "For sent aflyst", splits the
+  cancelled trips in the bar and the columns, has a second line in the chart of the
+  cancellations, and has the late cancellations in the supplier table. Run the migration, and
+  import the stored dates again. The `.gitignore` ignores a local `.claude/CLAUDE.md`.
+
 - [#165](https://github.com/itk-dev/koerselsoverblik/issues/165)
   Review follow-up of the driving activity page: the lede tells that the figures leave out the
   ignored sub-agreements, not only the foot of the table of the sub-agreements. One method of

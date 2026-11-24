@@ -253,7 +253,13 @@ activity:
     note: "{count, number} aflyste ture"
     help:
       title: Aflyste ture
-      body: Andelen af de bestilte ture, der blev aflyst. Andelen er af alle bestilte ture, så perioder med forskellig volumen kan sammenlignes. Ændringen er i procentpoint, og en lavere andel er bedre. Udtrækket viser ikke endnu, om en aflysning kom for sent.
+      body: Andelen af de bestilte ture, der blev aflyst, både rettidigt og for sent. Andelen er af alle bestilte ture, så perioder med forskellig volumen kan sammenlignes. Ændringen er i procentpoint, og en lavere andel er bedre.
+  cancelled_late:
+    label: For sent aflyst
+    note: "{share} af de aflyste ture"
+    help:
+      title: For sent aflyst
+      body: Andelen af de bestilte ture, der blev aflyst for sent. En aflysning er for sent, når den kommer samme dag og 60 minutter eller mindre før den planlagte ankomst. En aflysning en tidligere dag er rettidig. Andelen er af alle bestilte ture, ligesom de aflyste ture, så de to tal kan læses mod hinanden. En lavere andel er bedre.
   runs:
     label: Vognløb
     note: Vognløb, der ikke er aflyst
@@ -265,15 +271,18 @@ activity:
     subtitle: Alle bestilte ture, og hvordan de endte.
     caption: Bestilte ture i perioden
     total: "{count, number} ture"
-    months_caption: Gennemførte, aflyste og ikke registrerede ture pr. måned
+    months_caption: Gennemførte, rettidigt aflyste, for sent aflyste og ikke registrerede ture pr. måned
     completed: Gennemført
-    cancelled: Aflyst
+    cancelled_in_time: Rettidigt aflyst
+    cancelled_late: For sent aflyst
+    cancelled_unknown: Aflyst, varsel ukendt
     pending: Uden registrering
   cancellations:
     title: Aflysninger i forhold til alle bestilte ture
-    subtitle: Andelen af de bestilte ture, der blev aflyst, måned for måned.
-    caption: Andel aflyste ture af alle bestilte ture pr. måned
-    series: Aflyst
+    subtitle: Begge kurver er andele af alle bestilte ture, så de kan læses mod hinanden. Afstanden mellem dem er de rettidige aflysninger.
+    caption: Andel aflyste og andel for sent aflyste af alle bestilte ture pr. måned
+    all: Aflyst i alt
+    late: For sent aflyst
   sub_agreements:
     title: Ture pr. delaftale
     subtitle: De bestilte ture i perioden fordelt på delaftaler. Flest ture først.
@@ -290,6 +299,8 @@ activity:
     completed: Gennemført
     cancelled: Aflyst
     cancelled_share: Aflyst %
+    cancelled_late: For sent aflyst
+    cancelled_late_share: For sent aflyst %
     runs: Vognløb
     per_run: Gennemførte ture pr. vognløb
   source: "Kilde: kørselsdata. Status for afhentningen giver status for turen."

@@ -15,7 +15,7 @@ shows the cancellations by the institution, by the direction, by the time of day
 notice. The transport office can then find the places and the times where many trips are
 cancelled.
 
-This issue needs the late cancellations (#XX), because the notice bands use the notice of a
+This issue needs the late cancellations (#167), because the notice bands use the notice of a
 cancellation.
 
 ## Tasks

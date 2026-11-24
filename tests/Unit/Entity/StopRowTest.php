@@ -40,6 +40,7 @@ final class StopRowTest extends TestCase
             plannedSolo: false,
             locationName: 'Skole 1',
             sourceValues: ['RouteName' => 'R-01', 'Note' => 'x'],
+            cancelledInTime: true,
         );
 
         $stopRow = new StopRow($row, 'default', $route, $batch);
@@ -60,6 +61,7 @@ final class StopRowTest extends TestCase
         self::assertSame(120, $stopRow->getDelaySeconds());
         self::assertFalse($stopRow->getPlannedSolo());
         self::assertSame('Skole 1', $stopRow->getLocationName());
+        self::assertTrue($stopRow->getCancelledInTime());
         self::assertSame('P-001', $stopRow->getPersonId());
         self::assertSame(['RouteName' => 'R-01', 'Note' => 'x'], $stopRow->getSourceRow()->getValues());
         self::assertSame($batch, $stopRow->getImportBatch());
