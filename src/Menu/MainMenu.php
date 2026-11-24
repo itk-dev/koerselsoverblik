@@ -19,6 +19,7 @@ final class MainMenu
         return [
             new MenuItem('menu.overview', 'overview', 'ROLE_VIEW_OVERVIEW', 'lucide:layout-dashboard'),
             new MenuItem('menu.punctuality', 'punctuality', 'ROLE_VIEW_OVERVIEW', 'lucide:clock'),
+            new MenuItem('menu.activity', 'activity', 'ROLE_VIEW_OVERVIEW', 'lucide:route'),
             new MenuItem('menu.daily_counts', 'daily_counts', 'ROLE_EDIT_DAILY_COUNTS', 'lucide:calendar'),
             // The driving data page is a tab of the upload.
             new MenuItem('menu.upload', 'admin_import', 'ROLE_MANAGE_DRIVING_DATA', 'lucide:upload', ['admin_import', 'admin_driving_data']),

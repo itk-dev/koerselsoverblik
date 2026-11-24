@@ -1010,13 +1010,9 @@ and the charts. `PunctualityPageDto` gives the change of each measure from the c
 period. The page does not show the driver changes and the no-shows of the prototype, because the
 import does not read their columns.
 
-The figures do not include the routes of an ignored sub-agreement (see "Data model"). Thus a
-note below the lede names the ignored sub-agreements.
-`PunctualityController` gets their references from
-`SubAgreementRepository::findIgnoredReferences()`. The flag has no dates, so the note applies to
-all months of the page. With a supplier filter, the figures only have the routes of the
-sub-agreements of that supplier. Thus the note then names only the ignored sub-agreements of that
-supplier. The overview uses `PunctualityPageBuilder`, but it does not run this query.
+The figures do not include the routes of an ignored sub-agreement (see "Data model"). The page
+does not name the ignored sub-agreements. A list of many references made the page difficult to
+read. The page "Leverandører og delaftaler" shows which sub-agreements are ignored.
 
 **Cost:** the months and the comparison period only need the total. Only the selected period
 needs the figures of each supplier, route and location.
@@ -1028,8 +1024,8 @@ needs the figures of each supplier, route and location.
 - `PunctualityCalculator::total()` gives the comparison period. A comparison period that has
   the dates of a month of the history uses the total of that month.
 
-Each sum query also reads the ids of the counted routes (see "Data model"). With the query of
-the ignored sub-agreements, a request runs 8 to 10 queries. With more than one year of data, the
+Each sum query also reads the ids of the counted routes (see "Data model"). A request runs 7 to
+9 queries. With more than one year of data, the
 page takes less than 0.5 seconds. Before #136, it read the stop rows and the route runs, and took
 approximately 1 to 3 seconds. Before #134, it took approximately 6 to 11 seconds.
 
@@ -1197,6 +1193,45 @@ request also has the cost of the punctuality page and of the supplier table. Thu
 month or a week, and approximately 1 second for a quarter or a half year. Before #138, it took
 approximately 1 to 2.5 seconds, before #136 approximately 2 to 7 seconds, and before #134
 approximately 15 to 38 seconds.
+
+### Activity
+
+The page "Kørselsaktivitet" (`/activity`, `ActivityController`, `ROLE_VIEW_OVERVIEW`) shows the
+volume of the driving and the cancellations. It has the same filter bar as the punctuality page.
+As on the punctuality page, the figures do not include the routes of an ignored sub-agreement,
+and the page does not name them.
+
+- `ActivityPageBuilder` reads the totals of the 12 months with
+  `RouteDayTotalsRepository::sumByMonth()`. A selected period or a comparison period that has the
+  dates of a month of the history uses the totals of that month. Other periods run `sum()`.
+- `ActivityPageDto` gives the tiles: the ordered trips, the completed trips, the route runs that
+  are not cancelled, and the share of the cancelled trips of all trips.
+- A period with no trips has no data. The tiles then show "–" and have no note.
+- A change of a count has no tone, because more volume is not better or worse. A lower share of
+  cancelled trips is better.
+- A comparison period that starts before the data gives no change of a count. The share is still
+  compared, as on the overview.
+- The route runs come from the counter `notCancelledRuns` of `RouteDayTotals`: the runs that are
+  not cancelled, also a run with a peak of 0 or no peak. The counter `runs` is different: it is
+  the base of the share of the real solo runs, so it counts only the runs with a citizen in the
+  car.
+- The bar of the period and the columns of the months split the trips into completed, cancelled
+  and no registration. The parts add up to the trips.
+- `ActivityTableCalculator` gives the two tables from one `sumOfEachRoute()` and one
+  `RouteRepository::findWithSuppliers()`:
+  - The trips of each sub-agreement, the most trips first, and then by the reference. The share
+    is of the trips of all rows. A sub-agreement with no trips has no row. The supplier filter
+    applies to this table.
+  - The volume of each supplier: the ordered, completed and cancelled trips, the share of the
+    cancelled trips, the route runs, and the completed trips for each run. The order is as in the
+    supplier table of the overview. This table always shows all suppliers.
+- The page does not show the late cancellations, where and when the cancellations come, who
+  cancels, and the no-shows of the prototype. See the open decisions "Cancellation notice",
+  "Cancellation cause" and "No-shows".
+
+**Cost:** a request runs the query of the 12 months, one `sum()` for each period that is not a
+month of the history, the sum of each route, the routes with their suppliers, and the counted
+routes of each sum.
 
 ## Security
 
@@ -1387,6 +1422,8 @@ the route is added.
 The menu has these items:
 
 - Overview
+- Rettidighed
+- Kørselsaktivitet
 - Daily counts
 - Administration: Upload driving data, and Leverandører og delaftaler. `MenuBuilder` has no
   groups now. The upload page adds the group, because the group then has two items. Until then,
@@ -1564,6 +1601,15 @@ coverage gate and mutation testing on the production code.
   no-show one of these, a cancellation code, or a column that the extract does not have? The
   product owner in the transport office answers before the punctuality page can show the
   no-shows.
+- **Cancellation notice.** The extract has the notice of a cancellation (`aflysningsvarsel`) and
+  a code that tells if the notice was in time (`RettidigAflysningsvarsel`). What is the unit of
+  the notice? What are the codes, and what do they mean? Which one decides that a cancellation
+  is too late: the code, or the notice against a limit? The product owner in the transport
+  office answers before the activity page can show the late cancellations.
+- **Cancellation cause.** The prototype shows who cancelled a trip (for example the citizen, the
+  institution or the supplier), and why. The extract has no columns for this. Can the transport
+  office make an extract with these fields? The product owner in the transport office answers
+  before the activity page can show who cancels and why.
 - **Partial month.** The overview and the punctuality page compare the current month, which is
   not complete, with all of the previous month. On 20 January, the trips of 20 days are compared
   with the trips of 31 days, so the change is too negative. The options: compare the same days of

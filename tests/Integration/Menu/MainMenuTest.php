@@ -24,14 +24,14 @@ final class MainMenuTest extends KernelTestCase
     public function testAdminSeesEveryItem(): void
     {
         self::assertSame(
-            ['menu.overview', 'menu.punctuality', 'menu.daily_counts', 'menu.upload', 'menu.suppliers'],
+            ['menu.overview', 'menu.punctuality', 'menu.activity', 'menu.daily_counts', 'menu.upload', 'menu.suppliers'],
             $this->labelsFor(['ROLE_ADMIN']),
         );
     }
 
     public function testViewerSeesOnlyTheFigures(): void
     {
-        self::assertSame(['menu.overview', 'menu.punctuality'], $this->labelsFor(['ROLE_VIEW_OVERVIEW']));
+        self::assertSame(['menu.overview', 'menu.punctuality', 'menu.activity'], $this->labelsFor(['ROLE_VIEW_OVERVIEW']));
     }
 
     public function testUserWithNoPermissionRoleSeesNoItem(): void

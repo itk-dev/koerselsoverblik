@@ -83,7 +83,7 @@ final class DayTotalsDtoTest extends TestCase
 
     public function testPunctualityHasTheFourMeasuresAndTheBands(): void
     {
-        $totals = new DayTotalsDto(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 0, 0, 0, 0, 0);
+        $totals = new DayTotalsDto(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 0, 0, 0, 0, 0, 0);
 
         self::assertEquals(new PunctualityFiguresDto(
             new PunctualityCountDto(1, 2),
@@ -96,7 +96,7 @@ final class DayTotalsDtoTest extends TestCase
 
     public function testSoloAndTrips(): void
     {
-        $totals = new DayTotalsDto(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 13, 14, 15, 16, 17);
+        $totals = new DayTotalsDto(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 13, 14, 15, 16, 17, 18);
 
         self::assertEquals(new SoloCountDto(16, 17), $totals->solo());
         self::assertEquals(new TripCountDto(12, 13, 14, 15, 9), $totals->trips(9));

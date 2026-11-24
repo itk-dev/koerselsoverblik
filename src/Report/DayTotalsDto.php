@@ -33,6 +33,7 @@ final readonly class DayTotalsDto
         'pendingTrips',
         'runs',
         'soloRuns',
+        'notCancelledRuns',
     ];
 
     /**
@@ -53,6 +54,7 @@ final readonly class DayTotalsDto
      * @param int $pendingTrips        the pickups with no registration
      * @param int $runs                the route runs that are not cancelled and had a citizen in the car
      * @param int $soloRuns            the counted runs with exactly one citizen in the car at a time
+     * @param int $notCancelledRuns    the route runs that are not cancelled, also a run with no citizen in the car
      */
     public function __construct(
         public int $pickupOnTime,
@@ -72,6 +74,7 @@ final readonly class DayTotalsDto
         public int $pendingTrips,
         public int $runs,
         public int $soloRuns,
+        public int $notCancelledRuns,
     ) {
     }
 
@@ -133,6 +136,7 @@ final readonly class DayTotalsDto
             $this->pendingTrips + $other->pendingTrips,
             $this->runs + $other->runs,
             $this->soloRuns + $other->soloRuns,
+            $this->notCancelledRuns + $other->notCancelledRuns,
         );
     }
 

@@ -51,7 +51,7 @@ final class RouteDayTotalsBuilderTest extends KernelTestCase
         self::assertSame([5, 5, 5], array_map(static fn (RouteDayTotals $row): int => $row->getToleranceMinutes(), $rows));
         self::assertSame(['2026-01-05'], array_values(array_unique(array_map(static fn (RouteDayTotals $row): string => $row->getServiceDate()->format('Y-m-d'), $rows))));
         $sum = array_reduce($rows, static fn (DayTotalsDto $sum, RouteDayTotals $row): DayTotalsDto => $sum->add($row->getTotals()), DayTotalsDto::empty());
-        self::assertSame([7, 1, 4, 2], [$sum->trips, $sum->cancelledTrips, $sum->runs, $sum->soloRuns]);
+        self::assertSame([7, 1, 4, 2, 4], [$sum->trips, $sum->cancelledTrips, $sum->runs, $sum->soloRuns, $sum->notCancelledRuns]);
         self::assertGreaterThan(0, $sum->lastDropMeasured);
         self::assertGreaterThan(0, $sum->pickupMeasured);
     }

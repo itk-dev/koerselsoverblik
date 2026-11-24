@@ -45,13 +45,21 @@ The user interface is in Danish.
   - Each measure has its tone, the change from the previous month, the distance to the target
     and a 12-month sparkline.
   - A 12-month chart of the four measures, and the late last drop-offs in delay bands.
-  - A note that names the ignored sub-agreements, because the figures do not include them.
   - The figures for each supplier, the ten locations with the lowest punctuality, and the ten
     routes with the most late runs at the last drop-off. A location is the institution of a trip.
     Its punctuality counts the pickups and the drop-offs for each citizen together. A location
     with too few measured stops is not ranked.
   - Links to the previous and the next month.
-- **Filters:** a filter bar at the top of the overview and the punctuality page.
+- **Kørselsaktivitet (driving activity):** the volume of the driving and the cancellations.
+  - Four tiles: the ordered trips, the completed trips, the share of the cancelled trips of all
+    trips, and the route runs that are not cancelled. Each tile has the change from the
+    comparison period, a 12-month sparkline and a help text.
+  - The trips of the period by status (completed, cancelled, no registration), and the same
+    parts for each of the 12 months.
+  - The share of the cancelled trips for each of the 12 months.
+  - The trips of each sub-agreement with their share, and the volume of each supplier.
+- **Filters:** a filter bar at the top of the overview, the punctuality page and the activity
+  page.
   - period: week, month, quarter or half year, with previous/next navigation. The data starts
     in May 2026, so a quarter and a half year show a trend sooner than a year
   - comparison: previous period, or the same period last year. A period that has not ended is
@@ -96,6 +104,8 @@ averages of daily percentages.
 | --- | --- | --- |
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
+| Cancelled trips (%) | Share of all trips that are cancelled | Driving data |
+| Route runs | Route runs that are not cancelled, also a run with no citizen in the vehicle. A run is cancelled when all its stops are cancelled | Driving data |
 | Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
 | Solo routes | Route runs with exactly one citizen in the vehicle at a time. Shown with the share of the route runs that had a citizen in the vehicle | Driving data |
 | Punctuality (%) | Share of the measured stops that were within the tolerance of the planned time. Four measures: all pickups, all drop-offs, the first pickup of each route run and the last drop-off of each route run. A stop is measured when the driver registered it as completed. Cancelled stops and stops with no registration are excluded | Driving data |
@@ -871,6 +881,8 @@ and day, and the citizens of its months. Build them for all dates again in these
   totals of each location (#87). Until then, the pages show no figures for the dates that were
   imported before, the citizens sparkline shows no values, and the punctuality page shows no
   locations.
+- After the first deploy of the runs that are not cancelled (#163). Until then, the totals of
+  the dates that were imported before have 0 runs that are not cancelled.
 - After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
   message that tells to run the command.
 

@@ -32,7 +32,7 @@ final class BaseLayoutTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         $labels = $crawler->filter('[data-test="menu-item"]')->each(static fn ($item): string => trim($item->text()));
-        self::assertSame(['Overblik', 'Rettidighed'], $labels);
+        self::assertSame(['Overblik', 'Rettidighed', 'Kørselsaktivitet'], $labels);
     }
 
     /**
@@ -47,7 +47,7 @@ final class BaseLayoutTest extends WebTestCase
         $crawler = $client->request('GET', '/');
 
         $labels = $crawler->filter('[data-test="menu-item"]')->each(static fn ($item): string => trim($item->text()));
-        self::assertSame(['Overblik', 'Rettidighed', 'Upload kørselsdata', 'Leverandører og delaftaler'], $labels);
+        self::assertSame(['Overblik', 'Rettidighed', 'Kørselsaktivitet', 'Upload kørselsdata', 'Leverandører og delaftaler'], $labels);
     }
 
     public function testBrandLinksToTheFirstMenuItem(): void
