@@ -70,8 +70,7 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the driving activity page | In progress | [#163](https://github.com/itk-dev/koerselsoverblik/issues/163) | – | [activity-page.md](activity-page.md) |
-| Show the late cancellations on the driving activity page | Blocked | – | [#163](https://github.com/itk-dev/koerselsoverblik/issues/163), and open decision "Cancellation notice" | [activity-late-cancellations.md](activity-late-cancellations.md) |
+| Show the late cancellations on the driving activity page | Blocked | – | Open decision "Cancellation notice" | [activity-late-cancellations.md](activity-late-cancellations.md) |
 | Show where and when the cancellations come | Blocked | – | The late cancellations | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
 | Show who cancels and why | Blocked | – | Open decision "Cancellation cause" | – |
 
@@ -165,3 +164,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Show the uploaded dates and clear the driving data of a date | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – |
 | Upload many extracts with drag and drop | [#153](https://github.com/itk-dev/koerselsoverblik/issues/153) | [#154](https://github.com/itk-dev/koerselsoverblik/pull/154) |
 | Show the imported stop rows and rejected rows of a date range | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – |
+| Show the driving activity page | [#163](https://github.com/itk-dev/koerselsoverblik/issues/163) | – |
