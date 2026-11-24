@@ -77,7 +77,7 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
+| Read the stored copies again through a changed mapping | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | Not necessary before go-live. Necessary before the first new field after go-live | [read-stored-copies.md](read-stored-copies.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
 | Add the distances and the durations to the totals of each route and day | Blocked | – | The open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
