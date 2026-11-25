@@ -1560,7 +1560,7 @@ The tests and the local site use generated extracts. No real extract is committe
 - **Files:** `task fixtures:extracts` writes all files to `var/fixtures/driving_data/`. Upload
   them by hand to test the upload page. `task fixtures:import` also imports each week file with
   `app:driving-data:import --no-debug`, for the dates of its week. With debug, the import of a
-  week uses more memory than the container has (#100).
+  week uses more memory than the container has.
 
 ## Deployment
 
