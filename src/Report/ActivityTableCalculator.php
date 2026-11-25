@@ -82,7 +82,9 @@ final readonly class ActivityTableCalculator
      */
     private static function supplierRows(array $bySupplier): array
     {
-        $names = array_diff(array_map(strval(...), array_keys($bySupplier)), ['']);
+        // A name with only digits is an integer key. array_map() calls the closure below in
+        // coercive mode, so the closure gets the name as a string.
+        $names = array_diff(array_keys($bySupplier), ['']);
         sort($names, \SORT_STRING);
         if (isset($bySupplier[''])) {
             $names[] = '';

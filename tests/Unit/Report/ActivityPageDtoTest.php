@@ -24,6 +24,8 @@ final class ActivityPageDtoTest extends TestCase
         self::assertEquals(new CountTrendDto(10, 2, [null, 8.0]), $page->trips());
         self::assertEquals(new CountTrendDto(6, -1, [null, 7.0]), $page->completed());
         self::assertEquals(new CountTrendDto(4, -1, [null, 5.0]), $page->runs());
+        // The sparkline needs floats: equal int values divide by zero in SparklineGeometry.
+        self::assertSame([null, 8.0], $page->trips()->history);
     }
 
     /**

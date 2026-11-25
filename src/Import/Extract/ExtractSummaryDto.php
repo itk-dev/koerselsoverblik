@@ -29,10 +29,16 @@ final readonly class ExtractSummaryDto
 
     /**
      * @param iterable<StopRowDto|RejectedRowDto> $rows
-     * @param int                                 $previewSize the number of stop rows in the preview
+     * @param int                                 $previewSize the number of stop rows in the preview, 0 or more
+     *
+     * @throws \InvalidArgumentException if $previewSize is negative
      */
     public static function fromRows(iterable $rows, int $previewSize): self
     {
+        if ($previewSize < 0) {
+            throw new \InvalidArgumentException('The preview size must be 0 or more.');
+        }
+
         $stopRows = 0;
         $preview = [];
         /** @var array<string, string> $dates the key makes each date different */

@@ -101,7 +101,8 @@ final readonly class ActivityPageDto
         return new CountTrendDto(
             $current,
             null === $current || null === $before ? null : $current - $before,
-            array_map(static fn (DayTotalsDto $totals): ?float => null === ($item = $valueOf($totals)) ? null : (float) $item, $this->monthTotals),
+            // No return type: then only the cast makes the values floats, and a test can see it.
+            array_map(static fn (DayTotalsDto $totals) => null === ($item = $valueOf($totals)) ? null : (float) $item, $this->monthTotals),
         );
     }
 }

@@ -119,6 +119,13 @@ final class ExtractSummaryDtoTest extends TestCase
         self::assertSame([4, 5], array_map(static fn (StopRowDto $row): int => $row->rowNumber, $summary->preview));
     }
 
+    public function testNegativePreviewSizeIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        ExtractSummaryDto::fromRows([self::stopRow(4)], -1);
+    }
+
     public function testDatesOfTheStopRowsAreSortedAndDifferent(): void
     {
         $summary = ExtractSummaryDto::fromRows([
