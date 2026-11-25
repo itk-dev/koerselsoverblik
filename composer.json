@@ -51,11 +51,11 @@
         "symfony/translation": "~8.1.11",
         "symfony/twig-bundle": "~8.1.0",
         "symfony/ux-dropzone": "^3.7",
-        "symfony/ux-icons": "^3.7",
+        "symfony/ux-icons": "^3.8.1",
         "symfony/ux-twig-component": "^3.6",
         "symfony/validator": "~8.1.11",
         "symfony/yaml": "~8.1.11",
-        "twig/twig": "^3.30"
+        "twig/twig": "^3.31.1"
     },
     "require-dev": {
         "ext-dom": "*",
