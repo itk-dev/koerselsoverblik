@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Moved target label to left side of the punctuality yearly overview.
+
 - [#172](https://github.com/itk-dev/koerselsoverblik/issues/172)
   Kill the escaped mutants of release 0.2.0 in `src/Import` and `src/Report`.
   `ExtractSummaryDto::fromRows()` rejects a negative preview size. The history of the activity
