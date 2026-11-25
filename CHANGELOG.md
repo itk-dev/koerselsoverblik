@@ -7,6 +7,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Add `docker-compose.server.prod.yml`. On production, it mounts `.env.local` and `var/uploads`
+  from the shared directory of the server, so that a new release keeps them.
+
 - [#167](https://github.com/itk-dev/koerselsoverblik/issues/167)
   Show the late cancellations on the driving activity page: the import reads the code
   `RettidigAflysningsvarsel` as the field `cancelled_in_time`, and the totals count the

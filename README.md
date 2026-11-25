@@ -924,6 +924,8 @@ To set up a new server:
    (`APP_DRIVING_DATA_MAX_ROWS`). If a large upload fails with an error 500, the import rolled
    back, and no data changed. Then raise `PHP_MAX_EXECUTION_TIME` and `PHP_MEMORY_LIMIT` in
    `docker-compose.server.override.yml`.
+1. On production, put `.env.local` and the directory `var/uploads` in the directory `shared` of
+   the server. `docker-compose.server.prod.yml` mounts them in each release.
 1. Deploy.
 1. Tell DevOps to collect the Supercronic metrics from `https://<SITE>/cron-metrics`.
 1. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.
