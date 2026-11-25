@@ -14,6 +14,14 @@ final class Version20261124130636 extends AbstractMigration
         return 'Add the code of a late cancellation to the stop rows, and the cancellations in time and too late to the totals of each route and day. Import the stored dates again after the migration.';
     }
 
+    /**
+     * MariaDB commits before each DDL statement, so a transaction has no effect.
+     */
+    public function isTransactional(): bool
+    {
+        return false;
+    }
+
     public function up(Schema $schema): void
     {
         // The stored stop rows get no code, and the totals get 0, until the next import.

@@ -70,6 +70,9 @@ The project uses test-driven development. See "Development" in [README.md](READM
 - Logs and error messages never contain field values from the driving data.
 - Change the database schema only with Doctrine migrations. Do not use
   `doctrine:schema:update` or hand-written SQL.
+- A migration with DDL overrides `isTransactional()` and returns `false`, because MariaDB commits
+  before each DDL statement. A migration that changes data keeps the default transaction. Do not
+  put DDL and data changes in the same migration. `MigrationTransactionTest` checks these rules.
 - Use the PHP default time zone for all dates and times. Do not convert them. Calculate a
   duration from `getTimestamp()`, not with `TIMESTAMPDIFF()`. Get the time from `ClockInterface`,
   not from `NOW()`. See [ADR 005](docs/adr/005-dates-and-times-in-one-time-zone.md).

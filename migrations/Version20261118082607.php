@@ -14,6 +14,14 @@ final class Version20261118082607 extends AbstractMigration
         return 'Create the schema of release 0.1.0.';
     }
 
+    /**
+     * MariaDB commits before each DDL statement, so a transaction has no effect.
+     */
+    public function isTransactional(): bool
+    {
+        return false;
+    }
+
     public function up(Schema $schema): void
     {
         $this->addSql('CREATE TABLE import_batch (id INT AUTO_INCREMENT NOT NULL, first_date DATE NOT NULL, last_date DATE NOT NULL, rows_deleted INT NOT NULL, rows_inserted INT NOT NULL, rows_rejected INT NOT NULL, warning_count INT NOT NULL, errors JSON NOT NULL, warnings JSON NOT NULL, mapping_name VARCHAR(64) NOT NULL, file_name VARCHAR(255) NOT NULL, uploaded_at DATETIME NOT NULL, uploaded_by_id INT DEFAULT NULL, INDEX IDX_155EFD1AA2B28FE8 (uploaded_by_id), PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');

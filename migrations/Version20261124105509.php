@@ -14,6 +14,14 @@ final class Version20261124105509 extends AbstractMigration
         return 'Add the runs that are not cancelled to the totals of each route and day. Run app:driving-data:rebuild-totals after the migration.';
     }
 
+    /**
+     * MariaDB commits before each DDL statement, so a transaction has no effect.
+     */
+    public function isTransactional(): bool
+    {
+        return false;
+    }
+
     public function up(Schema $schema): void
     {
         // The existing rows get 0 until the rebuild of the totals.

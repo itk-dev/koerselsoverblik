@@ -7,9 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- Fix the Doctrine deprecations in the deploy log. The migrations run with no transaction
-  (`transactional: false`), because MariaDB commits before each DDL statement. The sort
-  directions use `SortDirection`, not the strings `ASC` and `DESC`.
+- Fix the Doctrine deprecations in the deploy log. A migration runs in a transaction, so that a
+  failed data change rolls back. A migration with DDL overrides `isTransactional()` and returns
+  `false`, because MariaDB commits before each DDL statement. `MigrationTransactionTest` checks
+  this rule. The sort directions use `SortDirection`, not the strings `ASC` and `DESC`.
 
 - Update `go-task/setup-task` to `v2` in the GitHub Actions workflows. The `v1` action runs on
   Node.js 20, which GitHub Actions no longer supports.
