@@ -7,6 +7,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- [#172](https://github.com/itk-dev/koerselsoverblik/issues/172)
+  Kill the escaped mutants of release 0.2.0 in `src/Import` and `src/Report`.
+  `ExtractSummaryDto::fromRows()` rejects a negative preview size. The history of the activity
+  tiles has floats because of the cast, not because of the return type. The supplier table has no
+  `strval()`, and a test checks a supplier name with only digits.
+
 - Fix the Doctrine deprecations in the deploy log. A migration runs in a transaction, so that a
   failed data change rolls back. A migration with DDL overrides `isTransactional()` and returns
   `false`, because MariaDB commits before each DDL statement. `MigrationTransactionTest` checks
