@@ -7,6 +7,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Update `go-task/setup-task` to `v2` in the GitHub Actions workflows. The `v1` action runs on
+  Node.js 20, which GitHub Actions no longer supports.
+
 - [#61](https://github.com/itk-dev/koerselsoverblik/issues/61)
   Read the stored copies again through a changed mapping: the command
   `app:driving-data:read-copies` reads the copies of the rows of a date range again, one date at a
