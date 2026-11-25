@@ -173,6 +173,20 @@ final class SupplierTableCalculatorTest extends KernelTestCase
     }
 
     /**
+     * A supplier whose only route has a run with no citizen in the car has a row of zeros. The
+     * punctuality page shows the supplier too, so the two pages have the same suppliers.
+     */
+    public function testRouteWithOnlyARunWithNoCitizenGivesARowOfZeros(): void
+    {
+        $route = $this->route('X', 'Vognmand D');
+        $this->entityManager->persist(new RouteRun($route, new \DateTimeImmutable('2026-01-06'), 1, new RouteRunDto(null, null, null, null, null, null, false, 0)));
+
+        $rows = $this->calculate([]);
+
+        self::assertEquals(new SupplierRowDto('Vognmand D', 0, 0, new SoloCountDto(0, 0), new PunctualityCountDto(0, 0)), $rows[0]);
+    }
+
+    /**
      * The trips and the runs of an ignored sub-agreement do not count. BOOKED is ignored, so only
      * the counts of R are left.
      */

@@ -22,6 +22,7 @@ enum FieldName: string
     case ActualTime = 'actual_time';
     case PlannedSolo = 'planned_solo';
     case LocationName = 'location_name';
+    case CancelledInTime = 'cancelled_in_time';
 
     /**
      * Gives the types that a mapping can give this field. The parser gives one PHP type for each
@@ -37,7 +38,7 @@ enum FieldName: string
             self::Run, self::PassengersAfter => [FieldType::Int],
             self::NextDistanceKm, self::NextDurationMin => [FieldType::Float],
             self::PlannedTime, self::ActualTime => [FieldType::Time, FieldType::DateTime],
-            self::PlannedSolo => [FieldType::Bool],
+            self::PlannedSolo, self::CancelledInTime => [FieldType::Bool],
         };
     }
 

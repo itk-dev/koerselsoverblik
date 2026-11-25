@@ -6,6 +6,7 @@ namespace App\Import;
 
 use App\Entity\LocationDayTotals;
 use App\Entity\Route;
+use App\Report\PunctualityCountDto;
 use App\Repository\LocationDayTotalsRepository;
 use App\Repository\StopRowRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -49,31 +50,27 @@ final readonly class LocationDayTotalsBuilder
         $this->totals->deleteInRange($range);
 
         $counts = $this->stopRows->countLocationDayTotals($range, $this->toleranceMinutes * self::SECONDS_IN_A_MINUTE);
-        /** @var list<LocationDayTotals> $written the rows since the last flush */
-        $written = [];
-        foreach ($counts as $count) {
-            /** @var Route $route a stop row refers to the route, so the route exists */
-            $route = $this->entityManager->getReference(Route::class, $count['route']);
-            $written[] = new LocationDayTotals($route, $count['serviceDate'], $count['location'], $this->toleranceMinutes, $count['stops']);
-            if (\count($written) >= self::GROUP_SIZE) {
-                $this->write($written);
-                $written = [];
-            }
+        foreach (array_chunk($counts, self::GROUP_SIZE) as $group) {
+            $this->write($group);
         }
-        $this->write($written);
 
         return \count($counts);
     }
 
     /**
-     * Saves the rows, and then the entity manager forgets them. The routes stay managed.
+     * Saves the rows of a group, and then the entity manager forgets them. The routes stay managed.
      *
-     * @param list<LocationDayTotals> $rows
+     * @param list<array{route: int, serviceDate: \DateTimeImmutable, location: string, stops: PunctualityCountDto}> $counts
      */
-    private function write(array $rows): void
+    private function write(array $counts): void
     {
-        foreach ($rows as $row) {
+        $rows = [];
+        foreach ($counts as $count) {
+            /** @var Route $route a stop row refers to the route, so the route exists */
+            $route = $this->entityManager->getReference(Route::class, $count['route']);
+            $row = new LocationDayTotals($route, $count['serviceDate'], $count['location'], $this->toleranceMinutes, $count['stops']);
             $this->entityManager->persist($row);
+            $rows[] = $row;
         }
         $this->entityManager->flush();
         foreach ($rows as $row) {

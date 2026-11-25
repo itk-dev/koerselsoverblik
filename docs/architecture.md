@@ -291,6 +291,7 @@ erDiagram
         int delay_seconds "actual_time minus planned_time, null = no actual time"
         bool planned_solo
         string location_name "the institution, never shown with person_id"
+        bool cancelled_in_time "null = not known"
         string person_id "from the extract (ADR 004)"
         int source_row_id FK "unique, the copy of the row (ADR 006)"
         int import_batch_id FK
@@ -598,6 +599,7 @@ permitted, for example "7 of 80 runs".
 | `actual_time` | `StatusUpdateTime` | Excel date and time | Empty when the stop has no registration. |
 | `planned_solo` | `kørselstype` | text code | Two codes: solo and shared. |
 | `location_name` | `Placename` | text | The institution of a trip. Empty in the reference extract. Never shown with a person id, or written to a log or to the output of a command. |
+| `cancelled_in_time` | `RettidigAflysningsvarsel` | text code | "yes" when the trip is cancelled on an earlier date, or more than 60 minutes before the planned arrival. "no" in all other rows, also when the stop is not cancelled. Optional. See "Cancellation notice" in [open decisions](#open-decisions). |
 
 **Why the planned time comes from `PlannedDeparture`:** the extract has a planned arrival
 (`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The departure is
@@ -614,10 +616,10 @@ row, but not the personal data. For example:
 
 - the ids of trips, trip requests, routes, addresses, locations, places and paths
 - the requested times, the service times, the planned arrival and the planned activity times
-- the cancellation columns: the cancellation id, the time of the cancellation, the notice in
-  minutes (`aflysningsvarsel`, negative when the cancellation came after the planned time), and
-  whether the notice was in time (`RettidigAflysningsvarsel`). The unit of the notice and the
-  meaning of the in-time code are not confirmed
+- the cancellation columns: the cancellation id, the time of the cancellation, and the notice in
+  minutes (`aflysningsvarsel`). The notice uses only the time of day of the cancellation, so it is
+  not correct for a cancellation on an earlier day (see "Cancellation notice" in
+  [open decisions](#open-decisions))
 - `prisprminut`, the price per minute, for the cost of empty running
 - `passengers`, the passengers after the stop before the cancellations are removed
 - `blokstart` and `blokslut`
@@ -819,14 +821,16 @@ file for the same range, or clear the dates.
 
 ### Clearing driving data
 
-The upload page lists the dates with stop rows or rejected rows, one month at a time
-(`?month=YYYY-MM`). A month that is not valid or that is after the current month gives the current
-month. The month links stop at the current month and at the month of the first `ImportBatch`. A
-clear keeps the batches, so no driving data is before that month. `UploadedDates` reads each list
-in four queries: the stop rows, the route runs and the rejected rows of each date, and the batches
-that overlap the month. Each date shows the counts and the last upload (file name, who, when). The
-last upload is the newest batch whose range has the date, because an import replaces all dates of
-its range. A batch with no user shows "konsol": a console upload, or an upload of a deleted user.
+The driving data page (`Admin\DrivingDataController::index`, the tab "Kørselsdata" of the upload)
+lists the dates with stop rows or rejected rows, one month at a time (`?month=YYYY-MM`). A month
+that is not valid or that is after the current month gives the current month. The month links
+stop at the current month and at the month of the first `ImportBatch`. A clear keeps the batches,
+so no driving data is before that month. `UploadedDates` reads each list in six queries: the stop
+rows, the stop rows of an ignored sub-agreement (two queries), the route runs and the rejected rows
+of each date, and the batches that overlap the month. Each date shows the counts and the last
+upload (file name, who, when). The last upload is the newest batch whose range has the date,
+because an import replaces all dates of its range. A batch with no user shows "konsol": a console
+upload, or an upload of a deleted user.
 
 Users with `ROLE_MANAGE_DRIVING_DATA` can delete the driving data for a date, for example after a
 wrong upload.
@@ -848,6 +852,29 @@ wrong upload.
 
 The `ImportBatch` rows stay, so the history of the uploads stays complete. `DailyCount` does not
 change. A failure partway leaves the data as it was.
+
+### Showing the stored rows
+
+`Admin\DrivingDataController` (`ROLE_MANAGE_DRIVING_DATA`) shows the stored rows of a range.
+
+- The range form (`RowsQueryType`) is a GET form with no name, so a link can open a range, for
+  example `/admin/driving-data/rows?firstDate=2026-01-05&lastDate=2026-01-05`. The dates list links
+  to it. `ValidImportRange` checks the range with the same rules as the upload: the form and
+  `UploadDto` share the interface `DateRangeInput`.
+- `StopRowRepository::listInRange()` and `RejectedStopRowRepository::listInRange()` give the
+  queries of the lists. The rejected rows use the same condition of the range as the delete, so
+  the list and a clear cannot differ. The queries do not read the copies.
+- `DrivingDataRows` pages the queries with KnpPaginator, 100 rows on a page. Each list has its own
+  page parameter (`stopPage`, `rejectedPage`). A page number after the last page gives the last
+  page. The query can neither sort nor filter the lists: a sort or filter parameter in the URL
+  could otherwise test the value of a field that does not show, for example the person id.
+- The lists and the dates show the stop rows of an ignored sub-agreement. `CountedRouteFilter::applyIgnored()`
+  limits a count to these routes, with the ids from `RouteRepository::ignoredIds()`, as `apply()` does for the
+  counted routes. The list query joins the sub-agreement, so the tag of a row needs no extra query.
+- The page of a row shows the typed fields and the copy (`SourceRow`). `SourceRowView` makes the
+  columns of the copy, with the mapping of the upload, and `SourceValueFormatter` gives the
+  display text of each value. A cell value is not translated, so a `{` in a value cannot break
+  the page.
 
 `app:driving-data:clear <FROM> <TO>` uses the same service to clear a date range. It shows the
 counts, and asks for confirmation. The range has a maximum of `APP_DRIVING_DATA_MAX_DAYS` days.
@@ -985,13 +1012,9 @@ and the charts. `PunctualityPageDto` gives the change of each measure from the c
 period. The page does not show the driver changes and the no-shows of the prototype, because the
 import does not read their columns.
 
-The figures do not include the routes of an ignored sub-agreement (see "Data model"). Thus a
-note below the lede names the ignored sub-agreements.
-`PunctualityController` gets their references from
-`SubAgreementRepository::findIgnoredReferences()`. The flag has no dates, so the note applies to
-all months of the page. With a supplier filter, the figures only have the routes of the
-sub-agreements of that supplier. Thus the note then names only the ignored sub-agreements of that
-supplier. The overview uses `PunctualityPageBuilder`, but it does not run this query.
+The figures do not include the routes of an ignored sub-agreement (see "Data model"). The page
+does not name the ignored sub-agreements. A list of many references made the page difficult to
+read. The page "Leverandører og delaftaler" shows which sub-agreements are ignored.
 
 **Cost:** the months and the comparison period only need the total. Only the selected period
 needs the figures of each supplier, route and location.
@@ -1003,8 +1026,8 @@ needs the figures of each supplier, route and location.
 - `PunctualityCalculator::total()` gives the comparison period. A comparison period that has
   the dates of a month of the history uses the total of that month.
 
-Each sum query also reads the ids of the counted routes (see "Data model"). With the query of
-the ignored sub-agreements, a request runs 8 to 10 queries. With more than one year of data, the
+Each sum query also reads the ids of the counted routes (see "Data model"). A request runs 7 to
+9 queries. With more than one year of data, the
 page takes less than 0.5 seconds. Before #136, it read the stop rows and the route runs, and took
 approximately 1 to 3 seconds. Before #134, it took approximately 6 to 11 seconds.
 
@@ -1173,6 +1196,62 @@ month or a week, and approximately 1 second for a quarter or a half year. Before
 approximately 1 to 2.5 seconds, before #136 approximately 2 to 7 seconds, and before #134
 approximately 15 to 38 seconds.
 
+### Activity
+
+The page "Kørselsaktivitet" (`/activity`, `ActivityController`, `ROLE_VIEW_OVERVIEW`) shows the
+volume of the driving and the cancellations. It has the same filter bar as the punctuality page.
+As on the punctuality page, the figures do not include the routes of an ignored sub-agreement.
+The lede tells this for all figures of the page, but it does not name the ignored
+sub-agreements.
+
+- `ActivityPageBuilder` reads the totals of the 12 months with
+  `RouteDayTotalsRepository::sumByMonth()`. A selected period or a comparison period that has the
+  dates of a month of the history uses the totals of that month. Other periods run `sum()`.
+- `ActivityPageDto` gives the tiles: the ordered trips, the completed trips, the route runs that
+  are not cancelled, the share of the cancelled trips, and the share of the trips that were
+  cancelled too late. Both shares are of all trips, so that the two values can be read against
+  each other. They come from `DayTotalsDto::cancelledPercent()` and
+  `DayTotalsDto::cancelledLatePercent()`, which the supplier table also uses.
+- The first row of tiles has the volume, and the second row the cancellations.
+- A period with no trips has no data. The tiles then show "–" and have no note.
+- A change of a count has no tone, because more volume is not better or worse. A lower share of
+  cancelled trips is better.
+- A comparison period that starts before the data gives no change of a count. The share is still
+  compared, as on the overview.
+- The route runs come from the counter `notCancelledRuns` of `RouteDayTotals`: the runs that are
+  not cancelled, also a run with a peak of 0 or no peak. The counter `runs` is different: it is
+  the base of the share of the real solo runs, so it counts only the runs with a citizen in the
+  car.
+- The late cancellations come from the code `cancelled_in_time` of the stop rows. The counters
+  `cancelledInTimeTrips` and `cancelledLateTrips` of `RouteDayTotals` count only the cancelled
+  pickups, because the extract has "no" also on a stop that is not cancelled. A cancelled pickup
+  with no code counts for neither (`DayTotalsDto::cancelledUnknownTrips()`).
+- The bar of the period and the columns of the months split the trips into completed, cancelled
+  in time, cancelled too late and no registration. The cancelled trips with no code are a part
+  only when the period or a month has some (`ActivityPageDto::hasCancelledWithNoCode()`). The
+  parts add up to the trips.
+- The line chart has the share of all cancelled trips and the share of the late cancellations.
+  The distance between the two lines is the cancellations in time and the cancellations with no
+  code.
+- If no cancelled trip of a period has a code, the share of the late cancellations is not known.
+  `DayTotalsDto::cancelledLatePercent()` then gives null, and the page shows "–", not 0 %.
+- `ActivityTableCalculator` gives the two tables from one `sumOfEachRoute()` and one
+  `RouteRepository::findWithSuppliers()`:
+  - The trips of each sub-agreement, the most trips first, and then by the reference. The share
+    is of the trips of all rows. A sub-agreement with no trips has no row. The supplier filter
+    applies to this table.
+  - The volume of each supplier: the ordered, completed and cancelled trips, the share of the
+    cancelled trips, the late cancellations and their share, the route runs, and the completed
+    trips for each run. The order is as in the supplier table of the overview. This table always
+    shows all suppliers.
+- The page does not show where and when the cancellations come, who cancels, and the no-shows of
+  the prototype. See the open decisions "Cancellation notice", "Cancellation cause" and
+  "No-shows".
+
+**Cost:** a request runs the query of the 12 months, one `sum()` for each period that is not a
+month of the history, the sum of each route, the routes with their suppliers, and the counted
+routes of each sum.
+
 ## Security
 
 ```mermaid
@@ -1231,7 +1310,7 @@ flowchart TD
   | Permission role | Grants |
   | --- | --- |
   | `ROLE_VIEW_OVERVIEW` | The overview |
-  | `ROLE_MANAGE_DRIVING_DATA` | The upload of driving data, and clearing the driving data for a date on the upload page |
+  | `ROLE_MANAGE_DRIVING_DATA` | The upload of driving data, the driving data page, and clearing the driving data for a date |
   | `ROLE_EDIT_DAILY_COUNTS` | The daily counts form |
   | `ROLE_MANAGE_SUPPLIERS` | Suppliers, sub-agreements and the supplier of each sub-agreement |
 
@@ -1263,7 +1342,12 @@ flowchart TD
 
 **Data protection:**
 
-- Forms use CSRF tokens.
+- Forms that change data use CSRF tokens. The range form of the driving data page changes no
+  data, so it is a GET form with no token.
+- No page shows the person id. The driving data page shows "(skjult)" in place of the person id,
+  also in the copy of a row and when a row id column is the person id column. The mapping of the
+  upload tells which column has the person id. If the mapping no longer exists, the page shows no
+  copy. The lists cannot be sorted or filtered by a URL parameter.
 - Uploads are limited to `.xlsx` and a maximum size. The file is kept in `var/`, outside the
   public folder, until the user confirms or cancels. The scheduled purge deletes a file that is
   older than one hour (see [Pipeline](#pipeline)). The extract can hold health data, so the file
@@ -1357,6 +1441,8 @@ the route is added.
 The menu has these items:
 
 - Overview
+- Rettidighed
+- Kørselsaktivitet
 - Daily counts
 - Administration: Upload driving data, and Leverandører og delaftaler. `MenuBuilder` has no
   groups now. The upload page adds the group, because the group then has two items. Until then,
@@ -1534,6 +1620,31 @@ coverage gate and mutation testing on the production code.
   no-show one of these, a cancellation code, or a column that the extract does not have? The
   product owner in the transport office answers before the punctuality page can show the
   no-shows.
+- **Cancellation notice.** The extract has the notice of a cancellation (`aflysningsvarsel`) and
+  a code that tells if the notice was in time (`RettidigAflysningsvarsel`). The report script of
+  the transport office calculates them:
+  - The notice is in minutes: the planned arrival minus the time of day of the cancellation. The
+    date of the cancellation is not used. Thus the notice is wrong for a cancellation on an
+    earlier day, and it can be negative. For example, a trip at 08:00 that is cancelled at 14:00
+    the day before gets −360 minutes, not 1,080 minutes.
+  - The code is "yes" when the cancellation is on an earlier date than the trip, or more than 60
+    minutes before the planned arrival. Else it is "no", also on a row that is not cancelled.
+    The code checks the date first, so it is correct. The late cancellations on the activity page
+    use the code (#167).
+  - The code checks only for an earlier date. A cancellation that is registered on a later date
+    than the trip, at an earlier time of day, gets "yes", because the notice from the time of day
+    is then more than 60 minutes. For example, a no-show of a trip at 14:00 that is registered at
+    09:00 the next day. The activity page cannot find these rows, because the extract does not
+    have the date of the cancellation.
+  - Open: is it on purpose that the notice uses only the time of day? Can the report calculate
+    the notice from the date and the time, or add the time of the cancellation as a column? Is a
+    limit of 60 minutes before the planned arrival the rule of the contract? Must a cancellation
+    on a later date than the trip be "no"? The product owner in the transport office answers
+    before the activity page can show the notice bands.
+- **Cancellation cause.** The prototype shows who cancelled a trip (for example the citizen, the
+  institution or the supplier), and why. The extract has no columns for this. Can the transport
+  office make an extract with these fields? The product owner in the transport office answers
+  before the activity page can show who cancels and why.
 - **Partial month.** The overview and the punctuality page compare the current month, which is
   not complete, with all of the previous month. On 20 January, the trips of 20 days are compared
   with the trips of 31 days, so the change is too negative. The options: compare the same days of

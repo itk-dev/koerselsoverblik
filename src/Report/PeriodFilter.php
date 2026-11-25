@@ -44,9 +44,11 @@ final readonly class PeriodFilter
     {
         $today = new \DateTimeImmutable($today->format(self::DATE));
         $anchor = null === $date ? false : \DateTimeImmutable::createFromFormat('!'.self::DATE, $date);
-        if (false === $anchor || $anchor->format(self::DATE) !== $date || $anchor > $today) {
+        if (false === $anchor || $anchor->format(self::DATE) !== $date) {
             $anchor = $today;
         }
+        // A date after today has no data.
+        $anchor = min($anchor, $today);
         $id = null === $supplier ? false : filter_var($supplier, \FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
         return new self(

@@ -45,13 +45,22 @@ The user interface is in Danish.
   - Each measure has its tone, the change from the previous month, the distance to the target
     and a 12-month sparkline.
   - A 12-month chart of the four measures, and the late last drop-offs in delay bands.
-  - A note that names the ignored sub-agreements, because the figures do not include them.
   - The figures for each supplier, the ten locations with the lowest punctuality, and the ten
     routes with the most late runs at the last drop-off. A location is the institution of a trip.
     Its punctuality counts the pickups and the drop-offs for each citizen together. A location
     with too few measured stops is not ranked.
   - Links to the previous and the next month.
-- **Filters:** a filter bar at the top of the overview and the punctuality page.
+- **Kørselsaktivitet (driving activity):** the volume of the driving and the cancellations.
+  - Five tiles: the ordered trips, the completed trips, the route runs that are not cancelled,
+    the share of the cancelled trips of all trips, and the share of the trips that were cancelled
+    too late. Each tile has the change from the comparison period, a 12-month sparkline and a
+    help text.
+  - The trips of the period by status (completed, cancelled in time, cancelled too late, no
+    registration), and the same parts for each of the 12 months.
+  - The share of all cancelled trips and of the late cancellations for each of the 12 months.
+  - The trips of each sub-agreement with their share, and the volume of each supplier.
+- **Filters:** a filter bar at the top of the overview, the punctuality page and the activity
+  page.
   - period: week, month, quarter or half year, with previous/next navigation. The data starts
     in May 2026, so a quarter and a half year show a trend sooner than a year
   - comparison: previous period, or the same period last year. A period that has not ended is
@@ -68,8 +77,10 @@ The user interface is in Danish.
       corrected file are removed, and a date with no rows in the file becomes empty.
     - A preview shows the changes. The data changes only when you confirm.
     - The figures for the replaced dates are recalculated.
-    - The page lists the uploaded dates. You can clear the driving data for a date, for example
-      after a wrong upload.
+    - The tab "Kørselsdata" lists the uploaded dates. You can clear the driving data for a date,
+      for example after a wrong upload.
+    - The tab also shows the stored stop rows and rejected rows of a date range, and each row
+      with its row of the extract. The person id never shows.
     - Columns are read through an [import mapping](#import-mappings), so a changed column name,
       code or format needs no code change.
   - **Suppliers and sub-agreements:** the suppliers, and which supplier drives each
@@ -94,6 +105,9 @@ averages of daily percentages.
 | --- | --- | --- |
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
+| Cancelled trips (%) | Share of all trips that are cancelled | Driving data |
+| Cancelled too late (%) | Share of all trips that the extract marks as cancelled too late: on the same day, 60 minutes or less before the planned arrival. A cancellation on an earlier day is in time. The transport office has not confirmed that this is the rule of the contract. No value when no cancelled trip of the period has a code | Driving data |
+| Route runs | Route runs that are not cancelled, also a run with no citizen in the vehicle. A run is cancelled when all its stops are cancelled | Driving data |
 | Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
 | Solo routes | Route runs with exactly one citizen in the vehicle at a time. Shown with the share of the route runs that had a citizen in the vehicle | Driving data |
 | Punctuality (%) | Share of the measured stops that were within the tolerance of the planned time. Four measures: all pickups, all drop-offs, the first pickup of each route run and the last drop-off of each route run. A stop is measured when the driver registered it as completed. Cancelled stops and stops with no registration are excluded | Driving data |
@@ -117,7 +131,7 @@ Each part of the application has its own permission role:
 | Role | Can |
 | --- | --- |
 | `ROLE_VIEW_OVERVIEW` | View the overview |
-| `ROLE_MANAGE_DRIVING_DATA` | Upload driving data, and clear the driving data for a date |
+| `ROLE_MANAGE_DRIVING_DATA` | Upload driving data, see the stored driving data, and clear the driving data for a date |
 | `ROLE_EDIT_DAILY_COUNTS` | Enter daily counts |
 | `ROLE_MANAGE_SUPPLIERS` | Manage suppliers, sub-agreements and the supplier of each sub-agreement |
 
@@ -303,7 +317,8 @@ enter a range. Empty dates before the first or after the last date with rows do 
 
 ### Clear driving data
 
-1. Go to **Administration → Upload driving data** (requires `ROLE_MANAGE_DRIVING_DATA`).
+1. Go to **Administration → Upload driving data**, and select the tab **Kørselsdata** (requires
+   `ROLE_MANAGE_DRIVING_DATA`).
 2. Find the date in the list of uploaded dates. Use the previous and next month links.
 3. Check the number of stop rows, route runs and rejected rows for the date.
 4. Select **Ryd**, and then **Ryd datoen**.
@@ -330,6 +345,47 @@ task console -- app:driving-data:clear <FROM_DATE> <TO_DATE>
 The command shows the counts, and asks for confirmation unless `--no-interaction` is given. The
 default answer is no. The dates have the format `YYYY-MM-DD`. The range has a maximum of
 `APP_DRIVING_DATA_MAX_DAYS` days.
+
+### Driving data
+
+The tab **Kørselsdata** shows the stored driving data. It requires `ROLE_MANAGE_DRIVING_DATA`.
+The source extract is deleted after the import, so this page is the only way to see the rows.
+
+1. Go to **Administration → Upload driving data**, and select the tab **Kørselsdata**.
+2. Find the date in the list of uploaded dates. Use the previous and next month links.
+3. Select the date to see its rows. Select the number of stop rows or rejected rows to go
+   directly to that list. The number of stop rows also shows how many of them are of an
+   ignored sub-agreement, for example "(XX ignoreret)".
+4. To see a longer range or one route, select **Vis rækkerne i en periode**. Enter the first and
+   the last date, and optionally a route name. Then select **Vis rækkerne**.
+5. Select **Vis** on a row to see the row.
+
+The range can be at most `APP_DRIVING_DATA_MAX_DAYS` days. With no range, the page shows
+yesterday. The route name must be the full name, for example `AB-CD-01`. Upper case and lower case
+are the same.
+
+The page has two lists, each with 100 rows on a page:
+
+- **Stoprækker:** the date, the route, the run, the stop type, the status, the planned and the
+  actual time, the delay, the passengers after the stop and the upload. A route of an ignored
+  sub-agreement has the tag "Ignoreret", and the heading shows how many rows have the tag. The
+  figures do not count these rows, but the import stores them.
+- **Afviste rækker:** the date, the row number in the extract, the field, the reason and the
+  upload. A rejected row has no route, so the route filter does not apply to this list. A
+  rejected row with no date is in the list when the range includes the whole range of its upload,
+  as for a [clear](#clear-driving-data).
+
+The ignored rows show the current setting of the sub-agreement. If you change the setting, the
+counts change, and no upload is necessary.
+
+The page of a row shows the fields that the import read, and the row of the extract column by
+column. On a rejected row, the column that caused the rejection is marked. An empty cell is not
+stored, so an empty column that caused the rejection shows as "(tom)".
+
+The person id never shows. It shows as "(skjult)", also in the row of the extract and when the
+row id is the person id column. The import mapping tells which column has the person id. If the
+mapping of the upload no longer exists, the page cannot find that column, and it does not show the
+row of the extract.
 
 ### Import mappings
 
@@ -399,6 +455,7 @@ required, because each stop row needs them:
 | `actual_time` | `time` or `datetime` | Optional |
 | `planned_solo` | `bool` | Optional |
 | `location_name` | `string` | Optional |
+| `cancelled_in_time` | `bool` | Optional |
 
 A mapping with a `time` field must have a `service_date` with the type `date`.
 
@@ -432,6 +489,7 @@ fields:
   actual_time:       { column: <COLUMN_NAME>, type: datetime, format: excel }
   planned_solo:      { column: <COLUMN_NAME>, type: bool, true_values: [<SOLO_VALUE>], false_values: [<SHARED_VALUE>] }
   location_name:     { column: <COLUMN_NAME>, type: string }
+  cancelled_in_time: { column: <COLUMN_NAME>, type: bool, true_values: [<IN_TIME_VALUE>], false_values: [<LATE_VALUE>] }
 ```
 
 The parser reads the rows of an extract through the mapping. It rejects a row with a value that
@@ -827,6 +885,14 @@ and day, and the citizens of its months. Build them for all dates again in these
   totals of each location (#87). Until then, the pages show no figures for the dates that were
   imported before, the citizens sparkline shows no values, and the punctuality page shows no
   locations.
+- After the first deploy of the runs that are not cancelled (#163). Until then, the totals of
+  the dates that were imported before have 0 runs that are not cancelled.
+
+After the first deploy of the late cancellations (#167), import the stored dates again. A build
+is not enough, because the stop rows that were imported before have no code of a late
+cancellation. Until then, the activity page shows their cancelled trips as "Aflyst, varsel
+ukendt", and the share of the late cancellations as "–".
+
 - After a change of `APP_PUNCTUALITY_TOLERANCE_MINUTES`. Until then, the pages fail with a
   message that tells to run the command.
 
@@ -858,6 +924,8 @@ To set up a new server:
    (`APP_DRIVING_DATA_MAX_ROWS`). If a large upload fails with an error 500, the import rolled
    back, and no data changed. Then raise `PHP_MAX_EXECUTION_TIME` and `PHP_MEMORY_LIMIT` in
    `docker-compose.server.override.yml`.
+1. On production, put `.env.local` and the directory `var/uploads` in the directory `shared` of
+   the server. `docker-compose.server.prod.yml` mounts them in each release.
 1. Deploy.
 1. Tell DevOps to collect the Supercronic metrics from `https://<SITE>/cron-metrics`.
 1. In the identity provider, give the first administrator `ROLE_ADMIN` in the role claim.

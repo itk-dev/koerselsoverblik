@@ -1,4 +1,5 @@
 <nav class="admin-tabs" aria-label="{{ 'upload.title'|trans }}" data-test="upload-tabs">
     <a href="{{ path('admin_import') }}"{% if current == 'single' %} aria-current="page"{% endif %}>{{ 'upload.tabs.single'|trans }}</a>
     <a href="{{ path('admin_import_bulk') }}"{% if current == 'bulk' %} aria-current="page"{% endif %}>{{ 'upload.tabs.bulk'|trans }}</a>
+    <a href="{{ path('admin_driving_data') }}"{% if current == 'data' %} aria-current="page"{% endif %}>{{ 'upload.tabs.data'|trans }}</a>
 </nav>

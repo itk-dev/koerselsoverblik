@@ -64,6 +64,23 @@ final class ChartComponentsTest extends KernelTestCase
         self::assertStringNotContainsString('style=', (string) $rendered);
     }
 
+    /**
+     * A percent chart with no maximum gets a nice maximum above the values. The axis shows the
+     * exact grid values, so 12,5 % does not show as 13 %.
+     */
+    public function testPercentAxisShowsTheExactGridValues(): void
+    {
+        $crawler = $this->renderTwigComponent('LineChart', [
+            'id' => 'cancelled',
+            'caption' => 'Aflyste ture',
+            'labels' => ['jan', 'feb'],
+            'series' => [['name' => 'Aflyst', 'cssClass' => 'series-coral', 'values' => [26.0, 33.0]]],
+            'unit' => 'percent',
+        ])->crawler();
+
+        self::assertSame(['0 %', '12,5 %', '25 %', '37,5 %', '50 %'], $crawler->filter('text.ch-ytick')->each(static fn ($text): string => $text->text()));
+    }
+
     public function testLineChartWithOneSeriesHasNoLegendAndNoTarget(): void
     {
         $crawler = $this->renderTwigComponent('LineChart', [

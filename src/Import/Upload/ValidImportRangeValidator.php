@@ -12,7 +12,7 @@ use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 
 /**
- * Checks the date range of an upload with the rules of ImportRangeDto, and shows the error on the
+ * Checks the date range of a form with the rules of ImportRangeDto, and shows the error on the
  * last date.
  */
 final class ValidImportRangeValidator extends ConstraintValidator
@@ -31,7 +31,7 @@ final class ValidImportRangeValidator extends ConstraintValidator
         if (!$constraint instanceof ValidImportRange) {
             throw new UnexpectedTypeException($constraint, ValidImportRange::class);
         }
-        if (!$value instanceof UploadDto || null === $value->firstDate || null === $value->lastDate) {
+        if (!$value instanceof DateRangeInput || null === $value->firstDate || null === $value->lastDate) {
             return;
         }
 

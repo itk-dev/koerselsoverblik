@@ -17,9 +17,6 @@
             {% if selection.filter.type.value != 'month' %}
                 <p class="page-head__lede" data-test="months-note">{{ 'period.months_note'|trans }}</p>
             {% endif %}
-            {% if ignored_sub_agreements is not empty %}
-                <p class="page-head__lede" data-test="ignored-note">{{ 'punctuality.ignored_note'|trans({count: ignored_sub_agreements|length, references: ignored_sub_agreements|join(', ')}) }}</p>
-            {% endif %}
         </div>
     </header>
 

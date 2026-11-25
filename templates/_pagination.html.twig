@@ -1,0 +1,16 @@
+{# The page links of a KnpPaginator list, with the stepper of the design system. The links keep the other query values. #}
+{% if pageCount > 1 %}
+    <nav class="stepper pager" aria-label="{{ 'pagination.label'|trans }}" data-test="pagination">
+        {% if previous is defined %}
+            <a class="stepper__btn" rel="prev" href="{{ path(route, knp_pagination_query(query, previous, options)) }}" aria-label="{{ 'pagination.previous'|trans }}" data-test="previous-page">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+        {% else %}
+            <span class="stepper__btn is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-left', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
+        {% endif %}
+        <span class="stepper__label" data-test="page">{{ 'pagination.page'|trans({page: current, pages: pageCount}) }}</span>
+        {% if next is defined %}
+            <a class="stepper__btn" rel="next" href="{{ path(route, knp_pagination_query(query, next, options)) }}" aria-label="{{ 'pagination.next'|trans }}" data-test="next-page">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</a>
+        {% else %}
+            <span class="stepper__btn is-disabled" aria-disabled="true">{{ ux_icon('lucide:chevron-right', {class: 'icon', 'aria-hidden': 'true'}) }}</span>
+        {% endif %}
+    </nav>
+{% endif %}

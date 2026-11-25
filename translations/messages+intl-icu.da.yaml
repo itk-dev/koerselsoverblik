@@ -10,6 +10,7 @@ menu:
   label: Hovedmenu
   overview: Overblik
   punctuality: Rettidighed
+  activity: Kørselsaktivitet
   upload: Upload kørselsdata
   daily_counts: Daglige tal
   suppliers: Leverandører og delaftaler
@@ -139,7 +140,6 @@ month:
 punctuality:
   title: Rettidighed
   lede: "{period} sammenlignet med {comparison}. Rettidigheden måles ved afhentning og afsætning, for hver borger og for hvert vognløb."
-  ignored_note: "{count, plural, one {# delaftale er ignoreret i tallene} other {# delaftaler er ignoreret i tallene}}: {references}"
   goal:
     label: Servicemål
     rule: Højst {minutes} minutter for sent · {target} % rettidighed
@@ -233,6 +233,78 @@ punctuality:
   source: "Kilde: chaufførens indtastning mod planlagt tid, kun gennemførte stop"
   no_data: Ingen data i perioden.
 
+activity:
+  title: Kørselsaktivitet
+  lede: "Bestilte ture, aflysninger og vognløb for {period}, sammenlignet med {comparison}. Ignorerede delaftaler indgår ikke i tallene."
+  trips:
+    label: Bestilte ture
+    note: "{pending, plural, =0 {Også de aflyste ture} other {Også de aflyste ture · # uden registrering}}"
+    help:
+      title: Bestilte ture
+      body: Alle ture, der var bestilt i perioden, også de aflyste ture og de ture, hvor chaufføren ikke har registreret afhentningen. Én tur er én borgers tur fra afhentning til afsætning. Kører to borgere sammen i samme bil, tæller det som to ture. Status for afhentningen giver status for turen.
+  completed:
+    label: Gennemførte ture
+    note: "{share} af de bestilte ture"
+    help:
+      title: Gennemførte ture
+      body: De ture, hvor chaufføren har registreret afhentningen som gennemført. Ture uden registrering og aflyste ture tæller ikke med.
+  cancelled:
+    label: Aflyste ture
+    note: "{count, number} aflyste ture"
+    help:
+      title: Aflyste ture
+      body: Andelen af de bestilte ture, der blev aflyst, både rettidigt og for sent. Andelen er af alle bestilte ture, så perioder med forskellig volumen kan sammenlignes. Ændringen er i procentpoint, og en lavere andel er bedre.
+  cancelled_late:
+    label: For sent aflyst
+    note: "{share} af de aflyste ture"
+    help:
+      title: For sent aflyst
+      body: Andelen af de bestilte ture, der blev aflyst for sent. Udtrækket fra planlægningssystemet markerer en aflysning som for sent, når den kommer samme dag og 60 minutter eller mindre før den planlagte ankomst. En aflysning en tidligere dag er rettidig. Kørselskontoret har endnu ikke bekræftet, at det er reglen i kontrakten. Andelen er af alle bestilte ture, ligesom de aflyste ture, så de to tal kan læses mod hinanden. En lavere andel er bedre. Har ingen af periodens aflysninger et varsel, viser feltet "–".
+  runs:
+    label: Vognløb
+    note: Vognløb, der ikke er aflyst
+    help:
+      title: Vognløb
+      body: Antallet af vognløb, der ikke er aflyst. Et vognløb er en kæde af afhentninger og afsætninger, fra den første borger stiger ind, til bilen er tom igen. Et vognløb er aflyst, når alle dets stop er aflyst. Et vognløb uden borgere i bilen tæller også med.
+  outcome:
+    title: Gennemført og aflyst
+    subtitle: Alle bestilte ture, og hvordan de endte.
+    caption: Bestilte ture i perioden
+    total: "{count, number} ture"
+    months_caption: Gennemførte, rettidigt aflyste, for sent aflyste og ikke registrerede ture pr. måned
+    completed: Gennemført
+    cancelled_in_time: Rettidigt aflyst
+    cancelled_late: For sent aflyst
+    cancelled_unknown: Aflyst, varsel ukendt
+    pending: Uden registrering
+  cancellations:
+    title: Aflysninger i forhold til alle bestilte ture
+    subtitle: Begge kurver er andele af alle bestilte ture, så de kan læses mod hinanden. Afstanden mellem dem er de rettidige aflysninger og de aflysninger, hvor varslet ikke er kendt.
+    caption: Andel aflyste og andel for sent aflyste af alle bestilte ture pr. måned
+    all: Aflyst i alt
+    late: For sent aflyst
+  sub_agreements:
+    title: Ture pr. delaftale
+    subtitle: De bestilte ture i perioden fordelt på delaftaler. Flest ture først.
+    caption: Bestilte ture pr. delaftale i perioden
+    sub_agreement: Delaftale
+    supplier: Leverandør
+    trips: Bestilte ture
+    share: Andel
+  suppliers:
+    title: Volumen pr. leverandør
+    subtitle: Alle leverandører i den valgte periode.
+    caption: Volumen pr. leverandør i perioden
+    ordered: Bestilt
+    completed: Gennemført
+    cancelled: Aflyst
+    cancelled_share: Aflyst %
+    cancelled_late: For sent aflyst
+    cancelled_late_share: For sent aflyst %
+    runs: Vognløb
+    per_run: Gennemførte ture pr. vognløb
+  source: "Kilde: kørselsdata. Status for afhentningen giver status for turen."
+
 upload:
   title: Upload kørselsdata
   intro: Upload et udtræk fra planlægningssystemet for en periode. Uploaden erstatter alle kørselsdata i perioden. Du ser ændringerne, før du bekræfter.
@@ -296,6 +368,7 @@ upload:
   tabs:
     single: Én fil
     bulk: Mange filer
+    data: Kørselsdata
   bulk:
     title: Upload mange filer
     intro: Træk udtrækkene hen på feltet, eller vælg dem. Hver fil kontrolleres for sig. Kontrollér listen, og importér derefter filerne.
@@ -367,6 +440,7 @@ upload:
     planned_time: Planlagt tid
     actual_time: Faktisk tid
     planned_solo: Planlagt solo
+    location_name: Lokation
   reason:
     empty: Feltet er tomt.
     error_value: Cellen har en fejlværdi.
@@ -381,6 +455,52 @@ upload:
     outside_range: Datoen er uden for perioden.
     invalid_row_id: Række-id er tomt eller ugyldigt.
     duplicate_row_id: En tidligere række har det samme række-id.
+
+driving_data:
+  title: Kørselsdata
+  intro: Datoerne med kørselsdata i måneden. Klik på en dato for at se stoprækkerne og de afviste rækker.
+  rows_link: Vis rækkerne i en periode
+  rows_title: Stoprækker og afviste rækker
+  route: Vognløb
+  show: Vis rækkerne
+  dates_link: Uploadede datoer
+  stop_rows: Stoprækker
+  rejected_rows: Afviste rækker
+  rejected_intro: Filteret på vognløb gælder ikke de afviste rækker, fordi en afvist række ikke har et vognløb.
+  ignored_count: "heraf {count, number} ignoreret"
+  ignored_short: "({count, number} ignoreret)"
+  ignored_note: Tallene tæller ikke vognløbene i en ignoreret delaftale. Importen gemmer stadig rækkerne, så de står i listen.
+  no_stop_rows: Ingen stoprækker i perioden.
+  no_rejected_rows: Ingen afviste rækker i perioden.
+  delay: Forsinkelse
+  minutes: "{minutes, number} min."
+  upload: Upload
+  view: Vis
+  row_number: Rækkenummer
+  no_date: Ingen dato
+  stop_row_title: Stoprække
+  rejected_row_title: Afvist række
+  back: Tilbage til listen
+  copy: Rækken i udtrækket
+  column: Kolonne
+  value: Værdi
+  cause: (årsagen til afvisningen)
+  hidden: (skjult)
+  empty: (tom)
+  mapping_missing: Opsætningen "{name}" findes ikke længere. Siden kan derfor ikke vise rækken fra udtrækket.
+  stop_type:
+    pickup: Afhentning
+    drop_off: Afsætning
+  stop_status:
+    completed: Gennemført
+    cancelled: Aflyst
+    pending: Uden registrering
+
+pagination:
+  label: Sider
+  previous: Forrige side
+  next: Næste side
+  page: "Side {page} af {pages}"
 
 chart:
   period: Periode
@@ -397,6 +517,8 @@ common:
   delete: Slet
   save: Gem
   cancel: Annullér
+  "yes": Ja
+  "no": Nej
 
 admin:
   title: Leverandører og delaftaler

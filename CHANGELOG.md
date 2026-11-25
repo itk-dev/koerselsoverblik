@@ -7,6 +7,47 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-25
+
+- Update `twig/twig` and `twig/html-extra` to 3.31.1 and `symfony/ux-icons` to 3.8.1, because
+  of security advisories in the older versions.
+
+- Add `docker-compose.server.prod.yml`. On production, it mounts `.env.local` and `var/uploads`
+  from the shared directory of the server, so that a new release keeps them.
+
+- [#167](https://github.com/itk-dev/koerselsoverblik/issues/167)
+  Show the late cancellations on the driving activity page: the import reads the code
+  `RettidigAflysningsvarsel` as the field `cancelled_in_time`, and the totals count the
+  cancellations in time and too late. The page has the tile "For sent aflyst", splits the
+  cancelled trips in the bar and the columns, has a second line in the chart of the
+  cancellations, and has the late cancellations in the supplier table. Run the migration, and
+  import the stored dates again. The `.gitignore` ignores a local `.claude/CLAUDE.md`.
+
+- [#165](https://github.com/itk-dev/koerselsoverblik/issues/165)
+  Review follow-up of the driving activity page: the lede tells that the figures leave out the
+  ignored sub-agreements, not only the foot of the table of the sub-agreements. One method of
+  `DayTotalsDto` calculates the share of the cancelled trips. `ActivityPageDto::current()` is
+  removed. The page shows the same values as before.
+
+- [#163](https://github.com/itk-dev/koerselsoverblik/issues/163)
+  Show the driving activity page "Kørselsaktivitet": the ordered and the completed trips, the
+  share of the cancelled trips, the route runs that are not cancelled, the trips by status for
+  each month, the trips of each sub-agreement and the volume of each supplier. A new counter of
+  `RouteDayTotals` counts the route runs that are not cancelled. Run
+  `app:driving-data:rebuild-totals` after the deploy. The punctuality page no longer names the
+  ignored sub-agreements, because a long list made the page difficult to read.
+
+- [#96](https://github.com/itk-dev/koerselsoverblik/issues/96)
+  Show the stored driving data: the new tab "Kørselsdata" has the list of uploaded dates (moved
+  from the upload page), the stop rows and rejected rows of a range with 100 rows on a page, and a
+  page for each row with its row of the extract. The person id never shows. KnpPaginator pages
+  the lists. The lists and the dates show the stop rows of an ignored sub-agreement, which the
+  figures do not count.
+
+- [#151](https://github.com/itk-dev/koerselsoverblik/issues/151)
+  Escaped mutants in `src/Import` and `src/Report`: new tests kill the mutants. The code changes
+  where no test can see a mutant. The behaviour does not change.
+
 ## [0.1.0] - 2026-11-19
 
 - [#5](https://github.com/itk-dev/koerselsoverblik/issues/5)
@@ -453,5 +494,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   role `ROLE_USER`. The check of the bulk upload parses a file once, not twice. On the servers,
   PHP-FPM has 256M and 60 seconds, so that OpenSpout keeps the shared strings in memory.
 
-[Unreleased]: https://github.com/itk-dev/koerselsoverblik/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/itk-dev/koerselsoverblik/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/itk-dev/koerselsoverblik/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/itk-dev/koerselsoverblik/releases/tag/0.1.0

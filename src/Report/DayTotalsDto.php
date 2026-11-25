@@ -33,26 +33,32 @@ final readonly class DayTotalsDto
         'pendingTrips',
         'runs',
         'soloRuns',
+        'notCancelledRuns',
+        'cancelledInTimeTrips',
+        'cancelledLateTrips',
     ];
 
     /**
-     * @param int $pickupOnTime        the measured pickups that are on time
-     * @param int $pickupMeasured      the completed pickups with a delay
-     * @param int $dropOffOnTime       the measured drop-offs that are on time
-     * @param int $dropOffMeasured     the completed drop-offs with a delay
-     * @param int $firstPickupOnTime   the measured first pickups of the route runs that are on time
-     * @param int $firstPickupMeasured the route runs with a delay at the first pickup
-     * @param int $lastDropOnTime      the measured last drop-offs of the route runs that are on time
-     * @param int $lastDropMeasured    the route runs with a delay at the last drop-off
-     * @param int $lastDropUpTo15      the measured last drop-offs from the tolerance to 15 minutes late
-     * @param int $lastDropUpTo30      the measured last drop-offs from 15 to 30 minutes late
-     * @param int $lastDropOver30      the measured last drop-offs more than 30 minutes late
-     * @param int $trips               the pickups, with any status
-     * @param int $completedTrips      the completed pickups
-     * @param int $cancelledTrips      the cancelled pickups
-     * @param int $pendingTrips        the pickups with no registration
-     * @param int $runs                the route runs that are not cancelled and had a citizen in the car
-     * @param int $soloRuns            the counted runs with exactly one citizen in the car at a time
+     * @param int $pickupOnTime         the measured pickups that are on time
+     * @param int $pickupMeasured       the completed pickups with a delay
+     * @param int $dropOffOnTime        the measured drop-offs that are on time
+     * @param int $dropOffMeasured      the completed drop-offs with a delay
+     * @param int $firstPickupOnTime    the measured first pickups of the route runs that are on time
+     * @param int $firstPickupMeasured  the route runs with a delay at the first pickup
+     * @param int $lastDropOnTime       the measured last drop-offs of the route runs that are on time
+     * @param int $lastDropMeasured     the route runs with a delay at the last drop-off
+     * @param int $lastDropUpTo15       the measured last drop-offs from the tolerance to 15 minutes late
+     * @param int $lastDropUpTo30       the measured last drop-offs from 15 to 30 minutes late
+     * @param int $lastDropOver30       the measured last drop-offs more than 30 minutes late
+     * @param int $trips                the pickups, with any status
+     * @param int $completedTrips       the completed pickups
+     * @param int $cancelledTrips       the cancelled pickups
+     * @param int $pendingTrips         the pickups with no registration
+     * @param int $runs                 the route runs that are not cancelled and had a citizen in the car
+     * @param int $soloRuns             the counted runs with exactly one citizen in the car at a time
+     * @param int $notCancelledRuns     the route runs that are not cancelled, also a run with no citizen in the car
+     * @param int $cancelledInTimeTrips the cancelled pickups that were cancelled in time
+     * @param int $cancelledLateTrips   the cancelled pickups that were cancelled too late
      */
     public function __construct(
         public int $pickupOnTime,
@@ -72,12 +78,16 @@ final readonly class DayTotalsDto
         public int $pendingTrips,
         public int $runs,
         public int $soloRuns,
+        public int $notCancelledRuns,
+        public int $cancelledInTimeTrips,
+        public int $cancelledLateTrips,
     ) {
     }
 
     public static function empty(): self
     {
-        return new self(...array_fill(0, \count(self::FIELDS), 0));
+        // FIELDS has the names of the parameters, so the keys are named arguments.
+        return new self(...array_fill_keys(self::FIELDS, 0));
     }
 
     /**
@@ -132,6 +142,9 @@ final readonly class DayTotalsDto
             $this->pendingTrips + $other->pendingTrips,
             $this->runs + $other->runs,
             $this->soloRuns + $other->soloRuns,
+            $this->notCancelledRuns + $other->notCancelledRuns,
+            $this->cancelledInTimeTrips + $other->cancelledInTimeTrips,
+            $this->cancelledLateTrips + $other->cancelledLateTrips,
         );
     }
 
@@ -147,6 +160,49 @@ final readonly class DayTotalsDto
             new PunctualityCountDto($this->lastDropOnTime, $this->lastDropMeasured),
             new DelayBandsDto($this->lastDropOnTime, $this->lastDropUpTo15, $this->lastDropUpTo30, $this->lastDropOver30),
         );
+    }
+
+    /**
+     * Gives the cancelled trips as a share of all trips in percent, or null if there are no trips.
+     */
+    public function cancelledPercent(): ?float
+    {
+        return 0 === $this->trips ? null : $this->cancelledTrips / $this->trips * 100;
+    }
+
+    /**
+     * Gives the trips that were cancelled too late as a share of all trips in percent. The share
+     * is of all trips, so that it can be read against cancelledPercent(). It is null if there are
+     * no trips, or if no cancelled trip has a code, because then the share is not known.
+     */
+    public function cancelledLatePercent(): ?float
+    {
+        return 0 === $this->trips || $this->hasNoCodes() ? null : $this->cancelledLateTrips / $this->trips * 100;
+    }
+
+    /**
+     * Gives the trips that were cancelled too late as a share of the cancelled trips in percent,
+     * or null if there are no cancelled trips or no cancelled trip has a code.
+     */
+    public function cancelledLateOfCancelledPercent(): ?float
+    {
+        return 0 === $this->cancelledTrips || $this->hasNoCodes() ? null : $this->cancelledLateTrips / $this->cancelledTrips * 100;
+    }
+
+    /**
+     * Tells if there are cancelled trips, but none of them has a code.
+     */
+    private function hasNoCodes(): bool
+    {
+        return $this->cancelledTrips > 0 && 0 === $this->cancelledInTimeTrips + $this->cancelledLateTrips;
+    }
+
+    /**
+     * Gives the cancelled trips with no code: cancelled neither in time nor too late.
+     */
+    public function cancelledUnknownTrips(): int
+    {
+        return $this->cancelledTrips - $this->cancelledInTimeTrips - $this->cancelledLateTrips;
     }
 
     public function solo(): SoloCountDto

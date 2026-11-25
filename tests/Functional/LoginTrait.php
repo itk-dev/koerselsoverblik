@@ -19,6 +19,7 @@ trait LoginTrait
     private const array TEST_USER_ROLES = [
         'admin' => ['ROLE_ADMIN'],
         'viewer' => ['ROLE_VIEW_OVERVIEW'],
+        'driving_data' => ['ROLE_MANAGE_DRIVING_DATA'],
         'user' => [],
     ];
 

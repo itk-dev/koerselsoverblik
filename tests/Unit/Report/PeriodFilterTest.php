@@ -41,6 +41,14 @@ final class PeriodFilterTest extends TestCase
     }
 
     /**
+     * The ids start at 1.
+     */
+    public function testLowestSupplierIdIsRead(): void
+    {
+        self::assertSame(1, self::filter(['s' => '1'])->supplier);
+    }
+
+    /**
      * @param array<string, string> $query
      */
     #[DataProvider('invalidValues')]

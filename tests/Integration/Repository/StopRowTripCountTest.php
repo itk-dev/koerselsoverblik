@@ -65,6 +65,40 @@ final class StopRowTripCountTest extends KernelTestCase
     }
 
     /**
+     * The base scenario has one cancelled pickup (P-006). It has no code in the scenario, so it
+     * has "no", as in the extract, and it was cancelled too late.
+     */
+    public function testBaseScenarioHasOneLateCancellation(): void
+    {
+        $this->importBase();
+
+        $totals = $this->totals()->sum(self::range('2026-01-01', '2026-01-31'));
+
+        self::assertSame([1, 0, 1], [$totals->cancelledTrips, $totals->cancelledInTimeTrips, $totals->cancelledLateTrips]);
+    }
+
+    /**
+     * Only a cancelled pickup counts. The extract has "no" also on a stop that is not cancelled,
+     * and a trip counts at its pickup, not at its drop-off. A cancelled pickup with no code is
+     * cancelled, but neither in time nor too late.
+     */
+    public function testLateCancellationsCountOnlyTheCancelledPickups(): void
+    {
+        $route = $this->route();
+        $this->stop($route, '2026-02-02', 'P-A', StopType::Pickup, StopStatus::Cancelled, true);
+        $this->stop($route, '2026-02-02', 'P-B', StopType::Pickup, StopStatus::Cancelled, false);
+        $this->stop($route, '2026-02-02', 'P-C', StopType::Pickup, StopStatus::Cancelled, false);
+        $this->stop($route, '2026-02-02', 'P-C', StopType::DropOff, StopStatus::Cancelled, false);
+        $this->stop($route, '2026-02-02', 'P-D', StopType::Pickup, StopStatus::Cancelled);
+        $this->stop($route, '2026-02-02', 'P-E', StopType::Pickup, StopStatus::Completed, false);
+        $this->stop($route, '2026-02-02', 'P-F', StopType::Pickup, StopStatus::Pending, true);
+
+        $totals = $this->totals()->sum(self::range('2026-02-01', '2026-02-28'));
+
+        self::assertSame([4, 1, 2], [$totals->cancelledTrips, $totals->cancelledInTimeTrips, $totals->cancelledLateTrips]);
+    }
+
+    /**
      * A citizen who was not driven does not count. A pickup with no registration is not
      * cancelled, so its citizen counts.
      */
@@ -258,7 +292,7 @@ final class StopRowTripCountTest extends KernelTestCase
         return $route;
     }
 
-    private function stop(Route $route, string $date, string $person, StopType $type, StopStatus $status): void
+    private function stop(Route $route, string $date, string $person, StopType $type, StopStatus $status, ?bool $inTime = null): void
     {
         $serviceDate = new \DateTimeImmutable($date);
         $row = new StopRowDto(
@@ -277,6 +311,7 @@ final class StopRowTripCountTest extends KernelTestCase
             actualTime: null,
             plannedSolo: null,
             locationName: null,
+            cancelledInTime: $inTime,
         );
         $this->entityManager->persist(new StopRow($row, 'default', $route, $this->batch()));
     }

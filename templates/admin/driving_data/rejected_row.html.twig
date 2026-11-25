@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+{% import 'admin/import/_macros.html.twig' as upload_macros %}
+
+{% block title %}{{ 'driving_data.rejected_row_title'|trans }} – {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    {% set batch = row.importBatch %}
+    {# A row with no date belongs to the range of its upload. #}
+    {% set first = (row.serviceDate ?? batch.firstDate)|date('Y-m-d') %}
+    {% set last = (row.serviceDate ?? batch.lastDate)|date('Y-m-d') %}
+    <h1>{{ 'driving_data.rejected_row_title'|trans }}</h1>
+    {{ include('admin/import/_tabs.html.twig', {current: 'data'}) }}
+
+    <p><a href="{{ path('admin_driving_data_rows', {firstDate: first, lastDate: last}) }}#rejected-rows" data-test="back">{{ 'driving_data.back'|trans }}</a></p>
+
+    <dl class="upload-summary">
+        <dt>{{ 'upload.field.service_date'|trans }}</dt>
+        <dd>{{ row.serviceDate ? upload_macros.date(row.serviceDate) : 'driving_data.no_date'|trans }}</dd>
+        <dt>{{ 'driving_data.row_number'|trans }}</dt>
+        <dd>{{ row.rowNumber }}</dd>
+        <dt>{{ 'upload.group.field'|trans }}</dt>
+        <dd data-test="field">{{ ('upload.field.' ~ (row.field.value ?? 'row_id'))|trans }}</dd>
+        <dt>{{ 'upload.group.reason'|trans }}</dt>
+        <dd data-test="reason">{{ ('upload.reason.' ~ row.reason.value)|trans }}</dd>
+        {{ include('admin/driving_data/_upload.html.twig', {batch: batch}) }}
+    </dl>
+
+    {{ include('admin/driving_data/_source_row.html.twig', {mappingName: batch.mappingName}) }}
+{% endblock %}

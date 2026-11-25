@@ -362,11 +362,13 @@ final class StopRowReplacerTest extends KernelTestCase
         $this->import(self::range('2026-01-05'));
 
         self::assertSame(1, $flushes->count);
+        // Count the managed rows. A failure message with the entities takes more than the
+        // Infection timeout, because PHPUnit exports each entity with its relations.
         $identityMap = $this->entityManager->getUnitOfWork()->getIdentityMap();
-        self::assertSame([], $identityMap[StopRow::class] ?? []);
-        self::assertSame([], $identityMap[RejectedStopRow::class] ?? []);
+        self::assertCount(0, $identityMap[StopRow::class] ?? []);
+        self::assertCount(0, $identityMap[RejectedStopRow::class] ?? []);
         // The detach of a row also detaches its copy.
-        self::assertSame([], $identityMap[SourceRow::class] ?? []);
+        self::assertCount(0, $identityMap[SourceRow::class] ?? []);
     }
 
     /**

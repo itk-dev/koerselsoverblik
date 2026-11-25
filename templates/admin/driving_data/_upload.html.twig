@@ -1,0 +1,8 @@
+{% import 'admin/import/_macros.html.twig' as upload_macros %}
+{# The upload of a row, in the summary list of a detail page. #}
+<dt>{{ 'driving_data.upload'|trans }}</dt>
+<dd><a href="{{ path('admin_import_result', {id: batch.id}) }}">{{ batch.fileName }}</a></dd>
+<dt>{{ 'upload.dates.uploaded_at'|trans }}</dt>
+<dd>{{ upload_macros.date(batch.uploadedAt) }} {{ 'upload.dates.at'|trans }} {{ batch.uploadedAt|date('H:i') }}</dd>
+<dt>{{ 'upload.dates.by'|trans }}</dt>
+<dd>{{ batch.uploadedBy ? batch.uploadedBy.userIdentifier : 'upload.dates.console'|trans }}</dd>

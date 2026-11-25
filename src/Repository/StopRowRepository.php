@@ -14,6 +14,7 @@ use App\Report\DayTotalsDto;
 use App\Report\PunctualityCountDto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -34,6 +35,8 @@ class StopRowRepository extends ServiceEntityRepository
         'completedTrips',
         'cancelledTrips',
         'pendingTrips',
+        'cancelledInTimeTrips',
+        'cancelledLateTrips',
     ];
 
     public function __construct(
@@ -51,6 +54,55 @@ class StopRowRepository extends ServiceEntityRepository
         $builder = $this->createQueryBuilder('row')->select('COUNT(row.id)');
 
         return (int) $this->inRange($builder, $range)->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Gives the query of the stop rows in the range for the driving data page, which pages it.
+     * The query does not read the copies.
+     *
+     * @param string|null $route the route name, or null for all routes. MariaDB compares it with no regard to case
+     *
+     * @return Query<null, StopRow>
+     */
+    public function listInRange(ImportRangeDto $range, ?string $route): Query
+    {
+        return $this->withRoute($this->inRange($this->createQueryBuilder('row'), $range), $route)
+            // The page marks the rows of an ignored sub-agreement.
+            ->addSelect('route', 'subAgreement', 'batch')
+            ->join('route.subAgreement', 'subAgreement')
+            ->join('row.importBatch', 'batch')
+            ->orderBy('row.serviceDate')
+            ->addOrderBy('route.sourceKey')
+            ->addOrderBy('row.run')
+            ->addOrderBy('row.plannedTime')
+            ->addOrderBy('row.id')
+            ->getQuery();
+    }
+
+    /**
+     * Gives the number of stop rows in the range that the figures do not count, because the
+     * sub-agreement of the route is ignored.
+     *
+     * @param string|null $route the route name, or null for all routes
+     */
+    public function countIgnoredInRange(ImportRangeDto $range, ?string $route): int
+    {
+        $builder = $this->withRoute($this->inRange($this->createQueryBuilder('row')->select('COUNT(row.id)'), $range), $route);
+
+        return (int) $this->countedRoutes->applyIgnored($builder, 'row.route')->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Joins the route, and limits the query to one route if a route name is given.
+     */
+    private function withRoute(QueryBuilder $builder, ?string $route): QueryBuilder
+    {
+        $builder->join('row.route', 'route');
+        if (null !== $route) {
+            $builder->andWhere('route.sourceKey = :route')->setParameter('route', $route);
+        }
+
+        return $builder;
     }
 
     /**
@@ -91,13 +143,36 @@ class StopRowRepository extends ServiceEntityRepository
      */
     public function countByDate(DateRangeDto $range): array
     {
-        $builder = $this->createQueryBuilder('row')
+        return self::countsByDate($this->countByDateBuilder($range));
+    }
+
+    /**
+     * Gives the number of stop rows of each date in the range that the figures do not count,
+     * because the sub-agreement of the route is ignored. A date with no such rows is not in the
+     * result.
+     *
+     * @return array<string, int> the counts in the order of the date, keyed by the date as Y-m-d
+     */
+    public function countIgnoredByDate(DateRangeDto $range): array
+    {
+        return self::countsByDate($this->countedRoutes->applyIgnored($this->countByDateBuilder($range), 'row.route'));
+    }
+
+    private function countByDateBuilder(DateRangeDto $range): QueryBuilder
+    {
+        return $this->inRange($this->createQueryBuilder('row'), $range)
             ->select('row.serviceDate AS serviceDate', 'COUNT(row.id) AS count')
             ->groupBy('row.serviceDate')
             ->orderBy('row.serviceDate');
+    }
 
+    /**
+     * @return array<string, int> the counts in the order of the date, keyed by the date as Y-m-d
+     */
+    private static function countsByDate(QueryBuilder $builder): array
+    {
         /** @var list<array{serviceDate: \DateTimeImmutable, count: int|string}> $rows */
-        $rows = $this->inRange($builder, $range)->getQuery()->getArrayResult();
+        $rows = $builder->getQuery()->getArrayResult();
         $counts = [];
         foreach ($rows as $row) {
             // MariaDB can give a count as text.
@@ -170,6 +245,9 @@ class StopRowRepository extends ServiceEntityRepository
      * - A measured stop is completed, and it has a delay (an actual time). It is on time if the
      *   delay is at most the tolerance.
      * - A trip is a pickup, with any status: completed, cancelled or with no registration.
+     * - A cancelled trip was cancelled in time or too late, from the code of the extract. The
+     *   extract gives the code also for a stop that is not cancelled, so only the cancelled
+     *   pickups count. A cancelled pickup with no code counts for neither.
      *
      * @param int $onTimeSeconds the highest delay that is on time
      *
@@ -191,6 +269,8 @@ class StopRowRepository extends ServiceEntityRepository
                 'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :completed THEN 1 ELSE 0 END) AS completedTrips',
                 'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :cancelled THEN 1 ELSE 0 END) AS cancelledTrips',
                 'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :pending THEN 1 ELSE 0 END) AS pendingTrips',
+                'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :cancelled AND row.cancelledInTime = true THEN 1 ELSE 0 END) AS cancelledInTimeTrips',
+                'SUM(CASE WHEN row.stopType = :pickup AND row.stopStatus = :cancelled AND row.cancelledInTime = false THEN 1 ELSE 0 END) AS cancelledLateTrips',
             )
             ->groupBy('row.route, row.serviceDate')
             ->setParameter('pickup', StopType::Pickup)

@@ -1,0 +1,11 @@
+knp_paginator:
+    default_options:
+        # A page number after the last page gives the last page.
+        page_out_of_range: fix
+        default_limit: 100
+        # The lists join only to-one relations, so a row cannot repeat. A simple LIMIT is enough.
+        distinct: false
+    template:
+        pagination: '_pagination.html.twig'
+    # A sort or a filter that is not in the allow list gives "404 Not Found", not an error.
+    convert_exception: true

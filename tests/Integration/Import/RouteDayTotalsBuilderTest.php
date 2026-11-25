@@ -51,7 +51,7 @@ final class RouteDayTotalsBuilderTest extends KernelTestCase
         self::assertSame([5, 5, 5], array_map(static fn (RouteDayTotals $row): int => $row->getToleranceMinutes(), $rows));
         self::assertSame(['2026-01-05'], array_values(array_unique(array_map(static fn (RouteDayTotals $row): string => $row->getServiceDate()->format('Y-m-d'), $rows))));
         $sum = array_reduce($rows, static fn (DayTotalsDto $sum, RouteDayTotals $row): DayTotalsDto => $sum->add($row->getTotals()), DayTotalsDto::empty());
-        self::assertSame([7, 1, 4, 2], [$sum->trips, $sum->cancelledTrips, $sum->runs, $sum->soloRuns]);
+        self::assertSame([7, 1, 4, 2, 4], [$sum->trips, $sum->cancelledTrips, $sum->runs, $sum->soloRuns, $sum->notCancelledRuns]);
         self::assertGreaterThan(0, $sum->lastDropMeasured);
         self::assertGreaterThan(0, $sum->pickupMeasured);
     }
@@ -111,6 +111,19 @@ final class RouteDayTotalsBuilderTest extends KernelTestCase
         self::assertSame(2, $flushes->count);
         self::assertSame(600, $built);
         self::assertCount(600, $this->rows());
+    }
+
+    /**
+     * The entity manager forgets the written rows, so that they use no memory. The test counts the
+     * rows, because a failure message with the entities takes more than the Infection timeout.
+     */
+    public function testWrittenRowsAreForgotten(): void
+    {
+        $this->importBase();
+        $this->entityManager->clear();
+
+        self::assertSame(3, $this->builder()->rebuild(self::range('2026-01-05', '2026-01-05')));
+        self::assertCount(0, $this->entityManager->getUnitOfWork()->getIdentityMap()[RouteDayTotals::class] ?? []);
     }
 
     /**

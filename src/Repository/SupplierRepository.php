@@ -17,4 +17,20 @@ class SupplierRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Supplier::class);
     }
+
+    /**
+     * Gives all suppliers in the order of the name.
+     *
+     * @return list<Supplier>
+     */
+    public function findAllByName(): array
+    {
+        /** @var list<Supplier> $suppliers */
+        $suppliers = $this->createQueryBuilder('supplier')
+            ->orderBy('supplier.name')
+            ->getQuery()
+            ->getResult();
+
+        return $suppliers;
+    }
 }

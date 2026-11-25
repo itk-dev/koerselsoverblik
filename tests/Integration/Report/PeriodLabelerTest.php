@@ -52,6 +52,8 @@ final class PeriodLabelerTest extends KernelTestCase
         yield 'half year' => [['p' => 'half_year', 'd' => '2026-03-03'], '1. halvår 2026', '1. halvår 2026', '2. halvår 2025'];
         yield 'month from the start of the data' => [['d' => '2026-05-25'], 'maj 2026', '18.–31. maj 2026 (delvis periode)', 'en periode uden data', self::DATA_START];
         yield 'month after the start of the data' => [['d' => '2026-06-10'], 'juni 2026', 'juni 2026', 'maj 2026 (delvis periode)', self::DATA_START];
+        // The data starts on a Wednesday, so the previous week is partial. Its label is in lower case.
+        yield 'week after a start in the middle of a week' => [['p' => 'week', 'd' => '2026-05-27'], 'Uge 22 · 25. maj–31. maj 2026', 'uge 22 · 25. maj–31. maj 2026', 'uge 21 · 18. maj–24. maj 2026 (delvis periode)', '2026-05-20'];
         yield 'last year before the data' => [['c' => 'last_year'], 'september 2026', '1.–18. september 2026 (til og med i dag)', 'en periode uden data', self::DATA_START];
     }
 

@@ -66,11 +66,17 @@ feature that has an issue or an issue text.
 | Show the driver changes | Blocked | – | Open decision "Driver changes" | – |
 | Show the no-shows for each supplier | Blocked | – | Open decision "No-shows" | – |
 
+### Activity page
+
+| Feature | Status | Issue | Needs | Plan |
+| --- | --- | --- | --- | --- |
+| Show where and when the cancellations come | Blocked | – | The open questions of "Cancellation notice" for the notice bands | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
+| Show who cancels and why | Blocked | – | Open decision "Cancellation cause" | – |
+
 ### Driving data
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the imported stop rows and rejected rows of a date range | Ready | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – | [driving-data-view.md](driving-data-view.md) |
 | Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
@@ -156,3 +162,7 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Filter the pages by period, comparison and supplier (parent issue) | [#82](https://github.com/itk-dev/koerselsoverblik/issues/82) | – |
 | Show the uploaded dates and clear the driving data of a date | [#81](https://github.com/itk-dev/koerselsoverblik/issues/81) | – |
 | Upload many extracts with drag and drop | [#153](https://github.com/itk-dev/koerselsoverblik/issues/153) | [#154](https://github.com/itk-dev/koerselsoverblik/pull/154) |
+| Show the imported stop rows and rejected rows of a date range | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – |
+| Show the driving activity page | [#163](https://github.com/itk-dev/koerselsoverblik/issues/163) | [#164](https://github.com/itk-dev/koerselsoverblik/pull/164) |
+| Review follow-up of the driving activity page | [#165](https://github.com/itk-dev/koerselsoverblik/issues/165) | [#166](https://github.com/itk-dev/koerselsoverblik/pull/166) |
+| Show the late cancellations on the driving activity page | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167) | – |

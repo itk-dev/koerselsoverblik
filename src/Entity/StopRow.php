@@ -72,6 +72,14 @@ class StopRow
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $locationName;
 
+    /**
+     * True if a cancellation came in time, false if it came too late, or null if not known. The
+     * extract gives the value also for a stop that is not cancelled, so the figures read it only
+     * for a cancelled stop.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?bool $cancelledInTime;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $personId;
 
@@ -107,6 +115,7 @@ class StopRow
         $this->delaySeconds = $row->delaySeconds;
         $this->plannedSolo = $row->plannedSolo;
         $this->locationName = $row->locationName;
+        $this->cancelledInTime = $row->cancelledInTime;
         $this->personId = $row->personId;
         $this->sourceRow = new SourceRow($row->sourceValues);
     }
@@ -189,6 +198,11 @@ class StopRow
     public function getLocationName(): ?string
     {
         return $this->locationName;
+    }
+
+    public function getCancelledInTime(): ?bool
+    {
+        return $this->cancelledInTime;
     }
 
     public function getPersonId(): ?string

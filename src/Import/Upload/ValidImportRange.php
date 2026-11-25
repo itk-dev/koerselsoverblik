@@ -7,7 +7,7 @@ namespace App\Import\Upload;
 use Symfony\Component\Validator\Constraint;
 
 /**
- * The date range of an upload: the last date is not before the first date, and the range has at
+ * The date range of a form: the last date is not before the first date, and the range has at
  * most APP_DRIVING_DATA_MAX_DAYS days.
  */
 #[\Attribute(\Attribute::TARGET_CLASS)]

@@ -83,7 +83,7 @@ final class DayTotalsDtoTest extends TestCase
 
     public function testPunctualityHasTheFourMeasuresAndTheBands(): void
     {
-        $totals = new DayTotalsDto(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 0, 0, 0, 0, 0);
+        $totals = new DayTotalsDto(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
         self::assertEquals(new PunctualityFiguresDto(
             new PunctualityCountDto(1, 2),
@@ -96,10 +96,69 @@ final class DayTotalsDtoTest extends TestCase
 
     public function testSoloAndTrips(): void
     {
-        $totals = new DayTotalsDto(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 13, 14, 15, 16, 17);
+        $totals = new DayTotalsDto(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 13, 14, 15, 16, 17, 18, 19, 20);
 
         self::assertEquals(new SoloCountDto(16, 17), $totals->solo());
         self::assertEquals(new TripCountDto(12, 13, 14, 15, 9), $totals->trips(9));
+    }
+
+    /**
+     * The share of the cancelled trips is of all trips. No trips gives no value, not 0.
+     */
+    public function testCancelledPercentIsOfAllTrips(): void
+    {
+        self::assertSame(25.0, DayTotalsDto::fromRow(['trips' => 8, 'cancelledTrips' => 2], ['trips', 'cancelledTrips'])->cancelledPercent());
+        self::assertNull(DayTotalsDto::empty()->cancelledPercent());
+    }
+
+    /**
+     * The share of the late cancellations is also of all trips, so that it can be read against
+     * the share of all cancelled trips. No trips gives no value, not 0.
+     */
+    public function testCancelledLatePercentIsOfAllTrips(): void
+    {
+        self::assertSame(12.5, self::cancellations(trips: 8, cancelled: 2, inTime: 1, late: 1)->cancelledLatePercent());
+        self::assertSame(0.0, self::cancellations(trips: 8, cancelled: 2, inTime: 2, late: 0)->cancelledLatePercent());
+        self::assertSame(0.0, self::cancellations(trips: 8, cancelled: 0, inTime: 0, late: 0)->cancelledLatePercent());
+        self::assertNull(DayTotalsDto::empty()->cancelledLatePercent());
+    }
+
+    /**
+     * Cancelled trips with no code are not "not late". If no cancelled trip has a code, the share
+     * is not known, so it is null, not 0.
+     */
+    public function testCancelledLatePercentWithNoCodeIsNotKnown(): void
+    {
+        self::assertNull(self::cancellations(trips: 8, cancelled: 2, inTime: 0, late: 0)->cancelledLatePercent());
+        self::assertNull(self::cancellations(trips: 8, cancelled: 2, inTime: 0, late: 0)->cancelledLateOfCancelledPercent());
+    }
+
+    /**
+     * The note of the tile gives the late cancellations as a share of the cancelled trips. No
+     * cancelled trips gives no value.
+     */
+    public function testCancelledLateOfCancelledPercent(): void
+    {
+        self::assertSame(25.0, self::cancellations(trips: 8, cancelled: 4, inTime: 3, late: 1)->cancelledLateOfCancelledPercent());
+        self::assertNull(self::cancellations(trips: 8, cancelled: 0, inTime: 0, late: 0)->cancelledLateOfCancelledPercent());
+    }
+
+    /**
+     * A cancelled trip with no code was cancelled neither in time nor too late.
+     */
+    public function testCancelledTripsWithNoCode(): void
+    {
+        $fields = ['cancelledTrips', 'cancelledInTimeTrips', 'cancelledLateTrips'];
+
+        self::assertSame(2, DayTotalsDto::fromRow(array_combine($fields, [6, 3, 1]), $fields)->cancelledUnknownTrips());
+        self::assertSame(0, DayTotalsDto::empty()->cancelledUnknownTrips());
+    }
+
+    private static function cancellations(int $trips, int $cancelled, int $inTime, int $late): DayTotalsDto
+    {
+        $fields = ['trips', 'cancelledTrips', 'cancelledInTimeTrips', 'cancelledLateTrips'];
+
+        return DayTotalsDto::fromRow(array_combine($fields, [$trips, $cancelled, $inTime, $late]), $fields);
     }
 
     /**

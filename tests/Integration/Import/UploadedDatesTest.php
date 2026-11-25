@@ -47,13 +47,13 @@ final class UploadedDatesTest extends KernelTestCase
 
         self::assertSame(
             [
-                ['2026-01-05', 2, 1, 1, 'older.xlsx'],
-                ['2026-01-06', 1, 1, 0, 'newer.xlsx'],
-                ['2026-01-07', 1, 0, 0, 'newer.xlsx'],
-                ['2026-01-08', 0, 0, 2, 'newer.xlsx'],
-                ['2026-01-20', 1, 0, 0, null],
+                ['2026-01-05', 3, 1, 1, 1, 'older.xlsx'],
+                ['2026-01-06', 1, 0, 1, 0, 'newer.xlsx'],
+                ['2026-01-07', 1, 0, 0, 0, 'newer.xlsx'],
+                ['2026-01-08', 0, 0, 0, 2, 'newer.xlsx'],
+                ['2026-01-20', 1, 0, 0, 0, null],
             ],
-            array_map(static fn (UploadedDateDto $date): array => [$date->date->format('Y-m-d'), $date->stopRows, $date->routeRuns, $date->rejectedRows, $date->lastUpload?->getFileName()], $dates),
+            array_map(static fn (UploadedDateDto $date): array => [$date->date->format('Y-m-d'), $date->stopRows, $date->ignoredStopRows, $date->routeRuns, $date->rejectedRows, $date->lastUpload?->getFileName()], $dates),
         );
         self::assertSame('admin@example.com', $dates[0]->lastUpload?->getUploadedBy()?->getUserIdentifier());
         self::assertNull($dates[1]->lastUpload?->getUploadedBy());
@@ -69,7 +69,8 @@ final class UploadedDatesTest extends KernelTestCase
     /**
      * Stores two batches that overlap on 6 January, stop rows on 5, 6, 7 and 20 January and on 1
      * February, route runs on 5 and 6 January, and rejected rows on 5 and 8 January and with no
-     * date. No batch has 20 January in its range.
+     * date. One stop row on 5 January is of an ignored sub-agreement. No batch has 20 January in
+     * its range.
      */
     private function store(): void
     {
@@ -80,10 +81,14 @@ final class UploadedDatesTest extends KernelTestCase
         $later = new ImportBatch('default', 'later.xlsx', null, new \DateTimeImmutable('2026-02-02 11:00'), self::range('2026-02-01', '2026-02-01'));
         $subAgreement = new SubAgreement()->setReference('R');
         $route = new Route('R-01', $subAgreement);
-        $entities = [$user, $older, $newer, $later, $subAgreement, $route];
+        $ignoredSubAgreement = new SubAgreement()->setReference('I')->setIgnored(true);
+        $ignoredRoute = new Route('I-01', $ignoredSubAgreement);
+        $entities = [$user, $older, $newer, $later, $subAgreement, $route, $ignoredSubAgreement, $ignoredRoute];
         foreach ([['2026-01-05', $older], ['2026-01-05', $older], ['2026-01-06', $newer], ['2026-01-07', $newer], ['2026-01-20', $older], ['2026-02-01', $later]] as $index => [$date, $batch]) {
             $entities[] = new StopRow(self::stopRowDto($date, $index), 'default', $route, $batch);
         }
+        // The figures do not count the routes of an ignored sub-agreement, but the rows are stored.
+        $entities[] = new StopRow(self::stopRowDto('2026-01-05', 99), 'default', $ignoredRoute, $older);
         foreach (['2026-01-05', '2026-01-06'] as $date) {
             $entities[] = new RouteRun($route, new \DateTimeImmutable($date), 1, new RouteRunDto(null, null, null, null, null, null, false, null));
         }
