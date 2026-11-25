@@ -50,7 +50,7 @@ class SubAgreement
      * @var Collection<int, Route>
      */
     #[ORM\OneToMany(targetEntity: Route::class, mappedBy: 'subAgreement')]
-    #[ORM\OrderBy(['sourceKey' => 'ASC'])]
+    #[ORM\OrderBy(['sourceKey' => \SortDirection::Ascending])]
     private Collection $routes;
 
     public function __construct()
