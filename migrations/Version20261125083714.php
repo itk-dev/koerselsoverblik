@@ -14,6 +14,14 @@ final class Version20261125083714 extends AbstractMigration
         return 'Add the number of the row in the sheet of the file to the stop rows.';
     }
 
+    /**
+     * MariaDB commits before each DDL statement, so a transaction has no effect.
+     */
+    public function isTransactional(): bool
+    {
+        return false;
+    }
+
     public function up(Schema $schema): void
     {
         // The stored stop rows get no number. A read of their copies gives them their place on the date.
