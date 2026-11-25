@@ -105,6 +105,18 @@ final class ActivityTableCalculatorTest extends KernelTestCase
     }
 
     /**
+     * A name with only digits is an integer key in PHP. The row still has the name as a string.
+     */
+    public function testSupplierNameWithOnlyDigitsIsAString(): void
+    {
+        $this->giveSupplier('R', '123');
+
+        $tables = $this->calculate();
+
+        self::assertSame(['123', null], array_map(static fn (ActivitySupplierRowDto $row): ?string => $row->supplier, $tables->suppliers));
+    }
+
+    /**
      * With a supplier, the table of the sub-agreements has only the sub-agreements of that
      * supplier, and the shares are of their trips. The table of the suppliers has all suppliers.
      */
