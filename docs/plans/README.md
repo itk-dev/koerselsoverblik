@@ -77,7 +77,6 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Read a stop row from its stored copy | Ready | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – | [read-stop-row-copy.md](read-stop-row-copy.md) |
 | Keep the memory of the import flat | Ready | [#100](https://github.com/itk-dev/koerselsoverblik/issues/100) | – | [import-memory.md](import-memory.md) |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
 | Add the distances and the durations to the totals of each route and day | Blocked | – | The open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
@@ -165,4 +164,5 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Show the imported stop rows and rejected rows of a date range | [#96](https://github.com/itk-dev/koerselsoverblik/issues/96) | – |
 | Show the driving activity page | [#163](https://github.com/itk-dev/koerselsoverblik/issues/163) | [#164](https://github.com/itk-dev/koerselsoverblik/pull/164) |
 | Review follow-up of the driving activity page | [#165](https://github.com/itk-dev/koerselsoverblik/issues/165) | [#166](https://github.com/itk-dev/koerselsoverblik/pull/166) |
-| Show the late cancellations on the driving activity page | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167) | – |
+| Show the late cancellations on the driving activity page | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167) | [#168](https://github.com/itk-dev/koerselsoverblik/pull/168) |
+| Read the stored copies again through a changed mapping | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – |

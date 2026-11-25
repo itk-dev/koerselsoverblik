@@ -590,6 +590,73 @@ final class StopRowParserTest extends TestCase
         self::assertSame([[5, FieldName::CancelledInTime, RejectionReason::UnknownBoolValue]], self::warnings($rows));
     }
 
+    /**
+     * A copy of a row gives the same stop row as the row of the file, with the same copy.
+     */
+    public function testCopyGivesTheSameStopRowAsTheFile(): void
+    {
+        $this->writeRows([[...self::HEADER, 'Note'], [...self::ROW, 'first']]);
+        $mapping = self::simpleMapping(keepColumns: ['Note']);
+        [$rows] = $this->parse($mapping);
+
+        [$fromCopies, $rejected] = $this->parseCopies([2 => $rows[0]->sourceValues], $mapping);
+
+        self::assertSame([], $rejected);
+        self::assertEquals($rows, $fromCopies);
+    }
+
+    /**
+     * The new copy keeps a column that the changed mapping does not read or keep, so that a read
+     * of the copies loses no data.
+     */
+    public function testCopyKeepsTheColumnsThatTheMappingDoesNotKeep(): void
+    {
+        $copy = [...array_combine(self::HEADER, self::ROW), 'Old' => 'x'];
+
+        [$rows] = $this->parseCopies([1 => $copy], self::simpleMapping());
+
+        self::assertSame('x', $rows[0]->sourceValues['Old']);
+        self::assertSame($copy, $rows[0]->sourceValues);
+    }
+
+    /**
+     * A copy has no empty cells. A column of the mapping that is not in the copy is an empty cell:
+     * an optional field has no value, and a required field rejects the row.
+     */
+    public function testColumnThatIsNotInTheCopyIsEmpty(): void
+    {
+        $copy = array_combine(self::HEADER, self::ROW);
+        unset($copy['Place']);
+        $noRoute = array_combine(self::HEADER, self::ROW);
+        unset($noRoute['Route']);
+
+        [$rows, $rejected] = $this->parseCopies([1 => $copy, 2 => $noRoute], self::simpleMapping());
+
+        self::assertCount(1, $rows);
+        self::assertNull($rows[0]->locationName);
+        self::assertSame([], self::warnings($rows));
+        self::assertCount(1, $rejected);
+        self::assertSame([2, RejectionReason::Empty, FieldName::Route], [$rejected[0]->rowNumber, $rejected[0]->reason, $rejected[0]->field]);
+    }
+
+    /**
+     * As in a file, a row key that occurs again gives a rejected row, and a date outside the range
+     * gives a rejected row.
+     */
+    public function testCopiesHaveTheRulesOfTheFile(): void
+    {
+        $copy = ['Id' => 'S-1', ...array_combine(self::HEADER, self::ROW)];
+        $otherDay = ['Id' => 'S-2', ...array_combine(self::HEADER, self::ROW), 'Day' => 46028];
+
+        [$rows, $rejected] = $this->parseCopies([1 => $copy, 2 => $copy, 3 => $otherDay], self::simpleMapping(rowId: ['Id']));
+
+        self::assertCount(1, $rows);
+        self::assertSame(
+            [[2, RejectionReason::DuplicateRowId], [3, RejectionReason::OutsideRange]],
+            array_map(static fn (RejectedRowDto $row): array => [$row->rowNumber, $row->reason], $rejected),
+        );
+    }
+
     public function testMissingSheetRejectsTheFile(): void
     {
         $this->writeRows([self::HEADER, self::ROW]);
@@ -680,9 +747,29 @@ final class StopRowParserTest extends TestCase
      */
     private function parse(MappingDto $mapping, ?ImportRangeDto $range = null): array
     {
+        return self::split($this->parser()->parse($this->path, $mapping, $range ?? self::defaultRange()));
+    }
+
+    /**
+     * @param array<int, array<array-key, mixed>> $copies keyed by the row number
+     *
+     * @return array{list<StopRowDto>, list<RejectedRowDto>}
+     */
+    private function parseCopies(array $copies, MappingDto $mapping, ?ImportRangeDto $range = null): array
+    {
+        return self::split($this->parser()->parseCopies($copies, $mapping, $range ?? self::defaultRange()));
+    }
+
+    /**
+     * @param iterable<StopRowDto|RejectedRowDto> $parsed
+     *
+     * @return array{list<StopRowDto>, list<RejectedRowDto>}
+     */
+    private static function split(iterable $parsed): array
+    {
         $rows = [];
         $rejected = [];
-        foreach ($this->parser()->parse($this->path, $mapping, $range ?? self::defaultRange()) as $row) {
+        foreach ($parsed as $row) {
             if ($row instanceof StopRowDto) {
                 $rows[] = $row;
             } else {

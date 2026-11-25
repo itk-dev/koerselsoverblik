@@ -537,8 +537,8 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
 ([ADR 006](adr/006-keep-a-copy-of-each-imported-row.md), proposed):
 
 - The copy holds the field columns, the row id columns and the kept columns of the mapping, keyed
-  by the column name. A later task can read the copies again through a changed mapping, with no
-  new upload.
+  by the column name. The command `app:driving-data:read-copies` reads the copies again through a
+  changed mapping, with no new upload (see [Read the stored copies again](#read-the-stored-copies-again)).
 - `SourceCells` makes the copy, and the cells again from a copy. The copy keeps the type of each
   cell: text, numbers and booleans are JSON values, and a duration, a date and time and an Excel
   error are objects with one key, for example `{"duration": "P0DT25H10M0S"}`. An empty cell is
@@ -567,6 +567,47 @@ for all the uploaded dates. Thus the parser keeps a copy of each row
   Thus two imports of the same dates that overlap can leave copies with no row. The command
   `app:driving-data:delete-orphan-copies` deletes them with `SourceRowRepository::deleteOrphans()`.
   A cron job runs it each night. The import does not call it, because it reads all copies.
+
+### Read the stored copies again
+
+After go-live an upload deletes the file, so the copies are the only source of the dates that
+were imported before. `app:driving-data:read-copies <FIRST_DATE> <LAST_DATE>` reads the copies of
+a range again through the current mapping (#61). Use it after a new field from a kept column, a
+changed rule of the mapping, or a mapping error that rejected rows.
+
+- `StopRowParser::parseCopies()` reads copies with the same rules as the rows of a file. It makes
+  a row from each copy, with the columns of the copy and the columns of the mapping as the header.
+  A column of the mapping that is not in a copy is an empty cell.
+- The new copy of a row has all the columns of the old copy, also a column that the mapping no
+  longer keeps. Thus a read loses no data.
+- `StoredCopyReader` works through the range one date at a time, as an import of one day. The
+  replacement deletes the copies of the date, so the reader reads them first. The copies of one
+  day fit in the memory, and a range of any length does not. Each date is one transaction, with
+  its own batch (`StoredCopyReader::FILE_NAME`), and builds the route runs, the totals and the
+  citizens of its month again.
+- A date with no stored rows is not changed, so the read does not empty a date.
+- The read reads the same rejected rows that the replacement of the date deletes
+  (`RejectedStopRowRepository::copiesInRange()`): the rows of the date, and the rows with no date
+  of a batch of that date only. A rejected row with no date of a larger batch belongs to no single
+  date, so the read neither reads nor deletes it.
+- Each row keeps the number of its row in the file. `StopRow` stores the number since #61. A stop
+  row that was imported before has no number, so the read gives it its place on the date.
+- The rows get the name of the mapping of the read, also the rows that another mapping imported.
+- The read makes the preview first, and changes no data. The preview reads all copies of the
+  range through the mapping, and collects the columns of the copies on the way. The read does not
+  start if the preview finds one of these problems:
+  - no copy of the range has a column of a required field or of the row id, as a file with a
+    missing column. A missing column of an optional field gives no value, and a warning.
+  - a copy gives another date than the date of its row. The replacement of one date would lose
+    that row.
+  - a date has stop rows, but its copies give none. A date with only rejected rows can give no
+    stop rows.
+  - a copy has a value of an unknown type.
+- If a date fails during the read, for example with a row id that is stored on another date, that
+  date keeps its rows, and the dates before it are read again. After the exception, Doctrine has
+  closed the entity manager.
+- The audit log records each read with the range, the mapping and the counts of the dates that are
+  read, also when a date fails. Then the record is a warning with the failed date.
 
 ### The reference extract
 

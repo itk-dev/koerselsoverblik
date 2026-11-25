@@ -46,6 +46,7 @@ final class StopRowTest extends TestCase
         $stopRow = new StopRow($row, 'default', $route, $batch);
 
         self::assertNull($stopRow->getId());
+        self::assertSame($row->rowNumber, $stopRow->getRowNumber());
         self::assertSame('default', $stopRow->getMappingName());
         self::assertSame('S-1', $stopRow->getRowKey());
         self::assertSame($route, $stopRow->getRoute());

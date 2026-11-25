@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- [#61](https://github.com/itk-dev/koerselsoverblik/issues/61)
+  Read the stored copies again through a changed mapping: the command
+  `app:driving-data:read-copies` reads the copies of the rows of a date range again, one date at a
+  time, with a preview and a confirmation. It replaces the rows of each date and builds its
+  figures again, with no new upload. The read does not start if the preview finds a problem. A
+  stop row now stores the number of its row in the file, so that a new read keeps it. Use the
+  command after the deploy of #167 to fill the code of the late cancellations.
+
 - [#167](https://github.com/itk-dev/koerselsoverblik/issues/167)
   Show the late cancellations on the driving activity page: the import reads the code
   `RettidigAflysningsvarsel` as the field `cancelled_in_time`, and the totals count the
