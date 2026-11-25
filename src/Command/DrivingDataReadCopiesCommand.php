@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Clock\IsoDate;
-use App\Import\Extract\MissingColumnsException;
 use App\Import\Mapping\InvalidMappingException;
 use App\Import\Mapping\MappingDto;
 use App\Import\Mapping\MappingProvider;
@@ -70,22 +69,23 @@ final readonly class DrivingDataReadCopiesCommand
             return Command::INVALID;
         }
 
-        $preview = $this->reader->preview($range, $readMapping);
+        try {
+            $preview = $this->reader->preview($range, $readMapping);
+        } catch (StoredCopyException $exception) {
+            $io->error($exception->getMessage());
+
+            return Command::FAILURE;
+        }
         if ([] === $preview->dates) {
             $io->note('No date in the range has stored rows. Nothing is changed.');
 
             return Command::SUCCESS;
         }
         self::showPreview($io, $range, $readMapping, $preview);
-        if ([] !== $preview->missingRequiredColumns) {
-            $io->error('No copy has these columns of the mapping. Nothing is changed.');
-            $io->listing($preview->missingRequiredColumns);
-
-            return Command::FAILURE;
-        }
-        // The read would stop at the date of such a row, so it does not start.
-        if ($preview->hasRowsWithAnotherDate()) {
-            $io->error('Some copies give another date through the mapping than the date of their row. Nothing is changed.');
+        // The read does not start with a problem of the preview, so nothing is changed.
+        $problem = $preview->problem();
+        if (null !== $problem) {
+            $io->error($problem->getMessage());
 
             return Command::FAILURE;
         }
@@ -102,7 +102,7 @@ final readonly class DrivingDataReadCopiesCommand
             $io->error('A copy has a row id that is stored on another date. That date keeps its rows, and the dates before it are read again.');
 
             return Command::FAILURE;
-        } catch (MissingColumnsException|StoredCopyException $exception) {
+        } catch (StoredCopyException $exception) {
             $io->error($exception->getMessage());
 
             return Command::FAILURE;

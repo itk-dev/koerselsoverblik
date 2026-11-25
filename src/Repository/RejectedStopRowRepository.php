@@ -72,23 +72,21 @@ class RejectedStopRowRepository extends ServiceEntityRepository
     }
 
     /**
-     * Gives the copies of the rejected rows of the date, with their row numbers, for a new read
-     * through a mapping (ADR 006). A rejected row with no date is not read.
+     * Gives the copies of the rejected rows in the range, with their row numbers, for a new read
+     * through a mapping (ADR 006). They are the rows that deleteInRange() deletes, also the rows
+     * with no date of a batch in the range. Thus a read deletes no row that it did not read.
      *
      * @return list<array{rowNumber: int, values: array<array-key, mixed>}> in the order of the import
      */
-    public function copiesOn(\DateTimeImmutable $date): array
+    public function copiesInRange(ImportRangeDto $range): array
     {
-        // Doctrine converts the JSON of the copy to an array, with the type of the field.
-        /** @var list<array{rowNumber: int|string, values: array<array-key, mixed>}> $rows */
-        $rows = $this->createQueryBuilder('rejected')
+        $builder = $this->createQueryBuilder('rejected')
             ->select('rejected.rowNumber AS rowNumber', 'copy.values AS values')
             ->join('rejected.sourceRow', 'copy')
-            ->where('rejected.serviceDate = :date')
-            ->orderBy('rejected.id')
-            ->setParameter('date', $date, Types::DATE_IMMUTABLE)
-            ->getQuery()
-            ->getArrayResult();
+            ->orderBy('rejected.id');
+        // Doctrine converts the JSON of the copy to an array, with the type of the field.
+        /** @var list<array{rowNumber: int|string, values: array<array-key, mixed>}> $rows */
+        $rows = $this->inRange($builder, $range)->getQuery()->getArrayResult();
 
         // MariaDB can give a number as text.
         return array_map(static fn (array $row): array => ['rowNumber' => (int) $row['rowNumber'], 'values' => $row['values']], $rows);

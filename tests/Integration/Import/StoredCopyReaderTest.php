@@ -12,7 +12,6 @@ use App\Entity\RejectedStopRow;
 use App\Entity\SourceRow;
 use App\Entity\StopRow;
 use App\Import\DrivingDataImporter;
-use App\Import\Extract\MissingColumnsException;
 use App\Import\Extract\RejectionReason;
 use App\Import\Extract\StopRowParser;
 use App\Import\ImportRangeDto;
@@ -35,6 +34,7 @@ use App\Repository\RouteDayTotalsRepository;
 use App\Repository\StopRowRepository;
 use App\Tests\BaseScenarioTrait;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Events;
 use Monolog\Handler\TestHandler;
 use Monolog\Level;
 use Monolog\Logger;
@@ -141,14 +141,13 @@ final class StoredCopyReaderTest extends KernelTestCase
 
         self::assertSame(['NoRoute'], $preview->missingRequiredColumns);
         self::assertSame(['NoPlace'], $preview->missingOptionalColumns);
+        $this->expectExceptionObject(StoredCopyException::missingColumns(['NoRoute']));
         try {
             $this->reader()->read(self::january(), $mapping);
-            self::fail('The read must stop.');
-        } catch (MissingColumnsException $exception) {
-            self::assertSame(['NoRoute'], $exception->columns);
+        } finally {
+            self::assertSame(14, $this->rowsOf(StopRow::class));
+            self::assertCount(0, $this->log->getRecords());
         }
-        self::assertSame(14, $this->rowsOf(StopRow::class));
-        self::assertCount(0, $this->log->getRecords());
     }
 
     /**
@@ -167,67 +166,175 @@ final class StoredCopyReaderTest extends KernelTestCase
     }
 
     /**
-     * The read would only delete the stop rows of the date, so it stops, and the date keeps its
-     * rows. A mapping with a wrong value map is the usual cause.
+     * A date that has stop rows, but whose copies give none, would only lose its stop rows. The
+     * preview finds it, and the read does not start. A mapping with a wrong value map is the usual
+     * cause.
      */
-    public function testDateWithNoStopRowsKeepsItsRows(): void
-    {
-        $this->importBaseOn('2026-01-05');
-        $mapping = $this->changedMapping(static fn (FieldName $name, FieldMappingDto $field): FieldMappingDto => FieldName::StopStatus !== $name ? $field : new FieldMappingDto(
-            $field->column,
-            $field->type,
-            $field->required,
-            $field->format,
-            ['Other' => 'completed'],
-            $field->trueValues,
-            $field->falseValues,
-        ));
-
-        $this->expectExceptionObject(StoredCopyException::noStopRows(new \DateTimeImmutable('2026-01-05')));
-        try {
-            $this->reader()->read(self::january(), $mapping);
-        } finally {
-            self::assertSame(14, $this->rowsOf(StopRow::class));
-        }
-    }
-
-    /**
-     * The read replaces one date at a time. A copy that gives another date would be lost, so the
-     * read stops, and the date keeps its rows. The dates before it are read.
-     */
-    public function testCopyWithAnotherDateStops(): void
+    public function testDateThatLosesItsStopRowsStopsBeforeAnyChange(): void
     {
         $this->importBaseOn('2026-01-05');
         $this->importBaseOn('2026-01-06');
-        $this->entityManager->getConnection()->executeStatement(
-            "UPDATE source_row SET source_values = JSON_SET(source_values, '$.Date', '2026-01-07') WHERE id = (SELECT MAX(source_row_id) FROM stop_row WHERE service_date = '2026-01-06')",
-        );
+        $this->setInCopiesOf('2026-01-06', 'Status', 'Other');
 
-        $this->expectExceptionObject(StoredCopyException::otherDate(new \DateTimeImmutable('2026-01-06'), 14));
+        $preview = $this->reader()->preview(self::january(), $this->defaultMapping());
+
+        self::assertSame(['2026-01-06'], $preview->datesWithNoStopRows);
+        $this->expectExceptionObject(StoredCopyException::noStopRows('2026-01-06'));
         try {
             $this->reader()->read(self::january(), $this->defaultMapping());
         } finally {
-            self::assertCount(1, $this->entityManager->getRepository(ImportBatch::class)->findBy(['fileName' => StoredCopyReader::FILE_NAME]));
+            self::assertSame(0, $this->readBatches());
             self::assertSame(28, $this->rowsOf(StopRow::class));
         }
     }
 
     /**
-     * As in an import, a row id that is stored on another date stops the read of the date.
+     * A date can have only rejected rows. Its copies give no stop rows, but the date had none, so
+     * the read continues with the next date.
      */
-    public function testRowIdOnAnotherDateStops(): void
+    public function testDateWithOnlyRejectedRowsIsRead(): void
+    {
+        $this->importWithAnUnknownStatus('2026-01-06');
+
+        $result = $this->reader()->read(self::january(), $this->defaultMapping());
+
+        self::assertSame([2, 14, 1], [$result->dates, $result->stopRows, $result->rejectedRows]);
+        self::assertSame(1, $this->rowsOf(RejectedStopRow::class));
+    }
+
+    /**
+     * A rejected row with no date of an upload of one date belongs to that date. The replacement
+     * of the date deletes it, so the read reads it too, and keeps its copy and its row number.
+     */
+    public function testRejectedRowWithNoDateOfOneDateIsRead(): void
+    {
+        $this->importWithABadDate();
+        $copies = $this->copies();
+
+        $preview = $this->reader()->preview(self::january(), $this->defaultMapping());
+        $result = $this->reader()->read(self::january(), $this->defaultMapping());
+
+        self::assertSame([14, 1], [$preview->storedStopRows, $preview->storedRejectedRows]);
+        self::assertSame([14, 1], [$result->stopRows, $result->rejectedRows]);
+        $rejected = $this->entityManager->getRepository(RejectedStopRow::class)->findAll();
+        self::assertCount(1, $rejected);
+        self::assertNull($rejected[0]->getServiceDate());
+        self::assertSame(18, $rejected[0]->getRowNumber());
+        self::assertEquals($copies, $this->copies());
+    }
+
+    /**
+     * A stop row that becomes a rejected row keeps the number of its row in the file.
+     */
+    public function testStopRowThatIsRejectedKeepsItsRowNumber(): void
+    {
+        $this->importBaseOn('2026-01-05');
+        $pending = $this->entityManager->getConnection()->fetchOne("SELECT sheet_row_number FROM stop_row WHERE stop_status = 'pending'");
+        self::assertIsNumeric($pending);
+
+        $this->reader()->read(self::january(), $this->mappingWithStatusMap(['Served' => 'completed', 'Cancelled' => 'cancelled']));
+
+        $rejected = $this->entityManager->getRepository(RejectedStopRow::class)->findAll();
+        self::assertCount(1, $rejected);
+        self::assertSame((int) $pending, $rejected[0]->getRowNumber());
+    }
+
+    /**
+     * The read replaces one date at a time. A copy that gives another date would be lost. The
+     * preview finds it, and the read does not start.
+     */
+    public function testCopyWithAnotherDateStopsBeforeAnyChange(): void
     {
         $this->importBaseOn('2026-01-05');
         $this->importBaseOn('2026-01-06');
-        $this->entityManager->getConnection()->executeStatement(
-            "UPDATE source_row SET source_values = JSON_SET(source_values, '$.RouteStopID', '2026-01-05-0') WHERE id = (SELECT MAX(source_row_id) FROM stop_row WHERE service_date = '2026-01-06')",
-        );
+        $this->setInLastCopyOf('2026-01-06', 'Date', '2026-01-07');
+
+        $this->expectExceptionObject(StoredCopyException::otherDate('2026-01-06', 17));
+        try {
+            $this->reader()->read(self::january(), $this->defaultMapping());
+        } finally {
+            self::assertSame(0, $this->readBatches());
+            self::assertSame(28, $this->rowsOf(StopRow::class));
+        }
+    }
+
+    /**
+     * A copy that changes after the preview, and then gives another date, stops the read of its
+     * date in the transaction. The date keeps its rows, and the date before it is read.
+     */
+    public function testCopyThatChangesToAnotherDateDuringTheReadStops(): void
+    {
+        $this->importBaseOn('2026-01-05');
+        $this->importBaseOn('2026-01-06');
+        $this->afterTheFirstFlush("UPDATE source_row SET source_values = JSON_SET(source_values, '$.Date', '2026-01-07') WHERE id = (SELECT MAX(source_row_id) FROM stop_row WHERE service_date = '2026-01-06')");
+
+        $this->expectExceptionObject(StoredCopyException::otherDate('2026-01-06', 17));
+        try {
+            $this->reader()->read(self::january(), $this->defaultMapping());
+        } finally {
+            self::assertSame(1, $this->readBatches());
+            self::assertSame(28, $this->rowsOf(StopRow::class));
+        }
+    }
+
+    /**
+     * A date whose copies change after the preview, and then give no stop rows, stops the read in
+     * the transaction. The date keeps its stop rows.
+     */
+    public function testDateThatLosesItsStopRowsDuringTheReadStops(): void
+    {
+        $this->importBaseOn('2026-01-05');
+        $this->importBaseOn('2026-01-06');
+        $this->afterTheFirstFlush("UPDATE source_row SET source_values = JSON_SET(source_values, '$.Status', 'Other') WHERE id IN (SELECT source_row_id FROM stop_row WHERE service_date = '2026-01-06')");
+
+        $this->expectExceptionObject(StoredCopyException::noStopRows('2026-01-06'));
+        try {
+            $this->reader()->read(self::january(), $this->defaultMapping());
+        } finally {
+            self::assertSame(1, $this->readBatches());
+            self::assertSame(28, $this->rowsOf(StopRow::class));
+        }
+    }
+
+    /**
+     * A copy with a value of an unknown type gives an exception with no value, and changes no
+     * data.
+     */
+    public function testUnreadableCopyStopsBeforeAnyChange(): void
+    {
+        $this->importBaseOn('2026-01-05');
+        $this->entityManager->getConnection()->executeStatement("UPDATE source_row SET source_values = JSON_SET(source_values, '$.Placename', JSON_OBJECT('unknown', 'x')) WHERE id = (SELECT MAX(source_row_id) FROM stop_row)");
+
+        $this->expectExceptionMessageIsOrContains('A copy of 2026-01-05 has a value of an unknown type. The date keeps its rows.');
+        try {
+            $this->reader()->read(self::january(), $this->defaultMapping());
+        } finally {
+            self::assertSame(0, $this->readBatches());
+        }
+    }
+
+    /**
+     * As in an import, a row id that is stored on another date stops the read of the date. The
+     * preview cannot find it. The dates before it are read, and the log tells where the read
+     * stopped.
+     */
+    public function testRowIdOnAnotherDateStopsAndIsLogged(): void
+    {
+        $this->importBaseOn('2026-01-05');
+        $this->importBaseOn('2026-01-06');
+        $this->setInLastCopyOf('2026-01-06', 'RouteStopID', '2026-01-05-0');
 
         $this->expectException(RowIdConflictException::class);
         try {
             $this->reader()->read(self::january(), $this->defaultMapping());
         } finally {
+            self::assertSame(1, $this->readBatches());
             self::assertSame(28, $this->rowsOf(StopRow::class));
+            $records = $this->log->getRecords();
+            self::assertCount(1, $records);
+            self::assertSame(Level::Warning, $records[0]->level);
+            self::assertStringEndsWith(': 1 dates, 14 stop rows and 0 rejected rows. The read stopped at 2026-01-06', $records[0]->message);
+            self::assertSame('2026-01-06', $records[0]->context['failed_date']);
         }
     }
 
@@ -346,22 +453,98 @@ final class StoredCopyReaderTest extends KernelTestCase
     }
 
     /**
-     * Imports the base scenario and one more pickup with a status code that the default mapping
-     * does not know. The import rejects that row.
+     * Imports the base scenario on 5 January and one more pickup with a status code that the
+     * default mapping does not know. The import rejects that row.
+     *
+     * @param string $date the date of the rejected row, as Y-m-d. The upload has the range from 5 January to it
      */
-    private function importWithAnUnknownStatus(): void
+    private function importWithAnUnknownStatus(string $date = '2026-01-05'): void
     {
         $rows = new ScenarioLoader()->load(__DIR__.'/../../fixtures/driving_data/base.yaml')->rows;
-        $rows[] = new ExtractRow(['person_id' => 'P-008'] + $rows[0]->values, 'S-MISSED', ['stop_status' => 'Missed']);
+        $rows[] = new ExtractRow(['person_id' => 'P-008', 'service_date' => new \DateTimeImmutable($date)] + $rows[0]->values, 'S-MISSED', ['stop_status' => 'Missed']);
+        $this->import($rows, $date);
+
+        $rejected = $this->entityManager->getRepository(RejectedStopRow::class)->findAll();
+        self::assertSame(RejectionReason::UnknownCode, $rejected[0]->getReason());
+    }
+
+    /**
+     * Imports the base scenario on 5 January and one more row with a date that is not a date. The
+     * import rejects that row, and it has no date. It is row 18 of the file.
+     */
+    private function importWithABadDate(): void
+    {
+        $rows = new ScenarioLoader()->load(__DIR__.'/../../fixtures/driving_data/base.yaml')->rows;
+        $rows[] = new ExtractRow(['person_id' => 'P-008'] + $rows[0]->values, 'S-BAD', ['service_date' => 'not a date']);
+        $this->import($rows, '2026-01-05');
+
+        $rejected = $this->entityManager->getRepository(RejectedStopRow::class)->findAll();
+        self::assertNull($rejected[0]->getServiceDate());
+    }
+
+    /**
+     * @param list<ExtractRow> $rows
+     * @param string           $lastDate the last date of the upload, as Y-m-d. The first date is 5 January
+     */
+    private function import(array $rows, string $lastDate): void
+    {
         $path = sys_get_temp_dir().'/'.uniqid('extract_', true).'.xlsx';
         new ExtractWriter()->write($path, $this->defaultMapping(), $rows);
         $importer = self::getContainer()->get(DrivingDataImporter::class);
         self::assertInstanceOf(DrivingDataImporter::class, $importer);
-        $day = new \DateTimeImmutable('2026-01-05');
-        $importer->import($path, ImportRangeDto::create($day, $day, 31), $this->defaultMapping(), null, 'base.xlsx');
+        $importer->import($path, ImportRangeDto::create(new \DateTimeImmutable('2026-01-05'), new \DateTimeImmutable($lastDate), 31), $this->defaultMapping(), null, 'base.xlsx');
         unlink($path);
-        $rejected = $this->entityManager->getRepository(RejectedStopRow::class)->findAll();
-        self::assertSame(RejectionReason::UnknownCode->value, $rejected[0]->getReason()->value);
+    }
+
+    /**
+     * Gives the default mapping with another value map of the stop status.
+     *
+     * @param array<string, string> $map
+     */
+    private function mappingWithStatusMap(array $map): MappingDto
+    {
+        return $this->changedMapping(static fn (FieldName $name, FieldMappingDto $field): FieldMappingDto => FieldName::StopStatus !== $name ? $field : new FieldMappingDto(
+            $field->column,
+            $field->type,
+            $field->required,
+            $field->format,
+            $map,
+            $field->trueValues,
+            $field->falseValues,
+        ));
+    }
+
+    private function setInCopiesOf(string $date, string $column, string $value): void
+    {
+        $this->entityManager->getConnection()->executeStatement(
+            \sprintf("UPDATE source_row SET source_values = JSON_SET(source_values, '$.%s', :value) WHERE id IN (SELECT source_row_id FROM stop_row WHERE service_date = :date)", $column),
+            ['value' => $value, 'date' => $date],
+        );
+    }
+
+    private function setInLastCopyOf(string $date, string $column, string $value): void
+    {
+        $this->entityManager->getConnection()->executeStatement(
+            \sprintf("UPDATE source_row SET source_values = JSON_SET(source_values, '$.%s', :value) WHERE id = (SELECT MAX(source_row_id) FROM stop_row WHERE service_date = :date)", $column),
+            ['value' => $value, 'date' => $date],
+        );
+    }
+
+    /**
+     * Runs the statement after the first flush of the read, so after the preview. The first flush
+     * writes the rows of the first date.
+     */
+    private function afterTheFirstFlush(string $sql): void
+    {
+        $this->entityManager->getEventManager()->addEventListener(Events::postFlush, new StatementAfterFirstFlush($this->entityManager->getConnection(), $sql));
+    }
+
+    /**
+     * Gives the number of the batches of a read, one for each date that is read.
+     */
+    private function readBatches(): int
+    {
+        return \count($this->entityManager->getRepository(ImportBatch::class)->findBy(['fileName' => StoredCopyReader::FILE_NAME]));
     }
 
     /**

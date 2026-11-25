@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Import;
 
 use App\Import\Extract\ExtractSummaryDto;
-use App\Import\Extract\RejectionCountDto;
-use App\Import\Extract\RejectionReason;
 
 /**
  * What a read of the stored copies of a range through a mapping gives, before it changes data.
@@ -14,12 +12,14 @@ use App\Import\Extract\RejectionReason;
 final readonly class StoredCopyPreviewDto
 {
     /**
-     * @param list<string>      $dates                  the dates with stored stop rows or rejected rows, as Y-m-d, sorted
-     * @param int               $storedStopRows         the stored stop rows of these dates, which the read replaces
-     * @param int               $storedRejectedRows     the stored rejected rows of these dates, which the read replaces
-     * @param ExtractSummaryDto $summary                the rows that the read gives
-     * @param list<string>      $missingRequiredColumns the columns of the required fields and the row id that no copy has. The read stops before any change
-     * @param list<string>      $missingOptionalColumns the columns of the optional fields that no copy has. The fields get no value
+     * @param list<string>             $dates                  the dates with stored stop rows or rejected rows, as Y-m-d, sorted
+     * @param int                      $storedStopRows         the stored stop rows of these dates, which the read replaces
+     * @param int                      $storedRejectedRows     the stored rejected rows that the read replaces, also the rows with no date of a batch of one of these dates
+     * @param ExtractSummaryDto        $summary                the rows that the read gives
+     * @param list<string>             $missingRequiredColumns the columns of the required fields and the row id that no copy has
+     * @param list<string>             $missingOptionalColumns the columns of the optional fields that no copy has. The fields get no value
+     * @param list<array{string, int}> $rowsWithAnotherDate    the date and the row number of each copy that gives another date than the date of its row
+     * @param list<string>             $datesWithNoStopRows    the dates that have stop rows, but whose copies give none
      */
     public function __construct(
         public array $dates,
@@ -28,15 +28,27 @@ final readonly class StoredCopyPreviewDto
         public ExtractSummaryDto $summary,
         public array $missingRequiredColumns,
         public array $missingOptionalColumns,
+        public array $rowsWithAnotherDate = [],
+        public array $datesWithNoStopRows = [],
     ) {
     }
 
     /**
-     * Tells if a copy gives another date through the mapping than the date of its row. The read
-     * replaces one date at a time, so it stops at such a row.
+     * Gives the first problem that stops the read before any change, or null if the read can
+     * start.
      */
-    public function hasRowsWithAnotherDate(): bool
+    public function problem(): ?StoredCopyException
     {
-        return array_any($this->summary->rejections, static fn (RejectionCountDto $group): bool => RejectionReason::OutsideRange === $group->reason);
+        if ([] !== $this->missingRequiredColumns) {
+            return StoredCopyException::missingColumns($this->missingRequiredColumns);
+        }
+        if ([] !== $this->rowsWithAnotherDate) {
+            return StoredCopyException::otherDate(...$this->rowsWithAnotherDate[0]);
+        }
+        if ([] !== $this->datesWithNoStopRows) {
+            return StoredCopyException::noStopRows($this->datesWithNoStopRows[0]);
+        }
+
+        return null;
     }
 }

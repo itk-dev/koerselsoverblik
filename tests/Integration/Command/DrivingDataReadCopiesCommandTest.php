@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Command;
 
 use App\Tests\BaseScenarioTrait;
+use App\Tests\Integration\Import\StatementAfterFirstFlush;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Events;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -113,8 +115,7 @@ final class DrivingDataReadCopiesCommandTest extends KernelTestCase
         $result = $this->read('2026-01-01', '2026-01-31', null);
 
         self::assertSame(Command::FAILURE, $result->getStatusCode());
-        self::assertStringContainsString('No copy has these columns of the mapping. Nothing is changed.', $result->getDisplay());
-        self::assertStringContainsString('RouteName', $result->getDisplay());
+        self::assertStringContainsString('No copy of the range has these columns of the mapping: RouteName. Nothing is changed.', self::text($result));
         self::assertSame(0, $this->stored('stop_row WHERE cancelled_in_time IS NOT NULL'));
     }
 
@@ -144,8 +145,8 @@ final class DrivingDataReadCopiesCommandTest extends KernelTestCase
         $result = $this->read('2026-01-01', '2026-01-31', null);
 
         self::assertSame(Command::FAILURE, $result->getStatusCode());
-        self::assertStringContainsString('Some copies give another date through the mapping than the date of their row. Nothing is changed.', self::text($result));
-        self::assertMatchesRegularExpression('/service_date\s+outside_range\s+1\s+14/', $result->getDisplay());
+        self::assertStringContainsString('The copy of row 17 of 2026-01-06 gives another date through the mapping. The date keeps its rows.', self::text($result));
+        self::assertMatchesRegularExpression('/service_date\s+outside_range\s+1\s+17/', $result->getDisplay());
         self::assertSame(0, $this->stored('stop_row WHERE cancelled_in_time IS NOT NULL'));
     }
 
@@ -165,19 +166,53 @@ final class DrivingDataReadCopiesCommandTest extends KernelTestCase
     }
 
     /**
-     * A date whose copies give no stop rows through the mapping keeps its rows. The read stops
-     * there, and gives the reason.
+     * A date that has stop rows, but whose copies give none through the mapping, would lose its
+     * stop rows. The preview finds it, so the command stops before any change.
      */
-    public function testDateWithNoStopRowsFails(): void
+    public function testDateThatLosesItsStopRowsFails(): void
     {
         $this->update("UPDATE source_row SET source_values = JSON_SET(source_values, '$.Status', 'Other') WHERE id IN (SELECT source_row_id FROM stop_row WHERE service_date = '2026-01-06')");
 
         $result = $this->read('2026-01-01', '2026-01-31', null);
 
         self::assertSame(Command::FAILURE, $result->getStatusCode());
-        self::assertStringContainsString('The copies of 2026-01-06 give no stop rows through the mapping. The date keeps its rows.', self::text($result));
+        self::assertStringContainsString('The copies of 2026-01-06 give no stop rows through the mapping, but the date has stop rows. The date keeps its rows.', self::text($result));
         self::assertSame(28, $this->stored('stop_row'));
+        self::assertSame(0, $this->stored('stop_row WHERE cancelled_in_time IS NOT NULL'));
+    }
+
+    /**
+     * A copy that changes after the preview stops the read of its date. The command gives the
+     * reason, and the date before it is read.
+     */
+    public function testCopyThatChangesDuringTheReadFails(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
+        $entityManager->getEventManager()->addEventListener(Events::postFlush, new StatementAfterFirstFlush(
+            $entityManager->getConnection(),
+            "UPDATE source_row SET source_values = JSON_SET(source_values, '$.Date', '2026-01-07') WHERE id = (SELECT MAX(source_row_id) FROM stop_row WHERE service_date = '2026-01-06')",
+        ));
+
+        $result = $this->read('2026-01-01', '2026-01-31', null);
+
+        self::assertSame(Command::FAILURE, $result->getStatusCode());
+        self::assertStringContainsString('The copy of row 17 of 2026-01-06 gives another date through the mapping. The date keeps its rows.', self::text($result));
         self::assertSame(14, $this->stored('stop_row WHERE cancelled_in_time IS NOT NULL'));
+    }
+
+    /**
+     * A copy with a value of an unknown type gives a message with no value, and no stack trace.
+     */
+    public function testUnreadableCopyFails(): void
+    {
+        $this->update("UPDATE source_row SET source_values = JSON_SET(source_values, '$.Placename', JSON_OBJECT('unknown', 'x')) WHERE id = (SELECT MAX(source_row_id) FROM stop_row)");
+
+        $result = $this->read('2026-01-01', '2026-01-31', null);
+
+        self::assertSame(Command::FAILURE, $result->getStatusCode());
+        self::assertStringContainsString('A copy of 2026-01-06 has a value of an unknown type. The date keeps its rows.', self::text($result));
+        self::assertSame(0, $this->stored('stop_row WHERE cancelled_in_time IS NOT NULL'));
     }
 
     /**

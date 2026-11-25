@@ -6,7 +6,6 @@ namespace App\Import;
 
 use App\Entity\ImportBatch;
 use App\Import\Extract\ExtractSummaryDto;
-use App\Import\Extract\MissingColumnsException;
 use App\Import\Extract\RejectedRowDto;
 use App\Import\Extract\RejectionReason;
 use App\Import\Extract\StopRowDto;
@@ -37,6 +36,11 @@ final readonly class StoredCopyReader
      */
     public const string FILE_NAME = 'gemte kopier';
 
+    /**
+     * The user of a read in the log. Only the console reads the copies.
+     */
+    private const string USER = 'console';
+
     public function __construct(
         private StopRowParser $parser,
         private StopRowReplacer $replacer,
@@ -55,22 +59,45 @@ final readonly class StoredCopyReader
 
     /**
      * Reads the copies of the range through the mapping, and counts. It changes no data.
+     *
+     * @throws StoredCopyException if a copy has a value of an unknown type
      */
     public function preview(DateRangeDto $range, MappingDto $mapping): StoredCopyPreviewDto
     {
         $stopRows = $this->stopRows->countByDate($range);
-        $rejectedRows = $this->rejectedRows->countByDate($range);
-        $dates = self::dates($stopRows, $rejectedRows);
-        [$required, $optional] = $this->missingColumns($dates, $mapping);
+        $dates = self::dates($stopRows, $this->rejectedRows->countByDate($range));
 
-        return new StoredCopyPreviewDto(
-            $dates,
-            array_sum($stopRows),
-            array_sum($rejectedRows),
-            ExtractSummaryDto::fromRows($this->rowsOfDates($dates, $mapping), 0),
-            $required,
-            $optional,
-        );
+        // The parse of the summary fills these, so the preview reads each copy one time.
+        $columns = [];
+        $storedRejectedRows = 0;
+        $rowsWithAnotherDate = [];
+        $datesWithNoStopRows = [];
+        $rows = function () use ($dates, $mapping, $stopRows, &$columns, &$storedRejectedRows, &$rowsWithAnotherDate, &$datesWithNoStopRows): \Generator {
+            foreach ($dates as $date) {
+                $day = self::day($date);
+                [$copies, $rejectedCopies] = $this->copiesOf($day);
+                $storedRejectedRows += $rejectedCopies;
+                foreach ($copies as [, $copy]) {
+                    $columns += array_flip(array_map(strval(...), array_keys($copy)));
+                }
+                $found = 0;
+                foreach ($this->parse($copies, $mapping, $day) as $row) {
+                    if ($row instanceof StopRowDto) {
+                        ++$found;
+                    } elseif (RejectionReason::OutsideRange === $row->reason) {
+                        $rowsWithAnotherDate[] = [$date, $row->rowNumber];
+                    }
+                    yield $row;
+                }
+                if (0 === $found && ($stopRows[$date] ?? 0) > 0) {
+                    $datesWithNoStopRows[] = $date;
+                }
+            }
+        };
+        $summary = ExtractSummaryDto::fromRows($rows(), 0);
+        [$required, $optional] = [] === $dates ? [[], []] : self::missingColumns($columns, $mapping);
+
+        return new StoredCopyPreviewDto($dates, array_sum($stopRows), $storedRejectedRows, $summary, $required, $optional, $rowsWithAnotherDate, $datesWithNoStopRows);
     }
 
     /**
@@ -78,60 +105,62 @@ final readonly class StoredCopyReader
      * copies give through the mapping, and builds the route runs, the totals and the citizens of
      * the date again. Each date is one transaction. A date with no stored rows is not changed.
      *
-     * @param ?string $readBy the user identifier, or null for the console
+     * The read makes the preview first, and does not start if the preview has a problem. The log
+     * has the dates that are read, also when a date fails.
      *
-     * @throws MissingColumnsException if no copy of the range has a column of a required field or of the row id. No data is changed
-     * @throws StoredCopyException     if the copies of a date give no stop rows, or a row with another date. That date and the dates after it keep their rows
-     * @throws RowIdConflictException  if a row id is already stored on another date. That date and the dates after it keep their rows
+     * @throws StoredCopyException    if the preview has a problem, or a copy has changed after the preview. A failed date and the dates after it keep their rows
+     * @throws RowIdConflictException if a row id is already stored on another date. That date and the dates after it keep their rows
+     *
+     * After an exception during a date, Doctrine has closed the entity manager.
      */
-    public function read(DateRangeDto $range, MappingDto $mapping, ?string $readBy = null): StoredCopyResultDto
+    public function read(DateRangeDto $range, MappingDto $mapping): StoredCopyResultDto
     {
-        $dates = self::dates($this->stopRows->countByDate($range), $this->rejectedRows->countByDate($range));
-        [$required] = $this->missingColumns($dates, $mapping);
-        if ([] !== $required) {
-            throw new MissingColumnsException($required);
+        $preview = $this->preview($range, $mapping);
+        $problem = $preview->problem();
+        if (null !== $problem) {
+            throw $problem;
         }
+        $stopRows = $this->stopRows->countByDate($range);
 
-        $stopRows = 0;
+        $read = 0;
+        $insertedRows = 0;
         $rejectedRows = 0;
         $deletedRows = 0;
-        foreach ($dates as $date) {
-            $batch = $this->readDate(new \DateTimeImmutable($date), $mapping);
-            $stopRows += $batch->getRowsInserted();
-            $rejectedRows += $batch->getRowsRejected();
-            $deletedRows += $batch->getRowsDeleted();
+        try {
+            foreach ($preview->dates as $date) {
+                $batch = $this->readDate(self::day($date), $mapping, ($stopRows[$date] ?? 0) > 0);
+                ++$read;
+                $insertedRows += $batch->getRowsInserted();
+                $rejectedRows += $batch->getRowsRejected();
+                $deletedRows += $batch->getRowsDeleted();
+            }
+        } finally {
+            $this->log($range, $mapping, $read, $insertedRows, $rejectedRows, $preview->dates[$read] ?? null);
         }
 
-        $user = $readBy ?? 'console';
-        $firstDate = $range->firstDate->format('Y-m-d');
-        $lastDate = $range->lastDate->format('Y-m-d');
-        // The log has no field values from the extract.
-        $this->auditLogger->info(
-            \sprintf('%s read the stored copies from %s to %s again through the mapping "%s": %d dates, %d stop rows and %d rejected rows', $user, $firstDate, $lastDate, $mapping->name, \count($dates), $stopRows, $rejectedRows),
-            ['user' => $user, 'first_date' => $firstDate, 'last_date' => $lastDate, 'mapping' => $mapping->name, 'dates' => \count($dates), 'stop_rows' => $stopRows, 'rejected_rows' => $rejectedRows],
-        );
-
-        return new StoredCopyResultDto(\count($dates), $stopRows, $rejectedRows, $deletedRows);
+        return new StoredCopyResultDto($read, $insertedRows, $rejectedRows, $deletedRows);
     }
 
     /**
      * Reads the copies of the date before the delete, because the replacement deletes them.
+     *
+     * @param bool $hadStopRows true if the date has stop rows. A date with only rejected rows can give no stop rows
      */
-    private function readDate(\DateTimeImmutable $date, MappingDto $mapping): ImportBatch
+    private function readDate(ImportRangeDto $day, MappingDto $mapping, bool $hadStopRows): ImportBatch
     {
-        $day = ImportRangeDto::create($date, $date, 1);
-        $copies = $this->copiesOn($date);
+        [$copies] = $this->copiesOf($day);
+        $date = $day->firstDate->format('Y-m-d');
 
         try {
-            return $this->entityManager->wrapInTransaction(function () use ($day, $mapping, $copies): ImportBatch {
+            return $this->entityManager->wrapInTransaction(function () use ($day, $date, $mapping, $copies, $hadStopRows): ImportBatch {
                 $batch = new ImportBatch($mapping->name, self::FILE_NAME, null, $this->clock->now(), $day);
                 // The first flush of the replacer inserts the batch before the rows that refer to it.
                 $this->entityManager->persist($batch);
 
-                $result = $this->replacer->replace($day, $mapping, $this->rowsOnTheDate($day->firstDate, $this->parser->parseCopies(self::byRowNumber($copies), $mapping, $day)), $batch);
+                $result = $this->replacer->replace($day, $mapping, self::onTheDate($date, $this->parse($copies, $mapping, $day)), $batch);
                 // The exception rolls back the delete of the date.
-                if (0 === $result->insertedRows) {
-                    throw StoredCopyException::noStopRows($day->firstDate);
+                if ($hadStopRows && 0 === $result->insertedRows) {
+                    throw StoredCopyException::noStopRows($date);
                 }
                 $batch->complete($result);
                 $this->routeBuilder->rebuild($day);
@@ -150,12 +179,14 @@ final readonly class StoredCopyReader
 
     /**
      * Stops at a row with another date, so that the transaction rolls back and keeps the copy.
+     * The preview finds such a row first, so this only stops a copy that changed after the
+     * preview.
      *
      * @param iterable<StopRowDto|RejectedRowDto> $rows
      *
      * @return \Generator<StopRowDto|RejectedRowDto>
      */
-    private function rowsOnTheDate(\DateTimeImmutable $date, iterable $rows): \Generator
+    private static function onTheDate(string $date, iterable $rows): \Generator
     {
         foreach ($rows as $row) {
             if ($row instanceof RejectedRowDto && RejectionReason::OutsideRange === $row->reason) {
@@ -166,38 +197,42 @@ final readonly class StoredCopyReader
     }
 
     /**
-     * Gives the rows that the copies of the dates give, one date at a time, for the preview.
+     * Parses the copies of the date. A copy with a value of an unknown type gives an exception
+     * with no value.
      *
-     * @param list<string> $dates as Y-m-d
+     * @param list<array{int, array<array-key, mixed>}> $copies
      *
      * @return \Generator<StopRowDto|RejectedRowDto>
      */
-    private function rowsOfDates(array $dates, MappingDto $mapping): \Generator
+    private function parse(array $copies, MappingDto $mapping, ImportRangeDto $day): \Generator
     {
-        foreach ($dates as $date) {
-            $day = ImportRangeDto::create(new \DateTimeImmutable($date), new \DateTimeImmutable($date), 1);
-            yield from $this->parser->parseCopies(self::byRowNumber($this->copiesOn($day->firstDate)), $mapping, $day);
+        try {
+            yield from $this->parser->parseCopies(self::byRowNumber($copies), $mapping, $day);
+        } catch (\InvalidArgumentException $exception) {
+            throw StoredCopyException::unreadableCopy($day->firstDate->format('Y-m-d'), $exception);
         }
     }
 
     /**
-     * Gives the copies of the stop rows and the rejected rows of the date. A rejected row keeps
-     * its row number of the file. The stop rows have no row number, so they get their place.
-     * Two copies can have the same number, so the copies are pairs, not keys.
+     * Gives the copies of the stop rows of the date, and of the rejected rows that the replacement
+     * of the date deletes, with their row numbers. A stop row that was imported before the number
+     * was stored gets its place on the date. Two copies can have the same number, so the copies
+     * are pairs, not keys.
      *
-     * @return list<array{int, array<array-key, mixed>}> the row number and the copy
+     * @return array{list<array{int, array<array-key, mixed>}>, int} the row numbers and the copies, and the number of rejected rows of them
      */
-    private function copiesOn(\DateTimeImmutable $date): array
+    private function copiesOf(ImportRangeDto $day): array
     {
         $copies = [];
-        foreach ($this->stopRows->copiesOn($date) as $place => $copy) {
-            $copies[] = [$place + 1, $copy];
+        foreach ($this->stopRows->copiesOn($day->firstDate) as $place => $copy) {
+            $copies[] = [$copy['rowNumber'] ?? $place + 1, $copy['values']];
         }
-        foreach ($this->rejectedRows->copiesOn($date) as $rejected) {
-            $copies[] = [$rejected['rowNumber'], $rejected['values']];
+        $rejected = $this->rejectedRows->copiesInRange($day);
+        foreach ($rejected as $copy) {
+            $copies[] = [$copy['rowNumber'], $copy['values']];
         }
 
-        return $copies;
+        return [$copies, \count($rejected)];
     }
 
     /**
@@ -213,25 +248,14 @@ final readonly class StoredCopyReader
     }
 
     /**
-     * Finds the field columns and the row id columns that no copy of the dates has.
+     * Finds the field columns and the row id columns that no copy has.
      *
-     * @param list<string> $dates as Y-m-d
+     * @param array<array-key, int> $columns the columns of the copies as keys
      *
      * @return array{list<string>, list<string>} the columns of the required fields and the row id, and the columns of the optional fields
      */
-    private function missingColumns(array $dates, MappingDto $mapping): array
+    private static function missingColumns(array $columns, MappingDto $mapping): array
     {
-        // A range with no copies reads nothing, so no column is missing.
-        if ([] === $dates) {
-            return [[], []];
-        }
-        $columns = [];
-        foreach ($dates as $date) {
-            foreach ($this->copiesOn(new \DateTimeImmutable($date)) as [, $copy]) {
-                $columns += array_flip(array_map(strval(...), array_keys($copy)));
-            }
-        }
-
         $required = array_values(array_filter($mapping->rowId, static fn (string $column): bool => !isset($columns[$column])));
         $optional = [];
         foreach (FieldName::cases() as $name) {
@@ -249,6 +273,31 @@ final readonly class StoredCopyReader
 
         // A column of a required field and an optional field is only named as required.
         return [$required, array_values(array_diff(array_unique($optional), $required))];
+    }
+
+    /**
+     * The log has the range, the mapping and the counts of the dates that are read, and the date
+     * that failed. It has no field values from the extract.
+     */
+    private function log(DateRangeDto $range, MappingDto $mapping, int $dates, int $stopRows, int $rejectedRows, ?string $failedDate): void
+    {
+        $firstDate = $range->firstDate->format('Y-m-d');
+        $lastDate = $range->lastDate->format('Y-m-d');
+        $message = \sprintf('%s read the stored copies from %s to %s again through the mapping "%s": %d dates, %d stop rows and %d rejected rows', self::USER, $firstDate, $lastDate, $mapping->name, $dates, $stopRows, $rejectedRows);
+        $context = ['user' => self::USER, 'first_date' => $firstDate, 'last_date' => $lastDate, 'mapping' => $mapping->name, 'dates' => $dates, 'stop_rows' => $stopRows, 'rejected_rows' => $rejectedRows];
+        if (null === $failedDate) {
+            $this->auditLogger->info($message, $context);
+
+            return;
+        }
+        $this->auditLogger->warning(\sprintf('%s. The read stopped at %s', $message, $failedDate), [...$context, 'failed_date' => $failedDate]);
+    }
+
+    private static function day(string $date): ImportRangeDto
+    {
+        $day = new \DateTimeImmutable($date);
+
+        return ImportRangeDto::create($day, $day, 1);
     }
 
     /**

@@ -29,6 +29,15 @@ class StopRow
     #[ORM\Column]
     private ?int $id = null;
 
+    /**
+     * The number of the row in the sheet of the file. A new read of the copy keeps it, so that a
+     * rejected row from the copy has the number of the file. Null for a row that was imported
+     * before the number was stored.
+     */
+    // "row_number" is a reserved word in MariaDB, and Doctrine does not quote it.
+    #[ORM\Column(name: 'sheet_row_number', nullable: true)]
+    private ?int $rowNumber;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $rowKey;
 
@@ -102,6 +111,7 @@ class StopRow
         #[ORM\JoinColumn(nullable: false)]
         private ImportBatch $importBatch,
     ) {
+        $this->rowNumber = $row->rowNumber;
         $this->rowKey = $row->rowKey;
         $this->serviceDate = $row->serviceDate;
         $this->run = $row->run;
@@ -128,6 +138,11 @@ class StopRow
     public function getMappingName(): string
     {
         return $this->mappingName;
+    }
+
+    public function getRowNumber(): ?int
+    {
+        return $this->rowNumber;
     }
 
     public function getRowKey(): ?string

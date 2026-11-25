@@ -368,10 +368,17 @@ task console -- app:driving-data:read-copies <FIRST_DATE> <LAST_DATE> --no-debug
 4. It replaces the rows of each date, and builds the figures of the date again.
 
 The range can be longer than an upload, because the command works through one date at a time. A
-date with no stored rows is not changed. The command stops before any change if no copy has the
-column of a required field, or if a copy gives another date than the date of its row. If a date
-fails during the read, that date keeps its rows, and the dates before it are read again. The
-[driving data log](#driving-data-log) records each read.
+date with no stored rows is not changed. The rows get the name of the mapping of the read.
+
+The command stops before any change when:
+
+- no copy has the column of a required field
+- a copy gives another date than the date of its row
+- a date has stop rows, but its copies give none
+- a copy has a value of an unknown type
+
+If a date fails during the read, that date keeps its rows, and the dates before it are read again.
+The [driving data log](#driving-data-log) records each read, also a read that stopped.
 
 A column that the copies do not keep cannot be read again. Then upload the extracts again.
 

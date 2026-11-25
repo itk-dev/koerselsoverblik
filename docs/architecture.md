@@ -586,18 +586,28 @@ changed rule of the mapping, or a mapping error that rejected rows.
   its own batch (`StoredCopyReader::FILE_NAME`), and builds the route runs, the totals and the
   citizens of its month again.
 - A date with no stored rows is not changed, so the read does not empty a date.
-- The stop rows have no row number, so they get their place on the date. A rejected row keeps
-  its row number of the file. A rejected row with no date is not read, because it belongs to no
-  date.
-- The preview reads all copies of the range through the mapping, and changes no data. It names
-  the field columns that no copy of the range has. A missing column of a required field or of the
-  row id stops the read before any change, as a file with a missing column. A missing column of
-  an optional field gives no value, and the preview shows a warning.
-- The command also stops before any change if a copy gives another date through the mapping than
-  the date of its row, because the replacement of one date would lose that row.
+- The read reads the same rejected rows that the replacement of the date deletes
+  (`RejectedStopRowRepository::copiesInRange()`): the rows of the date, and the rows with no date
+  of a batch of that date only. A rejected row with no date of a larger batch belongs to no single
+  date, so the read neither reads nor deletes it.
+- Each row keeps the number of its row in the file. `StopRow` stores the number since #61. A stop
+  row that was imported before has no number, so the read gives it its place on the date.
+- The rows get the name of the mapping of the read, also the rows that another mapping imported.
+- The read makes the preview first, and changes no data. The preview reads all copies of the
+  range through the mapping, and collects the columns of the copies on the way. The read does not
+  start if the preview finds one of these problems:
+  - no copy of the range has a column of a required field or of the row id, as a file with a
+    missing column. A missing column of an optional field gives no value, and a warning.
+  - a copy gives another date than the date of its row. The replacement of one date would lose
+    that row.
+  - a date has stop rows, but its copies give none. A date with only rejected rows can give no
+    stop rows.
+  - a copy has a value of an unknown type.
 - If a date fails during the read, for example with a row id that is stored on another date, that
-  date keeps its rows, and the dates before it are read again.
-- The audit log records each read with the range, the mapping and the counts.
+  date keeps its rows, and the dates before it are read again. After the exception, Doctrine has
+  closed the entity manager.
+- The audit log records each read with the range, the mapping and the counts of the dates that are
+  read, also when a date fails. Then the record is a warning with the failed date.
 
 ### The reference extract
 

@@ -106,17 +106,17 @@ class StopRowRepository extends ServiceEntityRepository
     }
 
     /**
-     * Gives the copies of the stop rows of the date, in the order of the import, for a new read
-     * through a mapping (ADR 006).
+     * Gives the copies of the stop rows of the date, with their row numbers, in the order of the
+     * import, for a new read through a mapping (ADR 006).
      *
-     * @return list<array<array-key, mixed>> the values of each copy, keyed by the column name
+     * @return list<array{rowNumber: ?int, values: array<array-key, mixed>}> the row number of the file, or null for a row that was imported before the number was stored, and the values of the copy keyed by the column name
      */
     public function copiesOn(\DateTimeImmutable $date): array
     {
         // Doctrine converts the JSON of the copy to an array, with the type of the field.
-        /** @var list<array{values: array<array-key, mixed>}> $rows */
+        /** @var list<array{rowNumber: int|string|null, values: array<array-key, mixed>}> $rows */
         $rows = $this->createQueryBuilder('row')
-            ->select('copy.values AS values')
+            ->select('row.rowNumber AS rowNumber', 'copy.values AS values')
             ->join('row.sourceRow', 'copy')
             ->where('row.serviceDate = :date')
             ->orderBy('row.id')
@@ -124,7 +124,8 @@ class StopRowRepository extends ServiceEntityRepository
             ->getQuery()
             ->getArrayResult();
 
-        return array_column($rows, 'values');
+        // MariaDB can give a number as text.
+        return array_map(static fn (array $row): array => ['rowNumber' => null === $row['rowNumber'] ? null : (int) $row['rowNumber'], 'values' => $row['values']], $rows);
     }
 
     /**
