@@ -15,8 +15,10 @@ shows the cancellations by the institution, by the direction, by the time of day
 notice. The transport office can then find the places and the times where many trips are
 cancelled.
 
-This issue needs the late cancellations (#167), because the notice bands use the notice of a
-cancellation.
+This issue needs the column `aflysningstidspunkt` (#177). The notice in `aflysningsvarsel` uses
+only the time of day of the cancellation. It is wrong for a cancellation on an earlier day, and
+it can be negative (see "Cancellation notice" in `docs/architecture.md`). The notice bands need
+the date and the time of the cancellation.
 
 ## Tasks
 
@@ -24,7 +26,8 @@ cancellation.
   - the 10 locations with the most cancelled trips, with the share of all cancelled trips
   - the cancelled trips to the institution and from the institution
   - the cancelled trips by the time of day of the planned pickup
-  - the cancelled trips by the notice
+  - the cancelled trips by the notice. Calculate the notice from `aflysningstidspunkt` and the
+    planned time of the stop, not from `aflysningsvarsel`.
 - Add a derived table with the cancelled trips for each route, date, location, direction, time
   band and notice band. The import builds it, as `LocationDayTotals`. It has no person ids.
 - Show a location only as a group of trips, never with a person id.
@@ -34,6 +37,8 @@ cancellation.
 
 - A scenario with cancelled trips at different locations, directions, times and notices gives
   the expected counts.
+- A cancellation on an earlier day than the trip gets the notice from the date and the time, not
+  only from the time of day.
 - The supplier filter applies to the panel.
 - The routes of an ignored sub-agreement are not counted.
 - A location with fewer cancelled trips than the minimum is not shown.
