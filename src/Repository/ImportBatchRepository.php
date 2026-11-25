@@ -36,8 +36,8 @@ class ImportBatchRepository extends ServiceEntityRepository
             ->where('batch.firstDate <= :last AND batch.lastDate >= :first')
             ->setParameter('first', $range->firstDate, Types::DATE_IMMUTABLE)
             ->setParameter('last', $range->lastDate, Types::DATE_IMMUTABLE)
-            ->orderBy('batch.uploadedAt', 'DESC')
-            ->addOrderBy('batch.id', 'DESC')
+            ->orderBy('batch.uploadedAt', \SortDirection::Descending)
+            ->addOrderBy('batch.id', \SortDirection::Descending)
             ->getQuery()
             ->getResult();
 

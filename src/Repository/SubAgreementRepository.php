@@ -32,8 +32,8 @@ class SubAgreementRepository extends ServiceEntityRepository
             ->select('subAgreement', 'supplier')
             ->leftJoin('subAgreement.supplier', 'supplier')
             ->addSelect('CASE WHEN subAgreement.supplier IS NULL AND subAgreement.ignored = false THEN 0 ELSE 1 END AS HIDDEN supplierGroup')
-            ->orderBy('supplierGroup', 'ASC')
-            ->addOrderBy('subAgreement.reference', 'ASC')
+            ->orderBy('supplierGroup', \SortDirection::Ascending)
+            ->addOrderBy('subAgreement.reference', \SortDirection::Ascending)
             ->getQuery()
             ->getResult();
 
