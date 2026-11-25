@@ -18,6 +18,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   stop row now stores the number of its row in the file, so that a new read keeps it. Use the
   command after the deploy of #167 to fill the code of the late cancellations.
 
+## [0.2.0] - 2026-11-25
+
+- Update `twig/twig` and `twig/html-extra` to 3.31.1 and `symfony/ux-icons` to 3.8.1, because
+  of security advisories in the older versions.
+
+- Add `docker-compose.server.prod.yml`. On production, it mounts `.env.local` and `var/uploads`
+  from the shared directory of the server, so that a new release keeps them.
+
 - [#167](https://github.com/itk-dev/koerselsoverblik/issues/167)
   Show the late cancellations on the driving activity page: the import reads the code
   `RettidigAflysningsvarsel` as the field `cancelled_in_time`, and the totals count the
@@ -497,5 +505,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   role `ROLE_USER`. The check of the bulk upload parses a file once, not twice. On the servers,
   PHP-FPM has 256M and 60 seconds, so that OpenSpout keeps the shared strings in memory.
 
-[Unreleased]: https://github.com/itk-dev/koerselsoverblik/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/itk-dev/koerselsoverblik/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/itk-dev/koerselsoverblik/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/itk-dev/koerselsoverblik/releases/tag/0.1.0
