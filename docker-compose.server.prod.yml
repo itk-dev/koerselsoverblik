@@ -1,0 +1,7 @@
+# Production settings. The release playbook installs each release in a new directory. These
+# volumes keep .env.local and the pending uploads in the shared directory of the server.
+services:
+  phpfpm:
+    volumes:
+      - ../../shared/.env.local:/app/.env.local
+      - ../../shared/var/uploads:/app/var/uploads
