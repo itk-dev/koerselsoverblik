@@ -63,6 +63,12 @@ final class Scale
     public const int TARGET_LABEL_GAP = 7;
 
     /**
+     * The distance from the left edge of the plot area to the start of the label of the target
+     * line.
+     */
+    public const int TARGET_LABEL_INSET = 4;
+
+    /**
      * The extra space above the highest value, so that a line does not touch the top.
      */
     public const float HEADROOM = 1.08;

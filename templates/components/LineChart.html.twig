@@ -5,7 +5,7 @@
         {{ include('components/_axes.html.twig') }}
         {% if geometry.targetY is not null %}
             <line class="ch-target" x1="{{ constant('App\\Chart\\Scale::LEFT') }}" x2="{{ geometry.right }}" y1="{{ geometry.targetY }}" y2="{{ geometry.targetY }}"/>
-            <text class="ch-target-label" x="{{ geometry.right }}" y="{{ geometry.targetY - constant('App\\Chart\\Scale::TARGET_LABEL_GAP') }}">{{ targetLabel }}</text>
+            <text class="ch-target-label" x="{{ constant('App\\Chart\\Scale::LEFT') + constant('App\\Chart\\Scale::TARGET_LABEL_INSET') }}" y="{{ geometry.targetY - constant('App\\Chart\\Scale::TARGET_LABEL_GAP') }}">{{ targetLabel }}</text>
         {% endif %}
         {% for line in geometry.lines %}
             <path class="ch-line {{ line.cssClass }}{{ line.dashed ? ' ch-line--dashed' }}" d="{{ line.path }}"/>
