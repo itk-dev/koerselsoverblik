@@ -64,28 +64,28 @@ feature that has an issue or an issue text.
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
 | Show the driver changes | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177), and the rule for the fixed driver of a route | – |
-| Show the no-shows for each supplier | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – |
+| Show the no-shows for each supplier | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177), and the rule for a no-show | – |
 
 ### Activity page
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
 | Show where and when the cancellations come | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) for the notice bands, and the open questions of "Cancellation notice" | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
-| Show who cancels and why | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177), and the values of the channel, the type and the category of a cancellation in real data | – |
-| Show the no-shows | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – |
+| Show who cancels and why | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177), and the groups of the channels of a cancellation | – |
+| Show the no-shows | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177), and the rule for a no-show | – |
 
 ### Management page
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the number of vehicles | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – |
+| Show the number of vehicles | Blocked | – | Complete vehicle data in the extract, from the planning office | – |
 
 ### Driving data
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
-| Add the cancellation, driver and vehicle columns to the extract | Blocked | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | The six columns in the report of the extract | [extract-cancellation-driver-vehicle.md](extract-cancellation-driver-vehicle.md) |
+| Add the cancellation, driver and vehicle columns to the extract | Ready | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – | [extract-cancellation-driver-vehicle.md](extract-cancellation-driver-vehicle.md) |
 | Add the distances and the durations to the totals of each route and day | Blocked | – | The open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
 ### Documentation
