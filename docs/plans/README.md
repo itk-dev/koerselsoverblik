@@ -85,7 +85,7 @@ feature that has an issue or an issue text.
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
-| Add the cancellation, driver and vehicle columns to the extract | Ready | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – | [extract-cancellation-driver-vehicle.md](extract-cancellation-driver-vehicle.md) |
+| Add the cancellation, driver and vehicle columns to the extract | In progress | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – | [extract-cancellation-driver-vehicle.md](extract-cancellation-driver-vehicle.md) |
 | Add the distances and the durations to the totals of each route and day | Blocked | – | The open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
 ### Documentation

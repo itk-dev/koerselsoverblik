@@ -116,7 +116,7 @@ final class DevDatasetGeneratorTest extends TestCase
     public function testDatasetHasRouteNamesThatAreNotRoutes(): void
     {
         $routes = [];
-        for ($monday = new \DateTimeImmutable('2026-08-31'); $monday < new \DateTimeImmutable('2026-12-07'); $monday = $monday->modify('+7 days')) {
+        for ($monday = new \DateTimeImmutable('2026-08-17'); $monday < new \DateTimeImmutable('2026-12-07'); $monday = $monday->modify('+7 days')) {
             foreach (self::generate($monday->format('Y-m-d')) as $row) {
                 $routes[self::string($row, 'route')] = true;
             }
@@ -199,6 +199,69 @@ final class DevDatasetGeneratorTest extends TestCase
         );
         self::assertContains(true, $codes);
         self::assertContains(false, $codes);
+    }
+
+    /**
+     * Only a cancelled stop has the time, the channel, the type and the category of the
+     * cancellation. The institution portal can give no category. Some trips are cancelled on the
+     * day before, and the code "in time" is then "yes".
+     */
+    public function testCancelledStopsHaveTheCancellationColumns(): void
+    {
+        $channels = [];
+        $earlierDay = 0;
+        $noCategory = 0;
+        foreach (self::generate(self::SCHOOL_WEEK) as $row) {
+            $cancelledAt = $row->kept['aflysningstidspunkt'];
+            if ('cancelled' !== $row->values['stop_status']) {
+                self::assertNull($cancelledAt);
+                self::assertNull($row->kept['afbestillingskanal']);
+                self::assertNull($row->kept['aflysningstype']);
+                self::assertNull($row->kept['aflysningskategori']);
+                continue;
+            }
+            self::assertInstanceOf(\DateTimeImmutable::class, $cancelledAt);
+            self::assertIsString($row->kept['afbestillingskanal']);
+            self::assertIsString($row->kept['aflysningstype']);
+            $channels[$row->kept['afbestillingskanal']] = true;
+            if (null === $row->kept['aflysningskategori']) {
+                self::assertSame('Institution portal', $row->kept['afbestillingskanal']);
+                ++$noCategory;
+            }
+            if ($cancelledAt < self::date($row, 'service_date')) {
+                self::assertTrue($row->values['cancelled_in_time']);
+                ++$earlierDay;
+            }
+        }
+
+        self::assertCount(5, $channels);
+        self::assertGreaterThan(0, $earlierDay);
+        self::assertGreaterThan(0, $noCategory);
+    }
+
+    /**
+     * One driver drives all runs of a route on a day. Another driver than the fixed driver drives
+     * a route on some days, so that the driver changes can be shown.
+     */
+    public function testRouteHasOneDriverOnADay(): void
+    {
+        $drivers = [];
+        foreach (self::generate(self::SCHOOL_WEEK) as $row) {
+            $driver = $row->kept['chauffør'];
+            self::assertIsString($driver);
+            if (DevDatasetGenerator::BOOKED_ROUTE !== $row->values['route']) {
+                $drivers[self::string($row, 'route')][self::date($row, 'service_date')->format('Y-m-d')][$driver] = true;
+            }
+        }
+
+        $changes = 0;
+        foreach ($drivers as $days) {
+            foreach ($days as $driversOfDay) {
+                self::assertCount(1, $driversOfDay);
+            }
+            $changes += \count(array_unique(array_map(array_key_first(...), $days))) - 1;
+        }
+        self::assertGreaterThan(0, $changes);
     }
 
     /**

@@ -27,9 +27,9 @@ upload it again.
 
 - **Functional:** all the views of the prototype, and the later milestones, have data from the
   first upload.
-- **Non-functional:** store no personal data other than the person id
-  ([ADR 004](004-personal-data-in-driving-data.md)). A new column with personal data is not
-  stored by mistake.
+- **Non-functional:** store no personal data about a citizen other than the person id
+  ([ADR 004](004-personal-data-in-driving-data.md)). Store no personal data about a driver other
+  than the driver id. A new column with personal data is not stored by mistake.
 
 ### Options Considered
 
@@ -57,6 +57,10 @@ upload it again.
 - **The person id:** the copy keeps `PersonID`, because a new read needs the required field
   `person_id`. The stop row already stores it ([ADR 004](004-personal-data-in-driving-data.md)),
   so the copy adds no new personal data.
+- **The driver id:** the copy keeps `chauffør`, the id of the driver of the route in the planning
+  system (#177). The driver changes of a route need it. It identifies a person, so it is personal
+  data about the driver. The extract has no name or other data about the driver. The application
+  never shows the driver id, or writes it to a log or to the output of a command.
 - **The ids of the planning system** (trips, requests, routes, addresses, locations, places and
   paths) are kept. They mean nothing outside the planning system.
 - **Rejected rows** also get a copy, except a row with a date outside the range of the upload.

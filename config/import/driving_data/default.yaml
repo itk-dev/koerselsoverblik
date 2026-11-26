@@ -41,6 +41,14 @@ keep_columns:
     - passengers
     - aflysningstidspunkt
     - aflysningsvarsel
+    # The channel, the type and the category of a cancellation. Empty when the stop is not
+    # cancelled. The list of categories is not fixed.
+    - afbestillingskanal
+    - aflysningstype
+    - aflysningskategori
+    # The id of the driver of the route in the planning system. Never show it, or write it to a
+    # log or to the output of a command (ADR 006).
+    - chauffør
     - rutestartet
     - blokstart
     - blokslut

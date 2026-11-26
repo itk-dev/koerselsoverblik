@@ -7,6 +7,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- [#177](https://github.com/itk-dev/koerselsoverblik/issues/177)
+  Keep the new cancellation and driver columns of the extract in the copy of a row: the channel
+  (`afbestillingskanal`), the type (`aflysningstype`) and the category (`aflysningskategori`) of
+  a cancellation, and the driver id (`chauffør`). The copy keeps the time of the cancellation
+  (`aflysningstidspunkt`) as a date and a time. The vehicle id (`vogn`) is not kept until the
+  extract has complete vehicle data. The development dataset has the new columns, a driver for
+  each route and day, and the notice and the code "in time" from the time of the cancellation.
+  ADR 006 keeps the driver id, and the open decisions describe the new columns.
+
 - Moved target label to left side of the punctuality yearly overview.
 
 - [#172](https://github.com/itk-dev/koerselsoverblik/issues/172)
