@@ -664,6 +664,8 @@ row, but not the personal data. For example:
 - `prisprminut`, the price per minute, for the cost of empty running
 - `passengers`, the passengers after the stop before the cancellations are removed
 - `blokstart` and `blokslut`
+- `vogntype`, `chaufførtype` and `operatør`, for the number of vehicles (see "Number of vehicles"
+  in [open decisions](#open-decisions))
 
 No feature uses these columns yet. A later feature can add typed fields for them, and fill the
 fields from the copies.
@@ -1686,6 +1688,22 @@ coverage gate and mutation testing on the production code.
   institution or the supplier), and why. The extract has no columns for this. Can the transport
   office make an extract with these fields? The product owner in the transport office answers
   before the activity page can show who cancels and why.
+- **Number of vehicles.** "Biler" on the management page shows the number of vehicles that drive
+  each day, for each supplier. The sources are `vogn`, `vogntype`, `chauffør`, `chaufførtype` and
+  `operatør` (#177, #181):
+  - `vogn` cannot give the number. Most routes have a vehicle profile (`vogntype` is `Profile`),
+    not a physical vehicle (`Vehicle`). One profile can be on many routes at the same time. A
+    profile has no supplier.
+  - `operatør` is the id of the supplier of the contract of the route (`HaulierID`). It gives the
+    supplier also when the route has a vehicle profile.
+  - The best estimate for each supplier and day: the number of distinct `chauffør` where
+    `chaufførtype` is `Person`, plus the number of routes with no driver. A driver who drives two
+    routes after each other counts one time.
+  - The number of distinct `vogn` where `vogntype` is `Vehicle` is the number of registered
+    physical vehicles. It is lower than the true number for most suppliers.
+  - Open: does the transport office accept the estimate? How does `operatør` map to the suppliers
+    of the application? The product owner in the transport office answers before the management
+    page can show "Biler".
 - **Partial month.** The overview and the punctuality page compare the current month, which is
   not complete, with all of the previous month. On 20 January, the trips of 20 days are compared
   with the trips of 31 days, so the change is too negative. The options: compare the same days of

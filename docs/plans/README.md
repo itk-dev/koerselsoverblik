@@ -78,7 +78,7 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the number of vehicles | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – |
+| Show the number of vehicles | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177), and "Number of vehicles" in [open decisions](../architecture.md#open-decisions) | – |
 
 ### Driving data
 
@@ -173,3 +173,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Review follow-up of the driving activity page | [#165](https://github.com/itk-dev/koerselsoverblik/issues/165) | [#166](https://github.com/itk-dev/koerselsoverblik/pull/166) |
 | Show the late cancellations on the driving activity page | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167) | [#168](https://github.com/itk-dev/koerselsoverblik/pull/168) |
 | Read the stored copies again through a changed mapping | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – |
+| Keep the vehicle type, driver type and operator columns of the extract | [#181](https://github.com/itk-dev/koerselsoverblik/issues/181) | – |

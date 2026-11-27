@@ -202,6 +202,53 @@ final class DevDatasetGeneratorTest extends TestCase
     }
 
     /**
+     * The rows have the vehicle type, the driver type and the operator, with the values of the
+     * extract. All rows of a route and day have the same values. Each supplier has one operator,
+     * and one supplier has no physical vehicle. The booked trips have no driver.
+     */
+    public function testRowsHaveTheVehicleTypeTheDriverTypeAndTheOperator(): void
+    {
+        /** @var array<string, array<string, true>> $routeDays the crew values of each route and day */
+        $routeDays = [];
+        /** @var array<string, array<string, true>> $operators */
+        $operators = [];
+        /** @var array<string, array<string, true>> $vehicleTypes */
+        $vehicleTypes = [];
+        /** @var array<string, int> $driverTypes */
+        $driverTypes = [];
+        foreach (self::generate(self::SCHOOL_WEEK) as $row) {
+            $route = self::string($row, 'route');
+            [$vehicle, $driver, $operator] = [$row->kept['vogntype'], $row->kept['chaufførtype'], $row->kept['operatør']];
+            self::assertContains($vehicle, ['Profile', 'Vehicle', null]);
+            self::assertContains($driver, ['Person', 'Profile', null]);
+            self::assertIsInt($operator);
+            if (DevDatasetGenerator::BOOKED_ROUTE === $route) {
+                self::assertNull($driver);
+                continue;
+            }
+            $routeDays[$route.' '.self::date($row, 'service_date')->format('Y-m-d')][$vehicle.'/'.$driver.'/'.$operator] = true;
+            $supplier = DevDatasetGenerator::SUPPLIERS[SubAgreementReference::fromRouteName($route)] ?? null;
+            if (null !== $supplier) {
+                $operators[$supplier][(string) $operator] = true;
+                $vehicleTypes[$supplier][(string) $vehicle] = true;
+                $driverTypes[(string) $driver] = 1;
+            }
+        }
+
+        foreach ($routeDays as $crews) {
+            self::assertCount(1, $crews);
+        }
+        // Each of the four suppliers has one operator, and no other supplier has it.
+        $ids = array_merge(...array_map(array_keys(...), array_values($operators)));
+        self::assertCount(4, $operators);
+        self::assertCount(4, $ids);
+        self::assertCount(4, array_unique($ids));
+        self::assertArrayNotHasKey('Vehicle', $vehicleTypes['Vognmand B'] ?? []);
+        self::assertArrayHasKey('Vehicle', $vehicleTypes['Vognmand A'] ?? []);
+        self::assertSame(['', 'Person', 'Profile'], self::sortedKeys($driverTypes));
+    }
+
+    /**
      * The import of a week replaces only the rows of that week. A row id that is also in another
      * week then breaks the unique index of the row keys.
      */

@@ -72,6 +72,28 @@ final readonly class DevDatasetGenerator
         'Bakke' => 'Vognmand B',
     ];
 
+    /**
+     * The invented id of each supplier in the planning system (the column `operatør`), and the
+     * chance in percent that a route has a physical vehicle and not a vehicle profile. One
+     * supplier registers no physical vehicles, as in the real data.
+     *
+     * @var array<string, array{int, int}>
+     */
+    private const array OPERATORS = [
+        'Vognmand A' => [101, 60],
+        'Vognmand B' => [102, 0],
+        'Vognmand C' => [103, 35],
+        'Vognmand D' => [104, 20],
+    ];
+
+    /**
+     * The chance in percent that a route has a vehicle profile as the driver, and that a route has
+     * no driver. The other routes have a person as the driver.
+     */
+    private const int PROFILE_DRIVER = 3;
+
+    private const int NO_DRIVER = 4;
+
     private const float BOOKED_PRICE = 17.0;
 
     /**
@@ -129,13 +151,16 @@ final readonly class DevDatasetGenerator
     {
         $day = new \DateTimeImmutable($day->format('Y-m-d'));
         $random = new Randomizer(new Mt19937(crc32($settings->seed.'-'.$day->format('Y-m-d'))));
+        // The vehicles and the drivers have their own random engine, so that the other values are
+        // the same as before these columns.
+        $crew = new Randomizer(new Mt19937(crc32($settings->seed.'-crew-'.$day->format('Y-m-d'))));
         $punctuality = $settings->punctuality($day);
         $weekend = $this->calendar->isWeekend($day);
 
         $rows = [];
         // The booked trips: one citizen in each run, on all days.
         for ($run = 1, $runs = $weekend ? $random->getInt(0, 2) : $random->getInt(1, 3); $run <= $runs; ++$run) {
-            $rows[] = $this->run($random, $day, $punctuality, self::BOOKED_ROUTE, 0, self::BOOKED_PRICE, $run, $random->getInt(8 * 60, 17 * 60), 1, false);
+            $rows[] = $this->run($random, $day, $punctuality, self::BOOKED_ROUTE, 0, self::BOOKED_PRICE, $run, $random->getInt(8 * 60, 17 * 60), 1, false, $this->bookedCrew($crew));
         }
         if ($weekend) {
             return $this->withRowIds($day, array_merge(...$rows));
@@ -153,6 +178,7 @@ final readonly class DevDatasetGenerator
                     continue;
                 }
                 $route = \sprintf('%s%s%02d', $reference, $separator, $number);
+                $routeCrew = $this->routeCrew($crew, self::SUPPLIERS[$reference]);
                 $runs = $random->getInt($fewest, $most);
                 $mornings = intdiv($runs + 1, 2);
                 for ($run = 1; $run <= $runs; ++$run) {
@@ -160,7 +186,7 @@ final readonly class DevDatasetGenerator
                     $start = $run <= $mornings
                         ? 6 * 60 + 15 + 35 * ($run - 1) + $random->getInt(0, 30)
                         : 12 * 60 + 30 + 40 * ($run - $mornings - 1) + $random->getInt(0, 40);
-                    $rows[] = $this->run($random, $day, $punctuality, $route, $index, $price, $run, $start, $this->trips($random), $run <= $mornings);
+                    $rows[] = $this->run($random, $day, $punctuality, $route, $index, $price, $run, $start, $this->trips($random), $run <= $mornings, $routeCrew);
                 }
             }
         }
@@ -168,7 +194,7 @@ final readonly class DevDatasetGenerator
         // The route names that are not routes, on a few days.
         foreach ([self::MISSPELLED_BOOKED_ROUTE => 3, self::ROUTE_WITH_NO_SEPARATOR => 2, ...array_fill_keys(self::NOTE_ROUTES, 2)] as $route => $chance) {
             if ($random->getInt(1, 100) <= $chance) {
-                $rows[] = $this->run($random, $day, $punctuality, $route, 0, self::BOOKED_PRICE, 1, $random->getInt(8 * 60, 15 * 60), 1, false);
+                $rows[] = $this->run($random, $day, $punctuality, $route, 0, self::BOOKED_PRICE, 1, $random->getInt(8 * 60, 15 * 60), 1, false, $this->bookedCrew($crew));
             }
         }
 
@@ -180,13 +206,14 @@ final readonly class DevDatasetGenerator
      * A morning run drives the citizens from home to the institution of the route. An afternoon
      * run drives them back. The institution end of a trip has a place name.
      *
-     * @param int  $routeIndex the number of the route in the dataset, which selects its citizens and its institution. 0 is a route with no fixed citizens
-     * @param int  $start      the planned time of the first pickup, in minutes after midnight
-     * @param bool $toSchool   true for a run from home to the institution
+     * @param int                                                             $routeIndex the number of the route in the dataset, which selects its citizens and its institution. 0 is a route with no fixed citizens
+     * @param int                                                             $start      the planned time of the first pickup, in minutes after midnight
+     * @param bool                                                            $toSchool   true for a run from home to the institution
+     * @param array{vogntype: string, chaufførtype: ?string, operatør: int}   $crew       the vehicle type, the driver type and the operator of the route
      *
      * @return list<ExtractRow>
      */
-    private function run(Randomizer $random, \DateTimeImmutable $day, float $punctuality, string $route, int $routeIndex, float $price, int $run, int $start, int $tripCount, bool $toSchool): array
+    private function run(Randomizer $random, \DateTimeImmutable $day, float $punctuality, string $route, int $routeIndex, float $price, int $run, int $start, int $tripCount, bool $toSchool, array $crew): array
     {
         $place = 0 === $routeIndex ? null : (0 === $routeIndex % 3 ? \sprintf('Center %d', $routeIndex % 30 + 1) : \sprintf('Skole %d', $routeIndex % 60 + 1));
         $citizens = 0 === $routeIndex
@@ -252,6 +279,7 @@ final readonly class DevDatasetGenerator
                         'passengers' => $planned,
                         'prisprminut' => $price,
                         'aflysningsvarsel' => $cancelled ? $trip['notice'] : null,
+                        ...$crew,
                     ],
                 );
                 $minutes += 'pickup' === $type ? $random->getInt(4, 14) : $random->getInt(2, 8);
@@ -260,6 +288,43 @@ final readonly class DevDatasetGenerator
         }
 
         return $rows;
+    }
+
+    /**
+     * Gives the vehicle type, the driver type and the operator of a route for one day. Most
+     * routes have a vehicle profile and a person as the driver.
+     *
+     * @return array{vogntype: string, chaufførtype: ?string, operatør: int}
+     */
+    private function routeCrew(Randomizer $random, string $supplier): array
+    {
+        [$operator, $vehicles] = self::OPERATORS[$supplier];
+        $driver = $random->getInt(1, 100);
+
+        return [
+            'vogntype' => $random->getInt(1, 100) <= $vehicles ? 'Vehicle' : 'Profile',
+            'chaufførtype' => match (true) {
+                $driver <= self::NO_DRIVER => null,
+                $driver <= self::NO_DRIVER + self::PROFILE_DRIVER => 'Profile',
+                default => 'Person',
+            },
+            'operatør' => $operator,
+        ];
+    }
+
+    /**
+     * Gives the crew values of a booked trip: a vehicle profile, no driver, and the operator of a
+     * random supplier.
+     *
+     * @return array{vogntype: string, chaufførtype: ?string, operatør: int}
+     */
+    private function bookedCrew(Randomizer $random): array
+    {
+        return [
+            'vogntype' => 'Profile',
+            'chaufførtype' => null,
+            'operatør' => $random->pickArrayKeys(array_column(self::OPERATORS, 0, 0), 1)[0],
+        ];
     }
 
     private function trips(Randomizer $random): int

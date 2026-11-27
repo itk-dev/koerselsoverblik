@@ -48,6 +48,11 @@ keep_columns:
     - SlutTidspunkt
     - tidspunkt
     - Tur
+    # For the number of vehicles (#181): "Profile" or "Vehicle", "Person" or "Profile", and the id
+    # of the supplier of the contract of the route.
+    - vogntype
+    - chaufførtype
+    - operatør
 # The personal data of the extract (ADR 004 and ADR 006). The copy of a row never keeps these
 # columns, and the validate command does not show them as not read.
 exclude_columns: [PersonName, Adresse, Post-nr, By, Labels, Comment]

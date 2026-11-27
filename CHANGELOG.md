@@ -7,6 +7,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- [#181](https://github.com/itk-dev/koerselsoverblik/issues/181)
+  Keep the vehicle type, the driver type and the operator columns of the extract. The `default`
+  mapping keeps `vogntype`, `chaufførtype` and `operatør` in the copy of each row, for the number
+  of vehicles. The development dataset has the three columns. No figure uses them yet.
+
 - Moved target label to left side of the punctuality yearly overview.
 
 - [#172](https://github.com/itk-dev/koerselsoverblik/issues/172)
