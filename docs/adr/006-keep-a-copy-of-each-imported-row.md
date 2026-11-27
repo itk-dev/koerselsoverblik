@@ -68,8 +68,9 @@ upload it again.
   are not personal data for the application, so they are not hidden. The vehicle id is an id of
   the planning system, not the registration number. The operator is the supplier, which the
   pages already show by name. A supplier with one driver is a person, so a vehicle or an operator
-  can point to that driver. The pages show these columns only as counts for each supplier, never
-  with a driver id or a person id.
+  can point to that driver. The figures show these columns only as counts for each supplier. The
+  detail pages of a stop row and a rejected row show their values, but the driver id and the
+  person id on these pages show as `(skjult)`.
 - **The ids of the planning system** (trips, addresses, locations, places and cancellations) are
   kept. They mean nothing outside the planning system. The mapping keeps only the columns of the
   current report. A column that the report does not export is not in the mapping (#177).

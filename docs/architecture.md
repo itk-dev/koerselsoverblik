@@ -1732,6 +1732,9 @@ coverage gate and mutation testing on the production code.
     who drives two routes after each other counts one time.
   - The number of distinct `vogn` where `vogntype` is `Vehicle` is the number of registered
     physical vehicles. It is lower than the true number for most suppliers.
+  - The booked trips ("Turbestilling") have an operator and a vehicle profile, but the
+    sub-agreement has no supplier in the application, and an administrator ignores it. Thus the
+    figure leaves them out, as the other figures do, also when the operator gives a supplier.
   - Open: does the transport office accept the estimate? How does `operatør` map to the suppliers
     of the application? The product owner in the transport office answers before the management
     page can show "Biler".

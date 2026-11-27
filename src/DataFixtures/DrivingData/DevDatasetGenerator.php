@@ -383,6 +383,10 @@ final readonly class DevDatasetGenerator
     /**
      * Gives the crew of a booked trip: the vehicle profile of a random operator, and no driver.
      *
+     * In the real extract, a booked trip has an operator, and the booked trips of one day can
+     * have different operators. The sub-agreement "Turbestilling" still has no supplier in the
+     * application (see SUPPLIERS), because it is not a route.
+     *
      * @return Crew
      */
     private function bookedCrew(Randomizer $random): array
