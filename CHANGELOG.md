@@ -14,7 +14,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`aflysningstidspunkt`) as a date and a time. The vehicle id (`vogn`) is not kept until the
   extract has complete vehicle data. The development dataset has the new columns, a driver for
   each route and day, and the notice and the code "in time" from the time of the cancellation.
-  ADR 006 keeps the driver id, and the open decisions describe the new columns.
+  ADR 006 keeps the driver id, and the open decisions describe the new columns. The mapping no
+  longer keeps the 29 columns that the current report does not export, for example `RouteID`,
+  `RequestTimePref` and `PlannedArrival`.
 
 - Moved target label to left side of the punctuality yearly overview.
 

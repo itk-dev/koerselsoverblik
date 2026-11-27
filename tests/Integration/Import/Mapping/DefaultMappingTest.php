@@ -29,9 +29,11 @@ final class DefaultMappingTest extends KernelTestCase
         self::assertSame(3, $mapping->headerRow);
         self::assertSame(['RouteStopID'], $mapping->rowId);
         // The copy of a row keeps the other columns, but never the personal data (ADR 004).
-        self::assertCount(45, $mapping->keepColumns);
-        self::assertContains('PlannedArrival', $mapping->keepColumns);
+        // The list has only the columns of the current report.
+        self::assertCount(16, $mapping->keepColumns);
+        self::assertContains('TripID', $mapping->keepColumns);
         self::assertContains('blokstart', $mapping->keepColumns);
+        self::assertNotContains('PlannedArrival', $mapping->keepColumns);
         // No feature uses these columns of the prototype yet, so they are not fields.
         foreach (['passengers', 'prisprminut', 'aflysningsvarsel', 'aflysningstidspunkt', 'afbestillingskanal', 'aflysningstype', 'aflysningskategori', 'chauffør'] as $column) {
             self::assertContains($column, $mapping->keepColumns);

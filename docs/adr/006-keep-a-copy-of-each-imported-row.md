@@ -61,8 +61,9 @@ upload it again.
   system (#177). The driver changes of a route need it. It identifies a person, so it is personal
   data about the driver. The extract has no name or other data about the driver. The application
   never shows the driver id, or writes it to a log or to the output of a command.
-- **The ids of the planning system** (trips, requests, routes, addresses, locations, places and
-  paths) are kept. They mean nothing outside the planning system.
+- **The ids of the planning system** (trips, addresses, locations, places and cancellations) are
+  kept. They mean nothing outside the planning system. The mapping keeps only the columns of the
+  current report. A column that the report does not export is not in the mapping (#177).
 - **Rejected rows** also get a copy, except a row with a date outside the range of the upload.
   The upload for that date imports it.
 - **Optional fields:** a value that the parser cannot read gives an empty value and a warning, not

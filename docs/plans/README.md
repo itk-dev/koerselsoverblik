@@ -85,7 +85,6 @@ feature that has an issue or an issue text.
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
-| Add the cancellation, driver and vehicle columns to the extract | In progress | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – | [extract-cancellation-driver-vehicle.md](extract-cancellation-driver-vehicle.md) |
 | Add the distances and the durations to the totals of each route and day | Blocked | – | The open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
 ### Documentation
@@ -173,3 +172,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Review follow-up of the driving activity page | [#165](https://github.com/itk-dev/koerselsoverblik/issues/165) | [#166](https://github.com/itk-dev/koerselsoverblik/pull/166) |
 | Show the late cancellations on the driving activity page | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167) | [#168](https://github.com/itk-dev/koerselsoverblik/pull/168) |
 | Read the stored copies again through a changed mapping | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – |
+| Add the cancellation, driver and vehicle columns to the extract | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – |

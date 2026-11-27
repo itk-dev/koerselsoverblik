@@ -642,21 +642,23 @@ permitted, for example "7 of 80 runs".
 | `location_name` | `Placename` | text | The institution of a trip. Empty in the reference extract. Never shown with a person id, or written to a log or to the output of a command. |
 | `cancelled_in_time` | `RettidigAflysningsvarsel` | text code | "yes" when the trip is cancelled on an earlier date, or more than 60 minutes before the planned arrival. "no" in all other rows, also when the stop is not cancelled. Optional. See "Cancellation notice" in [open decisions](#open-decisions). |
 
-**Why the planned time comes from `PlannedDeparture`:** the extract has a planned arrival
-(`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The departure is
-some minutes after the arrival. The transport office measures punctuality against the planned
-departure, because the driver registers the stop when the citizen is in or out of the car.
+**Why the planned time comes from `PlannedDeparture`:** the planning system has a planned arrival
+(`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The current report
+exports only the departure. The departure is some minutes after the arrival. The transport office
+measures punctuality against the planned departure, because the driver registers the stop when
+the citizen is in or out of the car.
 `StatusUpdateTime` is that registration.
 
 **Why the run comes from `blocknumber`:** the extract also has a column for the start and a column
 for the end of a block. In the reference extract, one run has a start but no end. A split on the
 end flag joins that run with the next run. The block number gives each run directly.
 
-**Columns in the copy only:** the `default` mapping keeps all the other columns in the copy of a
-row, but not the personal data. For example:
+**Columns in the copy only:** the `default` mapping keeps the other columns of the current
+report in the copy of a row, but not the personal data. A column that the report does not export
+is not in the mapping. If a feature needs such a column, the transport office adds it to the
+report first. The kept columns are:
 
-- the ids of trips, trip requests, routes, addresses, locations, places and paths
-- the requested times, the service times, the planned arrival and the planned activity times
+- the ids of trips, addresses, locations and places
 - the cancellation columns: the cancellation id, the time of the cancellation
   (`aflysningstidspunkt`, a date and a time), and the notice in minutes (`aflysningsvarsel`). The
   notice uses only the time of day of the cancellation, so it is not correct for a cancellation on
@@ -1618,8 +1620,8 @@ coverage gate and mutation testing on the production code.
 - **Maximum range (answered).** The planning system exports one day at a time. The users upload
   one day or one week, so the default of `APP_DRIVING_DATA_MAX_DAYS` is 7 days.
 - **Route column.** Which column identifies a route: the route name or the route id? The route id
-  can be an id for one day only. The `default` mapping uses the route name until this is
-  confirmed. The product owner in the transport office answers before go-live.
+  can be an id for one day only, and the current report does not export it. The `default` mapping
+  uses the route name until this is confirmed. The product owner in the transport office answers before go-live.
 - **Supplier mapping (answered).** A route belongs to the sub-agreement in its name: the part
   before the last `-nn` or `_nn`. An administrator gives each sub-agreement one supplier. The
   supplier applies to all dates. See the terms in [Data model](#data-model).
@@ -1664,7 +1666,8 @@ coverage gate and mutation testing on the production code.
   office answers before go-live.
 - **Booked time.** Must a pickup be measured against the time that the citizen booked
   (`RequestTimePref`), not the planned departure? In the reference extract, the booked time is in
-  only 70 of 139 pickups. The product owner in the transport office answers before go-live.
+  only 70 of 139 pickups. The current report does not export the booked time, so the report must
+  add it first. The product owner in the transport office answers before go-live.
 - **Driver changes.** The prototype shows how many times another driver than the fixed driver
   drove a route run. The extract has the driver id of each route (`chauffør`), and the copy of a
   row keeps it (#177). Each route has one driver on a day. Which rule finds the fixed driver of a
