@@ -40,8 +40,8 @@ final class DefaultMappingTest extends KernelTestCase
         foreach (['passengers', 'prisprminut', 'aflysningsvarsel', 'aflysningstidspunkt', 'afbestillingskanal', 'aflysningstype', 'aflysningskategori', 'chauffør', 'vogn', 'vogntype', 'chaufførtype', 'operatør'] as $column) {
             self::assertContains($column, $mapping->keepColumns);
         }
-        // The driver id is personal data, so the pages never show it. The other columns of #181
-        // are not personal data.
+        // The driver id is personal data, so the pages never show it. ADR 006 tells why the
+        // vehicle and the operator columns are not hidden.
         self::assertSame(['chauffør'], $mapping->hiddenColumns);
         // The code of a late cancellation is a field, so it is not also a kept column. It is
         // optional, so that a new code gives a warning and does not reject the row.

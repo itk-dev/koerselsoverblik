@@ -1670,11 +1670,16 @@ coverage gate and mutation testing on the production code.
   only 70 of 139 pickups. The current report does not export the booked time, so the report must
   add it first. The product owner in the transport office answers before go-live.
 - **Driver changes.** The prototype shows how many times another driver than the fixed driver
-  drove a route run. The extract has the driver id of each route (`chauffør`), and the copy of a
-  row keeps it (#177). Each route has one driver on a day. Which rule finds the fixed driver of a
-  route? For example, the driver who drives the route on the most days of the period. The
-  application never shows a driver id. The product owner in the transport office answers before
-  the punctuality page can show the driver changes.
+  drove a route run. The extract has the driver id of each route (`chauffør`) and the driver type
+  (`chaufførtype`), and the copy of a row keeps them (#177, #181). A route has one driver on a
+  day. The type is `Person` for almost all routes. A few routes have a driver profile (`Profile`),
+  whose id is shared by many routes, or no driver. Only a driver with the type `Person` is a
+  driver for this figure. Else the change from a profile to a person looks like a driver change.
+  Open: which rule finds the fixed driver of a route? For example, the person who drives the
+  route on the most days of the period. How does a day with a driver profile or with no driver
+  count: as no change, or as a case of its own? The application never shows a driver id. The
+  product owner in the transport office answers before the punctuality page can show the driver
+  changes.
 - **No-shows.** The prototype shows, for each supplier, the trips where the car came but the
   citizen was not there. The copy of a row keeps the type and the category of a cancellation
   (#177). The category `NoShow` comes from the driver app, the office portal and the institution
@@ -1722,8 +1727,9 @@ coverage gate and mutation testing on the production code.
   - `operatør` is the id of the supplier of the contract of the route (`HaulierID`). It gives the
     supplier also when the route has a vehicle profile.
   - The best estimate for each supplier and day: the number of distinct `chauffør` where
-    `chaufførtype` is `Person`, plus the number of routes with no driver. A driver who drives two
-    routes after each other counts one time.
+    `chaufførtype` is `Person`, plus the number of routes with a driver profile or with no driver.
+    Such a route counts as one vehicle, because the profile id is shared by many routes. A driver
+    who drives two routes after each other counts one time.
   - The number of distinct `vogn` where `vogntype` is `Vehicle` is the number of registered
     physical vehicles. It is lower than the true number for most suppliers.
   - Open: does the transport office accept the estimate? How does `operatør` map to the suppliers

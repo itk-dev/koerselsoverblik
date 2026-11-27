@@ -19,7 +19,7 @@ use Random\Randomizer;
  * The same settings give the same rows. Each day has its own random engine, so that a day is the
  * same also when its week is made alone.
  *
- * @phpstan-type Crew array{vogn: string, chauffør: ?string, vogntype: string, chaufførtype: ?string, operatør: int}
+ * @phpstan-type Crew array{vogn: string, chauffør: ?string, vogntype: string, chaufførtype: ?string, operatør: string}
  */
 final readonly class DevDatasetGenerator
 {
@@ -77,8 +77,9 @@ final readonly class DevDatasetGenerator
 
     /**
      * The invented id of each supplier in the planning system (the column `operatør`), and the
-     * chance in percent that a route has a physical vehicle and not a vehicle profile. One
-     * supplier registers no physical vehicles, as in the real data.
+     * share in percent of the routes that have a physical vehicle and not a vehicle profile. One
+     * supplier registers no physical vehicles, as in the real data. The extract has the id as
+     * text.
      *
      * @var array<string, array{int, int}>
      */
@@ -90,8 +91,8 @@ final readonly class DevDatasetGenerator
     ];
 
     /**
-     * The chance in percent that a route has a vehicle profile as the driver, and that a route has
-     * no driver. The other routes have a person as the driver.
+     * The chance in percent that a route has a driver profile as the driver, and that a route has
+     * no driver on a day. The other routes have a person as the driver.
      */
     private const int PROFILE_DRIVER = 3;
 
@@ -152,7 +153,7 @@ final readonly class DevDatasetGenerator
     /**
      * The driver id of all driver profiles.
      */
-    private const string DRIVER_PROFILE = '999';
+    public const string DRIVER_PROFILE = '999';
 
     /**
      * The delay bands of a late last drop-off in seconds, with the weight of each band.
@@ -188,8 +189,8 @@ final readonly class DevDatasetGenerator
     {
         $day = new \DateTimeImmutable($day->format('Y-m-d'));
         $random = new Randomizer(new Mt19937(crc32($settings->seed.'-'.$day->format('Y-m-d'))));
-        // The vehicles and the drivers have their own random engine, so that the other values are
-        // the same as before these columns.
+        // The vehicles and the drivers have their own random engine. A later change of the crew
+        // then does not change the other values of the dataset.
         $crew = new Randomizer(new Mt19937(crc32($settings->seed.'-crew-'.$day->format('Y-m-d'))));
         $punctuality = $settings->punctuality($day);
         $weekend = $this->calendar->isWeekend($day);
@@ -345,10 +346,11 @@ final readonly class DevDatasetGenerator
      * Gives the vehicle, the driver and the operator of a route for one day. Most routes have a
      * vehicle profile and a person as the driver.
      *
-     * A physical vehicle has its own id. A vehicle profile has one id for each operator, so that
-     * the id is on many routes at the same time, as in the real data. A person has the fixed
-     * driver id of the route, or the id of a substitute on some days. All driver profiles have one
-     * id. A route with no driver has no driver id.
+     * The vehicle type follows the route, not the day, because a supplier registers the vehicle of
+     * a route one time. A physical vehicle has its own id. A vehicle profile has one id for each
+     * operator, so that the id is on many routes at the same time, as in the real data. A person
+     * has the fixed driver id of the route, or the id of a substitute on some days. All driver
+     * profiles have one id. A route with no driver has no driver id.
      *
      * @return Crew
      */
@@ -356,7 +358,8 @@ final readonly class DevDatasetGenerator
     {
         [$operator, $vehicles] = self::OPERATORS[$supplier];
         $driver = $random->getInt(1, 100);
-        $physical = $random->getInt(1, 100) <= $vehicles;
+        // 37 and 100 have no common factor, so the routes of a supplier spread over 0 to 99.
+        $physical = ($routeIndex * 37) % 100 < $vehicles;
         $driverType = match (true) {
             $driver <= self::NO_DRIVER => null,
             $driver <= self::NO_DRIVER + self::PROFILE_DRIVER => 'Profile',
@@ -373,7 +376,7 @@ final readonly class DevDatasetGenerator
             },
             'vogntype' => $physical ? 'Vehicle' : 'Profile',
             'chaufførtype' => $driverType,
-            'operatør' => $operator,
+            'operatør' => (string) $operator,
         ];
     }
 
@@ -391,7 +394,7 @@ final readonly class DevDatasetGenerator
             'chauffør' => null,
             'vogntype' => 'Profile',
             'chaufførtype' => null,
-            'operatør' => $operator,
+            'operatør' => (string) $operator,
         ];
     }
 

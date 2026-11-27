@@ -12,7 +12,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   mapping keeps `vogntype`, `chaufførtype` and `operatør` in the copy of each row, for the number
   of vehicles. It now also keeps the vehicle id (`vogn`), because `vogntype` tells which ids are
   vehicle profiles. The development dataset has the four columns. A vehicle profile is on many
-  routes at the same time, and a route with no driver has no driver id. No figure uses them yet.
+  routes at the same time, a route keeps its vehicle type on all days, the operator id is text as
+  in the extract, and a route with no driver has no driver id. No figure uses them yet. ADR 006
+  tells why the vehicle and the operator columns are not hidden.
 
 - [#177](https://github.com/itk-dev/koerselsoverblik/issues/177)
   Keep the new cancellation and driver columns of the extract in the copy of a row: the channel
