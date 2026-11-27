@@ -230,8 +230,8 @@ final class DrivingDataMappingValidateCommandTest extends KernelTestCase
     {
         // Each person in the base scenario has one pickup and one drop-off, so the row id is unique.
         $this->customMapping(
-            ['row_id: [RouteStopID]', "    - Tur\n"],
-            ['row_id: [PersonID, StopType]', "    - Tur\n    - Note\n    - Trip\n"],
+            ['row_id: [RouteStopID]', "    - chauffør\n"],
+            ['row_id: [PersonID, StopType]', "    - chauffør\n    - Note\n    - Trip\n"],
         );
         new ExtractWriter()->write($this->path, self::defaultMapping(), new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml')->rows);
 

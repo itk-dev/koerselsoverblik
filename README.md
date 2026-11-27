@@ -80,7 +80,7 @@ The user interface is in Danish.
     - The tab "Kørselsdata" lists the uploaded dates. You can clear the driving data for a date,
       for example after a wrong upload.
     - The tab also shows the stored stop rows and rejected rows of a date range, and each row
-      with its row of the extract. The person id never shows.
+      with its row of the extract. The person id and the driver id never show.
     - Columns are read through an [import mapping](#import-mappings), so a changed column name,
       code or format needs no code change.
   - **Suppliers and sub-agreements:** the suppliers, and which supplier drives each
@@ -419,9 +419,10 @@ column. On a rejected row, the column that caused the rejection is marked. An em
 stored, so an empty column that caused the rejection shows as "(tom)".
 
 The person id never shows. It shows as "(skjult)", also in the row of the extract and when the
-row id is the person id column. The import mapping tells which column has the person id. If the
-mapping of the upload no longer exists, the page cannot find that column, and it does not show the
-row of the extract.
+row id is the person id column. The values of the hidden columns of the mapping, for example the
+driver id, also show as "(skjult)". The import mapping tells which columns these are. If the
+mapping of the upload no longer exists, the page cannot find these columns, and it does not show
+the row of the extract.
 
 ### Import mappings
 
@@ -448,6 +449,10 @@ A mapping defines:
   names, addresses, labels or comments
   ([ADR 006](docs/adr/006-keep-a-copy-of-each-imported-row.md)). A kept column that is not in a
   file is not an error.
+- **Hidden columns (optional, `hidden_columns`):** the kept columns with personal data that the
+  copy must keep, for example the driver id. The detail pages of a stop row and a rejected row
+  show `(skjult)` in place of the value, as for the person id. A hidden column must be a kept
+  column, so that a misspelt name does not leave the real column visible.
 - **Excluded columns (optional, `exclude_columns`):** the columns that the mapping leaves out on
   purpose, for example the personal data. The copy never keeps them, and the validate command
   does not show them as not read. An excluded column cannot also be a field column, a row id
@@ -510,6 +515,7 @@ sheet: 0
 header_row: 1
 row_id: [<ROW_ID_COLUMN>]   # optional
 keep_columns: [<COLUMN_NAME>, <COLUMN_NAME>]   # optional
+hidden_columns: [<COLUMN_NAME>]   # optional, kept columns only
 exclude_columns: [<COLUMN_NAME>, <COLUMN_NAME>]   # optional
 fields:
   route:             { column: <COLUMN_NAME>, type: string, required: true }

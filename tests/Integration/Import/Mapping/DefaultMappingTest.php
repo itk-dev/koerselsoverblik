@@ -29,14 +29,20 @@ final class DefaultMappingTest extends KernelTestCase
         self::assertSame(3, $mapping->headerRow);
         self::assertSame(['RouteStopID'], $mapping->rowId);
         // The copy of a row keeps the other columns, but never the personal data (ADR 004).
-        self::assertCount(44, $mapping->keepColumns);
-        self::assertContains('PlannedArrival', $mapping->keepColumns);
+        // The list has only the columns of the current report.
+        self::assertCount(20, $mapping->keepColumns);
+        self::assertContains('TripID', $mapping->keepColumns);
         self::assertContains('blokstart', $mapping->keepColumns);
+        self::assertNotContains('PlannedArrival', $mapping->keepColumns);
         // No feature uses these columns of the prototype yet, so they are not fields. The vehicle
-        // type, the driver type and the operator are for the number of vehicles (#181).
-        foreach (['passengers', 'prisprminut', 'aflysningsvarsel', 'vogntype', 'chaufførtype', 'operatør'] as $column) {
+        // id, the vehicle type, the driver type and the operator are for the number of vehicles
+        // (#181).
+        foreach (['passengers', 'prisprminut', 'aflysningsvarsel', 'aflysningstidspunkt', 'afbestillingskanal', 'aflysningstype', 'aflysningskategori', 'chauffør', 'vogn', 'vogntype', 'chaufførtype', 'operatør'] as $column) {
             self::assertContains($column, $mapping->keepColumns);
         }
+        // The driver id is personal data, so the pages never show it. The other columns of #181
+        // are not personal data.
+        self::assertSame(['chauffør'], $mapping->hiddenColumns);
         // The code of a late cancellation is a field, so it is not also a kept column. It is
         // optional, so that a new code gives a warning and does not reject the row.
         self::assertNotContains('RettidigAflysningsvarsel', $mapping->keepColumns);

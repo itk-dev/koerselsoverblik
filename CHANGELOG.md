@@ -10,7 +10,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - [#181](https://github.com/itk-dev/koerselsoverblik/issues/181)
   Keep the vehicle type, the driver type and the operator columns of the extract. The `default`
   mapping keeps `vogntype`, `chaufførtype` and `operatør` in the copy of each row, for the number
-  of vehicles. The development dataset has the three columns. No figure uses them yet.
+  of vehicles. It now also keeps the vehicle id (`vogn`), because `vogntype` tells which ids are
+  vehicle profiles. The development dataset has the four columns. A vehicle profile is on many
+  routes at the same time, and a route with no driver has no driver id. No figure uses them yet.
+
+- [#177](https://github.com/itk-dev/koerselsoverblik/issues/177)
+  Keep the new cancellation and driver columns of the extract in the copy of a row: the channel
+  (`afbestillingskanal`), the type (`aflysningstype`) and the category (`aflysningskategori`) of
+  a cancellation, and the driver id (`chauffør`). The copy keeps the time of the cancellation
+  (`aflysningstidspunkt`) as a date and a time. The vehicle id (`vogn`) is not kept until the
+  extract has complete vehicle data. The development dataset has the new columns, a driver for
+  each route and day, a time of each cancellation that follows its cause, and the notice and the
+  code "in time" from that time. ADR 006 keeps the driver id, and the open decisions describe the
+  new columns. The mapping no longer keeps the 29 columns that the current report does not
+  export, for example `RouteID`, `RequestTimePref` and `PlannedArrival`.
+  A mapping can name kept columns with personal data in `hidden_columns`. The detail pages of a
+  row show "(skjult)" in place of their values, as for the person id. The `default` mapping hides
+  the driver id.
+  The copies of the dates that are imported before this change do not have the new columns, and
+  `app:driving-data:read-copies` cannot add them. Upload these dates again to get the columns.
 
 - Moved target label to left side of the punctuality yearly overview.
 

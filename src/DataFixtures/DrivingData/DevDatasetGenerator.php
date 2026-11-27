@@ -13,10 +13,13 @@ use Random\Randomizer;
  * The volume and the patterns are like the school transport: two groups of sub-agreements, the
  * same citizens on a route each day, a full volume on a school day, a low volume in a holiday,
  * and only booked trips at the weekend. The punctuality comes from DatasetSettings, not from the
- * real data. The repository is public, so no value in this class comes from a real extract.
+ * real data. The repository is public, so no value in this class comes from a real extract. Only
+ * the codes of a cancellation are as in the extract, so that the pages can map them.
  *
  * The same settings give the same rows. Each day has its own random engine, so that a day is the
  * same also when its week is made alone.
+ *
+ * @phpstan-type Crew array{vogn: string, chauffør: ?string, vogntype: string, chaufførtype: ?string, operatør: int}
  */
 final readonly class DevDatasetGenerator
 {
@@ -118,6 +121,40 @@ final readonly class DevDatasetGenerator
     private const int PENDING = 4;
 
     /**
+     * The channel, the type and the category of a cancellation, with a weight, and the fewest and
+     * the most minutes of the cancellation before the first pickup of the run. A negative number
+     * is after the pickup. The weights and the minutes are invented. The type follows from the
+     * channel. The institution portal often gives no category. The driver registers a no-show at
+     * the door, near the pickup. An early cancellation comes at least 2 hours before, and a late
+     * cancellation in the last hour.
+     *
+     * @var list<array{string, string, ?string, int, int, int}>
+     */
+    private const array CANCELLATION_CAUSES = [
+        ['Passenger app', 'By the passenger', 'Cancelled by a passenger or a relative', 30, 30, 2400],
+        ['Driver app', 'Passenger did not show up', 'Afbud ved dør', 12, -15, 10],
+        ['Driver app', 'Passenger did not show up', 'NoShow', 10, -30, 5],
+        ['Office portal', 'Other reasons', 'Afbestilt tidligt', 14, 120, 2400],
+        ['Office portal', 'Other reasons', 'Afbestilt sent', 6, 0, 60],
+        ['Office portal', 'Other reasons', 'NoShow', 3, -60, 0],
+        ['Institution portal', 'Other reasons', null, 12, 30, 2400],
+        ['Institution portal', 'Other reasons', 'Afbestilt tidligt', 5, 120, 2400],
+        ['Institution portal', 'Other reasons', 'NoShow', 2, -60, 0],
+        ['System', 'By trip request', 'Trip request has expired', 4, 600, 2400],
+        ['System', 'By trip request', 'Trip is paused', 2, 600, 2400],
+    ];
+
+    /**
+     * The chance in percent that another driver than the fixed driver drives a route on a day.
+     */
+    private const int SUBSTITUTE_DRIVER = 10;
+
+    /**
+     * The driver id of all driver profiles.
+     */
+    private const string DRIVER_PROFILE = '999';
+
+    /**
      * The delay bands of a late last drop-off in seconds, with the weight of each band.
      *
      * @var list<array{int, int, int}>
@@ -178,7 +215,8 @@ final readonly class DevDatasetGenerator
                     continue;
                 }
                 $route = \sprintf('%s%s%02d', $reference, $separator, $number);
-                $routeCrew = $this->routeCrew($crew, self::SUPPLIERS[$reference]);
+                // One driver and one vehicle drive all runs of a route on a day.
+                $routeCrew = $this->routeCrew($crew, self::SUPPLIERS[$reference], $index);
                 $runs = $random->getInt($fewest, $most);
                 $mornings = intdiv($runs + 1, 2);
                 for ($run = 1; $run <= $runs; ++$run) {
@@ -206,10 +244,10 @@ final readonly class DevDatasetGenerator
      * A morning run drives the citizens from home to the institution of the route. An afternoon
      * run drives them back. The institution end of a trip has a place name.
      *
-     * @param int                                                             $routeIndex the number of the route in the dataset, which selects its citizens and its institution. 0 is a route with no fixed citizens
-     * @param int                                                             $start      the planned time of the first pickup, in minutes after midnight
-     * @param bool                                                            $toSchool   true for a run from home to the institution
-     * @param array{vogntype: string, chaufførtype: ?string, operatør: int}   $crew       the vehicle type, the driver type and the operator of the route
+     * @param int  $routeIndex the number of the route in the dataset, which selects its citizens and its institution. 0 is a route with no fixed citizens
+     * @param int  $start      the planned time of the first pickup, in minutes after midnight
+     * @param bool $toSchool   true for a run from home to the institution
+     * @param Crew $crew       the vehicle, the driver and the operator of the route
      *
      * @return list<ExtractRow>
      */
@@ -223,11 +261,15 @@ final readonly class DevDatasetGenerator
         $trips = [];
         foreach ($citizens as $citizen) {
             $chance = $random->getInt(1, 100);
+            $cancelled = $chance <= self::CANCELLED;
+            $cause = $cancelled ? self::CANCELLATION_CAUSES[self::weighted($random, array_column(self::CANCELLATION_CAUSES, 3))] : null;
             $trips[] = [
                 'person' => \is_string($citizen) ? $citizen : \sprintf('P-%05d', $routeIndex * self::CITIZENS_PER_ROUTE + $citizen),
-                'status' => $chance <= self::CANCELLED ? 'cancelled' : ($chance <= self::CANCELLED + self::PENDING ? 'pending' : 'completed'),
-                'notice' => round($random->getFloat(-600.0, 600.0), 1),
-                'in time' => $random->getInt(1, 100) <= 60 ? 'yes' : 'no',
+                'status' => $cancelled ? 'cancelled' : ($chance <= self::CANCELLED + self::PENDING ? 'pending' : 'completed'),
+                'cause' => $cause,
+                // Up to 40 hours before the first pickup of the run, so that some trips are
+                // cancelled on the day before.
+                'cancelled at' => null === $cause ? null : $day->modify(\sprintf('%+d minutes', $start - $random->getInt($cause[4], $cause[5]))),
             ];
         }
         $solo = $random->getInt(1, 100) <= 5;
@@ -256,6 +298,11 @@ final readonly class DevDatasetGenerator
                     default => intdiv($lastDelay * $dropOff, max(1, $completedDropOffs)) + $random->getInt(-120, 60),
                 };
                 $km = $this->distance($random);
+                $cancelledAt = $trip['cancelled at'];
+                // The report calculates the notice from the time of day of the cancellation only.
+                // The code "in time" is then "yes" for an earlier date, or for a notice of more
+                // than 60 minutes. Thus the pickup and the drop-off of a trip can have other codes.
+                $notice = null === $cancelledAt ? null : (float) ($minutes - (int) $cancelledAt->format('G') * 60 - (int) $cancelledAt->format('i'));
 
                 $rows[] = new ExtractRow(
                     [
@@ -273,12 +320,16 @@ final readonly class DevDatasetGenerator
                         'planned_solo' => $solo,
                         'location_name' => ('drop_off' === $type) === $toSchool ? $place : null,
                         // The extract has "no" on a row that is not cancelled.
-                        'cancelled_in_time' => $cancelled && 'yes' === $trip['in time'],
+                        'cancelled_in_time' => null !== $cancelledAt && ($cancelledAt < $day || $notice > 60),
                     ],
                     kept: [
                         'passengers' => $planned,
                         'prisprminut' => $price,
-                        'aflysningsvarsel' => $cancelled ? $trip['notice'] : null,
+                        'aflysningstidspunkt' => $cancelledAt,
+                        'aflysningsvarsel' => $notice,
+                        'afbestillingskanal' => $trip['cause'][0] ?? null,
+                        'aflysningstype' => $trip['cause'][1] ?? null,
+                        'aflysningskategori' => $trip['cause'][2] ?? null,
                         ...$crew,
                     ],
                 );
@@ -291,40 +342,65 @@ final readonly class DevDatasetGenerator
     }
 
     /**
-     * Gives the vehicle type, the driver type and the operator of a route for one day. Most
-     * routes have a vehicle profile and a person as the driver.
+     * Gives the vehicle, the driver and the operator of a route for one day. Most routes have a
+     * vehicle profile and a person as the driver.
      *
-     * @return array{vogntype: string, chaufførtype: ?string, operatør: int}
+     * A physical vehicle has its own id. A vehicle profile has one id for each operator, so that
+     * the id is on many routes at the same time, as in the real data. A person has the fixed
+     * driver id of the route, or the id of a substitute on some days. All driver profiles have one
+     * id. A route with no driver has no driver id.
+     *
+     * @return Crew
      */
-    private function routeCrew(Randomizer $random, string $supplier): array
+    private function routeCrew(Randomizer $random, string $supplier, int $routeIndex): array
     {
         [$operator, $vehicles] = self::OPERATORS[$supplier];
         $driver = $random->getInt(1, 100);
+        $physical = $random->getInt(1, 100) <= $vehicles;
+        $driverType = match (true) {
+            $driver <= self::NO_DRIVER => null,
+            $driver <= self::NO_DRIVER + self::PROFILE_DRIVER => 'Profile',
+            default => 'Person',
+        };
+        $substitute = $random->getInt(1, 100) <= self::SUBSTITUTE_DRIVER;
 
         return [
-            'vogntype' => $random->getInt(1, 100) <= $vehicles ? 'Vehicle' : 'Profile',
-            'chaufførtype' => match (true) {
-                $driver <= self::NO_DRIVER => null,
-                $driver <= self::NO_DRIVER + self::PROFILE_DRIVER => 'Profile',
-                default => 'Person',
+            'vogn' => $physical ? (string) (1000 + $routeIndex) : self::vehicleProfile($operator),
+            'chauffør' => match ($driverType) {
+                null => null,
+                'Profile' => self::DRIVER_PROFILE,
+                default => (string) ($substitute ? $random->getInt(500, 599) : 100 + $routeIndex),
             },
+            'vogntype' => $physical ? 'Vehicle' : 'Profile',
+            'chaufførtype' => $driverType,
             'operatør' => $operator,
         ];
     }
 
     /**
-     * Gives the crew values of a booked trip: a vehicle profile, no driver, and the operator of a
-     * random supplier.
+     * Gives the crew of a booked trip: the vehicle profile of a random operator, and no driver.
      *
-     * @return array{vogntype: string, chaufførtype: ?string, operatør: int}
+     * @return Crew
      */
     private function bookedCrew(Randomizer $random): array
     {
+        $operator = $random->pickArrayKeys(array_column(self::OPERATORS, 0, 0), 1)[0];
+
         return [
+            'vogn' => self::vehicleProfile($operator),
+            'chauffør' => null,
             'vogntype' => 'Profile',
             'chaufførtype' => null,
-            'operatør' => $random->pickArrayKeys(array_column(self::OPERATORS, 0, 0), 1)[0],
+            'operatør' => $operator,
         ];
+    }
+
+    /**
+     * The id of the vehicle profile of an operator.
+     */
+    private static function vehicleProfile(int $operator): string
+    {
+        return (string) (800 + $operator);
     }
 
     private function trips(Randomizer $random): int

@@ -63,29 +63,28 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the driver changes | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177), and the rule for the fixed driver of a route | – |
-| Show the no-shows for each supplier | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – |
+| Show the driver changes | Blocked | – | The rule for the fixed driver of a route ("Driver changes" in [Open decisions](../architecture.md#open-decisions)) | – |
+| Show the no-shows for each supplier | Blocked | – | The rule for a no-show ("No-shows" in [Open decisions](../architecture.md#open-decisions)) | – |
 
 ### Activity page
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show where and when the cancellations come | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) for the notice bands, and the open questions of "Cancellation notice" | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
-| Show who cancels and why | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177), and the values of the channel, the type and the category of a cancellation in real data | – |
-| Show the no-shows | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | – |
+| Show where and when the cancellations come | Blocked | – | The open questions of "Cancellation notice" in [Open decisions](../architecture.md#open-decisions) | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
+| Show who cancels and why | Blocked | – | The groups of the channels of a cancellation ("Cancellation cause" in [Open decisions](../architecture.md#open-decisions)) | – |
+| Show the no-shows | Blocked | – | The rule for a no-show ("No-shows" in [Open decisions](../architecture.md#open-decisions)) | – |
 
 ### Management page
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show the number of vehicles | Blocked | – | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177), and "Number of vehicles" in [open decisions](../architecture.md#open-decisions) | – |
+| Show the number of vehicles | Blocked | – | "Number of vehicles" in [Open decisions](../architecture.md#open-decisions) | – |
 
 ### Driving data
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
 | Serialise the changes of the driving data | Draft | – | – | [driving-data-lock.md](driving-data-lock.md) |
-| Add the cancellation, driver and vehicle columns to the extract | Blocked | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | The six columns in the report of the extract | [extract-cancellation-driver-vehicle.md](extract-cancellation-driver-vehicle.md) |
 | Add the distances and the durations to the totals of each route and day | Blocked | – | The open decisions "Stops with no registration" and "Passengers and distances of a run" | [daily-stats.md](daily-stats.md) |
 
 ### Documentation
@@ -173,4 +172,5 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Review follow-up of the driving activity page | [#165](https://github.com/itk-dev/koerselsoverblik/issues/165) | [#166](https://github.com/itk-dev/koerselsoverblik/pull/166) |
 | Show the late cancellations on the driving activity page | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167) | [#168](https://github.com/itk-dev/koerselsoverblik/pull/168) |
 | Read the stored copies again through a changed mapping | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – |
+| Add the cancellation, driver and vehicle columns to the extract | [#177](https://github.com/itk-dev/koerselsoverblik/issues/177) | [#183](https://github.com/itk-dev/koerselsoverblik/pull/183) |
 | Keep the vehicle type, driver type and operator columns of the extract | [#181](https://github.com/itk-dev/koerselsoverblik/issues/181) | [#182](https://github.com/itk-dev/koerselsoverblik/pull/182) |

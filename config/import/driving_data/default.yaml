@@ -4,57 +4,43 @@ sheet: 0
 header_row: 3
 row_id: [RouteStopID]
 # The other columns that the copy of a row keeps, so that a later task can read them with no new
-# upload. The personal data is never kept (see "exclude_columns" and ADR 006). Add a new column of
-# the extract here only after a check for personal data.
+# upload. The list has only the columns of the current report, in the order of the report. The
+# personal data is never kept (see "exclude_columns" and ADR 006). Add a new column of the extract
+# here only after a check for personal data.
 keep_columns:
-    - RouteGroupID
     - TripID
-    - RouteID
-    - TripRequestID
+    - blokstart
+    - blokslut
+    - IsCancelled
+    - passengers
+    - prisprminut
+    - aflysningsvarsel
+    - CancellationID
     - PlaceID
     - AddressID
     - LocationID
-    - IsCancelled
-    - CancellationID
-    - RequestTimeEarliest
-    - RequestTimePref
-    - RequestTimeLatest
-    - StopService
-    - ServiceTime
-    - ServiceTime2
-    - PlannedArrival
-    - PlannedActivityStart
-    - PlannedActivityStop
-    - MaxDriveTime
-    - RideGroups
-    - ToNextPathID
-    - DirectPathID
-    - MaxInCar
-    - ReplacedByRouteStopID
-    - IsLocked
-    - RunLocationID
-    - StatusClickLocationID
-    - StatusClickDeviation
-    - DirectPathDuration
-    - DirectPathDistance
-    - prisprminut
-    - passengers
     - aflysningstidspunkt
-    - aflysningsvarsel
-    - rutestartet
-    - blokstart
-    - blokslut
-    - StartTidspunkt
-    - SlutTidspunkt
-    - tidspunkt
-    - Tur
+    # The channel, the type and the category of a cancellation. Empty when the stop is not
+    # cancelled. The list of categories is not fixed.
+    - afbestillingskanal
+    - aflysningstype
+    - aflysningskategori
+    # The id of the vehicle of the route in the planning system. A vehicle profile is on many
+    # routes at the same time, so it is not one vehicle (see "vogntype").
+    - vogn
+    # The id of the driver of the route in the planning system. Never show it, or write it to a
+    # log or to the output of a command (ADR 006). It is in "hidden_columns".
+    - chauffør
     # For the number of vehicles (#181): "Profile" or "Vehicle", "Person" or "Profile", and the id
     # of the supplier of the contract of the route.
     - vogntype
     - chaufførtype
     - operatør
-# The personal data of the extract (ADR 004 and ADR 006). The copy of a row never keeps these
-# columns, and the validate command does not show them as not read.
+# The kept columns with personal data. The pages show "(skjult)" in place of the value.
+hidden_columns: [chauffør]
+# The personal data of the extract (ADR 004 and ADR 006). The current report does not export these
+# columns. The list stops a mapping that keeps one of them, and the validate command does not show
+# them as not read.
 exclude_columns: [PersonName, Adresse, Post-nr, By, Labels, Comment]
 fields:
     route: { column: RouteName, type: string, required: true }

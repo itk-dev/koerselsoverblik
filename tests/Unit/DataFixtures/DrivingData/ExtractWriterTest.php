@@ -86,6 +86,21 @@ final class ExtractWriterTest extends TestCase
     }
 
     /**
+     * The extract has the time of a cancellation as a date cell. A kept date and time reads back
+     * as a date and time, not as a number.
+     */
+    public function testKeptDateTimeIsADateCell(): void
+    {
+        new ExtractWriter()->write($this->path, self::mapping('valid'), [
+            new ExtractRow(self::values(), kept: ['Note' => new \DateTimeImmutable('2026-01-04 14:05:00')]),
+        ]);
+
+        $value = $this->readSheet(1)[2][self::FIRST_KEPT];
+        self::assertInstanceOf(\DateTimeImmutable::class, $value);
+        self::assertSame('2026-01-04 14:05', $value->format('Y-m-d H:i'));
+    }
+
+    /**
      * The file has the excluded columns, as the reference extract has them, but with no values.
      */
     public function testExcludedColumnsComeLastAndAreEmpty(): void
