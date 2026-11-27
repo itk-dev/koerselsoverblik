@@ -15,10 +15,9 @@ shows the cancellations by the institution, by the direction, by the time of day
 notice. The transport office can then find the places and the times where many trips are
 cancelled.
 
-The copy of a row keeps the column `aflysningstidspunkt` (#177). The notice in
-`aflysningsvarsel` uses only the time of day of the cancellation. It is wrong for a cancellation
-on an earlier day, and it can be negative (see "Cancellation notice" in `docs/architecture.md`).
-The notice bands need the date and the time of the cancellation.
+This issue needs the notice of each stop row, which the application calculates from the date and
+the time of the cancellation and the planned departure (see "Calculate the late cancellations
+with a notice limit from the configuration").
 
 ## Tasks
 
@@ -26,8 +25,7 @@ The notice bands need the date and the time of the cancellation.
   - the 10 locations with the most cancelled trips, with the share of all cancelled trips
   - the cancelled trips to the institution and from the institution
   - the cancelled trips by the time of day of the planned pickup
-  - the cancelled trips by the notice. Calculate the notice from `aflysningstidspunkt` and the
-    planned time of the stop, not from `aflysningsvarsel`.
+  - the cancelled trips by the notice of the pickup, in bands
 - Add a derived table with the cancelled trips for each route, date, location, direction, time
   band and notice band. The import builds it, as `LocationDayTotals`. It has no person ids.
 - Show a location only as a group of trips, never with a person id.

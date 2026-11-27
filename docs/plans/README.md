@@ -70,7 +70,8 @@ feature that has an issue or an issue text.
 
 | Feature | Status | Issue | Needs | Plan |
 | --- | --- | --- | --- | --- |
-| Show where and when the cancellations come | Blocked | – | The open questions of "Cancellation notice" in [Open decisions](../architecture.md#open-decisions) | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
+| Calculate the late cancellations with a notice limit from the configuration | Draft | – | – | [cancellation-notice-limit.md](cancellation-notice-limit.md) |
+| Show where and when the cancellations come | Blocked | – | "Calculate the late cancellations with a notice limit from the configuration", and the bands of the notice | [activity-cancellation-breakdown.md](activity-cancellation-breakdown.md) |
 | Show who cancels and why | Blocked | – | The groups of the channels of a cancellation ("Cancellation cause" in [Open decisions](../architecture.md#open-decisions)) | – |
 | Show the no-shows | Blocked | – | The rule for a no-show ("No-shows" in [Open decisions](../architecture.md#open-decisions)) | – |
 

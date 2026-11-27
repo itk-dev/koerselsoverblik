@@ -106,7 +106,7 @@ averages of daily percentages.
 | Empty running (%) | Share of driven kilometres with no citizen in the vehicle | Driving data |
 | Trips | Passenger trips: one citizen's trip from pickup to drop-off. Includes cancelled trips | Driving data |
 | Cancelled trips (%) | Share of all trips that are cancelled | Driving data |
-| Cancelled too late (%) | Share of all trips that the extract marks as cancelled too late: on the same day, 60 minutes or less before the planned arrival. A cancellation on an earlier day is in time. The transport office has not confirmed that this is the rule of the contract. No value when no cancelled trip of the period has a code | Driving data |
+| Cancelled too late (%) | Share of all trips that the extract marks as cancelled too late: 60 minutes or less before the planned arrival of the pickup, or after it. The transport office has not confirmed that this is the rule of the contract. No value when no cancelled trip of the period has a code | Driving data |
 | Route runs | Route runs that are not cancelled, also a run with no citizen in the vehicle. A run is cancelled when all its stops are cancelled | Driving data |
 | Citizens | Distinct citizens in the period, counted on the person id of the planning system | Driving data |
 | Solo routes | Route runs with exactly one citizen in the vehicle at a time. Shown with the share of the route runs that had a citizen in the vehicle | Driving data |
