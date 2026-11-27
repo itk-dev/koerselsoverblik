@@ -640,7 +640,7 @@ permitted, for example "7 of 80 runs".
 | `actual_time` | `StatusUpdateTime` | Excel date and time | Empty when the stop has no registration. |
 | `planned_solo` | `kørselstype` | text code | Two codes: solo and shared. |
 | `location_name` | `Placename` | text | The institution of a trip. Empty in the reference extract. Never shown with a person id, or written to a log or to the output of a command. |
-| `cancelled_in_time` | `RettidigAflysningsvarsel` | text code | "yes" when the trip is cancelled on an earlier date, or more than 60 minutes before the planned arrival. "no" in all other rows, also when the stop is not cancelled. Optional. See "Cancellation notice" in [open decisions](#open-decisions). |
+| `cancelled_in_time` | `RettidigAflysningsvarsel` | text code | "yes" when the notice to the planned arrival of the pickup is more than 60 minutes. "no" in all other rows, also after the trip, and when the stop is not cancelled. Optional. See "Cancellation notice" in [open decisions](#open-decisions). |
 
 **Why the planned time comes from `PlannedDeparture`:** the planning system has a planned arrival
 (`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The current report
@@ -661,8 +661,8 @@ report first. The kept columns are:
 - the ids of trips, addresses, locations and places
 - the cancellation columns: the cancellation id, the time of the cancellation
   (`aflysningstidspunkt`, a date and a time), and the notice in minutes (`aflysningsvarsel`). The
-  notice uses only the time of day of the cancellation, so it is not correct for a cancellation on
-  an earlier day (see "Cancellation notice" in [open decisions](#open-decisions))
+  report calculates the notice from the date and the time of the cancellation to the planned
+  arrival of the pickup (see "Cancellation notice" in [open decisions](#open-decisions))
 - the channel (`afbestillingskanal`), the type (`aflysningstype`) and the category
   (`aflysningskategori`) of a cancellation. They are empty when the stop is not cancelled. The type
   follows from the channel. The list of categories is not fixed, and the institution portal often
@@ -1690,27 +1690,22 @@ coverage gate and mutation testing on the production code.
 - **Cancellation notice.** The extract has the notice of a cancellation (`aflysningsvarsel`) and
   a code that tells if the notice was in time (`RettidigAflysningsvarsel`). The report script of
   the transport office calculates them:
-  - The notice is in minutes: the planned arrival minus the time of day of the cancellation. The
-    date of the cancellation is not used. Thus the notice is wrong for a cancellation on an
-    earlier day, and it can be negative. For example, a trip at 08:00 that is cancelled at 14:00
-    the day before gets −360 minutes, not 1,080 minutes.
-  - The code is "yes" when the cancellation is on an earlier date than the trip, or more than 60
-    minutes before the planned arrival. Else it is "no", also on a row that is not cancelled.
-    The code checks the date first, so it is correct. The late cancellations on the activity page
-    use the code (#167).
-  - The code checks only for an earlier date. A cancellation that is registered on a later date
-    than the trip, at an earlier time of day, gets "yes", because the notice from the time of day
-    is then more than 60 minutes. For example, a no-show of a trip at 14:00 that is registered at
-    09:00 the next day.
-  - Each stop uses its own planned arrival. Thus the pickup and the drop-off of one cancelled
-    trip can have different codes. The application reads the code of the pickup.
-  - The copy of a row keeps the date and the time of the cancellation (`aflysningstidspunkt`).
-    Thus a feature can calculate the notice from the date and the time, and find a cancellation
-    on a later date.
-  - Open: can the report calculate the notice from the date and the time? Is a limit of 60
-    minutes before the planned arrival the rule of the contract? Must a cancellation on a later
-    date than the trip be "no"? The product owner in the transport office answers before the
-    activity page can show the notice bands.
+  - The notice is in minutes, from the date and the time of the cancellation to the date and the
+    planned arrival of the pickup. The pickup and the drop-off of a trip have the same notice. A
+    cancellation after the trip has a negative notice. For example, a trip at 08:00 that is
+    cancelled at 14:00 the day before gets 1,080 minutes.
+  - The code is "yes" when the notice is more than 60 minutes. Else it is "no", also on a row that
+    is not cancelled. The late cancellations on the activity page use the code of the pickup
+    (#167).
+  - The report has known limits. It counts a day as 1,440 minutes, so the notice is 60 minutes
+    wrong over a change to or from summer time. It measures from the planned arrival, but the
+    punctuality measures from the planned departure. The limit of 60 minutes is fixed in the
+    report. The plan "Calculate the late cancellations with a notice limit from the
+    configuration" moves the calculation to the application.
+  - Open: is a limit of 60 minutes the rule of the contract? Is a cancellation after the planned
+    time "too late", or a group of its own? Which bands must the chart of the notice show? The
+    product owner in the transport office answers before the activity page can show the notice
+    bands.
 - **Cancellation cause.** The prototype shows who cancelled a trip (for example the citizen, the
   institution, the transport office or the supplier), and why. The copy of a row keeps the
   channel, the type and the category of a cancellation (#177). The channels are `Passenger app`,
