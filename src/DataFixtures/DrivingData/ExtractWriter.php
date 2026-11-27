@@ -86,7 +86,9 @@ final readonly class ExtractWriter
                     : $this->cell($name, $mapping->field($name), $row->values[$name->value] ?? null);
             }
             foreach ($mapping->keepColumns as $column) {
-                $cells[] = Cell::fromValue($row->kept[$column] ?? null);
+                $value = $row->kept[$column] ?? null;
+                // Without a number format, the reader gives a date and time as a number.
+                $cells[] = $value instanceof \DateTimeInterface ? new DateTimeCell($value, $this->dateTimeStyle) : Cell::fromValue($value);
             }
             // The fixtures have no personal data, so an excluded column is empty.
             foreach ($mapping->excludeColumns as $ignored) {

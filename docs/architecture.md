@@ -642,31 +642,46 @@ permitted, for example "7 of 80 runs".
 | `location_name` | `Placename` | text | The institution of a trip. Empty in the reference extract. Never shown with a person id, or written to a log or to the output of a command. |
 | `cancelled_in_time` | `RettidigAflysningsvarsel` | text code | "yes" when the trip is cancelled on an earlier date, or more than 60 minutes before the planned arrival. "no" in all other rows, also when the stop is not cancelled. Optional. See "Cancellation notice" in [open decisions](#open-decisions). |
 
-**Why the planned time comes from `PlannedDeparture`:** the extract has a planned arrival
-(`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The departure is
-some minutes after the arrival. The transport office measures punctuality against the planned
-departure, because the driver registers the stop when the citizen is in or out of the car.
+**Why the planned time comes from `PlannedDeparture`:** the planning system has a planned arrival
+(`PlannedArrival`) and a planned departure (`PlannedDeparture`) for each stop. The current report
+exports only the departure. The departure is some minutes after the arrival. The transport office
+measures punctuality against the planned departure, because the driver registers the stop when
+the citizen is in or out of the car.
 `StatusUpdateTime` is that registration.
 
 **Why the run comes from `blocknumber`:** the extract also has a column for the start and a column
 for the end of a block. In the reference extract, one run has a start but no end. A split on the
 end flag joins that run with the next run. The block number gives each run directly.
 
-**Columns in the copy only:** the `default` mapping keeps all the other columns in the copy of a
-row, but not the personal data. For example:
+**Columns in the copy only:** the `default` mapping keeps the other columns of the current
+report in the copy of a row, but not the personal data. A column that the report does not export
+is not in the mapping. If a feature needs such a column, the transport office adds it to the
+report first. The kept columns are:
 
-- the ids of trips, trip requests, routes, addresses, locations, places and paths
-- the requested times, the service times, the planned arrival and the planned activity times
-- the cancellation columns: the cancellation id, the time of the cancellation, and the notice in
-  minutes (`aflysningsvarsel`). The notice uses only the time of day of the cancellation, so it is
-  not correct for a cancellation on an earlier day (see "Cancellation notice" in
-  [open decisions](#open-decisions))
+- the ids of trips, addresses, locations and places
+- the cancellation columns: the cancellation id, the time of the cancellation
+  (`aflysningstidspunkt`, a date and a time), and the notice in minutes (`aflysningsvarsel`). The
+  notice uses only the time of day of the cancellation, so it is not correct for a cancellation on
+  an earlier day (see "Cancellation notice" in [open decisions](#open-decisions))
+- the channel (`afbestillingskanal`), the type (`aflysningstype`) and the category
+  (`aflysningskategori`) of a cancellation. They are empty when the stop is not cancelled. The type
+  follows from the channel. The list of categories is not fixed, and the institution portal often
+  gives no category
+- `chauffør`, the id of the driver of the route in the planning system. It is personal data about
+  the driver ([ADR 006](adr/006-keep-a-copy-of-each-imported-row.md)). Never show it, or write it to
+  a log or to the output of a command. The mapping names it in `hidden_columns`, so the detail
+  pages of a row show `(skjult)` in place of the value
 - `prisprminut`, the price per minute, for the cost of empty running
 - `passengers`, the passengers after the stop before the cancellations are removed
 - `blokstart` and `blokslut`
 
 No feature uses these columns yet. A later feature can add typed fields for them, and fill the
 fields from the copies.
+
+**Columns that are not kept yet:** `vogn`, the vehicle id of the route. Some vehicle ids are on
+many routes at the same time, so they are not one vehicle (see "Vehicles" in
+[open decisions](#open-decisions)). The mapping keeps the column when the extract has complete
+vehicle data. Until then, the validate command shows it as a column that is not read.
 
 **Columns that are never kept:** the personal data. `PersonName`, `Adresse`, `Post-nr` and `By`
 identify a citizen. `Labels` and `Comment` can hold the needs of a citizen or free text, and that
@@ -1050,8 +1065,9 @@ The page is `/punctuality` (`PunctualityController`, `ROLE_VIEW_OVERVIEW`). The 
 the period and the comparison (see "Periods" above). `PunctualityPageBuilder` calculates the
 selected period, the comparison period and the 12 months up to the period, for the sparklines
 and the charts. `PunctualityPageDto` gives the change of each measure from the comparison
-period. The page does not show the driver changes and the no-shows of the prototype, because the
-import does not read their columns.
+period. The page does not show the driver changes and the no-shows of the prototype. The copy of
+a row keeps their columns, but the rules are open (see "Driver changes" and "No-shows" in
+[open decisions](#open-decisions)).
 
 The figures do not include the routes of an ignored sub-agreement (see "Data model"). The page
 does not name the ignored sub-agreements. A list of many references made the page difficult to
@@ -1385,10 +1401,12 @@ flowchart TD
 
 - Forms that change data use CSRF tokens. The range form of the driving data page changes no
   data, so it is a GET form with no token.
-- No page shows the person id. The driving data page shows "(skjult)" in place of the person id,
-  also in the copy of a row and when a row id column is the person id column. The mapping of the
-  upload tells which column has the person id. If the mapping no longer exists, the page shows no
-  copy. The lists cannot be sorted or filtered by a URL parameter.
+- No page shows the person id or the driver id. The driving data page shows "(skjult)" in place of
+  the person id, also in the copy of a row and when a row id column is the person id column. It
+  also shows "(skjult)" in place of the value of a hidden column of the mapping (`hidden_columns`),
+  for example the driver id. The mapping of the upload tells which columns these are. If the
+  mapping no longer exists, the page shows no copy. The lists cannot be sorted or filtered by a URL
+  parameter.
 - Uploads are limited to `.xlsx` and a maximum size. The file is kept in `var/`, outside the
   public folder, until the user confirms or cancels. The scheduled purge deletes a file that is
   older than one hour (see [Pipeline](#pipeline)). The extract can hold health data, so the file
@@ -1605,8 +1623,8 @@ coverage gate and mutation testing on the production code.
 - **Maximum range (answered).** The planning system exports one day at a time. The users upload
   one day or one week, so the default of `APP_DRIVING_DATA_MAX_DAYS` is 7 days.
 - **Route column.** Which column identifies a route: the route name or the route id? The route id
-  can be an id for one day only. The `default` mapping uses the route name until this is
-  confirmed. The product owner in the transport office answers before go-live.
+  can be an id for one day only, and the current report does not export it. The `default` mapping
+  uses the route name until this is confirmed. The product owner in the transport office answers before go-live.
 - **Supplier mapping (answered).** A route belongs to the sub-agreement in its name: the part
   before the last `-nn` or `_nn`. An administrator gives each sub-agreement one supplier. The
   supplier applies to all dates. See the terms in [Data model](#data-model).
@@ -1651,16 +1669,21 @@ coverage gate and mutation testing on the production code.
   office answers before go-live.
 - **Booked time.** Must a pickup be measured against the time that the citizen booked
   (`RequestTimePref`), not the planned departure? In the reference extract, the booked time is in
-  only 70 of 139 pickups. The product owner in the transport office answers before go-live.
+  only 70 of 139 pickups. The current report does not export the booked time, so the report must
+  add it first. The product owner in the transport office answers before go-live.
 - **Driver changes.** The prototype shows how many times another driver than the fixed driver
-  drove a route run. The extract has no column for the driver. Can the planning system export
-  one? The application must not store data about a driver as a person. The product owner in the
-  transport office answers before the punctuality page can show the driver changes.
+  drove a route run. The extract has the driver id of each route (`chauffør`), and the copy of a
+  row keeps it (#177). Each route has one driver on a day. Which rule finds the fixed driver of a
+  route? For example, the driver who drives the route on the most days of the period. The
+  application never shows a driver id. The product owner in the transport office answers before
+  the punctuality page can show the driver changes.
 - **No-shows.** The prototype shows, for each supplier, the trips where the car came but the
-  citizen was not there. The extract has the status `Served`, `Cancelled` and `Pending`. Is a
-  no-show one of these, a cancellation code, or a column that the extract does not have? The
-  product owner in the transport office answers before the punctuality page can show the
-  no-shows.
+  citizen was not there. The copy of a row keeps the type and the category of a cancellation
+  (#177). The category `NoShow` comes from the driver app, the office portal and the institution
+  portal. The type `Passenger did not show up` comes from the driver app, and it also has the
+  category `Afbud ved dør`. Is a no-show the category `NoShow`, the type
+  `Passenger did not show up`, or both? The product owner in the transport office answers before
+  the pages can show the no-shows.
 - **Cancellation notice.** The extract has the notice of a cancellation (`aflysningsvarsel`) and
   a code that tells if the notice was in time (`RettidigAflysningsvarsel`). The report script of
   the transport office calculates them:
@@ -1675,17 +1698,30 @@ coverage gate and mutation testing on the production code.
   - The code checks only for an earlier date. A cancellation that is registered on a later date
     than the trip, at an earlier time of day, gets "yes", because the notice from the time of day
     is then more than 60 minutes. For example, a no-show of a trip at 14:00 that is registered at
-    09:00 the next day. The activity page cannot find these rows, because the extract does not
-    have the date of the cancellation.
-  - Open: is it on purpose that the notice uses only the time of day? Can the report calculate
-    the notice from the date and the time, or add the time of the cancellation as a column? Is a
-    limit of 60 minutes before the planned arrival the rule of the contract? Must a cancellation
-    on a later date than the trip be "no"? The product owner in the transport office answers
-    before the activity page can show the notice bands.
+    09:00 the next day.
+  - Each stop uses its own planned arrival. Thus the pickup and the drop-off of one cancelled
+    trip can have different codes. The application reads the code of the pickup.
+  - The copy of a row keeps the date and the time of the cancellation (`aflysningstidspunkt`).
+    Thus a feature can calculate the notice from the date and the time, and find a cancellation
+    on a later date.
+  - Open: can the report calculate the notice from the date and the time? Is a limit of 60
+    minutes before the planned arrival the rule of the contract? Must a cancellation on a later
+    date than the trip be "no"? The product owner in the transport office answers before the
+    activity page can show the notice bands.
 - **Cancellation cause.** The prototype shows who cancelled a trip (for example the citizen, the
-  institution or the supplier), and why. The extract has no columns for this. Can the transport
-  office make an extract with these fields? The product owner in the transport office answers
-  before the activity page can show who cancels and why.
+  institution, the transport office or the supplier), and why. The copy of a row keeps the
+  channel, the type and the category of a cancellation (#177). The channels are `Passenger app`,
+  `Driver app`, `Office portal`, `Institution portal` and `System`. How do the channels map to
+  the groups of the prototype? Is the driver app the supplier? The category gives the reason, but
+  the institution portal often gives no category. The product owner in the transport office
+  answers before the activity page can show who cancels and why.
+- **Vehicles.** The management page of the prototype shows the number of vehicles. The extract
+  has the vehicle id of each route (`vogn`). Some vehicle ids are on many routes at the same
+  time, and these routes have their own drivers. Thus such an id is not one vehicle. What are
+  these vehicle records: placeholders such as vehicle profiles, or outsourced routes? Does the
+  planning system record the real vehicle of these routes in a different place? The mapping does
+  not keep `vogn` until the extract has complete vehicle data. The product owner in the transport
+  office answers before the management page can show the number of vehicles.
 - **Partial month.** The overview and the punctuality page compare the current month, which is
   not complete, with all of the previous month. On 20 January, the trips of 20 days are compared
   with the trips of 31 days, so the change is too negative. The options: compare the same days of

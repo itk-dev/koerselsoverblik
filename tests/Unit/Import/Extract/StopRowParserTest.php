@@ -245,6 +245,33 @@ final class StopRowParserTest extends TestCase
     }
 
     /**
+     * The default mapping keeps the time, the channel, the type and the category of a
+     * cancellation, and the driver id. The time is a date cell, so the copy keeps it as a date and
+     * a time.
+     */
+    public function testCopyKeepsTheCancellationAndTheDriverColumns(): void
+    {
+        $scenario = new ScenarioLoader()->load(self::SCENARIOS.'/base.yaml');
+        $row = $scenario->rows[0];
+        new ExtractWriter()->write($this->path, self::defaultMapping(), [new ExtractRow($row->values, $row->rowId, $row->raw, [
+            'aflysningstidspunkt' => new \DateTimeImmutable('2026-01-04 14:05:00'),
+            'afbestillingskanal' => 'Office portal',
+            'aflysningstype' => 'Other reasons',
+            'aflysningskategori' => 'Afbestilt tidligt',
+            'chauffør' => '123',
+        ])]);
+
+        [$rows] = $this->parse(self::defaultMapping(), self::range($scenario));
+
+        self::assertCount(1, $rows);
+        self::assertSame(['datetime' => '2026-01-04 14:05:00.000000'], $rows[0]->sourceValues['aflysningstidspunkt']);
+        self::assertSame('Office portal', $rows[0]->sourceValues['afbestillingskanal']);
+        self::assertSame('Other reasons', $rows[0]->sourceValues['aflysningstype']);
+        self::assertSame('Afbestilt tidligt', $rows[0]->sourceValues['aflysningskategori']);
+        self::assertSame('123', $rows[0]->sourceValues['chauffør']);
+    }
+
+    /**
      * A row id column is in the copy one time, also when it is the column of a field.
      */
     public function testCopyHasTheRowIdColumns(): void

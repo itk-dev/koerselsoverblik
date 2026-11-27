@@ -25,6 +25,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  *     header_row: int,
  *     row_id: list<string>,
  *     keep_columns: list<string>,
+ *     hidden_columns: list<string>,
  *     exclude_columns: list<string>,
  *     fields: array<string, FieldConfig>,
  * }
@@ -43,6 +44,9 @@ final class MappingConfiguration implements ConfigurationInterface
             // The other columns that the copy of a row keeps. See "Keep a copy of each imported row"
             // in docs/architecture.md.
             ->arrayNode('keep_columns')->stringPrototype()->cannotBeEmpty()->end()->end()
+            // The kept columns with personal data, for example the driver id. A page never shows
+            // their values. The person id is always hidden, so it is not in this list.
+            ->arrayNode('hidden_columns')->stringPrototype()->cannotBeEmpty()->end()->end()
             // The columns that the mapping leaves out on purpose, for example the personal data. The
             // copy never keeps them, and the validate command does not show them as not read.
             ->arrayNode('exclude_columns')->stringPrototype()->cannotBeEmpty()->end()->end()
@@ -162,7 +166,7 @@ final class MappingConfiguration implements ConfigurationInterface
      */
     private static function checkColumnNames(array $mapping): array
     {
-        foreach ([...array_column($mapping['fields'], 'column'), ...$mapping['row_id'], ...$mapping['keep_columns'], ...$mapping['exclude_columns']] as $column) {
+        foreach ([...array_column($mapping['fields'], 'column'), ...$mapping['row_id'], ...$mapping['keep_columns'], ...$mapping['hidden_columns'], ...$mapping['exclude_columns']] as $column) {
             if (trim($column) !== $column) {
                 throw new \InvalidArgumentException(\sprintf('The column "%s" has a space at the start or the end.', $column));
             }
@@ -174,19 +178,26 @@ final class MappingConfiguration implements ConfigurationInterface
     /**
      * The copy of a row holds the field columns and the row id columns. A kept column is one of
      * the other columns, so that each column is in the copy one time. An excluded column is never
-     * in the copy, so it is none of these columns.
+     * in the copy, so it is none of these columns. A hidden column is a kept column, so that a
+     * misspelt name does not leave the real column visible.
      *
      * @param MappingConfig $mapping
      *
      * @return MappingConfig
      *
-     * @throws \InvalidArgumentException if a kept or excluded column is in its list more than one time, or is also a column of the copy
+     * @throws \InvalidArgumentException if a kept, hidden or excluded column is in its list more than one time, a kept or excluded column is also a column of the copy, or a hidden column is not a kept column
      */
     private static function checkColumnLists(array $mapping): array
     {
         $mappedColumns = [...array_column($mapping['fields'], 'column'), ...$mapping['row_id']];
         self::checkColumnList($mapping['keep_columns'], 'keep_columns', $mappedColumns, 'a field column or a row id column');
         self::checkColumnList($mapping['exclude_columns'], 'exclude_columns', [...$mappedColumns, ...$mapping['keep_columns']], 'a field column, a row id column or a kept column');
+        self::checkUnique($mapping['hidden_columns'], 'hidden_columns');
+        foreach ($mapping['hidden_columns'] as $column) {
+            if (!\in_array($column, $mapping['keep_columns'], true)) {
+                throw new \InvalidArgumentException(\sprintf('The column "%s" in "hidden_columns" is not a kept column.', $column));
+            }
+        }
 
         return $mapping;
     }
@@ -199,15 +210,25 @@ final class MappingConfiguration implements ConfigurationInterface
      */
     private static function checkColumnList(array $columns, string $key, array $otherColumns, string $otherDescription): void
     {
-        foreach (array_count_values($columns) as $column => $count) {
-            if ($count > 1) {
-                throw new \InvalidArgumentException(\sprintf('The column "%s" is in "%s" more than one time.', $column, $key));
-            }
-        }
+        self::checkUnique($columns, $key);
 
         foreach ($columns as $column) {
             if (\in_array($column, $otherColumns, true)) {
                 throw new \InvalidArgumentException(\sprintf('The column "%s" in "%s" is %s.', $column, $key, $otherDescription));
+            }
+        }
+    }
+
+    /**
+     * @param list<string> $columns the columns of the list
+     *
+     * @throws \InvalidArgumentException if a column is in the list more than one time
+     */
+    private static function checkUnique(array $columns, string $key): void
+    {
+        foreach (array_count_values($columns) as $column => $count) {
+            if ($count > 1) {
+                throw new \InvalidArgumentException(\sprintf('The column "%s" is in "%s" more than one time.', $column, $key));
             }
         }
     }

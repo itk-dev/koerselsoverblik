@@ -18,6 +18,7 @@ final readonly class MappingDto
      * @param array<string, FieldMappingDto> $fields         keyed by the FieldName value
      * @param list<string>                   $keepColumns    the other columns that the copy of a row keeps
      * @param list<string>                   $excludeColumns the columns that the mapping leaves out on purpose
+     * @param list<string>                   $hiddenColumns  the kept columns whose values a page never shows
      */
     public function __construct(
         public string $name,
@@ -27,6 +28,7 @@ final readonly class MappingDto
         private array $fields,
         public array $keepColumns = [],
         public array $excludeColumns = [],
+        public array $hiddenColumns = [],
     ) {
     }
 
