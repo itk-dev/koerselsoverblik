@@ -674,14 +674,12 @@ report first. The kept columns are:
 - `prisprminut`, the price per minute, for the cost of empty running
 - `passengers`, the passengers after the stop before the cancellations are removed
 - `blokstart` and `blokslut`
+- `vogn`, `vogntype`, `chaufførtype` and `operatør`, for the number of vehicles. A vehicle
+  profile (`vogntype` is `Profile`) is on many routes at the same time, so its `vogn` is not one
+  vehicle (see "Number of vehicles" in [open decisions](#open-decisions))
 
 No feature uses these columns yet. A later feature can add typed fields for them, and fill the
 fields from the copies.
-
-**Columns that are not kept yet:** `vogn`, the vehicle id of the route. Some vehicle ids are on
-many routes at the same time, so they are not one vehicle (see "Vehicles" in
-[open decisions](#open-decisions)). The mapping keeps the column when the extract has complete
-vehicle data. Until then, the validate command shows it as a column that is not read.
 
 **Columns that are never kept:** the personal data. `PersonName`, `Adresse`, `Post-nr` and `By`
 identify a citizen. `Labels` and `Comment` can hold the needs of a citizen or free text, and that
@@ -1672,11 +1670,16 @@ coverage gate and mutation testing on the production code.
   only 70 of 139 pickups. The current report does not export the booked time, so the report must
   add it first. The product owner in the transport office answers before go-live.
 - **Driver changes.** The prototype shows how many times another driver than the fixed driver
-  drove a route run. The extract has the driver id of each route (`chauffør`), and the copy of a
-  row keeps it (#177). Each route has one driver on a day. Which rule finds the fixed driver of a
-  route? For example, the driver who drives the route on the most days of the period. The
-  application never shows a driver id. The product owner in the transport office answers before
-  the punctuality page can show the driver changes.
+  drove a route run. The extract has the driver id of each route (`chauffør`) and the driver type
+  (`chaufførtype`), and the copy of a row keeps them (#177, #181). A route has one driver on a
+  day. The type is `Person` for almost all routes. A few routes have a driver profile (`Profile`),
+  whose id is shared by many routes, or no driver. Only a driver with the type `Person` is a
+  driver for this figure. Else the change from a profile to a person looks like a driver change.
+  Open: which rule finds the fixed driver of a route? For example, the person who drives the
+  route on the most days of the period. How does a day with a driver profile or with no driver
+  count: as no change, or as a case of its own? The application never shows a driver id. The
+  product owner in the transport office answers before the punctuality page can show the driver
+  changes.
 - **No-shows.** The prototype shows, for each supplier, the trips where the car came but the
   citizen was not there. The copy of a row keeps the type and the category of a cancellation
   (#177). The category `NoShow` comes from the driver app, the office portal and the institution
@@ -1715,13 +1718,26 @@ coverage gate and mutation testing on the production code.
   the groups of the prototype? Is the driver app the supplier? The category gives the reason, but
   the institution portal often gives no category. The product owner in the transport office
   answers before the activity page can show who cancels and why.
-- **Vehicles.** The management page of the prototype shows the number of vehicles. The extract
-  has the vehicle id of each route (`vogn`). Some vehicle ids are on many routes at the same
-  time, and these routes have their own drivers. Thus such an id is not one vehicle. What are
-  these vehicle records: placeholders such as vehicle profiles, or outsourced routes? Does the
-  planning system record the real vehicle of these routes in a different place? The mapping does
-  not keep `vogn` until the extract has complete vehicle data. The product owner in the transport
-  office answers before the management page can show the number of vehicles.
+- **Number of vehicles.** "Biler" on the management page shows the number of vehicles that drive
+  each day, for each supplier. The sources are `vogn`, `vogntype`, `chauffør`, `chaufførtype` and
+  `operatør` (#177, #181):
+  - `vogn` cannot give the number. Most routes have a vehicle profile (`vogntype` is `Profile`),
+    not a physical vehicle (`Vehicle`). One profile can be on many routes at the same time. A
+    profile has no supplier.
+  - `operatør` is the id of the supplier of the contract of the route (`HaulierID`). It gives the
+    supplier also when the route has a vehicle profile.
+  - The best estimate for each supplier and day: the number of distinct `chauffør` where
+    `chaufførtype` is `Person`, plus the number of routes with a driver profile or with no driver.
+    Such a route counts as one vehicle, because the profile id is shared by many routes. A driver
+    who drives two routes after each other counts one time.
+  - The number of distinct `vogn` where `vogntype` is `Vehicle` is the number of registered
+    physical vehicles. It is lower than the true number for most suppliers.
+  - The booked trips ("Turbestilling") have an operator and a vehicle profile, but the
+    sub-agreement has no supplier in the application, and an administrator ignores it. Thus the
+    figure leaves them out, as the other figures do, also when the operator gives a supplier.
+  - Open: does the transport office accept the estimate? How does `operatør` map to the suppliers
+    of the application? The product owner in the transport office answers before the management
+    page can show "Biler".
 - **Partial month.** The overview and the punctuality page compare the current month, which is
   not complete, with all of the previous month. On 20 January, the trips of 20 days are compared
   with the trips of 31 days, so the change is too negative. The options: compare the same days of

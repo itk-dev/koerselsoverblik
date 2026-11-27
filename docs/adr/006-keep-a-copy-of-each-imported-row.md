@@ -63,6 +63,14 @@ upload it again.
   never shows the driver id, or writes it to a log or to the output of a command. The mapping
   names it in `hidden_columns`, so the detail pages of a row show `(skjult)` in place of the
   value, as for the person id.
+- **The vehicle and the operator:** the copy keeps the vehicle id (`vogn`), the vehicle type
+  (`vogntype`), the driver type (`chaufførtype`) and the operator id (`operatør`) (#181). They
+  are not personal data for the application, so they are not hidden. The vehicle id is an id of
+  the planning system, not the registration number. The operator is the supplier, which the
+  pages already show by name. A supplier with one driver is a person, so a vehicle or an operator
+  can point to that driver. The figures show these columns only as counts for each supplier. The
+  detail pages of a stop row and a rejected row show their values, but the driver id and the
+  person id on these pages show as `(skjult)`.
 - **The ids of the planning system** (trips, addresses, locations, places and cancellations) are
   kept. They mean nothing outside the planning system. The mapping keeps only the columns of the
   current report. A column that the report does not export is not in the mapping (#177).

@@ -25,9 +25,17 @@ keep_columns:
     - afbestillingskanal
     - aflysningstype
     - aflysningskategori
+    # The id of the vehicle of the route in the planning system. A vehicle profile is on many
+    # routes at the same time, so it is not one vehicle (see "vogntype").
+    - vogn
     # The id of the driver of the route in the planning system. Never show it, or write it to a
     # log or to the output of a command (ADR 006). It is in "hidden_columns".
     - chauffør
+    # For the number of vehicles (#181): "Profile" or "Vehicle", "Person" or "Profile", and the id
+    # of the supplier of the contract of the route.
+    - vogntype
+    - chaufførtype
+    - operatør
 # The kept columns with personal data. The pages show "(skjult)" in place of the value.
 hidden_columns: [chauffør]
 # The personal data of the extract (ADR 004 and ADR 006). The current report does not export these

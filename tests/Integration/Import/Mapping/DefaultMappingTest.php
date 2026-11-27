@@ -30,18 +30,19 @@ final class DefaultMappingTest extends KernelTestCase
         self::assertSame(['RouteStopID'], $mapping->rowId);
         // The copy of a row keeps the other columns, but never the personal data (ADR 004).
         // The list has only the columns of the current report.
-        self::assertCount(16, $mapping->keepColumns);
+        self::assertCount(20, $mapping->keepColumns);
         self::assertContains('TripID', $mapping->keepColumns);
         self::assertContains('blokstart', $mapping->keepColumns);
         self::assertNotContains('PlannedArrival', $mapping->keepColumns);
-        // No feature uses these columns of the prototype yet, so they are not fields.
-        foreach (['passengers', 'prisprminut', 'aflysningsvarsel', 'aflysningstidspunkt', 'afbestillingskanal', 'aflysningstype', 'aflysningskategori', 'chauffør'] as $column) {
+        // No feature uses these columns of the prototype yet, so they are not fields. The vehicle
+        // id, the vehicle type, the driver type and the operator are for the number of vehicles
+        // (#181).
+        foreach (['passengers', 'prisprminut', 'aflysningsvarsel', 'aflysningstidspunkt', 'afbestillingskanal', 'aflysningstype', 'aflysningskategori', 'chauffør', 'vogn', 'vogntype', 'chaufførtype', 'operatør'] as $column) {
             self::assertContains($column, $mapping->keepColumns);
         }
-        // The driver id is personal data, so the pages never show it.
+        // The driver id is personal data, so the pages never show it. ADR 006 tells why the
+        // vehicle and the operator columns are not hidden.
         self::assertSame(['chauffør'], $mapping->hiddenColumns);
-        // Some vehicle ids are not one vehicle, so the copy does not keep the column yet.
-        self::assertNotContains('vogn', $mapping->keepColumns);
         // The code of a late cancellation is a field, so it is not also a kept column. It is
         // optional, so that a new code gives a warning and does not reject the row.
         self::assertNotContains('RettidigAflysningsvarsel', $mapping->keepColumns);

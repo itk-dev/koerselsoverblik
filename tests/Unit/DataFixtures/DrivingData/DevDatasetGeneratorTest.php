@@ -205,6 +205,57 @@ final class DevDatasetGeneratorTest extends TestCase
     }
 
     /**
+     * The rows have the vehicle type, the driver type and the operator, with the values of the
+     * extract. All rows of a route and day have the same values, also the vehicle id and the
+     * driver id. Each supplier has one operator, and one supplier has no physical vehicle. The
+     * booked trips have no driver.
+     */
+    public function testRowsHaveTheVehicleTypeTheDriverTypeAndTheOperator(): void
+    {
+        /** @var array<string, array<string, true>> $routeDays the crew values of each route and day */
+        $routeDays = [];
+        /** @var array<string, array<string, true>> $operators */
+        $operators = [];
+        /** @var array<string, array<string, true>> $vehicleTypes */
+        $vehicleTypes = [];
+        /** @var array<string, int> $driverTypes */
+        $driverTypes = [];
+        foreach (self::generate(self::SCHOOL_WEEK) as $row) {
+            $route = self::string($row, 'route');
+            [$vehicle, $driver, $operator] = [self::optionalKept($row, 'vogntype'), self::optionalKept($row, 'chaufførtype'), $row->kept['operatør']];
+            // Each route has a vehicle, also a booked trip.
+            self::assertContains($vehicle, ['Profile', 'Vehicle']);
+            self::assertContains($driver, ['Person', 'Profile', null]);
+            // The extract has the operator id as text.
+            self::assertIsString($operator);
+            if (DevDatasetGenerator::BOOKED_ROUTE === $route) {
+                self::assertNull($driver);
+                continue;
+            }
+            $crew = [self::optionalKept($row, 'vogn'), self::optionalKept($row, 'chauffør'), $vehicle, $driver, $operator];
+            $routeDays[$route.' '.self::date($row, 'service_date')->format('Y-m-d')][implode('/', array_map(strval(...), $crew))] = true;
+            $supplier = DevDatasetGenerator::SUPPLIERS[SubAgreementReference::fromRouteName($route)] ?? null;
+            if (null !== $supplier) {
+                $operators[$supplier][$operator] = true;
+                $vehicleTypes[$supplier][(string) $vehicle] = true;
+                $driverTypes[(string) $driver] = 1;
+            }
+        }
+
+        foreach ($routeDays as $crews) {
+            self::assertCount(1, $crews);
+        }
+        // Each of the four suppliers has one operator, and no other supplier has it.
+        $ids = array_merge(...array_map(array_keys(...), array_values($operators)));
+        self::assertCount(4, $operators);
+        self::assertCount(4, $ids);
+        self::assertCount(4, array_unique($ids));
+        self::assertArrayNotHasKey('Vehicle', $vehicleTypes['Vognmand B'] ?? []);
+        self::assertArrayHasKey('Vehicle', $vehicleTypes['Vognmand A'] ?? []);
+        self::assertSame(['', 'Person', 'Profile'], self::sortedKeys($driverTypes));
+    }
+
+    /**
      * Only a cancelled stop has the time, the channel, the type and the category of the
      * cancellation. The institution portal can give no category. Some trips are cancelled on the
      * day before, and the code "in time" is then "yes".
@@ -271,28 +322,73 @@ final class DevDatasetGeneratorTest extends TestCase
     }
 
     /**
-     * One driver drives all runs of a route on a day. Another driver than the fixed driver drives
-     * a route on some days, so that the driver changes can be shown.
+     * A route with no driver type has no driver id. All driver profiles have one shared id.
+     * Another person than the fixed driver drives a route on some days, so that the driver
+     * changes can be shown.
      */
-    public function testRouteHasOneDriverOnADay(): void
+    public function testDriverIdFollowsTheDriverType(): void
     {
-        $drivers = [];
+        $persons = [];
+        $profiles = [];
         foreach (self::generate(self::SCHOOL_WEEK) as $row) {
             $driver = $row->kept['chauffør'];
-            self::assertIsString($driver);
-            if (DevDatasetGenerator::BOOKED_ROUTE !== $row->values['route']) {
-                $drivers[self::string($row, 'route')][self::date($row, 'service_date')->format('Y-m-d')][$driver] = true;
+            self::assertSame(null === $row->kept['chaufførtype'], null === $driver);
+            if ('Profile' === $row->kept['chaufførtype']) {
+                $profiles[self::string($row, 'route')] = self::optionalKept($row, 'chauffør');
+            }
+            if ('Person' === $row->kept['chaufførtype']) {
+                self::assertIsString($driver);
+                $persons[self::string($row, 'route')][self::date($row, 'service_date')->format('Y-m-d')] = $driver;
             }
         }
 
         $changes = 0;
-        foreach ($drivers as $days) {
-            foreach ($days as $driversOfDay) {
-                self::assertCount(1, $driversOfDay);
-            }
-            $changes += \count(array_unique(array_map(array_key_first(...), $days))) - 1;
+        foreach ($persons as $days) {
+            $changes += \count(array_unique($days)) - 1;
         }
         self::assertGreaterThan(0, $changes);
+        self::assertGreaterThan(1, \count($profiles));
+        self::assertSame([DevDatasetGenerator::DRIVER_PROFILE], array_values(array_unique($profiles)));
+    }
+
+    /**
+     * The vehicle type follows the route, not the day, because a supplier registers the vehicle of
+     * a route one time.
+     */
+    public function testRouteKeepsItsVehicleTypeOnAllDays(): void
+    {
+        $types = [];
+        foreach (self::generate(self::SCHOOL_WEEK) as $row) {
+            if (DevDatasetGenerator::BOOKED_ROUTE !== $row->values['route']) {
+                $types[self::string($row, 'route')][(string) self::optionalKept($row, 'vogntype')] = true;
+            }
+        }
+
+        self::assertNotEmpty($types);
+        foreach ($types as $routeTypes) {
+            self::assertCount(1, $routeTypes);
+        }
+    }
+
+    /**
+     * A vehicle profile is on many routes at the same time, as in the real data. A physical
+     * vehicle is on one route.
+     */
+    public function testVehicleProfileIsOnManyRoutes(): void
+    {
+        $routes = ['Profile' => [], 'Vehicle' => []];
+        foreach (self::rowsByDay(self::generate(self::SCHOOL_WEEK))['2026-09-15'] as $row) {
+            $type = $row->kept['vogntype'];
+            self::assertIsString($type);
+            self::assertIsString($row->kept['vogn']);
+            $routes[$type][$row->kept['vogn']][self::string($row, 'route')] = true;
+        }
+
+        self::assertNotEmpty(array_filter($routes['Profile'], static fn (array $names): bool => \count($names) > 1));
+        self::assertNotEmpty($routes['Vehicle']);
+        foreach ($routes['Vehicle'] as $names) {
+            self::assertCount(1, $names);
+        }
     }
 
     /**
@@ -449,6 +545,19 @@ final class DevDatasetGeneratorTest extends TestCase
         sort($keys);
 
         return $keys;
+    }
+
+    /**
+     * Gives the value of a kept text column, or null if it is empty.
+     */
+    private static function optionalKept(ExtractRow $row, string $column): ?string
+    {
+        $value = $row->kept[$column] ?? null;
+        if (null !== $value) {
+            self::assertIsString($value);
+        }
+
+        return $value;
     }
 
     private static function string(ExtractRow $row, string $field): string
