@@ -173,4 +173,4 @@ the documentation changes with no issue. [CHANGELOG.md](../../CHANGELOG.md) has 
 | Review follow-up of the driving activity page | [#165](https://github.com/itk-dev/koerselsoverblik/issues/165) | [#166](https://github.com/itk-dev/koerselsoverblik/pull/166) |
 | Show the late cancellations on the driving activity page | [#167](https://github.com/itk-dev/koerselsoverblik/issues/167) | [#168](https://github.com/itk-dev/koerselsoverblik/pull/168) |
 | Read the stored copies again through a changed mapping | [#61](https://github.com/itk-dev/koerselsoverblik/issues/61) | – |
-| Keep the vehicle type, driver type and operator columns of the extract | [#181](https://github.com/itk-dev/koerselsoverblik/issues/181) | – |
+| Keep the vehicle type, driver type and operator columns of the extract | [#181](https://github.com/itk-dev/koerselsoverblik/issues/181) | [#182](https://github.com/itk-dev/koerselsoverblik/pull/182) |
