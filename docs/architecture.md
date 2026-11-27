@@ -669,7 +669,8 @@ report first. The kept columns are:
   gives no category
 - `chauffør`, the id of the driver of the route in the planning system. It is personal data about
   the driver ([ADR 006](adr/006-keep-a-copy-of-each-imported-row.md)). Never show it, or write it to
-  a log or to the output of a command
+  a log or to the output of a command. The mapping names it in `hidden_columns`, so the detail
+  pages of a row show `(skjult)` in place of the value
 - `prisprminut`, the price per minute, for the cost of empty running
 - `passengers`, the passengers after the stop before the cancellations are removed
 - `blokstart` and `blokslut`
@@ -1400,10 +1401,12 @@ flowchart TD
 
 - Forms that change data use CSRF tokens. The range form of the driving data page changes no
   data, so it is a GET form with no token.
-- No page shows the person id. The driving data page shows "(skjult)" in place of the person id,
-  also in the copy of a row and when a row id column is the person id column. The mapping of the
-  upload tells which column has the person id. If the mapping no longer exists, the page shows no
-  copy. The lists cannot be sorted or filtered by a URL parameter.
+- No page shows the person id or the driver id. The driving data page shows "(skjult)" in place of
+  the person id, also in the copy of a row and when a row id column is the person id column. It
+  also shows "(skjult)" in place of the value of a hidden column of the mapping (`hidden_columns`),
+  for example the driver id. The mapping of the upload tells which columns these are. If the
+  mapping no longer exists, the page shows no copy. The lists cannot be sorted or filtered by a URL
+  parameter.
 - Uploads are limited to `.xlsx` and a maximum size. The file is kept in `var/`, outside the
   public folder, until the user confirms or cancels. The scheduled purge deletes a file that is
   older than one hour (see [Pipeline](#pipeline)). The extract can hold health data, so the file

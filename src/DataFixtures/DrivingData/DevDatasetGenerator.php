@@ -97,24 +97,27 @@ final readonly class DevDatasetGenerator
     private const int PENDING = 4;
 
     /**
-     * The channel, the type and the category of a cancellation, with a weight. The weights are
-     * invented. The type follows from the channel. The institution portal often gives no
-     * category.
+     * The channel, the type and the category of a cancellation, with a weight, and the fewest and
+     * the most minutes of the cancellation before the first pickup of the run. A negative number
+     * is after the pickup. The weights and the minutes are invented. The type follows from the
+     * channel. The institution portal often gives no category. The driver registers a no-show at
+     * the door, near the pickup. An early cancellation comes at least 2 hours before, and a late
+     * cancellation in the last hour.
      *
-     * @var list<array{string, string, ?string, int}>
+     * @var list<array{string, string, ?string, int, int, int}>
      */
     private const array CANCELLATION_CAUSES = [
-        ['Passenger app', 'By the passenger', 'Cancelled by a passenger or a relative', 30],
-        ['Driver app', 'Passenger did not show up', 'Afbud ved dør', 12],
-        ['Driver app', 'Passenger did not show up', 'NoShow', 10],
-        ['Office portal', 'Other reasons', 'Afbestilt tidligt', 14],
-        ['Office portal', 'Other reasons', 'Afbestilt sent', 6],
-        ['Office portal', 'Other reasons', 'NoShow', 3],
-        ['Institution portal', 'Other reasons', null, 12],
-        ['Institution portal', 'Other reasons', 'Afbestilt tidligt', 5],
-        ['Institution portal', 'Other reasons', 'NoShow', 2],
-        ['System', 'By trip request', 'Trip request has expired', 4],
-        ['System', 'By trip request', 'Trip is paused', 2],
+        ['Passenger app', 'By the passenger', 'Cancelled by a passenger or a relative', 30, 30, 2400],
+        ['Driver app', 'Passenger did not show up', 'Afbud ved dør', 12, -15, 10],
+        ['Driver app', 'Passenger did not show up', 'NoShow', 10, -30, 5],
+        ['Office portal', 'Other reasons', 'Afbestilt tidligt', 14, 120, 2400],
+        ['Office portal', 'Other reasons', 'Afbestilt sent', 6, 0, 60],
+        ['Office portal', 'Other reasons', 'NoShow', 3, -60, 0],
+        ['Institution portal', 'Other reasons', null, 12, 30, 2400],
+        ['Institution portal', 'Other reasons', 'Afbestilt tidligt', 5, 120, 2400],
+        ['Institution portal', 'Other reasons', 'NoShow', 2, -60, 0],
+        ['System', 'By trip request', 'Trip request has expired', 4, 600, 2400],
+        ['System', 'By trip request', 'Trip is paused', 2, 600, 2400],
     ];
 
     /**
@@ -227,13 +230,14 @@ final readonly class DevDatasetGenerator
         foreach ($citizens as $citizen) {
             $chance = $random->getInt(1, 100);
             $cancelled = $chance <= self::CANCELLED;
+            $cause = $cancelled ? self::CANCELLATION_CAUSES[self::weighted($random, array_column(self::CANCELLATION_CAUSES, 3))] : null;
             $trips[] = [
                 'person' => \is_string($citizen) ? $citizen : \sprintf('P-%05d', $routeIndex * self::CITIZENS_PER_ROUTE + $citizen),
                 'status' => $cancelled ? 'cancelled' : ($chance <= self::CANCELLED + self::PENDING ? 'pending' : 'completed'),
-                'cause' => $cancelled ? self::CANCELLATION_CAUSES[self::weighted($random, array_column(self::CANCELLATION_CAUSES, 3))] : null,
-                // From 2 hours after to 40 hours before the first pickup of the run, so that some
-                // trips are cancelled on the day before.
-                'cancelled at' => $cancelled ? $day->modify(\sprintf('%+d minutes', $start - $random->getInt(-120, 2400))) : null,
+                'cause' => $cause,
+                // Up to 40 hours before the first pickup of the run, so that some trips are
+                // cancelled on the day before.
+                'cancelled at' => null === $cause ? null : $day->modify(\sprintf('%+d minutes', $start - $random->getInt($cause[4], $cause[5]))),
             ];
         }
         $solo = $random->getInt(1, 100) <= 5;

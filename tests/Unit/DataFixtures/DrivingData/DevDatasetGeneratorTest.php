@@ -112,11 +112,14 @@ final class DevDatasetGeneratorTest extends TestCase
     /**
      * The real data has route names that are not routes: a misspelled booked-trips route, a name
      * with no separator, and notes. The dataset has them too, so that the pages must handle them.
+     *
+     * Each of these names is on a few percent of the weekdays. The test reads a whole year, so that
+     * a change of the random sequence does not remove a name from the range.
      */
     public function testDatasetHasRouteNamesThatAreNotRoutes(): void
     {
         $routes = [];
-        for ($monday = new \DateTimeImmutable('2026-08-17'); $monday < new \DateTimeImmutable('2026-12-07'); $monday = $monday->modify('+7 days')) {
+        for ($monday = new \DateTimeImmutable('2026-01-05'); $monday < new \DateTimeImmutable('2027-01-04'); $monday = $monday->modify('+7 days')) {
             foreach (self::generate($monday->format('Y-m-d')) as $row) {
                 $routes[self::string($row, 'route')] = true;
             }
@@ -237,6 +240,34 @@ final class DevDatasetGeneratorTest extends TestCase
         self::assertCount(5, $channels);
         self::assertGreaterThan(0, $earlierDay);
         self::assertGreaterThan(0, $noCategory);
+    }
+
+    /**
+     * The time of a cancellation follows its cause, so that the no-shows and the notice bands
+     * have realistic data. The driver registers a no-show at the door, on the day of the trip. An
+     * early cancellation is always in time. Some late cancellations are too late.
+     */
+    public function testCancellationTimeFollowsTheCause(): void
+    {
+        $late = [];
+        foreach (self::generate(self::SCHOOL_WEEK) as $row) {
+            if ('cancelled' !== $row->values['stop_status']) {
+                continue;
+            }
+            $cancelledAt = $row->kept['aflysningstidspunkt'];
+            self::assertInstanceOf(\DateTimeImmutable::class, $cancelledAt);
+            if ('Driver app' === $row->kept['afbestillingskanal']) {
+                self::assertSame(self::date($row, 'service_date')->format('Y-m-d'), $cancelledAt->format('Y-m-d'));
+            }
+            if ('Afbestilt tidligt' === $row->kept['aflysningskategori']) {
+                self::assertTrue($row->values['cancelled_in_time']);
+            }
+            if ('Afbestilt sent' === $row->kept['aflysningskategori']) {
+                $late[] = $row->values['cancelled_in_time'];
+            }
+        }
+
+        self::assertContains(false, $late);
     }
 
     /**

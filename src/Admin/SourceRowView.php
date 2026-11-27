@@ -10,9 +10,9 @@ use App\Import\Mapping\MappingDto;
 use Symfony\Component\Translation\TranslatableMessage;
 
 /**
- * The columns of the copy of a row, in the order of the copy. The value of the person id column
- * never shows. The mapping tells which column has the person id, so with no mapping the view has no
- * columns.
+ * The columns of the copy of a row, in the order of the copy. The values of the person id column and
+ * of the hidden columns of the mapping, for example the driver id, never show. The mapping tells
+ * which columns these are, so with no mapping the view has no columns.
  *
  * @phpstan-import-type SourceValue from SourceCells
  */
@@ -68,11 +68,12 @@ final readonly class SourceRowView
     private static function create(array $values, MappingDto $mapping, array $causes): self
     {
         $personId = $mapping->field(FieldName::PersonId)->column;
+        $hiddenColumns = [$personId, ...$mapping->hiddenColumns];
         $columns = [];
         foreach ($values as $column => $value) {
             $column = (string) $column;
             $cause = \in_array($column, $causes, true);
-            if ($column === $personId) {
+            if (\in_array($column, $hiddenColumns, true)) {
                 $columns[] = new SourceColumnDto($column, null, self::HIDDEN, true, $cause);
                 continue;
             }
@@ -84,7 +85,7 @@ final readonly class SourceRowView
         // The copy leaves out an empty cell, but an empty cause must show.
         $copied = array_map(static fn (int|string $column): string => (string) $column, array_keys($values));
         foreach (array_diff($causes, $copied) as $column) {
-            $hidden = $column === $personId;
+            $hidden = \in_array($column, $hiddenColumns, true);
             $columns[] = new SourceColumnDto($column, null, $hidden ? self::HIDDEN : 'driving_data.empty', $hidden, true);
         }
 

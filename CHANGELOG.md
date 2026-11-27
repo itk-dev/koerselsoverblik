@@ -13,10 +13,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a cancellation, and the driver id (`chauffør`). The copy keeps the time of the cancellation
   (`aflysningstidspunkt`) as a date and a time. The vehicle id (`vogn`) is not kept until the
   extract has complete vehicle data. The development dataset has the new columns, a driver for
-  each route and day, and the notice and the code "in time" from the time of the cancellation.
-  ADR 006 keeps the driver id, and the open decisions describe the new columns. The mapping no
-  longer keeps the 29 columns that the current report does not export, for example `RouteID`,
-  `RequestTimePref` and `PlannedArrival`.
+  each route and day, a time of each cancellation that follows its cause, and the notice and the
+  code "in time" from that time. ADR 006 keeps the driver id, and the open decisions describe the
+  new columns. The mapping no longer keeps the 29 columns that the current report does not
+  export, for example `RouteID`, `RequestTimePref` and `PlannedArrival`.
+  A mapping can name kept columns with personal data in `hidden_columns`. The detail pages of a
+  row show "(skjult)" in place of their values, as for the person id. The `default` mapping hides
+  the driver id.
+  The copies of the dates that are imported before this change do not have the new columns, and
+  `app:driving-data:read-copies` cannot add them. Upload these dates again to get the columns.
 
 - Moved target label to left side of the punctuality yearly overview.
 

@@ -15,10 +15,10 @@ shows the cancellations by the institution, by the direction, by the time of day
 notice. The transport office can then find the places and the times where many trips are
 cancelled.
 
-This issue needs the column `aflysningstidspunkt` (#177). The notice in `aflysningsvarsel` uses
-only the time of day of the cancellation. It is wrong for a cancellation on an earlier day, and
-it can be negative (see "Cancellation notice" in `docs/architecture.md`). The notice bands need
-the date and the time of the cancellation.
+The copy of a row keeps the column `aflysningstidspunkt` (#177). The notice in
+`aflysningsvarsel` uses only the time of day of the cancellation. It is wrong for a cancellation
+on an earlier day, and it can be negative (see "Cancellation notice" in `docs/architecture.md`).
+The notice bands need the date and the time of the cancellation.
 
 ## Tasks
 

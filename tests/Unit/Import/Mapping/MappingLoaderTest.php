@@ -43,6 +43,7 @@ final class MappingLoaderTest extends TestCase
         self::assertTrue($mapping->hasRowId());
         self::assertSame(['Note', 'Trip'], $mapping->keepColumns);
         self::assertSame(['Name'], $mapping->excludeColumns);
+        self::assertSame(['Trip'], $mapping->hiddenColumns);
 
         $route = $mapping->field(FieldName::Route);
         self::assertSame('Route', $route->column);
@@ -223,6 +224,27 @@ final class MappingLoaderTest extends TestCase
         yield 'excluded column that is a kept column' => [
             static fn (array $raw): array => self::with($raw, ['exclude_columns' => ['Note']]),
             'The column "Note" in "exclude_columns" is a field column, a row id column or a kept column.',
+        ];
+        yield 'empty hidden column' => [
+            static fn (array $raw): array => self::with($raw, ['hidden_columns' => ['Trip', '']]),
+            'The path "mapping.hidden_columns.1" cannot contain an empty value',
+        ];
+        yield 'hidden column two times' => [
+            static fn (array $raw): array => self::with($raw, ['hidden_columns' => ['Trip', 'Trip']]),
+            'The column "Trip" is in "hidden_columns" more than one time.',
+        ];
+        // A misspelt name would leave the real column visible.
+        yield 'hidden column that is not a kept column' => [
+            static fn (array $raw): array => self::with($raw, ['hidden_columns' => ['Trips']]),
+            'The column "Trips" in "hidden_columns" is not a kept column.',
+        ];
+        yield 'hidden column that is a field column' => [
+            static fn (array $raw): array => self::with($raw, ['hidden_columns' => ['Route']]),
+            'The column "Route" in "hidden_columns" is not a kept column.',
+        ];
+        yield 'hidden column with a space at the end' => [
+            static fn (array $raw): array => self::with($raw, ['hidden_columns' => ['Trip ']]),
+            'The column "Trip " has a space at the start or the end.',
         ];
         yield 'excluded column with a space at the start' => [
             static fn (array $raw): array => self::with($raw, ['exclude_columns' => [' Name']]),

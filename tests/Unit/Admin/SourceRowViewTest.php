@@ -13,7 +13,8 @@ use App\Import\Mapping\MappingDto;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The columns of the copy of a row on the detail pages. The person id never shows.
+ * The columns of the copy of a row on the detail pages. The person id and the hidden columns never
+ * show.
  */
 final class SourceRowViewTest extends TestCase
 {
@@ -55,6 +56,30 @@ final class SourceRowViewTest extends TestCase
         $view = SourceRowView::forStopRow(self::VALUES, self::mapping());
 
         self::assertHidden($view->columns[2]);
+    }
+
+    /**
+     * A hidden column of the mapping, for example the driver id, never shows its value.
+     */
+    public function testHiddenColumnIsHidden(): void
+    {
+        $view = SourceRowView::forStopRow(self::VALUES, self::mapping(hiddenColumns: ['Seats']));
+
+        self::assertSame('Seats', $view->columns[3]->column);
+        self::assertHidden($view->columns[3]);
+        self::assertHidden($view->columns[2]);
+        self::assertFalse($view->columns[1]->hidden);
+    }
+
+    /**
+     * The copy leaves out an empty cell. An empty hidden column that is the cause shows as hidden.
+     */
+    public function testEmptyHiddenColumnThatIsTheCauseIsHidden(): void
+    {
+        $view = SourceRowView::forRejectedRow([], self::mapping(['Seats'], ['Seats']), null);
+
+        self::assertTrue($view->columns[0]->cause);
+        self::assertHidden($view->columns[0]);
     }
 
     public function testRowIdThatIsThePersonIdIsHidden(): void
@@ -151,8 +176,9 @@ final class SourceRowViewTest extends TestCase
 
     /**
      * @param list<string> $rowId
+     * @param list<string> $hiddenColumns
      */
-    private static function mapping(array $rowId = ['RouteStopID']): MappingDto
+    private static function mapping(array $rowId = ['RouteStopID'], array $hiddenColumns = []): MappingDto
     {
         $fields = [];
         foreach (FieldName::cases() as $field) {
@@ -164,6 +190,6 @@ final class SourceRowViewTest extends TestCase
             $fields[$field->value] = new FieldMappingDto($column, FieldType::String, false, null, [], [], []);
         }
 
-        return new MappingDto('default', 0, 1, $rowId, $fields);
+        return new MappingDto('default', 0, 1, $rowId, $fields, hiddenColumns: $hiddenColumns);
     }
 }

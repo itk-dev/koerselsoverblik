@@ -60,7 +60,9 @@ upload it again.
 - **The driver id:** the copy keeps `chauffør`, the id of the driver of the route in the planning
   system (#177). The driver changes of a route need it. It identifies a person, so it is personal
   data about the driver. The extract has no name or other data about the driver. The application
-  never shows the driver id, or writes it to a log or to the output of a command.
+  never shows the driver id, or writes it to a log or to the output of a command. The mapping
+  names it in `hidden_columns`, so the detail pages of a row show `(skjult)` in place of the
+  value, as for the person id.
 - **The ids of the planning system** (trips, addresses, locations, places and cancellations) are
   kept. They mean nothing outside the planning system. The mapping keeps only the columns of the
   current report. A column that the report does not export is not in the mapping (#177).
